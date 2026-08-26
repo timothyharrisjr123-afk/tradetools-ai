@@ -23,7 +23,7 @@ import {
 const inputClass =
   "block min-h-[44px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30";
 
-const sectionClass = "border-t border-slate-100 px-4 py-4 sm:px-5 first:border-t-0";
+const sectionClass = "border-t border-slate-100 px-4 py-3 first:border-t-0 sm:px-5 sm:py-3.5";
 
 const labelClass = "block text-sm font-medium text-slate-700";
 
@@ -156,10 +156,11 @@ export default function CompanyPricingPolicySettingsClient({
 
   const saveDisabled = saveStatus.kind === "saving" || !isDirty;
   const showStickyFooter = isDirty || saveStatus.kind === "error" || !configured;
+  const methodNoun = form?.profitabilityType === "markup" ? "markup" : "margin";
 
   return (
     <div
-      className={`mx-auto w-full max-w-2xl space-y-5 ${showStickyFooter ? "pb-36 sm:pb-8" : "pb-6"}`}
+      className={`mx-auto w-full max-w-2xl space-y-5 ${showStickyFooter ? "pb-40 sm:pb-8" : "pb-6"}`}
       data-pricing-policy-page
     >
       {backToJobCardHref ? (
@@ -198,7 +199,7 @@ export default function CompanyPricingPolicySettingsClient({
             <div className={sectionClass}>
               <h2 className={sectionTitleClass}>Pricing method</h2>
               <p className={sectionDescClass}>How profit is applied to your costs.</p>
-              <div className="mt-3">
+              <div className="mt-2.5">
                 <label htmlFor="profitability-type" className={labelClass}>
                   Profitability type
                 </label>
@@ -222,12 +223,12 @@ export default function CompanyPricingPolicySettingsClient({
             <div className={sectionClass}>
               <h2 className={sectionTitleClass}>Profitability</h2>
               <p className={sectionDescClass}>
-                Your default margin and minimum acceptable margin.
+                Your default {methodNoun} and minimum acceptable {methodNoun}.
               </p>
-              <div className="mt-3 grid gap-4 sm:grid-cols-2">
+              <div className="mt-2.5 grid gap-3 sm:grid-cols-2 sm:gap-4">
                 <div>
                   <label htmlFor="default-pct" className={labelClass}>
-                    Default profitability %
+                    Default {methodNoun}
                   </label>
                   <input
                     id="default-pct"
@@ -241,7 +242,7 @@ export default function CompanyPricingPolicySettingsClient({
                 </div>
                 <div>
                   <label htmlFor="minimum-pct" className={labelClass}>
-                    Minimum profitability %
+                    Minimum {methodNoun}
                   </label>
                   <input
                     id="minimum-pct"
@@ -262,7 +263,7 @@ export default function CompanyPricingPolicySettingsClient({
               <p className={sectionDescClass}>
                 Sales tax charged to customers and material tax used in costs.
               </p>
-              <div className="mt-3 grid gap-4 sm:grid-cols-2">
+              <div className="mt-2.5 grid gap-3 sm:grid-cols-2 sm:gap-4">
                 <div>
                   <label htmlFor="sales-tax" className={labelClass}>
                     Sales tax rate %
@@ -296,10 +297,10 @@ export default function CompanyPricingPolicySettingsClient({
               </div>
             </div>
 
-            <div className={sectionClass}>
+            <div className={sectionClass} data-pricing-measurement-section>
               <h2 className={sectionTitleClass}>Measurement assumptions</h2>
               <p className={sectionDescClass}>How proposal quantities are interpreted.</p>
-              <dl className="mt-3 space-y-2 text-sm">
+              <dl className="mt-2.5 space-y-2 text-sm">
                 <div className="flex items-baseline justify-between gap-3">
                   <dt className="text-slate-500">Quantities</dt>
                   <dd className="font-medium text-slate-900">
@@ -321,7 +322,7 @@ export default function CompanyPricingPolicySettingsClient({
           <div
             className={`${
               showStickyFooter
-                ? "fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white px-4 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] sm:static sm:border-0 sm:bg-transparent sm:px-0 sm:py-0"
+                ? "fixed inset-x-3 bottom-3 z-30 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:static sm:inset-auto sm:rounded-none sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none sm:pb-0"
                 : "hidden sm:block"
             }`}
             data-pricing-save-footer

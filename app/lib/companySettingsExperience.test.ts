@@ -40,6 +40,7 @@ const PREFERENCES_EDITOR = read("app/tools/settings/CompanySettingsPreferencesEd
 const PAYMENTS_ROUTE = read("app/tools/settings/payments/page.tsx");
 const FOCUSED_EDITOR = read("app/components/ui/FocusedEditor.tsx");
 const APP_SHELL = read("app/tools/roofing/FieldDiveAppShell.tsx");
+const GLOBALS_CSS = read("app/globals.css");
 const PRICING_CLIENT = read("app/tools/settings/pricing/CompanyPricingPolicySettingsClient.tsx");
 const PRICING_PAGE = read("app/tools/settings/pricing/page.tsx");
 
@@ -246,7 +247,7 @@ describe("Mobile navigation", () => {
 
   test("focus is managed and restored, and the body scroll locks", () => {
     assert.match(APP_SHELL, /menuButtonRef\.current\?\.focus\(\)/);
-    assert.match(APP_SHELL, /sheetCloseRef\.current\?\.focus\(\)/);
+    assert.match(APP_SHELL, /sheetPanelRef\.current\?\.focus/);
     assert.match(APP_SHELL, /document\.body\.style\.overflow = "hidden"/);
     assert.match(APP_SHELL, /document\.body\.style\.overflow = previousOverflow/);
   });
@@ -311,7 +312,7 @@ describe("Pricing visual normalization", () => {
   test("Pricing is one save concept and single column on mobile", () => {
     assert.equal((PRICING_CLIENT.match(/onClick=\{handleSave\}/g) ?? []).length, 1);
     assert.match(PRICING_CLIENT, /Save pricing rules/);
-    assert.match(PRICING_CLIENT, /fixed inset-x-0 bottom-0/);
+    assert.match(PRICING_CLIENT, /fixed inset-x-3 bottom-3/);
   });
 
   test("pricing truth and validation are unchanged", () => {
@@ -373,9 +374,44 @@ describe("Pricing visual normalization", () => {
   });
 
   test("focused editor close control is restrained", () => {
-    assert.match(FOCUSED_EDITOR, /h-4 w-4/);
+    assert.match(FOCUSED_EDITOR, /FOCUSED_EDITOR_CLOSE/);
+    assert.match(FOCUSED_EDITOR, /min-h-\[44px\]/);
     assert.match(FOCUSED_EDITOR, /text-slate-400/);
+    assert.match(FOCUSED_EDITOR, /tabIndex=\{-1\}/);
+    assert.match(FOCUSED_EDITOR, /data-focused-editor-close/);
+    assert.doesNotMatch(FOCUSED_EDITOR, /closeRef\.current\?\.focus/);
+    assert.doesNotMatch(FOCUSED_EDITOR, /FOCUSED_EDITOR_CLOSE =\s*\n\s*"[^"]*ring-blue-500/);
     assert.doesNotMatch(FOCUSED_EDITOR, /border border-slate-200.*Close/);
+    assert.match(APP_SHELL, /QUIET_CLOSE/);
+    assert.match(GLOBALS_CSS, /data-focused-editor-close/);
+    assert.match(GLOBALS_CSS, /box-shadow: none !important/);
+    assert.doesNotMatch(
+      APP_SHELL,
+      /data-fielddive-mobile-nav-close[\s\S]{0,200}ring-blue-500/
+    );
+  });
+
+  test("short focused editors size to their content", () => {
+    assert.match(FOCUSED_EDITOR, /sm:bottom-auto/);
+    assert.match(FOCUSED_EDITOR, /sm:inset-x-auto/);
+    assert.match(FOCUSED_EDITOR, /sm:w-\[26rem\]/);
+    assert.match(FOCUSED_EDITOR, /h-auto/);
+    assert.doesNotMatch(
+      FOCUSED_EDITOR,
+      /data-focused-editor-body[\s\S]{0,160}flex-1/
+    );
+  });
+
+  test("pricing labels follow the selected method", () => {
+    assert.match(PRICING_CLIENT, /Default \{methodNoun\}/);
+    assert.match(PRICING_CLIENT, /Minimum \{methodNoun\}/);
+    assert.doesNotMatch(PRICING_CLIENT, /Default profitability %/);
+  });
+
+  test("branding uses one identity preview", () => {
+    assert.match(BRANDING_EDITOR, /data-branding-identity-preview/);
+    assert.equal((BRANDING_EDITOR.match(/data-branding-identity-preview/g) ?? []).length, 1);
+    assert.doesNotMatch(BRANDING_EDITOR, /aria-hidden\s*\n\s*>\s*\n\s*<span/);
   });
 
   test("pricing save stays calm until dirty or first-time setup", () => {

@@ -38,7 +38,14 @@ function draftFrom(profile: CompanyBrandingProfile): BrandingDraft {
   };
 }
 
-const SWATCH = "h-8 w-8 shrink-0 rounded-md border border-slate-200 shadow-sm";
+function monogramFrom(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "AR";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
+}
+
+const SWATCH = "h-8 w-8 shrink-0 rounded-md border border-slate-200";
 
 export default function CompanySettingsBrandingEditor({
   profile,
@@ -67,6 +74,7 @@ export default function CompanySettingsBrandingEditor({
 
   const primary = draft.brandPrimaryColor.trim() || "#2563eb";
   const secondary = draft.brandSecondaryColor.trim() || "#0b1f33";
+  const name = profile.companyName.trim() || "Your company";
 
   return (
     <FocusedEditor
@@ -79,56 +87,51 @@ export default function CompanySettingsBrandingEditor({
       onClose={onClose}
       onSave={() => onSave(draft)}
     >
-      <div data-company-settings-editor="branding" className="space-y-4">
+      <div data-company-settings-editor="branding" className="space-y-3.5">
         <div>
-          <span className={FOCUSED_EDITOR_LABEL}>Logo</span>
+          <span className={FOCUSED_EDITOR_LABEL}>Company identity</span>
           <div className="mt-2 flex items-center gap-3">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+            <div
+              className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50"
+              data-branding-identity-preview
+            >
               {draft.logoDataUrl ? (
                 <Image
                   src={draft.logoDataUrl}
-                  alt="Company logo"
-                  width={56}
-                  height={56}
+                  alt=""
+                  width={48}
+                  height={48}
                   className="h-full w-full object-contain"
                   unoptimized
                 />
               ) : (
-                <span className="text-[10px] font-medium text-slate-400">None</span>
+                <span
+                  className="flex h-full w-full items-center justify-center text-[11px] font-bold text-white"
+                  style={{ backgroundColor: primary }}
+                >
+                  {monogramFrom(name)}
+                </span>
               )}
             </div>
-            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-              <label className="inline-flex min-h-[40px] cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus-within:ring-2 focus-within:ring-blue-500 sm:min-h-[44px]">
-                {draft.logoDataUrl ? "Replace" : "Upload logo"}
-                <input type="file" accept="image/*" onChange={onLogoFile} className="sr-only" />
-              </label>
-              {draft.logoDataUrl ? (
-                <button
-                  type="button"
-                  className="min-h-[40px] px-1 text-sm text-slate-500 hover:text-slate-700 sm:min-h-[44px]"
-                  onClick={() => set({ logoDataUrl: "" })}
-                >
-                  Remove
-                </button>
-              ) : null}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-slate-900">{name}</p>
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <label className="inline-flex min-h-[44px] cursor-pointer items-center text-sm font-medium text-blue-600 hover:text-blue-700 focus-within:outline-none">
+                  {draft.logoDataUrl ? "Replace" : "Upload logo"}
+                  <input type="file" accept="image/*" onChange={onLogoFile} className="sr-only" />
+                </label>
+                {draft.logoDataUrl ? (
+                  <button
+                    type="button"
+                    className="min-h-[44px] text-sm text-slate-400 hover:text-slate-600"
+                    onClick={() => set({ logoDataUrl: "" })}
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </div>
             </div>
           </div>
-        </div>
-
-        <div
-          className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-2.5"
-          aria-hidden
-        >
-          <span
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[10px] font-bold text-white"
-            style={{ backgroundColor: primary }}
-          >
-            AR
-          </span>
-          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-900">
-            {profile.companyName.trim() || "Your company"}
-          </span>
-          <span className="h-4 w-4 shrink-0 rounded-sm border border-slate-200" style={{ backgroundColor: secondary }} />
         </div>
 
         <label className={FOCUSED_EDITOR_LABEL}>
@@ -154,45 +157,46 @@ export default function CompanySettingsBrandingEditor({
           <p className={FOCUSED_EDITOR_HINT}>Saved as a full https:// address.</p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className={FOCUSED_EDITOR_LABEL}>
-            Primary color
-            <span className="mt-1 flex items-center gap-2">
-              <span className={SWATCH} style={{ backgroundColor: primary }} aria-hidden />
-              <input
-                className={`${FOCUSED_EDITOR_INPUT} mt-0 font-mono text-[13px]`}
-                value={draft.brandPrimaryColor}
-                onChange={(event) => set({ brandPrimaryColor: event.target.value })}
-                placeholder="#2563eb"
-                aria-label="Primary brand color hex value"
-              />
-            </span>
-          </label>
-          <label className={FOCUSED_EDITOR_LABEL}>
-            Secondary color
-            <span className="mt-1 flex items-center gap-2">
-              <span className={SWATCH} style={{ backgroundColor: secondary }} aria-hidden />
-              <input
-                className={`${FOCUSED_EDITOR_INPUT} mt-0 font-mono text-[13px]`}
-                value={draft.brandSecondaryColor}
-                onChange={(event) => set({ brandSecondaryColor: event.target.value })}
-                placeholder="#0b1f33"
-                aria-label="Secondary brand color hex value"
-              />
-            </span>
-          </label>
+        <div>
+          <span className={FOCUSED_EDITOR_LABEL}>Brand colors</span>
+          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+            <label className="block text-xs font-medium text-slate-500">
+              Primary
+              <span className="mt-1 flex items-center gap-2">
+                <span className={SWATCH} style={{ backgroundColor: primary }} aria-hidden />
+                <input
+                  className={`${FOCUSED_EDITOR_INPUT} mt-0 font-mono text-[13px]`}
+                  value={draft.brandPrimaryColor}
+                  onChange={(event) => set({ brandPrimaryColor: event.target.value })}
+                  placeholder="#2563eb"
+                  aria-label="Primary brand color hex value"
+                />
+              </span>
+            </label>
+            <label className="block text-xs font-medium text-slate-500">
+              Secondary
+              <span className="mt-1 flex items-center gap-2">
+                <span className={SWATCH} style={{ backgroundColor: secondary }} aria-hidden />
+                <input
+                  className={`${FOCUSED_EDITOR_INPUT} mt-0 font-mono text-[13px]`}
+                  value={draft.brandSecondaryColor}
+                  onChange={(event) => set({ brandSecondaryColor: event.target.value })}
+                  placeholder="#0b1f33"
+                  aria-label="Secondary brand color hex value"
+                />
+              </span>
+            </label>
+          </div>
         </div>
 
-        <label className="flex min-h-[44px] cursor-pointer items-start gap-3 pt-0.5 text-sm text-slate-700">
+        <label className="flex min-h-[44px] cursor-pointer items-center gap-3 text-sm font-medium text-slate-700">
           <input
             type="checkbox"
-            className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            className="h-4 w-4 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
             checked={draft.showLicenseOnCover}
             onChange={(event) => set({ showLicenseOnCover: event.target.checked })}
           />
-          <span>
-            <span className="font-medium">Show license number on proposal covers</span>
-          </span>
+          Show license number on proposal covers
         </label>
       </div>
     </FocusedEditor>

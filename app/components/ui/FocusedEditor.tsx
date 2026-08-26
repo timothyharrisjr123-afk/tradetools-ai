@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, type ReactNode } from "react";
+import { useCallback, useLayoutEffect, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
 
 /**
@@ -17,6 +17,10 @@ export const FOCUSED_EDITOR_SAVE_SUBDUED =
 
 export const FOCUSED_EDITOR_CANCEL =
   "inline-flex min-h-[40px] items-center justify-center rounded-lg px-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 sm:min-h-[44px]";
+
+/** Quiet close: 44px invisible hit, small grey icon, ring hugs the icon on keyboard focus only. */
+export const FOCUSED_EDITOR_CLOSE =
+  "group inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 appearance-none items-center justify-center border-0 bg-transparent p-0 text-slate-400 shadow-none outline-none ring-0 [box-shadow:none] [-webkit-tap-highlight-color:transparent] hover:text-slate-600 focus:border-0 focus:outline-none focus:ring-0 focus:[box-shadow:none] focus-visible:border-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:[box-shadow:none]";
 
 export const FOCUSED_EDITOR_LABEL = "block text-sm font-medium text-slate-700";
 
@@ -69,11 +73,11 @@ export default function FocusedEditor({
     onClose();
   }, [dirty, onClose, saving]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open) return;
 
     restoreFocusTo.current = document.activeElement as HTMLElement | null;
-    closeRef.current?.focus();
+    panelRef.current?.focus({ preventScroll: true });
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -131,10 +135,11 @@ export default function FocusedEditor({
         role="dialog"
         aria-modal="true"
         aria-labelledby="focused-editor-title"
-        className="absolute inset-x-0 bottom-0 flex max-h-[min(92vh,720px)] flex-col rounded-t-xl bg-white shadow-2xl sm:inset-y-0 sm:right-0 sm:left-auto sm:w-full sm:max-w-[26rem] sm:max-h-none sm:rounded-none sm:shadow-xl"
+        tabIndex={-1}
+        className="absolute inset-x-0 bottom-0 flex h-auto max-h-[min(92vh,720px)] flex-col overflow-hidden rounded-t-xl bg-white shadow-2xl outline-none sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-0 sm:max-h-dvh sm:w-[26rem] sm:max-w-[26rem] sm:rounded-none sm:shadow-xl"
       >
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 px-4 py-3 sm:px-5">
-          <div className="min-w-0 pr-2">
+        <div className="flex shrink-0 items-start justify-between gap-1 px-4 pb-1 pt-3 sm:px-5">
+          <div className="min-w-0 pt-1.5 pr-1">
             <h2 id="focused-editor-title" className="text-[15px] font-semibold text-slate-900">
               {title}
             </h2>
@@ -145,23 +150,26 @@ export default function FocusedEditor({
           <button
             ref={closeRef}
             type="button"
-            className="-mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            tabIndex={-1}
+            className={FOCUSED_EDITOR_CLOSE}
             aria-label={`Close ${title}`}
             onClick={requestClose}
             data-focused-editor-close
           >
-            <X className="h-4 w-4" strokeWidth={2} aria-hidden />
+            <span className="pointer-events-none inline-flex h-7 w-7 items-center justify-center rounded-md">
+              <X className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+            </span>
           </button>
         </div>
 
         <div
-          className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 pb-6 sm:space-y-4 sm:px-5 sm:py-4"
+          className="min-h-0 space-y-3 overflow-y-auto px-4 py-3 sm:space-y-3.5 sm:px-5 sm:py-3.5"
           data-focused-editor-body
         >
           {children}
         </div>
 
-        <div className="shrink-0 border-t border-slate-100 bg-white px-4 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] sm:px-5 sm:py-3">
+        <div className="shrink-0 border-t border-slate-100 bg-white px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-5 sm:py-2.5">
           {error ? (
             <p className="mb-2 text-sm text-rose-600" role="alert">
               {error}

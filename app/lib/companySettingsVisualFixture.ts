@@ -1,18 +1,14 @@
 /**
  * Canonical company identity for Cohesion B visual review only.
  * Never written to production company rows — harness and screenshot truth only.
+ *
+ * No raster placeholder logo: the branding editor shows the AR monogram
+ * fallback in the company primary color.
  */
 
 import type { CompanyBrandingProfile } from "@/app/lib/companyBrandingProfile";
-import type {
-  CompanyPaymentsSummaryInput,
-  CompanyPricingSummaryInput,
-} from "@/app/lib/companySettingsSummary";
+import type { CompanyPricingSummaryInput } from "@/app/lib/companySettingsSummary";
 import type { CompanyPaymentsStatus } from "@/app/tools/settings/companySettingsData";
-
-/** 1×1 blue PNG — enough for logo preview in review captures. */
-export const VISUAL_FIXTURE_LOGO_DATA_URL =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
 export const COMPANY_SETTINGS_VISUAL_FIXTURE: CompanyBrandingProfile = {
   companyName: "Anderson Roofing",
@@ -20,7 +16,7 @@ export const COMPANY_SETTINGS_VISUAL_FIXTURE: CompanyBrandingProfile = {
   phone: "(918) 555-0142",
   license: "CLN 123-456",
   notificationsEmail: "hello@andersonroofing.com",
-  logoDataUrl: VISUAL_FIXTURE_LOGO_DATA_URL,
+  logoDataUrl: "",
   address: "220 S Elgin Ave, Tulsa, OK 74120",
   website: "https://andersonroofing.com",
   brandPrimaryColor: "#2563eb",

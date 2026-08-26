@@ -35,7 +35,13 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
-/* Readable option text in dark-themed selects */
-select option {
-  color: #111;
+/* Quiet close controls: no painted box at rest. Keyboard ring hugs the icon only. */
+button[data-focused-editor-close],
+button[data-fielddive-mobile-nav-close] {
+  box-shadow: none !important;
+  outline: none !important;
+}
+button[data-focused-editor-close]:focus-visible > span,
+button[data-fielddive-mobile-nav-close]:focus-visible > span {
+  box-shadow: 0 0 0 2px #cbd5e1;
 }

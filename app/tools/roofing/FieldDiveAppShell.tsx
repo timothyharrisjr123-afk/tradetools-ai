@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type ComponentType,
@@ -377,12 +378,17 @@ function NavSidebarSection({
 const MOBILE_NAV_TOUCH_TARGETS =
   "[&_a]:min-h-[44px] [&_button]:min-h-[44px] [&_a]:items-center [&_button]:items-center";
 
+/** Same quiet close as focused editors: 44px hit, small icon, no box at rest. */
+const QUIET_CLOSE =
+  "group inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 appearance-none items-center justify-center border-0 bg-transparent p-0 text-slate-400 shadow-none outline-none ring-0 [box-shadow:none] [-webkit-tap-highlight-color:transparent] hover:text-slate-600 focus:border-0 focus:outline-none focus:ring-0 focus:[box-shadow:none] focus-visible:border-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:[box-shadow:none]";
+
 export default function FieldDiveAppShell({ activeNav, activeSubId, children }: FieldDiveAppShellProps) {
   const [groupExpandedOverrides, setGroupExpandedOverrides] = useState<Record<string, boolean>>({});
   const [jobCardHref, setJobCardHref] = useState("/tools/roofing?entry=job-card");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const sheetCloseRef = useRef<HTMLButtonElement | null>(null);
+  const sheetPanelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     try {
@@ -398,8 +404,10 @@ export default function FieldDiveAppShell({ activeNav, activeSubId, children }: 
     menuButtonRef.current?.focus();
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!mobileNavOpen) return;
+
+    sheetPanelRef.current?.focus({ preventScroll: true });
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -411,7 +419,6 @@ export default function FieldDiveAppShell({ activeNav, activeSubId, children }: 
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    sheetCloseRef.current?.focus();
 
     return () => {
       document.removeEventListener("keydown", onKeyDown);
@@ -468,7 +475,7 @@ export default function FieldDiveAppShell({ activeNav, activeSubId, children }: 
             <button
               ref={menuButtonRef}
               type="button"
-              className="flex h-10 w-10 items-center justify-center rounded-md text-slate-600 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 lg:hidden"
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md bg-transparent text-slate-600 transition hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-1 lg:hidden"
               aria-label="Menu"
               aria-expanded={mobileNavOpen}
               aria-controls="fielddive-mobile-nav"
@@ -517,10 +524,12 @@ export default function FieldDiveAppShell({ activeNav, activeSubId, children }: 
             role="dialog"
             aria-modal="true"
             aria-label="FieldDive navigation"
-            className="absolute inset-y-0 left-0 flex w-[86%] max-w-[320px] flex-col bg-white shadow-2xl"
+            ref={sheetPanelRef}
+            tabIndex={-1}
+            className="absolute inset-y-0 left-0 flex w-[86%] max-w-[320px] flex-col bg-white shadow-2xl outline-none"
             data-fielddive-mobile-nav
           >
-            <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-100 px-4">
+            <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-100 px-3 pr-1">
               <Link
                 href="/tools"
                 className="flex min-h-[44px] items-center gap-2.5"
@@ -532,12 +541,15 @@ export default function FieldDiveAppShell({ activeNav, activeSubId, children }: 
               <button
                 ref={sheetCloseRef}
                 type="button"
-                className="flex h-9 w-9 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                tabIndex={-1}
+                className={QUIET_CLOSE}
                 aria-label="Close navigation"
                 onClick={closeMobileNav}
                 data-fielddive-mobile-nav-close
               >
-                <X className="h-4 w-4" strokeWidth={2} aria-hidden />
+                <span className="pointer-events-none inline-flex h-7 w-7 items-center justify-center rounded-md">
+                  <X className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                </span>
               </button>
             </div>
             <nav

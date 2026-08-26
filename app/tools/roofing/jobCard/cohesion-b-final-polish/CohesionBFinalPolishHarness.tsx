@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { ChevronRight } from "lucide-react";
@@ -127,10 +126,10 @@ function SummaryReview({
 }
 
 function PricingReviewHarness({ dirty }: { dirty: boolean }) {
-  const sectionClass = "border-t border-slate-100 px-4 py-4 sm:px-5 first:border-t-0";
+  const sectionClass = "border-t border-slate-100 px-4 py-3 first:border-t-0 sm:px-5 sm:py-3.5";
   return (
     <div
-      className={`mx-auto w-full max-w-2xl space-y-5 ${dirty ? "pb-28 sm:pb-8" : "pb-6"}`}
+      className={`mx-auto w-full max-w-2xl space-y-5 ${dirty ? "pb-40 sm:pb-8" : "pb-6"}`}
       data-pricing-policy-page
     >
       <header>
@@ -143,7 +142,7 @@ function PricingReviewHarness({ dirty }: { dirty: boolean }) {
         <div className={sectionClass}>
           <h2 className="text-sm font-semibold text-slate-900">Pricing method</h2>
           <p className="mt-0.5 text-sm text-slate-500">How profit is applied to your costs.</p>
-          <label className="mt-3 block text-sm font-medium text-slate-700">
+          <label className="mt-2.5 block text-sm font-medium text-slate-700">
             Profitability type
             <select className="mt-1 block min-h-[44px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm" defaultValue="margin">
               <option value="margin">Margin</option>
@@ -153,13 +152,13 @@ function PricingReviewHarness({ dirty }: { dirty: boolean }) {
         <div className={sectionClass}>
           <h2 className="text-sm font-semibold text-slate-900">Profitability</h2>
           <p className="mt-0.5 text-sm text-slate-500">Your default margin and minimum acceptable margin.</p>
-          <div className="mt-3 grid gap-4 sm:grid-cols-2">
+          <div className="mt-2.5 grid gap-3 sm:grid-cols-2">
             <label className="block text-sm font-medium text-slate-700">
-              Default profitability %
+              Default margin
               <input className="mt-1 block min-h-[44px] w-full rounded-lg border border-slate-300 px-3 text-sm" defaultValue="50" readOnly />
             </label>
             <label className="block text-sm font-medium text-slate-700">
-              Minimum profitability %
+              Minimum margin
               <input className="mt-1 block min-h-[44px] w-full rounded-lg border border-slate-300 px-3 text-sm" defaultValue="20" readOnly />
             </label>
           </div>
@@ -167,7 +166,7 @@ function PricingReviewHarness({ dirty }: { dirty: boolean }) {
         <div className={sectionClass}>
           <h2 className="text-sm font-semibold text-slate-900">Tax</h2>
           <p className="mt-0.5 text-sm text-slate-500">Sales tax charged to customers and material tax used in costs.</p>
-          <div className="mt-3 grid gap-4 sm:grid-cols-2">
+          <div className="mt-2.5 grid gap-3 sm:grid-cols-2">
             <label className="block text-sm font-medium text-slate-700">
               Sales tax rate %
               <input className="mt-1 block min-h-[44px] w-full rounded-lg border border-slate-300 px-3 text-sm" defaultValue="0" readOnly />
@@ -181,7 +180,7 @@ function PricingReviewHarness({ dirty }: { dirty: boolean }) {
         <div className={sectionClass} data-pricing-measurement-section>
           <h2 className="text-sm font-semibold text-slate-900">Measurement assumptions</h2>
           <p className="mt-0.5 text-sm text-slate-500">How proposal quantities are interpreted.</p>
-          <dl className="mt-3 space-y-2 text-sm">
+          <dl className="mt-2.5 space-y-2 text-sm">
             <div className="flex justify-between gap-3">
               <dt className="text-slate-500">Quantities</dt>
               <dd className="font-medium text-slate-900">{QUANTITY_LABELS[LOCKED_QUANTITY_ROUNDING]}</dd>
@@ -196,7 +195,7 @@ function PricingReviewHarness({ dirty }: { dirty: boolean }) {
       <div
         className={`${
           dirty
-            ? "fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white px-4 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] sm:static sm:border-0 sm:bg-transparent sm:px-0 sm:py-0"
+            ? "fixed inset-x-3 bottom-3 z-30 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:static sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none"
             : "hidden"
         }`}
         data-pricing-save-footer
@@ -216,7 +215,6 @@ function PricingReviewHarness({ dirty }: { dirty: boolean }) {
 export default function CohesionBFinalPolishHarness() {
   const params = useSearchParams();
   const view = params.get("view") ?? "summary";
-  const navOpen = params.get("nav") === "open";
 
   const profile = COMPANY_SETTINGS_VISUAL_FIXTURE;
   const business = useMemo(() => summarizeBusiness(profile), [profile]);
@@ -293,38 +291,6 @@ export default function CohesionBFinalPolishHarness() {
 
       {view === "pricing" || view === "pricing-dirty" ? (
         <PricingReviewHarness dirty={view === "pricing-dirty"} />
-      ) : null}
-
-      {navOpen ? (
-        <div className="fixed inset-0 z-[60] lg:hidden" data-cohesion-b-nav-overlay>
-          <div className="absolute inset-0 bg-slate-900/40" />
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="FieldDive navigation"
-            className="absolute inset-y-0 left-0 flex w-[86%] max-w-[320px] flex-col bg-white shadow-2xl"
-            data-fielddive-mobile-nav
-          >
-            <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-100 px-4">
-              <Link href="/tools" className="flex min-h-[44px] items-center gap-2.5">
-                <span className="text-lg font-bold tracking-tight text-slate-900">FieldDive</span>
-              </Link>
-              <button
-                type="button"
-                className="flex h-9 w-9 items-center justify-center rounded-md text-slate-400"
-                aria-label="Close navigation"
-                data-fielddive-mobile-nav-close
-              >
-                ×
-              </button>
-            </div>
-            <nav className="flex-1 overflow-y-auto px-2 py-3 text-sm text-slate-700">
-              <p className="px-3 py-2 font-medium text-blue-600">Company settings</p>
-              <p className="px-3 py-2 text-slate-600">Pricing rules</p>
-              <p className="px-3 py-2 text-slate-600">Jobs</p>
-            </nav>
-          </div>
-        </div>
       ) : null}
     </FieldDiveAppShell>
   );
