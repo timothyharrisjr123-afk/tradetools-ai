@@ -1,5 +1,6 @@
 import { ensureUserIdentity, getUserCompanyId } from "@/app/lib/ensureUserIdentity";
 import { createClient } from "@/app/lib/supabase/server";
+import FieldDiveAppShell from "@/app/tools/roofing/FieldDiveAppShell";
 import { redirect } from "next/navigation";
 import CompanyPricingPolicySettingsClient from "./CompanyPricingPolicySettingsClient";
 
@@ -19,5 +20,9 @@ export default async function CompanyPricingPolicySettingsPage() {
     redirect("/login?redirectTo=/tools/settings/pricing");
   }
 
-  return <CompanyPricingPolicySettingsClient companyId={companyId} />;
+  return (
+    <FieldDiveAppShell activeNav="pricing">
+      <CompanyPricingPolicySettingsClient companyId={companyId} />
+    </FieldDiveAppShell>
+  );
 }

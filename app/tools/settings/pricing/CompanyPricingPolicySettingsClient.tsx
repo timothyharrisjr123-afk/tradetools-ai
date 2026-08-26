@@ -21,10 +21,28 @@ import {
 } from "./pricingPolicyFormUtils";
 
 const inputClass =
-  "w-full rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-3 text-white/95 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-blue-500/35 focus:border-white/25 text-sm";
+  "block min-h-[44px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30";
 
-const sectionClass =
-  "rounded-3xl border border-white/10 bg-white/[0.04] p-4 sm:p-6 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl";
+const sectionClass = "border-t border-slate-200 px-4 py-5 sm:px-5 first:border-t-0";
+
+const labelClass = "block text-sm font-medium text-slate-700";
+
+const hintClass = "mt-1 text-xs text-slate-500";
+
+const sectionTitleClass = "text-sm font-semibold text-slate-900";
+
+const sectionDescClass = "mt-0.5 text-sm text-slate-500";
+
+/** Contractor-facing wording for the locked engine values. */
+const QUANTITY_ROUNDING_LABELS: Record<string, string> = {
+  exact: "Exact measurements",
+  round_up: "Rounded up",
+};
+
+const WASTE_MODEL_LABELS: Record<string, string> = {
+  adjusted_measurement: "Included in measurements",
+  percentage: "Percentage added",
+};
 
 type SaveStatus =
   | { kind: "idle" }
@@ -109,63 +127,45 @@ export default function CompanyPricingPolicySettingsClient({
   }, [companyId, form]);
 
   return (
-    <main className="min-h-screen bg-[#0b0f19] text-white p-4 sm:p-6 lg:p-8 pb-10">
-      <div className="mx-auto max-w-xl">
-        <div className="mb-6 flex flex-wrap items-center gap-3">
-          <Link
-            href="/tools/settings"
-            className="inline-flex items-center gap-2 text-sm text-white/70 hover:text-white/90"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Settings
-          </Link>
-          {backToJobCardHref ? (
-            <Link
-              href={backToJobCardHref}
-              className="inline-flex items-center gap-1.5 rounded-md border border-cyan-400/30 bg-cyan-500/10 px-3 py-1.5 text-sm font-medium text-cyan-200 transition hover:bg-cyan-500/20"
-            >
-              <ArrowLeft className="h-4 w-4" aria-hidden />
-              Back to Job Card
-            </Link>
-          ) : null}
-        </div>
+    <div className="mx-auto max-w-3xl space-y-5 pb-24 sm:pb-6" data-pricing-policy-page>
+      {backToJobCardHref ? (
+        <Link
+          href={backToJobCardHref}
+          className="inline-flex min-h-[44px] items-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-700"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden />
+          Back to job card
+        </Link>
+      ) : null}
 
-        <h1 className="text-xl font-semibold text-white/95 mb-2">Company Pricing Policy</h1>
-        <p className="text-sm text-white/60 mb-4">
-          Your company default profitability and tax settings. Used to price proposals once wired
-          into the Builder. This is not a customer quote.
+      <header>
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Pricing rules</h1>
+        <p className="mt-1 text-sm text-slate-600">
+          {loading
+            ? "Loading your pricing rules."
+            : configured
+              ? "Your default profitability and tax rates for new proposals."
+              : "Start from these suggested rates, then save to make them yours."}
         </p>
+      </header>
 
-        {/* Configured vs starter status */}
-        <div className="mb-6">
-          {loading ? (
-            <span className="inline-flex items-center rounded-full border border-white/15 bg-white/[0.06] px-3 py-1 text-xs text-white/70">
-              Loading pricing policy…
-            </span>
-          ) : configured ? (
-            <span className="inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-300">
-              Company pricing policy configured
-            </span>
-          ) : (
-            <span className="inline-flex items-center rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-medium text-amber-300">
-              Starter defaults — not saved yet
-            </span>
-          )}
+      {loading || !form ? (
+        <div className="rounded-xl border border-slate-200 bg-white">
+          {[0, 1, 2].map((row) => (
+            <div key={row} className="border-t border-slate-200 px-4 py-5 first:border-t-0 sm:px-5">
+              <div className="h-3.5 w-28 animate-pulse rounded bg-slate-200" />
+              <div className="mt-3 h-11 w-full animate-pulse rounded-lg bg-slate-100" />
+            </div>
+          ))}
         </div>
-
-        {loading || !form ? null : (
-          <div className="space-y-5">
-            {/* Pricing method */}
+      ) : (
+        <>
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
             <div className={sectionClass}>
-              <h2 className="text-sm font-semibold text-white/90 mb-1">Pricing method</h2>
-              <p className="text-xs text-white/60 mb-4">
-                How profitability is applied to costs.
-              </p>
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="profitability-type"
-                  className="block text-sm font-medium text-slate-300"
-                >
+              <h2 className={sectionTitleClass}>Pricing method</h2>
+              <p className={sectionDescClass}>How profitability is applied to your costs.</p>
+              <div className="mt-3.5">
+                <label htmlFor="profitability-type" className={labelClass}>
                   Profitability type
                 </label>
                 <select
@@ -174,27 +174,23 @@ export default function CompanyPricingPolicySettingsClient({
                   onChange={(e) =>
                     updateField("profitabilityType", e.target.value as ProfitabilityType)
                   }
-                  className={inputClass}
+                  className={`${inputClass} mt-1.5`}
                 >
                   <option value="margin">Margin</option>
                   <option value="markup">Markup</option>
                 </select>
-                <p className="mt-1 text-xs text-white/50">
+                <p className={hintClass}>
                   Margin must stay below 100%. Markup may be 100% or higher.
                 </p>
               </div>
             </div>
 
-            {/* Profitability */}
             <div className={sectionClass}>
-              <h2 className="text-sm font-semibold text-white/90 mb-1">Profitability</h2>
-              <p className="text-xs text-white/60 mb-4">Default and floor profitability percentages.</p>
-              <div className="space-y-3">
-                <div className="space-y-1.5">
-                  <label
-                    htmlFor="default-pct"
-                    className="block text-sm font-medium text-slate-300"
-                  >
+              <h2 className={sectionTitleClass}>Profitability</h2>
+              <p className={sectionDescClass}>Your default rate and the lowest you will accept.</p>
+              <div className="mt-3.5 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="default-pct" className={labelClass}>
                     Default profitability %
                   </label>
                   <input
@@ -204,14 +200,11 @@ export default function CompanyPricingPolicySettingsClient({
                     value={form.defaultProfitabilityPct}
                     onChange={(e) => updateField("defaultProfitabilityPct", e.target.value)}
                     placeholder="e.g. 50"
-                    className={inputClass}
+                    className={`${inputClass} mt-1.5`}
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <label
-                    htmlFor="minimum-pct"
-                    className="block text-sm font-medium text-slate-300"
-                  >
+                <div>
+                  <label htmlFor="minimum-pct" className={labelClass}>
                     Minimum profitability %
                   </label>
                   <input
@@ -221,27 +214,21 @@ export default function CompanyPricingPolicySettingsClient({
                     value={form.minimumProfitabilityPct}
                     onChange={(e) => updateField("minimumProfitabilityPct", e.target.value)}
                     placeholder="e.g. 20"
-                    className={inputClass}
+                    className={`${inputClass} mt-1.5`}
                   />
-                  <p className="mt-1 text-xs text-white/50">
-                    Must be less than or equal to the default.
-                  </p>
+                  <p className={hintClass}>Must be at or below the default.</p>
                 </div>
               </div>
             </div>
 
-            {/* Tax */}
             <div className={sectionClass}>
-              <h2 className="text-sm font-semibold text-white/90 mb-1">Tax</h2>
-              <p className="text-xs text-white/60 mb-4">
-                Customer sales tax and optional internal material purchase tax.
+              <h2 className={sectionTitleClass}>Tax</h2>
+              <p className={sectionDescClass}>
+                Sales tax charged to customers, and material tax you pay.
               </p>
-              <div className="space-y-3">
-                <div className="space-y-1.5">
-                  <label
-                    htmlFor="sales-tax"
-                    className="block text-sm font-medium text-slate-300"
-                  >
+              <div className="mt-3.5 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="sales-tax" className={labelClass}>
                     Sales tax rate %
                   </label>
                   <input
@@ -251,15 +238,13 @@ export default function CompanyPricingPolicySettingsClient({
                     value={form.salesTaxRatePct}
                     onChange={(e) => updateField("salesTaxRatePct", e.target.value)}
                     placeholder="e.g. 0"
-                    className={inputClass}
+                    className={`${inputClass} mt-1.5`}
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <label
-                    htmlFor="material-tax"
-                    className="block text-sm font-medium text-slate-300"
-                  >
-                    Material purchase tax % <span className="text-white/50">(optional)</span>
+                <div>
+                  <label htmlFor="material-tax" className={labelClass}>
+                    Material purchase tax %{" "}
+                    <span className="font-normal text-slate-400">(optional)</span>
                   </label>
                   <input
                     id="material-tax"
@@ -268,67 +253,63 @@ export default function CompanyPricingPolicySettingsClient({
                     value={form.materialPurchaseTaxRatePct}
                     onChange={(e) => updateField("materialPurchaseTaxRatePct", e.target.value)}
                     placeholder="Leave blank for none"
-                    className={inputClass}
+                    className={`${inputClass} mt-1.5`}
                   />
-                  <p className="mt-1 text-xs text-white/50">
-                    Internal only. Leave blank to store no material purchase tax.
-                  </p>
+                  <p className={hintClass}>Used in your costs, never shown to customers.</p>
                 </div>
               </div>
             </div>
 
-            {/* Locked assumptions */}
             <div className={sectionClass}>
-              <h2 className="text-sm font-semibold text-white/90 mb-1">Locked assumptions</h2>
-              <p className="text-xs text-white/60 mb-4">
-                Fixed for this phase — not editable yet.
-              </p>
-              <div className="space-y-2 text-sm text-white/80">
-                <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                  <span className="text-white/70">Quantity rounding</span>
-                  <span className="font-medium text-white/90">{LOCKED_QUANTITY_ROUNDING}</span>
+              <h2 className={sectionTitleClass}>Measurement assumptions</h2>
+              <p className={sectionDescClass}>These apply to every proposal.</p>
+              <dl className="mt-3 space-y-2 text-sm">
+                <div className="flex items-baseline justify-between gap-3">
+                  <dt className="text-slate-500">Quantities</dt>
+                  <dd className="font-medium text-slate-900">
+                    {QUANTITY_ROUNDING_LABELS[LOCKED_QUANTITY_ROUNDING] ??
+                      LOCKED_QUANTITY_ROUNDING}
+                  </dd>
                 </div>
-                <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                  <span className="text-white/70">Waste model</span>
-                  <span className="font-medium text-white/90">{LOCKED_WASTE_MODEL}</span>
+                <div className="flex items-baseline justify-between gap-3">
+                  <dt className="text-slate-500">Waste</dt>
+                  <dd className="font-medium text-slate-900">
+                    {WASTE_MODEL_LABELS[LOCKED_WASTE_MODEL] ?? LOCKED_WASTE_MODEL}
+                  </dd>
                 </div>
-              </div>
-            </div>
-
-            {/* Save status */}
-            <div className={sectionClass}>
-              {validationError ? (
-                <p className="mb-3 text-sm text-rose-300" role="alert">
-                  {validationError}
-                </p>
-              ) : null}
-              {saveStatus.kind === "error" ? (
-                <p className="mb-3 text-sm text-rose-300" role="alert">
-                  {saveStatus.message}
-                </p>
-              ) : null}
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={saveStatus.kind === "saving"}
-                  className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/15 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {saveStatus.kind === "saving" ? "Saving..." : "Save Pricing Policy"}
-                </button>
-                {saveStatus.kind === "saved" ? (
-                  <span className="text-sm text-emerald-400/90">Pricing policy saved.</span>
-                ) : null}
-              </div>
-              <p className="mt-4 text-xs text-white/45">
-                Starter defaults are a seed only and are never saved until you click Save. The
-                Proposal Builder continues to use its preview placeholder until pricing wiring is
-                enabled.
-              </p>
+              </dl>
             </div>
           </div>
-        )}
-      </div>
-    </main>
+
+          <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
+            {validationError ? (
+              <p className="mb-2 text-sm text-rose-600" role="alert">
+                {validationError}
+              </p>
+            ) : null}
+            {saveStatus.kind === "error" ? (
+              <p className="mb-2 text-sm text-rose-600" role="alert">
+                {saveStatus.message}
+              </p>
+            ) : null}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saveStatus.kind === "saving"}
+                className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 sm:flex-none"
+              >
+                {saveStatus.kind === "saving" ? "Saving…" : "Save pricing rules"}
+              </button>
+              {saveStatus.kind === "saved" ? (
+                <span className="text-sm font-medium text-emerald-700" role="status">
+                  Saved.
+                </span>
+              ) : null}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
   );
 }

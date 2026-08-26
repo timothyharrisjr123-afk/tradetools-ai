@@ -125,8 +125,13 @@ describe("Payment Stage 1 flow correction", () => {
   test("standalone Payments nav removed; route remains deep-linkable", () => {
     assert.equal(hasNavHref("/tools/settings/payments"), false);
     assert.equal(hasNavHref("/tools/settings"), true);
-    const settings = read("app/tools/settings/SettingsCompanyBrandingClient.tsx");
-    assert.match(settings, /SettingsPaymentsLinkCard/);
+    // Cohesion Cut 1 moved Payments into the Company Settings focused editor.
+    const settings = read("app/tools/settings/CompanySettingsClient.tsx");
+    assert.match(settings, /CompanySettingsPaymentsEditor/);
+    assert.match(
+      read("app/tools/settings/payments/page.tsx"),
+      /redirect\("\/tools\/settings\?edit=payments"\)/
+    );
   });
 
   test("Overview no dollar amounts — strip removed from Job Card", () => {

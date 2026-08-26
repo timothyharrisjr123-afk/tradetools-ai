@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useState, type ComponentType, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ComponentType,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import {
   LAST_DB_JOB_ID_STORAGE_KEY,
@@ -9,6 +16,7 @@ import {
 import {
   Bell,
   Menu,
+  X,
   ChevronDown,
   ClipboardList,
   Briefcase,
@@ -21,6 +29,8 @@ import {
   Package,
   Bot,
   BarChart3,
+  Building2,
+  Percent,
   Settings,
 } from "lucide-react";
 import { SignOutButton } from "@/app/components/auth/SignOutButton";
@@ -32,7 +42,14 @@ import {
   type FieldDiveNavSubItemConfig,
 } from "./fieldDiveNavConfig";
 
-export type FieldDiveActiveNav = "jobs" | "newJob" | "catalog" | "templates" | "calendar";
+export type FieldDiveActiveNav =
+  | "jobs"
+  | "newJob"
+  | "catalog"
+  | "templates"
+  | "calendar"
+  | "company"
+  | "pricing";
 export type FieldDiveActiveSubNav = "packet" | "job-card" | "instant";
 
 type NavIcon = ComponentType<{ className?: string }>;
@@ -45,6 +62,8 @@ const NAV_ICONS: Record<FieldDiveNavIconName, NavIcon> = {
   layoutTemplate: LayoutTemplate,
   package: Package,
   settings: Settings,
+  building2: Building2,
+  percent: Percent,
   users: Users,
   bookOpen: BookOpen,
   fileText: FileText,
@@ -354,9 +373,16 @@ function NavSidebarSection({
   );
 }
 
+/** Sheet nav reuses the sidebar items but lifts every target to 44px. */
+const MOBILE_NAV_TOUCH_TARGETS =
+  "[&_a]:min-h-[44px] [&_button]:min-h-[44px] [&_a]:items-center [&_button]:items-center";
+
 export default function FieldDiveAppShell({ activeNav, activeSubId, children }: FieldDiveAppShellProps) {
   const [groupExpandedOverrides, setGroupExpandedOverrides] = useState<Record<string, boolean>>({});
   const [jobCardHref, setJobCardHref] = useState("/tools/roofing?entry=job-card");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const sheetCloseRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     try {
@@ -366,6 +392,51 @@ export default function FieldDiveAppShell({ activeNav, activeSubId, children }: 
       // ignore storage failures — fallback href already set
     }
   }, []);
+
+  const closeMobileNav = useCallback(() => {
+    setMobileNavOpen(false);
+    menuButtonRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeMobileNav();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    sheetCloseRef.current?.focus();
+
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [closeMobileNav, mobileNavOpen]);
+
+  const toggleGroup = (groupKey: string, defaultExpanded: boolean) => {
+    setGroupExpandedOverrides((prev) => ({
+      ...prev,
+      [groupKey]: !(prev[groupKey] ?? defaultExpanded),
+    }));
+  };
+
+  const navSections = FIELD_DIVE_NAV_SECTIONS.map((section) => (
+    <NavSidebarSection
+      key={section.id}
+      section={section}
+      activeNav={activeNav}
+      activeSubId={activeSubId}
+      jobCardHref={jobCardHref}
+      groupExpandedOverrides={groupExpandedOverrides}
+      onToggleGroup={toggleGroup}
+    />
+  ));
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
@@ -378,24 +449,7 @@ export default function FieldDiveAppShell({ activeNav, activeSubId, children }: 
             <FieldDiveLogoMark />
             <span className="text-lg font-bold tracking-tight text-slate-900">FieldDive</span>
           </Link>
-          <nav className="flex-1 space-y-4 px-2 py-3">
-            {FIELD_DIVE_NAV_SECTIONS.map((section) => (
-              <NavSidebarSection
-                key={section.id}
-                section={section}
-                activeNav={activeNav}
-                activeSubId={activeSubId}
-                jobCardHref={jobCardHref}
-                groupExpandedOverrides={groupExpandedOverrides}
-                onToggleGroup={(groupKey, defaultExpanded) => {
-                  setGroupExpandedOverrides((prev) => ({
-                    ...prev,
-                    [groupKey]: !(prev[groupKey] ?? defaultExpanded),
-                  }));
-                }}
-              />
-            ))}
-          </nav>
+          <nav className="flex-1 space-y-4 px-2 py-3">{navSections}</nav>
           <div className="mt-auto border-t border-slate-100 p-3">
             <div className="flex items-center gap-2.5 rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-2">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-200 to-orange-300 text-[10px] font-bold text-white">
@@ -412,9 +466,14 @@ export default function FieldDiveAppShell({ activeNav, activeSubId, children }: 
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6">
             <button
+              ref={menuButtonRef}
               type="button"
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50 lg:hidden"
+              className="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 lg:hidden"
               aria-label="Menu"
+              aria-expanded={mobileNavOpen}
+              aria-controls="fielddive-mobile-nav"
+              onClick={() => setMobileNavOpen((open) => !open)}
+              data-fielddive-menu-button
             >
               <Menu className="h-5 w-5" aria-hidden />
             </button>
@@ -443,6 +502,61 @@ export default function FieldDiveAppShell({ activeNav, activeSubId, children }: 
           <div className="flex-1 overflow-auto p-4 sm:p-6">{children}</div>
         </div>
       </div>
+
+      {mobileNavOpen ? (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <button
+            type="button"
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]"
+            aria-label="Close navigation"
+            onClick={closeMobileNav}
+            data-fielddive-mobile-nav-backdrop
+          />
+          <div
+            id="fielddive-mobile-nav"
+            role="dialog"
+            aria-modal="true"
+            aria-label="FieldDive navigation"
+            className="absolute inset-y-0 left-0 flex w-[86%] max-w-[320px] flex-col bg-white shadow-2xl"
+            data-fielddive-mobile-nav
+          >
+            <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-100 px-4">
+              <Link
+                href="/tools"
+                className="flex min-h-[44px] items-center gap-2.5"
+                onClick={() => setMobileNavOpen(false)}
+              >
+                <FieldDiveLogoMark />
+                <span className="text-lg font-bold tracking-tight text-slate-900">FieldDive</span>
+              </Link>
+              <button
+                ref={sheetCloseRef}
+                type="button"
+                className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                aria-label="Close navigation"
+                onClick={closeMobileNav}
+                data-fielddive-mobile-nav-close
+              >
+                <X className="h-5 w-5" aria-hidden />
+              </button>
+            </div>
+            <nav
+              className={`flex-1 space-y-4 overflow-y-auto px-2 py-3 ${MOBILE_NAV_TOUCH_TARGETS}`}
+              onClick={(event) => {
+                // Any real navigation dismisses the sheet.
+                if ((event.target as HTMLElement).closest("a")) {
+                  setMobileNavOpen(false);
+                }
+              }}
+            >
+              {navSections}
+            </nav>
+            <div className="mt-auto border-t border-slate-100 p-3 sm:hidden">
+              <SignOutButton />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

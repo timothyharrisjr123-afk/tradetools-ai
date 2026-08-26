@@ -5,7 +5,14 @@
 
 export type FieldDiveNavSectionId = "operations" | "setup" | "legacyAndFuture";
 
-export type FieldDiveNavItemKey = "jobs" | "newJob" | "catalog" | "templates" | "calendar";
+export type FieldDiveNavItemKey =
+  | "jobs"
+  | "newJob"
+  | "catalog"
+  | "templates"
+  | "calendar"
+  | "company"
+  | "pricing";
 
 export type FieldDiveNavItemKind = "link" | "group" | "soon" | "legacy";
 
@@ -42,6 +49,8 @@ export type FieldDiveNavIconName =
   | "layoutTemplate"
   | "package"
   | "settings"
+  | "building2"
+  | "percent"
   | "users"
   | "bookOpen"
   | "fileText"
@@ -83,18 +92,18 @@ export const FIELD_DIVE_NAV_SECTIONS: FieldDiveNavSectionConfig[] = [
     label: "Setup",
     items: [
       {
-        key: null,
-        label: "Company profile",
+        key: "company",
+        label: "Company settings",
         href: "/tools/settings",
         kind: "link",
-        icon: "settings",
+        icon: "building2",
       },
       {
-        key: null,
+        key: "pricing",
         label: "Pricing rules",
         href: "/tools/settings/pricing",
         kind: "link",
-        icon: "settings",
+        icon: "percent",
       },
       {
         key: "catalog",

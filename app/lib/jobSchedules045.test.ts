@@ -64,8 +64,18 @@ const CALENDAR_CLIENT = readFileSync(
   join(ROOT, "app/tools/roofing/calendar/FieldDiveCalendarClient.tsx"),
   "utf8"
 );
+// Cohesion Cut 1 moved timezone into the Company Settings Preferences editor,
+// with the resume-after-save behavior owned by the settings page + client.
 const TIMEZONE_SETTINGS = readFileSync(
-  join(ROOT, "app/tools/settings/SettingsCompanyTimezoneSection.tsx"),
+  join(ROOT, "app/tools/settings/CompanySettingsPreferencesEditor.tsx"),
+  "utf8"
+);
+const TIMEZONE_SETTINGS_PAGE = readFileSync(
+  join(ROOT, "app/tools/settings/page.tsx"),
+  "utf8"
+);
+const TIMEZONE_SETTINGS_CLIENT = readFileSync(
+  join(ROOT, "app/tools/settings/CompanySettingsClient.tsx"),
   "utf8"
 );
 const ROOFING_CLIENT = readFileSync(
@@ -526,8 +536,10 @@ describe("Calendar and timezone continuity", () => {
   });
 
   test("Settings returns to and resumes the originating schedule flow", () => {
-    assert.match(TIMEZONE_SETTINGS, /parseTimezoneReturnPath/);
-    assert.match(TIMEZONE_SETTINGS, /router\.push\(returnTo\)/);
+    assert.match(TIMEZONE_SETTINGS_PAGE, /parseTimezoneReturnPath/);
+    assert.match(TIMEZONE_SETTINGS_CLIENT, /router\.push\(timezoneReturnTo\)/);
+    // A timezone deep link lands directly in the Preferences editor.
+    assert.match(TIMEZONE_SETTINGS_PAGE, /timezoneReturnTo \? "preferences"/);
     assert.match(TIMEZONE_SETTINGS, /data-timezone-saved/);
     assert.match(TIMEZONE_SETTINGS, /data-timezone-suggested/);
     assert.match(TIMEZONE_SETTINGS, /data-timezone-load=\{loadStatus\}/);
@@ -537,8 +549,10 @@ describe("Calendar and timezone continuity", () => {
     assert.match(TIMEZONE_SETTINGS, /canonical\.kind === "error"/);
     assert.match(TIMEZONE_SETTINGS, /canonical\.kind === "saved"/);
     assert.match(TIMEZONE_SETTINGS, /canonical\.kind === "not_set"/);
-    assert.match(TIMEZONE_SETTINGS, /Suggested from this browser \(not saved\)/);
-    assert.match(TIMEZONE_SETTINGS, /Use suggestion/);
+    // Browser locale stays a suggestion until the user saves.
+    assert.match(TIMEZONE_SETTINGS, /shouldShowTimezoneSuggestion/);
+    assert.match(TIMEZONE_SETTINGS, /This browser looks like/);
+    assert.match(TIMEZONE_SETTINGS, /Use this timezone/);
     assert.doesNotMatch(TIMEZONE_SETTINGS, /setTimezone\(tz \|\| suggested/);
     assert.doesNotMatch(TIMEZONE_SETTINGS, /\.catch\(\(\) => undefined\)/);
     assert.match(CALENDAR_CLIENT, /parseScheduleResumeContext/);

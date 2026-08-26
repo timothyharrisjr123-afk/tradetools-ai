@@ -360,7 +360,7 @@ describe("architecture source locks", () => {
   });
 
   test("Settings copy does not fake method lists", () => {
-    const settings = read("app/tools/settings/payments/SettingsPaymentsClient.tsx");
+    const settings = read("app/tools/settings/CompanySettingsPaymentsEditor.tsx");
     assert.doesNotMatch(settings, /Credit card \+ ACH enabled/);
     assert.match(settings, /Stripe Checkout/);
     assert.match(SETTINGS_PAYMENTS_STRIPE_COPY, /Stripe Checkout/);
@@ -374,10 +374,17 @@ describe("architecture source locks", () => {
   });
 
   test("packet shows terms and a single Pay control", () => {
+    // Cohesion Cut 1 folded the separate terms block and payment card into one
+    // purchase composition, so terms and Pay now share a single surface.
     const packet = read("app/components/proposal-packet/ProposalPacket.tsx");
-    assert.match(packet, /ProposalPaymentTermsBlock/);
-    assert.equal((packet.match(/<ProposalPacketPayment/g) ?? []).length, 1);
+    assert.equal((packet.match(/<ProposalPacketPurchase/g) ?? []).length, 1);
+    assert.doesNotMatch(packet, /ProposalPaymentTermsBlock/);
+    assert.doesNotMatch(packet, /<ProposalPacketPayment/);
     assert.doesNotMatch(packet, /variant="banner"/);
+
+    const purchase = read("app/components/proposal-packet/ProposalPacketPurchase.tsx");
+    assert.match(purchase, /formatPaymentTermsCustomerCopy/);
+    assert.equal((purchase.match(/data-public-pay=/g) ?? []).length, 1);
   });
 
   test("Builder and Preview host payment terms", () => {
