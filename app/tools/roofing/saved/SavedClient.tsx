@@ -77,7 +77,11 @@ import {
   searchBoardEntries,
 } from "@/app/lib/jobBoardAdapter";
 import { visibleDispositionLabel } from "@/app/lib/jobDispositionManagement";
-import { resolveDbBoardJobActionEligibility } from "@/app/lib/jobLifecycleActionEligibility";
+import {
+  hasActivePlannedWorkSchedule,
+  isActiveJobDisposition,
+  resolveDbBoardJobActionEligibility,
+} from "@/app/lib/jobLifecycleActionEligibility";
 import { formatJobCompletedAt } from "@/app/lib/jobCompleteTypes";
 import { formatProductionStartedAt } from "@/app/lib/jobProductionTypes";
 import {
@@ -92,7 +96,29 @@ import type {
   ScheduleCandidateJob,
 } from "@/app/lib/jobScheduleTypes";
 import { buildJobCardAttentionHref } from "@/app/lib/jobAttentionReadModel";
+import {
+  fetchJobAttentionDetail,
+  notifyJobAttentionChanged,
+} from "@/app/lib/jobAttentionReadClient";
 import { useJobAttentionSummaries } from "@/app/lib/useJobAttention";
+import {
+  BOARD_APPROVE_CONFIRM_TITLE,
+  BOARD_COMPLETE_CONFIRM_TITLE,
+  BOARD_MOVEMENT_ACCEPTANCE_REQUIRED_COPY,
+  BOARD_START_WORK_CONFIRM_TITLE,
+  BOARD_UNSCHEDULE_CONFIRM_BODY,
+  BOARD_UNSCHEDULE_CONFIRM_TITLE,
+  approvalPendingFromAttentionType,
+  boardDropTargetValidity,
+  buildBoardProposalCreateHref,
+  findApproveJobAcceptanceItem,
+  hitTestBoardColumnKey,
+  mapBoardColumnKeyToCanonicalStage,
+  resolveBoardGuardedMovement,
+  type BoardMovementIntentKind,
+} from "@/app/lib/boardGuardedMovement";
+import type { CanonicalJobStage } from "@/app/lib/jobLifecycleTypes";
+import BoardMovementConfirmDialog from "./components/BoardMovementConfirmDialog";
 
 function pad2(n: number) {
   return String(n).padStart(2, "0");
@@ -2881,6 +2907,26 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   const [r3fScheduleError, setR3fScheduleError] = useState<string | null>(null);
   const [r3gStartingJobId, setR3gStartingJobId] = useState<string | null>(null);
   const [r3hCompletingJobId, setR3hCompletingJobId] = useState<string | null>(null);
+  const [r3cApprovingJobId, setR3cApprovingJobId] = useState<string | null>(null);
+  const [boardDragJob, setBoardDragJob] = useState<RoofingEstimate | null>(null);
+  const [boardDragHoverColumn, setBoardDragHoverColumn] =
+    useState<BoardColumnKey | null>(null);
+  const boardDragGhostRef = useRef<HTMLDivElement>(null);
+  const boardDragHoverRef = useRef<BoardColumnKey | null>(null);
+  const boardDragJobRef = useRef<RoofingEstimate | null>(null);
+  const [boardMovementConfirm, setBoardMovementConfirm] = useState<{
+    kind: Extract<
+      BoardMovementIntentKind,
+      "approve_job" | "start_work" | "complete_job" | "unschedule"
+    >;
+    job: RoofingEstimate;
+    jobId: string;
+    acceptanceId?: string;
+  } | null>(null);
+  const [boardMovementConfirmBusy, setBoardMovementConfirmBusy] = useState(false);
+  const [boardMovementConfirmError, setBoardMovementConfirmError] = useState<
+    string | null
+  >(null);
 
   const [flashId, setFlashId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -4142,6 +4188,235 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     [companyId, r3hCompletingJobId, refreshDbJobs]
   );
 
+  const openBoardScheduleWorkspace = useCallback(
+    (job: RoofingEstimate) => {
+      const jobId = getDbJobIdFromBoardEntry(job);
+      if (!jobId) return;
+      setR3fScheduleError(null);
+      setR3fScheduleModal({
+        mode: "schedule",
+        jobId,
+        schedule: null,
+        depositNotReceived: r3fDepositDueByJobId[jobId] === true,
+      });
+    },
+    [r3fDepositDueByJobId]
+  );
+
+  const resolveBoardMovementFacts = useCallback(
+    (job: RoofingEstimate) => {
+      const jobId = getDbJobIdFromBoardEntry(job);
+      const schedule = jobId ? r3fSchedulesByJobId[jobId] ?? null : null;
+      const attention = jobId ? attentionByJobId[jobId] ?? null : null;
+      const fromColumn = getBoardColumnKeyForJob(job);
+      const fromStage: CanonicalJobStage =
+        (job as { canonicalJobStage?: CanonicalJobStage }).canonicalJobStage ??
+        mapBoardColumnKeyToCanonicalStage(fromColumn) ??
+        "intake";
+      const eligibility = resolveDbBoardJobActionEligibility(job, schedule, {
+        approvalAcceptancePending: approvalPendingFromAttentionType(
+          attention?.primaryType
+        ),
+      });
+      return {
+        jobId,
+        fromStage,
+        fromColumn,
+        dispositionActive: isActiveJobDisposition(
+          (job as { jobDisposition?: string | null }).jobDisposition
+        ),
+        canApproveJob: eligibility?.canApproveJob ?? false,
+        hasActivePlannedSchedule: hasActivePlannedWorkSchedule(schedule),
+        schedule,
+      };
+    },
+    [attentionByJobId, r3fSchedulesByJobId]
+  );
+
+  const closeBoardMovementConfirm = useCallback(() => {
+    if (boardMovementConfirmBusy) return;
+    setBoardMovementConfirm(null);
+    setBoardMovementConfirmError(null);
+  }, [boardMovementConfirmBusy]);
+
+  const beginApproveBoardJob = useCallback(
+    async (job: RoofingEstimate) => {
+      const facts = resolveBoardMovementFacts(job);
+      if (!facts.jobId) return;
+      if (!facts.canApproveJob) {
+        setToast(BOARD_MOVEMENT_ACCEPTANCE_REQUIRED_COPY);
+        return;
+      }
+      const detail = await fetchJobAttentionDetail(facts.jobId);
+      const acceptanceItem =
+        detail.ok ? findApproveJobAcceptanceItem(detail.items) : null;
+      const acceptanceId = acceptanceItem?.acceptance?.acceptanceId;
+      if (!acceptanceId) {
+        setToast(BOARD_MOVEMENT_ACCEPTANCE_REQUIRED_COPY);
+        return;
+      }
+      setBoardMovementConfirmError(null);
+      setBoardMovementConfirm({
+        kind: "approve_job",
+        job,
+        jobId: facts.jobId,
+        acceptanceId,
+      });
+    },
+    [resolveBoardMovementFacts]
+  );
+
+  const confirmBoardMovement = useCallback(async () => {
+    const pending = boardMovementConfirm;
+    if (!pending || boardMovementConfirmBusy) return;
+    setBoardMovementConfirmBusy(true);
+    setBoardMovementConfirmError(null);
+    try {
+      if (pending.kind === "approve_job") {
+        if (!pending.acceptanceId) {
+          setBoardMovementConfirmError(BOARD_MOVEMENT_ACCEPTANCE_REQUIRED_COPY);
+          return;
+        }
+        setR3cApprovingJobId(pending.jobId);
+        const response = await fetch("/api/jobs/confirm-acceptance", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jobId: pending.jobId,
+            acceptanceId: pending.acceptanceId,
+          }),
+        });
+        const result = await response.json().catch(() => null);
+        if (!response.ok || result?.ok !== true) {
+          setBoardMovementConfirmError(
+            "This job could not be approved. Customer acceptance is required."
+          );
+          return;
+        }
+        notifyJobAttentionChanged({ jobId: pending.jobId });
+        setToast("Job approved.");
+        setBoardMovementConfirm(null);
+      } else if (pending.kind === "start_work") {
+        setBoardMovementConfirm(null);
+        await startBoardJobWork(pending.job);
+      } else if (pending.kind === "complete_job") {
+        setBoardMovementConfirm(null);
+        await completeBoardJobWork(pending.job);
+      } else if (pending.kind === "unschedule") {
+        const expectedRowVersion =
+          r3fSchedulesByJobId[pending.jobId]?.row_version ?? null;
+        const response = await fetch("/api/jobs/unschedule", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jobId: pending.jobId,
+            expectedRowVersion,
+          }),
+        });
+        const result = await response.json().catch(() => null);
+        if (!response.ok || result?.ok !== true) {
+          setBoardMovementConfirmError("This job could not be unscheduled.");
+          return;
+        }
+        setToast("Job unscheduled.");
+        setBoardMovementConfirm(null);
+      }
+      if (companyId) refreshDbJobs();
+    } catch {
+      setBoardMovementConfirmError("That action could not be completed. Try again.");
+    } finally {
+      setBoardMovementConfirmBusy(false);
+      setR3cApprovingJobId(null);
+    }
+  }, [
+    boardMovementConfirm,
+    boardMovementConfirmBusy,
+    companyId,
+    completeBoardJobWork,
+    r3fSchedulesByJobId,
+    refreshDbJobs,
+    startBoardJobWork,
+  ]);
+
+  const applyBoardDropIntent = useCallback(
+    async (job: RoofingEstimate, intentKind: BoardMovementIntentKind) => {
+      if (intentKind === "proposal_create") {
+        const jobId = getDbJobIdFromBoardEntry(job);
+        if (!jobId) return;
+        router.push(buildBoardProposalCreateHref(jobId));
+        return;
+      }
+      if (intentKind === "open_schedule_workspace") {
+        openBoardScheduleWorkspace(job);
+        return;
+      }
+      if (intentKind === "approve_job") {
+        await beginApproveBoardJob(job);
+        return;
+      }
+      const jobId = getDbJobIdFromBoardEntry(job);
+      if (!jobId) return;
+      setBoardMovementConfirmError(null);
+      setBoardMovementConfirm({
+        kind: intentKind,
+        job,
+        jobId,
+      });
+    },
+    [beginApproveBoardJob, openBoardScheduleWorkspace, router]
+  );
+
+  const handleBoardDragStart = useCallback((job: RoofingEstimate) => {
+    if (!isDbBoardJobEntry(job)) return;
+    boardDragHoverRef.current = null;
+    boardDragJobRef.current = job;
+    setBoardDragHoverColumn(null);
+    setBoardDragJob(job);
+  }, []);
+
+  const handleBoardDragMove = useCallback((clientX: number, clientY: number) => {
+    const ghost = boardDragGhostRef.current;
+    if (ghost) {
+      ghost.style.transform = `translate(${clientX + 10}px, ${clientY + 10}px)`;
+    }
+    const next = hitTestBoardColumnKey(clientX, clientY);
+    if (next !== boardDragHoverRef.current) {
+      boardDragHoverRef.current = next;
+      setBoardDragHoverColumn(next);
+    }
+  }, []);
+
+  const resetBoardDrag = useCallback(() => {
+    boardDragHoverRef.current = null;
+    boardDragJobRef.current = null;
+    setBoardDragJob(null);
+    setBoardDragHoverColumn(null);
+  }, []);
+
+  const handleBoardDragEnd = useCallback(
+    (clientX: number, clientY: number) => {
+      const job = boardDragJobRef.current;
+      const targetColumn =
+        hitTestBoardColumnKey(clientX, clientY) ?? boardDragHoverRef.current;
+      resetBoardDrag();
+      if (!job) return;
+      const facts = resolveBoardMovementFacts(job);
+      const resolution = resolveBoardGuardedMovement({
+        fromStage: facts.fromStage,
+        toStage: mapBoardColumnKeyToCanonicalStage(targetColumn),
+        dispositionActive: facts.dispositionActive,
+        canApproveJob: facts.canApproveJob,
+        hasActivePlannedSchedule: facts.hasActivePlannedSchedule,
+      });
+      if (!resolution.allowed) {
+        if (resolution.message) setToast(resolution.message);
+        return;
+      }
+      void applyBoardDropIntent(job, resolution.intent.kind);
+    },
+    [applyBoardDropIntent, resetBoardDrag, resolveBoardMovementFacts]
+  );
+
   const focusCanonicalColumn = useCallback((columnKey: BoardColumnKey) => {
     setFocusedCanonicalColumn(columnKey);
     if (typeof document === "undefined") return;
@@ -4156,14 +4431,19 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     (job: RoofingEstimate, columnKey: BoardColumnKey) => {
       const jobId = getDbJobIdFromBoardEntry(job);
       const schedule = jobId ? r3fSchedulesByJobId[jobId] ?? null : null;
-      const canonicalActions = resolveDbBoardJobActionEligibility(job, schedule);
+      const attention = jobId ? attentionByJobId[jobId] ?? null : null;
+      const canonicalActions = resolveDbBoardJobActionEligibility(job, schedule, {
+        approvalAcceptancePending: approvalPendingFromAttentionType(
+          attention?.primaryType
+        ),
+      });
       return {
         ...buildJobsBoardCardModel(job, batchStatuses, { columnKey }),
         sourceBadge: isLegacyBoardEstimateEntry(job) ? "Legacy" : null,
         dispositionLabel: visibleDispositionLabel(
           (job as { jobDisposition?: string | null }).jobDisposition
         ),
-        attention: jobId ? attentionByJobId[jobId] ?? null : null,
+        attention,
         scheduleLabel: schedule
           ? columnKey === "in_progress" || columnKey === "paid"
             ? `Planned · ${formatScheduleBoardMeta(schedule)}`
@@ -4187,8 +4467,10 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
         showScheduleAction: canonicalActions?.canSchedule ?? false,
         showStartWorkAction: canonicalActions?.canStartWork ?? false,
         showCompleteJobAction: canonicalActions?.canCompleteJob ?? false,
+        showApproveAction: canonicalActions?.canApproveJob ?? false,
         startWorkBusy: Boolean(jobId && r3gStartingJobId === jobId),
         completeJobBusy: Boolean(jobId && r3hCompletingJobId === jobId),
+        approveBusy: Boolean(jobId && r3cApprovingJobId === jobId),
       };
     },
     [
@@ -4198,6 +4480,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       r3fTimezone,
       r3gStartingJobId,
       r3hCompletingJobId,
+      r3cApprovingJobId,
     ]
   );
 
@@ -4414,6 +4697,10 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   const formatMoney = (n: number) =>
     n.toLocaleString(undefined, { style: "currency", currency: "USD" });
 
+  const boardDragFacts = boardDragJob
+    ? resolveBoardMovementFacts(boardDragJob)
+    : null;
+
   return (
     <>
       {toast !== null && (
@@ -4422,10 +4709,62 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           aria-live="polite"
           className="fixed top-4 right-4 z-50 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-lg"
         >
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600" aria-hidden>✓</span>
+          {/not available|required|Reactivate|could not|Could not/i.test(
+            toast
+          ) ? null : (
+            <span
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600"
+              aria-hidden
+            >
+              ✓
+            </span>
+          )}
           <span className="text-sm font-medium text-slate-800">{toast}</span>
         </div>
       )}
+      {boardDragJob ? (
+        <div
+          ref={boardDragGhostRef}
+          className="pointer-events-none fixed left-0 top-0 z-[80] w-56 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-md"
+          style={{ transform: "translate(-9999px, -9999px)" }}
+          data-board-drag-ghost
+        >
+          {boardDragJob.customerName || "Job"}
+        </div>
+      ) : null}
+      {boardMovementConfirm ? (
+        <BoardMovementConfirmDialog
+          title={
+            boardMovementConfirm.kind === "approve_job"
+              ? BOARD_APPROVE_CONFIRM_TITLE
+              : boardMovementConfirm.kind === "start_work"
+                ? BOARD_START_WORK_CONFIRM_TITLE
+                : boardMovementConfirm.kind === "complete_job"
+                  ? BOARD_COMPLETE_CONFIRM_TITLE
+                  : BOARD_UNSCHEDULE_CONFIRM_TITLE
+          }
+          body={
+            boardMovementConfirm.kind === "unschedule"
+              ? BOARD_UNSCHEDULE_CONFIRM_BODY
+              : null
+          }
+          confirmLabel={
+            boardMovementConfirm.kind === "approve_job"
+              ? "Approve"
+              : boardMovementConfirm.kind === "start_work"
+                ? "Start work"
+                : boardMovementConfirm.kind === "complete_job"
+                  ? "Complete job"
+                  : "Unschedule"
+          }
+          busy={boardMovementConfirmBusy}
+          error={boardMovementConfirmError}
+          onConfirm={() => {
+            void confirmBoardMovement();
+          }}
+          onCancel={closeBoardMovementConfirm}
+        />
+      ) : null}
       {flashBanner && (
         <div
           role="status"
@@ -4538,9 +4877,24 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                     onOpenJob={(job) => handleAction(job, "load")}
                     onStartWork={canonicalLifecycleActionsEnabled ? startBoardJobWork : undefined}
                     onCompleteJob={canonicalLifecycleActionsEnabled ? completeBoardJobWork : undefined}
+                    onScheduleJob={
+                      canonicalLifecycleActionsEnabled
+                        ? openBoardScheduleWorkspace
+                        : undefined
+                    }
+                    onApproveJob={
+                      canonicalLifecycleActionsEnabled
+                        ? (job) => {
+                            void beginApproveBoardJob(job);
+                          }
+                        : undefined
+                    }
                   />
                 ) : (
-                  <div className="overflow-x-auto rounded-xl border border-slate-200/80 bg-white pb-2 shadow-sm [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200/60 [&::-webkit-scrollbar-track]:bg-transparent">
+                  <div
+                    className="overflow-x-auto rounded-xl border border-slate-200/80 bg-white pb-2 shadow-sm [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200/60 [&::-webkit-scrollbar-track]:bg-transparent"
+                    data-board-guarded-movement
+                  >
                     <div className="inline-flex min-w-min items-stretch pr-2">
                       {JOBS_BOARD_CATEGORY_GROUPS.map((group) => {
                         const visibleKeysInGroup = group.columnKeys.filter((k) =>
@@ -4568,18 +4922,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                                   onOpenJob={(job) => handleAction(job, "load")}
                                   onScheduleJob={
                                     canonicalLifecycleActionsEnabled
-                                      ? (job) => {
-                                          const jobId = getDbJobIdFromBoardEntry(job);
-                                          if (!jobId) return;
-                                          setR3fScheduleError(null);
-                                          setR3fScheduleModal({
-                                            mode: "schedule",
-                                            jobId,
-                                            schedule: null,
-                                            depositNotReceived:
-                                              r3fDepositDueByJobId[jobId] === true,
-                                          });
-                                        }
+                                      ? openBoardScheduleWorkspace
                                       : undefined
                                   }
                                   onStartWork={
@@ -4592,6 +4935,45 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                                       ? completeBoardJobWork
                                       : undefined
                                   }
+                                  onApproveJob={
+                                    canonicalLifecycleActionsEnabled
+                                      ? (job) => {
+                                          void beginApproveBoardJob(job);
+                                        }
+                                      : undefined
+                                  }
+                                  dragEnabled={
+                                    canonicalLifecycleActionsEnabled &&
+                                    boardViewMode === "board"
+                                  }
+                                  draggingJobId={boardDragJob?.id ?? null}
+                                  dropTargetState={
+                                    boardDragFacts &&
+                                    boardDragHoverColumn === column.key
+                                      ? (() => {
+                                          const validity = boardDropTargetValidity({
+                                            fromStage: boardDragFacts.fromStage,
+                                            toStage:
+                                              mapBoardColumnKeyToCanonicalStage(
+                                                column.key
+                                              ),
+                                            dispositionActive:
+                                              boardDragFacts.dispositionActive,
+                                            canApproveJob:
+                                              boardDragFacts.canApproveJob,
+                                            hasActivePlannedSchedule:
+                                              boardDragFacts.hasActivePlannedSchedule,
+                                          });
+                                          return validity === "none"
+                                            ? null
+                                            : validity;
+                                        })()
+                                      : null
+                                  }
+                                  onBoardDragStart={handleBoardDragStart}
+                                  onBoardDragMove={handleBoardDragMove}
+                                  onBoardDragEnd={handleBoardDragEnd}
+                                  onBoardDragCancel={resetBoardDrag}
                                   onFocusColumn={() => focusCanonicalColumn(column.key)}
                                   filterActive={boardFilterZeroMatch}
                                   columnFocused={focusedCanonicalColumn === column.key}

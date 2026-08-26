@@ -671,8 +671,10 @@ export type JobsBoardCardModel = {
   showScheduleAction?: boolean;
   showStartWorkAction?: boolean;
   showCompleteJobAction?: boolean;
+  showApproveAction?: boolean;
   startWorkBusy?: boolean;
   completeJobBusy?: boolean;
+  approveBusy?: boolean;
   dispositionLabel?: string | null;
 };
 

@@ -13,6 +13,14 @@ type JobsBoardColumnProps = {
   onScheduleJob?: (job: RoofingEstimate) => void;
   onStartWork?: (job: RoofingEstimate) => void;
   onCompleteJob?: (job: RoofingEstimate) => void;
+  onApproveJob?: (job: RoofingEstimate) => void;
+  dragEnabled?: boolean;
+  draggingJobId?: string | null;
+  dropTargetState?: "valid" | "invalid" | null;
+  onBoardDragStart?: (job: RoofingEstimate) => void;
+  onBoardDragMove?: (clientX: number, clientY: number) => void;
+  onBoardDragEnd?: (clientX: number, clientY: number) => void;
+  onBoardDragCancel?: () => void;
   onFocusColumn: () => void;
   filterActive?: boolean;
   columnFocused?: boolean;
@@ -28,6 +36,14 @@ export default function JobsBoardColumn({
   onScheduleJob,
   onStartWork,
   onCompleteJob,
+  onApproveJob,
+  dragEnabled = false,
+  draggingJobId = null,
+  dropTargetState = null,
+  onBoardDragStart,
+  onBoardDragMove,
+  onBoardDragEnd,
+  onBoardDragCancel,
   onFocusColumn,
   filterActive = false,
   columnFocused = false,
@@ -42,7 +58,14 @@ export default function JobsBoardColumn({
       data-jobs-board-column={column.key}
       className={`flex h-[calc(100vh-12rem)] min-h-[500px] w-[348px] shrink-0 flex-col border-r border-slate-200/50 last:border-r-0 sm:w-[360px] ${
         columnFocused ? "ring-1 ring-inset ring-slate-300" : ""
+      } ${
+        dropTargetState === "valid"
+          ? "bg-cyan-50/40 ring-1 ring-inset ring-cyan-700/20"
+          : dropTargetState === "invalid"
+            ? "bg-slate-100/70"
+            : ""
       }`}
+      data-board-drop-target={dropTargetState ?? undefined}
     >
       <button
         type="button"
@@ -95,6 +118,15 @@ export default function JobsBoardColumn({
                 onScheduleJob={onScheduleJob ? () => onScheduleJob(job) : undefined}
                 onStartWork={onStartWork ? () => onStartWork(job) : undefined}
                 onCompleteJob={onCompleteJob ? () => onCompleteJob(job) : undefined}
+                onApproveJob={onApproveJob ? () => onApproveJob(job) : undefined}
+                dragEnabled={dragEnabled}
+                isDragging={draggingJobId === job.id}
+                onBoardDragStart={
+                  onBoardDragStart ? () => onBoardDragStart(job) : undefined
+                }
+                onBoardDragMove={onBoardDragMove}
+                onBoardDragEnd={onBoardDragEnd}
+                onBoardDragCancel={onBoardDragCancel}
               />
             ))}
           </div>

@@ -61,7 +61,7 @@ export default function JobScheduleMonthGrid({
           );
           const countLabel = scheduledCountLabel(count);
           const className = [
-            "relative min-h-[2.15rem] border-b border-r border-slate-100 px-0.5 py-0.5 text-left sm:min-h-[2.35rem]",
+            "relative min-h-[2.4rem] overflow-hidden border-b border-r border-slate-100 px-0.5 py-0.5 text-left sm:min-h-[2.55rem]",
             inMonth ? "bg-white" : "bg-slate-50/80 text-slate-400",
             selected ? "ring-1 ring-inset ring-cyan-600" : "",
             thisJob && !selected ? "bg-sky-50" : "",
@@ -87,15 +87,16 @@ export default function JobScheduleMonthGrid({
                 data-schedule-day-selected={selected ? "true" : undefined}
                 data-schedule-day-this-job={thisJob ? "true" : undefined}
               >
-                <div className="text-[11px] font-medium" aria-hidden="true">
+                <div className="text-[11px] font-medium leading-none" aria-hidden="true">
                   {iso.slice(8)}
                 </div>
                 {countLabel ? (
                   <div
-                    className="mt-0.5 text-[11px] font-semibold tabular-nums text-slate-700"
+                    className="mt-0.5 text-[9px] font-medium leading-tight text-slate-500 sm:text-[10px]"
                     aria-hidden="true"
+                    data-schedule-day-count-label
                   >
-                    {count}
+                    {countLabel}
                   </div>
                 ) : null}
               </div>
@@ -120,15 +121,16 @@ export default function JobScheduleMonthGrid({
               data-schedule-day-this-job={thisJob ? "true" : undefined}
               onClick={() => onSelectDay(iso)}
             >
-              <div className="text-[11px] font-medium" aria-hidden="true">
+              <div className="text-[11px] font-medium leading-none" aria-hidden="true">
                 {iso.slice(8)}
               </div>
               {countLabel ? (
                 <div
-                  className="mt-0.5 text-[11px] font-semibold tabular-nums text-slate-700"
+                  className="mt-0.5 text-[9px] font-medium leading-tight text-slate-500 sm:text-[10px]"
                   aria-hidden="true"
+                  data-schedule-day-count-label
                 >
-                  {count}
+                  {countLabel}
                 </div>
               ) : null}
             </button>

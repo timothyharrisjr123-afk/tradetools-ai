@@ -123,6 +123,7 @@ export default function JobCardClient({
   const fromParam = searchParams.get("from");
   const attentionParam = searchParams.get("attention");
   const focusedRequestParam = searchParams.get("request");
+  const tabParam = searchParams.get("tab");
   const isBoardOriginParam = fromParam === "board";
   const entryMode = "job-card" as const;
   const loadSavedId = null;
@@ -138,7 +139,9 @@ export default function JobCardClient({
       (jobParam && isUuidLike(jobParam) ? jobParam : null)
   );
   const [restoreTick, setRestoreTick] = useState(0);
-  const [jobCardTab, setJobCardTabRaw] = useState<JobCardTabId>("overview");
+  const [jobCardTab, setJobCardTabRaw] = useState<JobCardTabId>(
+    coerceJobCardVisibleTab(tabParam)
+  );
   const setJobCardTab = useCallback((tab: JobCardTabId) => {
     setJobCardTabRaw(coerceJobCardVisibleTab(tab));
   }, []);

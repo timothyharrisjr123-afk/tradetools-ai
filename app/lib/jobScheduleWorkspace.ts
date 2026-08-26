@@ -118,10 +118,42 @@ export function scheduledJobCountByDay(
   return counts;
 }
 
+const CIVIL_MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+] as const;
+
+/** Visible occupancy: factual "1 job" / "N jobs". Empty when none. */
 export function scheduledCountLabel(count: number): string {
   if (count <= 0) return "";
-  if (count === 1) return "1 scheduled";
+  if (count === 1) return "1 job";
+  return `${count} jobs`;
+}
+
+/** Screen-reader occupancy: keeps "scheduled job(s)" and never omits date context. */
+export function scheduledCountAccessibleLabel(count: number): string {
+  if (count <= 0) return "";
+  if (count === 1) return "1 scheduled job";
   return `${count} scheduled jobs`;
+}
+
+export function formatCivilDateAccessible(iso: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso ?? "").trim());
+  if (!match) return String(iso ?? "").trim();
+  const month = CIVIL_MONTH_NAMES[Number(match[2]) - 1];
+  const day = Number(match[3]);
+  if (!month || !Number.isFinite(day) || day < 1) return String(iso ?? "").trim();
+  return `${month} ${day}`;
 }
 
 export function resolveScheduleWorkspaceDates(input: {
@@ -253,10 +285,10 @@ export function scheduleDayAriaLabel(input: {
   selected: boolean;
   thisJob: boolean;
 }): string {
-  const parts = [input.iso];
-  const countLabel = scheduledCountLabel(input.count);
+  const parts = [formatCivilDateAccessible(input.iso) || input.iso];
+  const countLabel = scheduledCountAccessibleLabel(input.count);
   if (countLabel) parts.push(countLabel);
-  if (input.thisJob) parts.push("this job");
-  if (input.selected) parts.push("selected");
+  if (input.selected) parts.push("selected for this job");
+  else if (input.thisJob) parts.push("this job");
   return parts.join(", ");
 }

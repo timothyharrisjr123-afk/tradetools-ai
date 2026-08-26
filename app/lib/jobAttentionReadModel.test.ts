@@ -227,7 +227,15 @@ describe("R3B4B integration guardrails", () => {
       (board.match(/useJobAttentionSummaries\(/g) ?? []).length,
       1
     );
-    assert.equal(board.includes("fetchJobAttentionDetail("), false);
+    assert.equal(boardModel.includes("fetchJobAttentionDetail("), false);
+    assert.equal(boardCard.includes("fetchJobAttentionDetail("), false);
+    assert.match(board, /const beginApproveBoardJob/);
+    assert.match(board, /fetchJobAttentionDetail/);
+    const cardModelFn = board.slice(
+      board.indexOf("const buildBoardCardModel"),
+      board.indexOf("const boardVisibleJobs")
+    );
+    assert.doesNotMatch(cardModelFn, /fetchJobAttentionDetail/);
     assert.match(persistence, /\.range\(offset, end\)/);
     assert.match(persistence, /JOB_ATTENTION_SUMMARY_MAX_ROWS = 5000/);
   });

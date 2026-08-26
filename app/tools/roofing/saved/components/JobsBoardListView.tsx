@@ -21,6 +21,8 @@ type JobsBoardListViewProps = {
   onOpenJob: (job: RoofingEstimate) => void;
   onStartWork?: (job: RoofingEstimate) => void;
   onCompleteJob?: (job: RoofingEstimate) => void;
+  onScheduleJob?: (job: RoofingEstimate) => void;
+  onApproveJob?: (job: RoofingEstimate) => void;
   /** When set, shown on every row (legacy section). */
   sourceBadge?: string | null;
 };
@@ -39,6 +41,8 @@ export default function JobsBoardListView({
   onOpenJob,
   onStartWork,
   onCompleteJob,
+  onScheduleJob,
+  onApproveJob,
   sourceBadge,
 }: JobsBoardListViewProps) {
   if (jobs.length === 0) {
@@ -148,7 +152,32 @@ export default function JobsBoardListView({
                     )}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-xs">
-                    {model?.showStartWorkAction && onStartWork ? (
+                    {model?.showApproveAction && onApproveJob ? (
+                      <button
+                        type="button"
+                        disabled={model.approveBusy}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onApproveJob(job);
+                        }}
+                        className="font-semibold text-slate-800 hover:text-slate-950"
+                        data-board-list-approve-job
+                      >
+                        {model.approveBusy ? "Approving…" : "Approve"}
+                      </button>
+                    ) : model?.showScheduleAction && onScheduleJob ? (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onScheduleJob(job);
+                        }}
+                        className="font-semibold text-slate-800 hover:text-slate-950"
+                        data-board-list-schedule-job
+                      >
+                        Schedule job
+                      </button>
+                    ) : model?.showStartWorkAction && onStartWork ? (
                       <button
                         type="button"
                         disabled={model.startWorkBusy}

@@ -23,8 +23,10 @@ import {
   SCHEDULE_CONTEXT_ERROR_COPY,
   SCHEDULE_WORKSPACE_FORBIDDEN_COPY,
   scheduledCountLabel,
+  scheduledCountAccessibleLabel,
   scheduledJobCountByDay,
   scheduleDayAriaLabel,
+  formatCivilDateAccessible,
   scheduleRangeCacheKey,
   scheduleWorkspaceHasCompleteWindow,
   shouldBlockScheduleWriteOnContextError,
@@ -142,8 +144,9 @@ describe("factual occupancy counts", () => {
     assert.equal(counts["2026-08-27"], 1);
     assert.equal(counts["2026-08-28"], 2);
     assert.equal(counts["2026-08-29"], 0);
-    assert.equal(scheduledCountLabel(2), "2 scheduled jobs");
-    assert.equal(scheduledCountLabel(1), "1 scheduled");
+    assert.equal(scheduledCountLabel(0), "");
+    assert.equal(scheduledCountLabel(2), "2 jobs");
+    assert.equal(scheduledCountLabel(1), "1 job");
     assert.equal(civilDateInInclusiveRange("2026-08-28", "2026-08-27", "2026-08-28"), true);
   });
 
@@ -160,15 +163,28 @@ describe("factual occupancy counts", () => {
     assert.match(SCHEDULE_CONTEXT_ERROR_COPY, /Could not load other scheduled work/);
   });
 
-  test("aria labels stay factual", () => {
+  test("aria labels stay factual with date context", () => {
+    assert.equal(formatCivilDateAccessible("2026-08-24"), "August 24");
+    assert.equal(scheduledCountAccessibleLabel(0), "");
+    assert.equal(scheduledCountAccessibleLabel(1), "1 scheduled job");
+    assert.equal(scheduledCountAccessibleLabel(2), "2 scheduled jobs");
     assert.equal(
       scheduleDayAriaLabel({
-        iso: "2026-08-28",
+        iso: "2026-08-24",
         count: 2,
         selected: true,
         thisJob: true,
       }),
-      "2026-08-28, 2 scheduled jobs, this job, selected"
+      "August 24, 2 scheduled jobs, selected for this job"
+    );
+    assert.equal(
+      scheduleDayAriaLabel({
+        iso: "2026-08-24",
+        count: 1,
+        selected: false,
+        thisJob: false,
+      }),
+      "August 24, 1 scheduled job"
     );
   });
 });
@@ -279,8 +295,9 @@ describe("surface ownership and forbidden wording", () => {
 
   test("Board Approved Schedule job does not invent a date", () => {
     const source = read("app/tools/roofing/saved/SavedClient.tsx");
+    assert.match(source, /openBoardScheduleWorkspace/);
     const match = source.match(
-      /canonicalLifecycleActionsEnabled\s*\?\s*\(job\) => \{[\s\S]*?setR3fScheduleModal\(\{[\s\S]*?\}\);/
+      /const openBoardScheduleWorkspace = useCallback\(\s*\(job: RoofingEstimate\) => \{[\s\S]*?setR3fScheduleModal\(\{[\s\S]*?\}\);/
     );
     assert.ok(match);
     assert.match(match[0], /mode: "schedule"/);
@@ -300,6 +317,14 @@ describe("surface ownership and forbidden wording", () => {
       read("app/tools/roofing/saved/components/JobsBoardCard.tsx"),
       /data-board-schedule-job/
     );
+  });
+
+  test("month grid shows 1 job / N jobs, not a bare numeral", () => {
+    const grid = read("app/tools/roofing/jobCard/JobScheduleMonthGrid.tsx");
+    assert.match(grid, /scheduledCountLabel/);
+    assert.match(grid, /data-schedule-day-count-label/);
+    assert.doesNotMatch(grid, />\{count\}</);
+    assert.doesNotMatch(grid.toLowerCase(), /busy|available|capacity|recommended/);
   });
 
   test("does not write jobs.stage from the workspace", () => {
