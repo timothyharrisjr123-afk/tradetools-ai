@@ -45,9 +45,16 @@ export const JOB_CARD_PROPOSALS_EMPTY_TITLE = "No proposals yet" as const;
 export const JOB_CARD_PROPOSALS_EMPTY_BODY =
   "Create a proposal from this job’s completed measurement report." as const;
 
-/** Job Card metadata strip — truly no proposal (no visible rows, no pointers). */
+/** Job Card metadata strip — actionable create guidance (Intake / Proposal only). */
 export const JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE =
   "Ready to create proposal" as const;
+
+/**
+ * Later lifecycle stages with unexpectedly absent proposal truth.
+ * Factual, not an actionable “create proposal” next step.
+ */
+export const JOB_CARD_PROPOSAL_STATUS_UNAVAILABLE =
+  "Proposal unavailable" as const;
 
 /**
  * Proposal exists via canonical job pointer/history, but contractor-visible
@@ -55,6 +62,32 @@ export const JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE =
  * "Ready to create proposal".
  */
 export const JOB_CARD_PROPOSAL_STATUS_EXISTS = "Proposal" as const;
+
+/** Stages where creating the initial proposal may still be the next step. */
+const PROPOSAL_CREATE_GUIDANCE_STAGES = new Set(["intake", "proposal"]);
+
+/**
+ * Actionable “Ready to create proposal” is coherent only in Intake / Proposal.
+ * Approved and later stages use neutral absence wording when truth is missing.
+ */
+export function allowsJobCardProposalCreateGuidance(
+  stage: string | null | undefined
+): boolean {
+  const token = String(stage ?? "")
+    .trim()
+    .toLowerCase();
+  if (!token) return true;
+  if (token === "measurement" || token === "estimating") return true;
+  return PROPOSAL_CREATE_GUIDANCE_STAGES.has(token);
+}
+
+export function formatAbsentProposalStatusLabel(
+  stage: string | null | undefined
+): typeof JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE | typeof JOB_CARD_PROPOSAL_STATUS_UNAVAILABLE {
+  return allowsJobCardProposalCreateGuidance(stage)
+    ? JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE
+    : JOB_CARD_PROPOSAL_STATUS_UNAVAILABLE;
+}
 
 /** True when jobs.active_proposal_id or jobs.latest_proposal_id is set. */
 export function hasCanonicalJobProposalPointer(input: {
@@ -69,9 +102,13 @@ export function hasCanonicalJobProposalPointer(input: {
 
 /** Board presence label — coarse existence only (acceptance depth is Job Card). */
 export function formatBoardProposalPresenceLabel(
-  hasProposal: boolean
-): "Proposal" | "No Proposal" {
-  return hasProposal ? "Proposal" : "No Proposal";
+  hasProposal: boolean,
+  stage?: string | null
+): "Proposal" | "No Proposal" | "Proposal unavailable" {
+  if (hasProposal) return "Proposal";
+  return allowsJobCardProposalCreateGuidance(stage)
+    ? "No Proposal"
+    : JOB_CARD_PROPOSAL_STATUS_UNAVAILABLE;
 }
 
 function canonicalProposalPointerIds(input: {
@@ -324,6 +361,11 @@ export function formatJobCardContractorProposalStatusLabel(input: {
   activeProposalId?: string | null;
   /** Canonical jobs.latest_proposal_id — presence truth when summaries empty. */
   latestProposalId?: string | null;
+  /**
+   * Canonical lifecycle stage. Gates actionable create guidance vs neutral
+   * absence on later stages. Does not invent proposal rows.
+   */
+  stage?: string | null;
 }): string {
   const visible = input.visibleSummaries;
   if (visible.length === 0) {
@@ -332,7 +374,7 @@ export function formatJobCardContractorProposalStatusLabel(input: {
       latestProposalId: input.latestProposalId,
     });
     if (pointerIds.length === 0) {
-      return JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE;
+      return formatAbsentProposalStatusLabel(input.stage);
     }
     const signedFromPointer = pointerIds.some(
       (id) => input.signedProposalIds?.[id] === true

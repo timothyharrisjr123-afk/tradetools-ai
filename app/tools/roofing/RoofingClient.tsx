@@ -223,7 +223,11 @@ import JobCardDispositionControl from "@/app/tools/roofing/jobCard/JobCardDispos
 import JobCardMetadataStrip from "@/app/tools/roofing/jobCard/JobCardMetadataStrip";
 import JobCardNextActionPanel from "@/app/tools/roofing/jobCard/JobCardNextActionPanel";
 import JobCardTabs, { type JobCardTabId } from "@/app/tools/roofing/jobCard/JobCardTabs";
-import { JOB_CARD_TABS } from "@/app/tools/roofing/jobCard/jobCardTypes";
+import {
+  JOB_CARD_TABS,
+  coerceJobCardVisibleTab,
+  isJobCardVisibleTabId,
+} from "@/app/tools/roofing/jobCard/jobCardTypes";
 import JobCardSectionPanel from "@/app/tools/roofing/jobCard/JobCardSectionPanel";
 import JobCardActivityPanel, { type JobCardActivityItem } from "@/app/tools/roofing/jobCard/JobCardActivityPanel";
 import JobCardActivityPanelWithCustomerRequests from "@/app/tools/roofing/jobCard/JobCardActivityPanelWithCustomerRequests";
@@ -1254,7 +1258,10 @@ export default function RoofingClient({
   const proposalLaunchInFlightRef = useRef(false);
   const measurementSaveInFlightRef = useRef<string | null>(null);
   const measurementFormHydratedRef = useRef<string | null>(null);
-  const [jobCardTab, setJobCardTab] = useState<JobCardTabId>("overview");
+  const [jobCardTab, setJobCardTabRaw] = useState<JobCardTabId>("overview");
+  const setJobCardTab = useCallback((tab: JobCardTabId) => {
+    setJobCardTabRaw(coerceJobCardVisibleTab(tab));
+  }, []);
   const [jobCardBoardOrigin, setJobCardBoardOrigin] = useState(false);
   const [jobScheduleRows, setJobScheduleRows] = useState<JobSchedule[]>([]);
   const [jobSchedulesLoadedForJobId, setJobSchedulesLoadedForJobId] = useState<
@@ -1360,8 +1367,10 @@ export default function RoofingClient({
     if (entryMode !== "job-card") return;
     const tab = searchParams.get("tab");
     if (!tab) return;
-    if (JOB_CARD_TABS.some((t) => t.id === tab)) {
-      setJobCardTab(tab as JobCardTabId);
+    if (isJobCardVisibleTabId(tab)) {
+      setJobCardTab(tab);
+    } else if (JOB_CARD_TABS.some((t) => t.id === tab)) {
+      setJobCardTab(coerceJobCardVisibleTab(null));
     }
   }, [entryMode, searchParams]);
 
@@ -8373,6 +8382,7 @@ Thanks,`;
         signedProposalIds: jobSignedProposalIds,
         activeProposalId: hydratedJobRecord?.active_proposal_id ?? null,
         latestProposalId: hydratedJobRecord?.latest_proposal_id ?? null,
+        stage: hydratedJobRecord?.stage ?? null,
       }),
     };
     const canonicalJobStage = resolveCanonicalJobStage(

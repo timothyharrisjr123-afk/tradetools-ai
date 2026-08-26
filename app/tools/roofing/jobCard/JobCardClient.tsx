@@ -90,6 +90,7 @@ import JobCardDispositionControl from "@/app/tools/roofing/jobCard/JobCardDispos
 import JobCardMetadataStrip from "@/app/tools/roofing/jobCard/JobCardMetadataStrip";
 import JobCardNextActionPanel from "@/app/tools/roofing/jobCard/JobCardNextActionPanel";
 import JobCardTabs, { type JobCardTabId } from "@/app/tools/roofing/jobCard/JobCardTabs";
+import { coerceJobCardVisibleTab } from "@/app/tools/roofing/jobCard/jobCardTypes";
 import JobCardSectionPanel from "@/app/tools/roofing/jobCard/JobCardSectionPanel";
 import JobCardOverviewSummary from "@/app/tools/roofing/jobCard/JobCardOverviewSummary";
 import JobCardScheduleSection from "@/app/tools/roofing/jobCard/JobCardScheduleSection";
@@ -142,7 +143,10 @@ export default function JobCardClient({
       (jobParam && isUuidLike(jobParam) ? jobParam : null)
   );
   const [restoreTick, setRestoreTick] = useState(0);
-  const [jobCardTab, setJobCardTab] = useState<JobCardTabId>("overview");
+  const [jobCardTab, setJobCardTabRaw] = useState<JobCardTabId>("overview");
+  const setJobCardTab = useCallback((tab: JobCardTabId) => {
+    setJobCardTabRaw(coerceJobCardVisibleTab(tab));
+  }, []);
   const [jobCardBoardOrigin, setJobCardBoardOrigin] = useState(isBoardOriginParam);
   const isRestoringRef = useRef(false);
   const loadAppliedRef = useRef(true);
@@ -591,6 +595,7 @@ export default function JobCardClient({
       signedProposalIds: jobSignedProposalIds,
       activeProposalId: hydratedJobRecord?.active_proposal_id ?? null,
       latestProposalId: hydratedJobRecord?.latest_proposal_id ?? null,
+      stage: hydratedJobRecord?.stage ?? null,
     }),
     tasksLabel: "No tasks",
   };

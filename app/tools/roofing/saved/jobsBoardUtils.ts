@@ -285,8 +285,11 @@ function getProposalStatusBadge(est: RoofingEstimate): CardStatusBadge {
     const hasProposal = Boolean(
       (est as { jobHasProposal?: boolean }).jobHasProposal
     );
+    const stage =
+      (est as { canonicalJobStage?: string | null }).canonicalJobStage ?? null;
+    const label = formatBoardProposalPresenceLabel(hasProposal, stage);
     return {
-      label: formatBoardProposalPresenceLabel(hasProposal),
+      label,
       tone: hasProposal ? "proposal_draft" : "proposal_none",
     };
   }
@@ -541,6 +544,7 @@ function compactReportLabel(status: CardStatusBadge): string {
 }
 
 function compactProposalLabel(status: CardStatusBadge): string {
+  if (status.label === "Proposal unavailable") return "Proposal unavailable";
   switch (status.tone) {
     case "proposal_draft":
       return "Proposal draft";
@@ -607,6 +611,7 @@ function deriveNextStepLabel(
   proposalStatus: CardStatusBadge
 ): string {
   if (reportStatus.tone === "report_missing") return "Add measurement";
+  if (proposalStatus.label === "Proposal unavailable") return "Open job card";
   if (proposalStatus.tone === "proposal_none") return "Create proposal";
   if (proposalStatus.tone === "proposal_draft") return "Open proposal";
   if (proposalStatus.tone === "proposal_sent") return "Review proposal";

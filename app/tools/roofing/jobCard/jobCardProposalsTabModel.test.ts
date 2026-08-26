@@ -7,6 +7,7 @@ import { describe, test } from "node:test";
 import {
   JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE,
   JOB_CARD_PROPOSAL_STATUS_EXISTS,
+  JOB_CARD_PROPOSAL_STATUS_UNAVAILABLE,
   formatBoardProposalPresenceLabel,
   hasCanonicalJobProposalPointer,
   JOB_CARD_PROPOSALS_ADD_LABEL,
@@ -241,16 +242,30 @@ describe("jobCardProposalsTab helpers", () => {
     );
   });
 
-  test("invalid advanced fixture with no proposal stays Ready to create / No Proposal", () => {
+  test("invalid advanced fixture with no proposal is stage-aware", () => {
     assert.equal(
       formatJobCardContractorProposalStatusLabel({
         visibleSummaries: [],
         activeProposalId: null,
         latestProposalId: null,
+        stage: "intake",
       }),
       JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE
     );
-    assert.equal(formatBoardProposalPresenceLabel(false), "No Proposal");
+    assert.equal(
+      formatJobCardContractorProposalStatusLabel({
+        visibleSummaries: [],
+        activeProposalId: null,
+        latestProposalId: null,
+        stage: "scheduled",
+      }),
+      JOB_CARD_PROPOSAL_STATUS_UNAVAILABLE
+    );
+    assert.equal(formatBoardProposalPresenceLabel(false, "intake"), "No Proposal");
+    assert.equal(
+      formatBoardProposalPresenceLabel(false, "scheduled"),
+      "Proposal unavailable"
+    );
     assert.equal(formatBoardProposalPresenceLabel(true), "Proposal");
   });
 
