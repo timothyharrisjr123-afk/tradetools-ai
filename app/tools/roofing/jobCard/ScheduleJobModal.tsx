@@ -1,19 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import {
-  COMPANY_TIMEZONE_CTA,
-  COMPANY_TIMEZONE_REQUIRED_COPY,
-  JOB_SCHEDULE_NOTES_MAX_LENGTH,
-  SCHEDULE_DEPOSIT_NOT_RECEIVED,
-  type JobSchedule,
-} from "@/app/lib/jobScheduleTypes";
+import { useEffect, useRef } from "react";
 import {
   buildScheduleTimezoneSettingsHref,
-  resolveCompanyTimezoneCanonicalStatus,
-  todayCivilIso,
   type CompanyTimezoneLoadStatus,
 } from "@/app/lib/jobScheduleMapper";
+import type { JobSchedule } from "@/app/lib/jobScheduleTypes";
+import type {
+  ScheduleContextStatus,
+  ScheduleOccupancyWindow,
+} from "@/app/lib/jobScheduleWorkspace";
+import JobScheduleWorkspace, {
+  type JobScheduleWorkspaceSubmit,
+} from "./JobScheduleWorkspace";
 
 export type ScheduleModalMode = "schedule" | "reschedule" | "unschedule";
 
@@ -21,7 +20,6 @@ type ScheduleJobModalProps = {
   open: boolean;
   mode: ScheduleModalMode;
   timezone: string | null;
-  /** Distinct from missing timezone — loading/error must not look like "Not set". */
   timezoneLoadStatus?: CompanyTimezoneLoadStatus;
   schedule?: JobSchedule | null;
   prefillStartsOn?: string | null;
@@ -31,15 +29,10 @@ type ScheduleJobModalProps = {
   depositNotReceived?: boolean;
   busy?: boolean;
   error?: string | null;
+  contextWindows?: ScheduleOccupancyWindow[] | null;
+  contextStatus?: ScheduleContextStatus | null;
   onClose: () => void;
-  onSubmitSchedule: (input: {
-    startsOn: string;
-    endsOn: string;
-    allDay: boolean;
-    startLocalTime: string | null;
-    endLocalTime: string | null;
-    notes: string | null;
-  }) => void;
+  onSubmitSchedule: (input: JobScheduleWorkspaceSubmit) => void;
   onConfirmUnschedule: () => void;
 };
 
@@ -52,10 +45,10 @@ export default function ScheduleJobModal(props: ScheduleJobModalProps) {
     props.prefillStartsOn ?? "",
     props.prefillEndsOn ?? "",
   ].join(":");
-  return <ScheduleJobModalForm key={formKey} {...props} />;
+  return <ScheduleJobModalSheet key={formKey} {...props} />;
 }
 
-function ScheduleJobModalForm({
+function ScheduleJobModalSheet({
   mode,
   timezone,
   timezoneLoadStatus = "ready",
@@ -67,41 +60,53 @@ function ScheduleJobModalForm({
   depositNotReceived = false,
   busy = false,
   error = null,
+  contextWindows = null,
+  contextStatus = null,
   onClose,
   onSubmitSchedule,
   onConfirmUnschedule,
 }: ScheduleJobModalProps) {
-  const timezoneStatus = resolveCompanyTimezoneCanonicalStatus({
-    loadStatus: timezoneLoadStatus,
-    savedTimezone: timezone,
-  });
-  const defaultStart = prefillStartsOn || schedule?.starts_on || todayCivilIso();
-  const [startsOn, setStartsOn] = useState(defaultStart);
-  const [endsOn, setEndsOn] = useState(
-    prefillEndsOn || schedule?.ends_on || defaultStart
+  const panelRef = useRef<HTMLDivElement>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const hasResumeWindow = Boolean(
+    prefillStartsOn || schedule?.starts_on
   );
-  const [allDay, setAllDay] = useState(schedule ? schedule.all_day : true);
-  const [startLocalTime, setStartLocalTime] = useState(
-    schedule?.start_local_time?.slice(0, 5) ?? "08:00"
-  );
-  const [endLocalTime, setEndLocalTime] = useState(
-    schedule?.end_local_time?.slice(0, 5) ?? "16:00"
-  );
-  const [notes, setNotes] = useState(schedule?.notes ?? "");
-
-  const title = useMemo(() => {
-    if (mode === "reschedule") return "Reschedule job";
-    if (mode === "unschedule") return "Unschedule job";
-    return "Schedule job";
-  }, [mode]);
   const timezoneSettingsHref =
-    timezoneReturnPath && timezoneReturnJobId
+    timezoneReturnPath && timezoneReturnJobId && hasResumeWindow
       ? buildScheduleTimezoneSettingsHref(timezoneReturnPath, {
           jobId: timezoneReturnJobId,
-          startsOn,
-          endsOn: endsOn || startsOn,
+          startsOn: prefillStartsOn || schedule?.starts_on || "",
+          endsOn:
+            prefillEndsOn ||
+            schedule?.ends_on ||
+            prefillStartsOn ||
+            schedule?.starts_on ||
+            "",
         })
       : "/tools/settings#company-timezone";
+
+  useEffect(() => {
+    restoreFocusRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    const panel = panelRef.current;
+    const focusTarget =
+      panel?.querySelector<HTMLElement>("button, input, textarea, a") ?? panel;
+    focusTarget?.focus();
+
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !busy) {
+        event.preventDefault();
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      restoreFocusRef.current?.focus();
+    };
+  }, [busy, onClose]);
 
   return (
     <div
@@ -111,157 +116,33 @@ function ScheduleJobModalForm({
       aria-labelledby="schedule-job-title"
       data-schedule-job-modal
     >
-      <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl">
-        <h2 id="schedule-job-title" className="text-base font-semibold text-slate-900">
-          {title}
-        </h2>
-
-        {timezoneStatus.kind === "loading" ? (
-          <div className="mt-4 space-y-3" data-timezone-loading>
-            <p className="text-sm text-slate-600">{timezoneStatus.text}</p>
-          </div>
-        ) : timezoneStatus.kind === "error" ? (
-          <div className="mt-4 space-y-3" data-timezone-error>
-            <p className="text-sm text-slate-600">{timezoneStatus.text}</p>
-          </div>
-        ) : timezoneStatus.kind === "not_set" ? (
-          <div className="mt-4 space-y-3" data-timezone-not-set>
-            <p className="text-sm text-slate-600">{COMPANY_TIMEZONE_REQUIRED_COPY}</p>
-            <a
-              href={timezoneSettingsHref}
-              className="inline-flex text-sm font-semibold text-cyan-700 hover:text-cyan-900"
-            >
-              {COMPANY_TIMEZONE_CTA}
-            </a>
-          </div>
-        ) : mode === "unschedule" ? (
-          <div className="mt-4 space-y-3">
-            <p className="text-sm text-slate-600">
-              Remove this job from the calendar? It will return to Approved.
-            </p>
-          </div>
-        ) : (
-          <div className="mt-4 space-y-3">
-            <p className="text-xs text-slate-500">Timezone: {timezone}</p>
-            {depositNotReceived ? (
-              <p className="text-xs text-slate-500">{SCHEDULE_DEPOSIT_NOT_RECEIVED}</p>
-            ) : null}
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block text-xs font-medium text-slate-600">
-                Start date
-                <input
-                  type="date"
-                  value={startsOn}
-                  onChange={(e) => {
-                    setStartsOn(e.target.value);
-                    if (endsOn < e.target.value) setEndsOn(e.target.value);
-                  }}
-                  className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm"
-                />
-              </label>
-              <label className="block text-xs font-medium text-slate-600">
-                End date
-                <input
-                  type="date"
-                  value={endsOn}
-                  min={startsOn}
-                  onChange={(e) => setEndsOn(e.target.value)}
-                  className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm"
-                />
-              </label>
-            </div>
-            <label className="flex items-center gap-2 text-sm text-slate-700">
-              <input
-                type="checkbox"
-                checked={allDay}
-                onChange={(e) => setAllDay(e.target.checked)}
-              />
-              All day
-            </label>
-            {!allDay ? (
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block text-xs font-medium text-slate-600">
-                  Start time
-                  <input
-                    type="time"
-                    value={startLocalTime}
-                    onChange={(e) => setStartLocalTime(e.target.value)}
-                    className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm"
-                  />
-                </label>
-                <label className="block text-xs font-medium text-slate-600">
-                  End time
-                  <input
-                    type="time"
-                    value={endLocalTime}
-                    onChange={(e) => setEndLocalTime(e.target.value)}
-                    className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm"
-                  />
-                </label>
-              </div>
-            ) : (
-              <button
-                type="button"
-                className="text-sm font-medium text-cyan-700 hover:text-cyan-900"
-                onClick={() => setAllDay(false)}
-              >
-                Add times
-              </button>
-            )}
-            <label className="block text-xs font-medium text-slate-600">
-              Notes
-              <textarea
-                value={notes}
-                maxLength={JOB_SCHEDULE_NOTES_MAX_LENGTH}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={2}
-                placeholder="Gate code, dumpster timing…"
-                className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm"
-              />
-            </label>
-          </div>
-        )}
-
-        {error ? <p className="mt-3 text-sm text-rose-700">{error}</p> : null}
-
-        <div className="mt-5 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
-            disabled={busy}
-          >
-            Cancel
-          </button>
-          {timezone && mode === "unschedule" ? (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={onConfirmUnschedule}
-              className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-semibold text-white"
-            >
-              Unschedule
-            </button>
-          ) : timezone ? (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() =>
-                onSubmitSchedule({
-                  startsOn,
-                  endsOn: endsOn || startsOn,
-                  allDay,
-                  startLocalTime: allDay ? null : `${startLocalTime}:00`,
-                  endLocalTime: allDay ? null : `${endLocalTime}:00`,
-                  notes: notes.trim() || null,
-                })
-              }
-              className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-semibold text-white"
-            >
-              {mode === "reschedule" ? "Save schedule" : "Schedule job"}
-            </button>
-          ) : null}
-        </div>
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-5 shadow-xl"
+      >
+        <JobScheduleWorkspace
+          variant="dialog"
+          mode={mode}
+          timezone={timezone}
+          timezoneLoadStatus={timezoneLoadStatus}
+          schedule={schedule}
+          prefillStartsOn={prefillStartsOn}
+          prefillEndsOn={prefillEndsOn}
+          timezoneSettingsHref={timezoneSettingsHref}
+          depositNotReceived={depositNotReceived}
+          busy={busy}
+          error={error}
+          contextWindows={contextWindows}
+          contextStatus={contextStatus}
+          enableContextRead={contextWindows == null}
+          canSchedule
+          canReschedule
+          canUnschedule={mode !== "schedule"}
+          onClose={onClose}
+          onSubmitSchedule={onSubmitSchedule}
+          onConfirmUnschedule={onConfirmUnschedule}
+        />
       </div>
     </div>
   );

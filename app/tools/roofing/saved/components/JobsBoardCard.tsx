@@ -158,7 +158,7 @@ export default function JobsBoardCard({
         {model.showScheduleAction && onScheduleJob ? (
           <button
             type="button"
-            className="pointer-events-auto mt-2 text-xs font-semibold text-cyan-700 hover:text-cyan-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70"
+            data-board-schedule-job
             onClick={(event) => {
               event.stopPropagation();
               onScheduleJob();

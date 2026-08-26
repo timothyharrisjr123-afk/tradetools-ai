@@ -243,7 +243,7 @@ import {
 } from "@/app/lib/proposalSignatureActivity";
 import JobCardOverviewSummary from "@/app/tools/roofing/jobCard/JobCardOverviewSummary";
 import JobCardScheduleSection from "@/app/tools/roofing/jobCard/JobCardScheduleSection";
-import JobCardScheduleTimeline from "@/app/tools/roofing/jobCard/JobCardScheduleTimeline";
+import JobCardScheduleWorkspacePanel from "@/app/tools/roofing/jobCard/JobCardScheduleWorkspacePanel";
 import ScheduleJobModal, {
   type ScheduleModalMode,
 } from "@/app/tools/roofing/jobCard/ScheduleJobModal";
@@ -8655,7 +8655,6 @@ Thanks,`;
                   measurementStatus={measurementsHeaderStatus}
                   catalogStatus={catalogReadinessLabel}
                   catalogReady={catalogReadiness.state === "ready_for_templates"}
-                  onNavigateTab={setJobCardTab}
                 />
                 <JobCardScheduleSection
                   canSchedule={jobCardActionEligibility.canSchedule}
@@ -8694,21 +8693,13 @@ Thanks,`;
                   }
                   onSchedule={() => {
                     setScheduleError(null);
-                    setScheduleModal({ mode: "schedule" });
+                    setJobCardTab("calendar");
                   }}
-                  onReschedule={
+                  onChangeSchedule={
                     jobCardActionEligibility.canReschedule
                       ? () => {
                           setScheduleError(null);
-                          setScheduleModal({ mode: "reschedule" });
-                        }
-                      : undefined
-                  }
-                  onUnschedule={
-                    jobCardActionEligibility.canUnschedule
-                      ? () => {
-                          setScheduleError(null);
-                          setScheduleModal({ mode: "unschedule" });
+                          setJobCardTab("calendar");
                         }
                       : undefined
                   }
@@ -9350,36 +9341,81 @@ Thanks,`;
                 tabId="calendar"
                 activeTab={jobCardTab}
                 title="Calendar"
-                statusChip={{
-                  label: jobCardSchedule.active
-                    ? canonicalJobStage === "production"
-                      ? "Planned schedule"
-                      : "Scheduled"
-                    : jobCardSchedule.ready
-                      ? "No events"
-                      : "Loading",
-                  className: jobCardSchedule.active
-                    ? "bg-emerald-50 text-emerald-700"
-                    : "bg-slate-100 text-slate-500",
-                }}
               >
-                <JobCardScheduleTimeline
-                  rows={
-                    currentJobId
-                      ? jobScheduleRows.filter((row) => row.job_id === currentJobId)
-                      : []
-                  }
-                  scheduleReady={jobCardSchedule.ready}
-                  onReschedule={
-                    jobCardSchedule.active &&
-                    canonicalJobStage === "scheduled"
-                      ? () => {
-                          setScheduleError(null);
-                          setScheduleModal({ mode: "reschedule" });
+                <JobCardScheduleWorkspacePanel
+                    stage={canonicalJobStage}
+                    scheduleReady={jobCardSchedule.ready}
+                    timezone={companyTimezoneForScheduling(
+                      resolveCompanyTimezoneReadState({
+                        loadStatus: companyTimezoneLoadStatus,
+                        savedTimezone: companyTimezone,
+                      })
+                    )}
+                    timezoneLoadStatus={companyTimezoneLoadStatus}
+                    activeSchedule={jobCardSchedule.active}
+                    cancelledRows={
+                      currentJobId
+                        ? jobScheduleRows.filter(
+                            (row) =>
+                              row.job_id === currentJobId &&
+                              row.status === "cancelled"
+                          )
+                        : []
+                    }
+                    canSchedule={jobCardActionEligibility.canSchedule}
+                    canReschedule={jobCardActionEligibility.canReschedule}
+                    canUnschedule={jobCardActionEligibility.canUnschedule}
+                    busy={scheduleBusy}
+                    error={scheduleError}
+                    depositNotReceived={
+                      jobPayments.view?.headline?.startsWith("Deposit due") === true
+                    }
+                    onSubmitSchedule={(input) => {
+                      if (!currentJobId) return;
+                      const mode = jobCardSchedule.active ? "reschedule" : "schedule";
+                      setScheduleBusy(true);
+                      setScheduleError(null);
+                      void persistJobScheduleAction(
+                        mode === "reschedule"
+                          ? "/api/jobs/reschedule"
+                          : "/api/jobs/schedule",
+                        {
+                          jobId: currentJobId,
+                          ...input,
+                          expectedRowVersion: jobCardSchedule.active?.row_version,
                         }
-                      : undefined
-                  }
-                />
+                      )
+                        .then(async (json) => {
+                          if (!json?.ok) {
+                            setScheduleError("Could not save the schedule.");
+                            return;
+                          }
+                          applyReturnedSchedule(json.schedule, currentJobId);
+                          setScheduleActivityTick((n) => n + 1);
+                          await refreshHydratedJobRecord(currentJobId);
+                        })
+                        .finally(() => setScheduleBusy(false));
+                    }}
+                    onConfirmUnschedule={() => {
+                      if (!currentJobId) return;
+                      setScheduleBusy(true);
+                      setScheduleError(null);
+                      void persistJobScheduleAction("/api/jobs/unschedule", {
+                        jobId: currentJobId,
+                        expectedRowVersion: jobCardSchedule.active?.row_version,
+                      })
+                        .then(async (json) => {
+                          if (!json?.ok) {
+                            setScheduleError("Could not unschedule this job.");
+                            return;
+                          }
+                          applyReturnedSchedule(json.schedule, currentJobId);
+                          setScheduleActivityTick((n) => n + 1);
+                          await refreshHydratedJobRecord(currentJobId);
+                        })
+                        .finally(() => setScheduleBusy(false));
+                    }}
+                  />
               </JobCardSectionPanel>
 
               <JobCardSectionPanel

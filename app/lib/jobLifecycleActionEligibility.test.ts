@@ -344,8 +344,9 @@ describe("Stage AB surface contracts", () => {
     );
   });
 
-  test("Schedule section gates reschedule on handler presence", () => {
+  test("Schedule section still supports handler-gated reschedule for harnesses", () => {
     assert.match(SCHEDULE_SECTION, /onReschedule && onUnschedule/);
+    assert.match(SCHEDULE_SECTION, /onChangeSchedule/);
   });
 
   test("Board adapter exposes canonicalJobStage on DB rows", () => {

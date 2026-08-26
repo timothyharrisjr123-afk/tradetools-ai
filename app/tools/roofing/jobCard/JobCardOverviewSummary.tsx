@@ -1,6 +1,5 @@
 "use client";
 
-import type { JobCardTabId } from "./jobCardTypes";
 import type { JobCardDisplayModel } from "./jobCardDisplayTypes";
 
 type JobCardOverviewSummaryProps = {
@@ -12,7 +11,6 @@ type JobCardOverviewSummaryProps = {
   measurementStatus: string;
   catalogStatus: string;
   catalogReady: boolean;
-  onNavigateTab: (tab: JobCardTabId) => void;
 };
 
 function SummaryCard({ title, children }: { title: string; children: React.ReactNode }) {
@@ -46,14 +44,7 @@ export default function JobCardOverviewSummary({
   measurementStatus,
   catalogStatus,
   catalogReady,
-  onNavigateTab,
 }: JobCardOverviewSummaryProps) {
-  const quickLinks: { tab: JobCardTabId; label: string }[] = [
-    { tab: "measurements", label: "Measurements" },
-    { tab: "proposals", label: "Proposals" },
-    { tab: "attachments", label: "Attachments" },
-  ];
-
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <SummaryCard title="Job summary">
@@ -96,22 +87,6 @@ export default function JobCardOverviewSummary({
           </p>
         ) : null}
       </SummaryCard>
-
-      <div className="rounded-lg border border-slate-200/80 bg-white p-4 lg:col-span-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Quick links</h3>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {quickLinks.map((link) => (
-            <button
-              key={link.tab}
-              type="button"
-              onClick={() => onNavigateTab(link.tab)}
-              className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-            >
-              {link.label}
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

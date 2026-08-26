@@ -27,6 +27,7 @@ type JobCardScheduleSectionProps = {
   onStartWork?: () => void;
   onCompleteJob?: () => void;
   onSchedule: () => void;
+  onChangeSchedule?: () => void;
   onReschedule?: () => void;
   onUnschedule?: () => void;
 };
@@ -49,6 +50,7 @@ export default function JobCardScheduleSection({
   onStartWork,
   onCompleteJob,
   onSchedule,
+  onChangeSchedule,
   onReschedule,
   onUnschedule,
 }: JobCardScheduleSectionProps) {
@@ -154,7 +156,16 @@ export default function JobCardScheduleSection({
               {completeBusy ? "Completing…" : "Complete job"}
             </button>
           ) : null}
-          {planned && !isReadOnly && onReschedule && onUnschedule ? (
+          {planned && !isReadOnly && onChangeSchedule ? (
+            <button
+              type="button"
+              onClick={onChangeSchedule}
+              className="text-sm font-semibold text-cyan-700 hover:text-cyan-900"
+              data-jobcard-change-schedule
+            >
+              Change schedule
+            </button>
+          ) : planned && !isReadOnly && onReschedule && onUnschedule ? (
             <>
               <button
                 type="button"

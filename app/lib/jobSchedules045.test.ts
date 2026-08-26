@@ -76,6 +76,10 @@ const SCHEDULE_MODAL = readFileSync(
   join(ROOT, "app/tools/roofing/jobCard/ScheduleJobModal.tsx"),
   "utf8"
 );
+const SCHEDULE_WORKSPACE = readFileSync(
+  join(ROOT, "app/tools/roofing/jobCard/JobScheduleWorkspace.tsx"),
+  "utf8"
+);
 
 const JOB_ID = "11111111-1111-4111-8111-111111111111";
 const COMPANY_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -708,9 +712,9 @@ describe("shared timezone read-state consumers", () => {
     assert.match(ROOFING_CLIENT, /parseCompanyTimezoneGetResult/);
     assert.match(CALENDAR_CLIENT, /parseCompanyTimezoneGetResult/);
     assert.match(SCHEDULE_MODAL, /timezoneLoadStatus/);
-    assert.match(SCHEDULE_MODAL, /timezoneStatus\.kind === "loading"/);
-    assert.match(SCHEDULE_MODAL, /timezoneStatus\.kind === "error"/);
-    assert.match(SCHEDULE_MODAL, /timezoneStatus\.kind === "not_set"/);
+    assert.match(SCHEDULE_WORKSPACE, /timezoneStatus\.kind === "loading"/);
+    assert.match(SCHEDULE_WORKSPACE, /timezoneStatus\.kind === "error"/);
+    assert.match(SCHEDULE_WORKSPACE, /timezoneStatus\.kind === "not_set"/);
     assert.match(CALENDAR_CLIENT, /data-timezone-loading/);
     assert.match(CALENDAR_CLIENT, /data-timezone-error/);
     assert.match(CALENDAR_CLIENT, /data-timezone-not-set/);

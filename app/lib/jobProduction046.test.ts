@@ -285,7 +285,7 @@ describe("R3G surface contracts", () => {
     assert.match(JOB_CARD, /Work started/);
     assert.match(JOB_CARD, /Planned schedule ·/);
     assert.doesNotMatch(JOB_CARD, /Production · planned/);
-    assert.match(ROOFING_CLIENT, /Planned schedule/);
+    assert.match(ROOFING_CLIENT, /JobCardScheduleWorkspacePanel/);
     assert.doesNotMatch(ROOFING_CLIENT, /Production · planned/);
     assert.match(JOB_CARD, /scheduleReady/);
     assert.doesNotMatch(JOB_CARD, /Undo Start/);
@@ -300,6 +300,7 @@ describe("R3G surface contracts", () => {
   test("Board uses the same API and truthful Production language", () => {
     assert.match(SAVED_CLIENT, /\/api\/jobs\/start-work/);
     assert.match(BOARD_CARD, /data-board-start-work/);
+    assert.match(BOARD_CARD, /data-board-schedule-job/);
     assert.match(BOARD_CARD, /data-board-production-started/);
     assert.doesNotMatch(SAVED_CLIENT, /Crew On Site|On [Ss]ite|Start Job/);
     assert.doesNotMatch(

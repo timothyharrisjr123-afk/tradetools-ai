@@ -32,6 +32,7 @@ import type {
   JobSchedule,
   ScheduleCandidateJob,
 } from "@/app/lib/jobScheduleTypes";
+import { occupancyWindowsFromUnknownEvents } from "@/app/lib/jobScheduleWorkspace";
 import { buildDbJobCardHref } from "@/app/lib/jobBoardAdapter";
 import { useRouter } from "next/navigation";
 
@@ -712,6 +713,16 @@ export default function FieldDiveCalendarClient({
         depositNotReceived={modal?.depositNotReceived === true}
         busy={busy}
         error={error}
+        contextWindows={occupancyWindowsFromUnknownEvents(events)}
+        contextStatus={
+          scheduleLoadStatus === "ready"
+            ? "ready"
+            : scheduleLoadStatus === "error"
+              ? "error"
+              : scheduleLoadStatus === "blocked"
+                ? "blocked"
+                : "loading"
+        }
         onClose={() => {
           setModal(null);
           setError(null);
