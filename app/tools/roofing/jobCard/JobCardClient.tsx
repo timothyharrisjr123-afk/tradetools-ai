@@ -95,7 +95,6 @@ import JobCardSectionPanel from "@/app/tools/roofing/jobCard/JobCardSectionPanel
 import JobCardOverviewSummary from "@/app/tools/roofing/jobCard/JobCardOverviewSummary";
 import JobCardScheduleSection from "@/app/tools/roofing/jobCard/JobCardScheduleSection";
 import JobCardScheduleWorkspacePanel from "@/app/tools/roofing/jobCard/JobCardScheduleWorkspacePanel";
-import JobCardPaymentsStrip from "@/app/tools/roofing/jobCard/JobCardPaymentsStrip";
 import JobCardRequestPaymentModal from "@/app/tools/roofing/jobCard/JobCardRequestPaymentModal";
 import JobCardProposalsTab, {
   JobCardProposalsAddHeaderButton,
@@ -908,19 +907,6 @@ export default function JobCardClient({
                         : undefined
                     }
                   />
-                  <div className="mt-4">
-                    <JobCardPaymentsStrip
-                      view={jobPayments.view}
-                      onRequestDeposit={() => {
-                        setPaymentModalError(null);
-                        setPaymentModalKind("deposit");
-                      }}
-                      onRequestBalance={() => {
-                        setPaymentModalError(null);
-                        setPaymentModalKind("balance");
-                      }}
-                    />
-                  </div>
                 </JobCardSectionPanel>
 
                 <JobCardSectionPanel

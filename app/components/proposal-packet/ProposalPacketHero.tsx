@@ -9,9 +9,8 @@ import {
   PROPOSAL_CUSTOMER_PACKET_CURRENT_TOTAL_LABEL,
   PROPOSAL_CUSTOMER_PACKET_PROPOSAL_LABEL,
 } from "@/app/lib/proposalCustomerPacketViewModel";
-import ProposalPacketPackageInterestActions from "./ProposalPacketPackageInterestActions";
-import type { ProposalPacketRequestModalContactPrefill } from "./ProposalPacketRequestModal";
-import type { ProposalPacketSignedResult } from "./ProposalPacketSignModal";
+import ProposalPacketCustomerActions from "./ProposalPacketCustomerActions";
+import type { ProposalPacketMode } from "./ProposalPacket";
 import { IconCheck, IconShield } from "./ProposalPacketIcons";
 import {
   PROPOSAL_PACKET_CURRENT_BADGE,
@@ -30,15 +29,12 @@ type ProposalPacketHeroProps = {
   estimate?: ProposalCustomerPacketEstimateViewModel | null;
   upgrades?: ProposalCustomerPacketUpgradesViewModel | null;
   contact?: ProposalCustomerPacketContactViewModel | null;
+  mode?: ProposalPacketMode;
   publicAccessToken?: string | null;
-  contactPrefill?: ProposalPacketRequestModalContactPrefill | null;
+  termsRequireDeposit?: boolean;
   accepted?: boolean;
   acceptedOnLabel?: string | null;
-  signed?: boolean;
-  signedOnLabel?: string | null;
-  signerDisplayName?: string | null;
-  onSigned?: (result: ProposalPacketSignedResult) => void;
-  signProminence?: "primary" | "continuation";
+  onConfirmed?: () => void;
 };
 
 const HERO_INTRO =
@@ -52,15 +48,12 @@ export default function ProposalPacketHero({
   estimate = null,
   upgrades = null,
   contact = null,
+  mode = "public",
   publicAccessToken = null,
-  contactPrefill = null,
+  termsRequireDeposit = false,
   accepted = false,
   acceptedOnLabel = null,
-  signed = false,
-  signedOnLabel = null,
-  signerDisplayName = null,
-  onSigned,
-  signProminence = "primary",
+  onConfirmed,
 }: ProposalPacketHeroProps) {
   const headline =
     (cover.headline ?? "").trim() ||
@@ -70,7 +63,6 @@ export default function ProposalPacketHero({
   const benefits = (estimate?.bullets ?? []).slice(0, 3);
   const upgradeCount = upgrades?.items.length ?? 0;
   const packageLabel = estimate?.label ?? "Selected package";
-  const optionKey = estimate?.optionKey ?? null;
 
   return (
     <header
@@ -138,24 +130,17 @@ export default function ProposalPacketHero({
                   </p>
                 </div>
                 <div className="mt-auto border-t border-[#e6ebf1] pt-3">
-                  <ProposalPacketPackageInterestActions
-                    packageLabel={packageLabel}
+                  <ProposalPacketCustomerActions
+                    mode={mode}
                     contact={contact}
                     layout="stack"
                     secondary="ask"
-                    requestProminence="continuation"
                     compact
                     publicAccessToken={publicAccessToken}
-                    optionKey={optionKey}
-                    contactPrefill={contactPrefill}
-                    totalLabel={estimate.totalInvestmentLabel ?? null}
+                    termsRequireDeposit={termsRequireDeposit}
                     accepted={accepted}
                     acceptedOnLabel={acceptedOnLabel}
-                    signed={signed}
-                    signedOnLabel={signedOnLabel}
-                    signerDisplayName={signerDisplayName}
-                    onSigned={onSigned}
-                    signProminence={signProminence}
+                    onConfirmed={onConfirmed}
                   />
                 </div>
               </div>

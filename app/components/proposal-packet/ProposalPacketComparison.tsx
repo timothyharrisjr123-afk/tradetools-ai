@@ -1,17 +1,11 @@
-import type {
-  ProposalCustomerPacketComparisonViewModel,
-  ProposalCustomerPacketContactViewModel,
-} from "@/app/lib/proposalCustomerPacketViewModel";
+import type { ProposalCustomerPacketComparisonViewModel } from "@/app/lib/proposalCustomerPacketViewModel";
 import {
   PROPOSAL_CUSTOMER_PACKET_COMPARE_HEADING,
   PROPOSAL_CUSTOMER_PACKET_COMPARE_INTRO,
   PROPOSAL_CUSTOMER_PACKET_CURRENT_BADGE,
-  proposalCustomerPacketAskAboutPackageCta,
 } from "@/app/lib/proposalCustomerPacketViewModel";
-import { buildPackageInterestHref } from "@/app/lib/proposalCustomerPacketInterestAction";
 import { IconCheck } from "./ProposalPacketIcons";
 import {
-  PROPOSAL_PACKET_CTA_QUIET,
   PROPOSAL_PACKET_CURRENT_BADGE,
   PROPOSAL_PACKET_OPTION_CARD,
   PROPOSAL_PACKET_OPTION_CARD_CURRENT,
@@ -23,7 +17,6 @@ import {
 
 type ProposalPacketComparisonProps = {
   comparison: ProposalCustomerPacketComparisonViewModel;
-  contact?: ProposalCustomerPacketContactViewModel | null;
 };
 
 function cellTextClass(
@@ -45,7 +38,6 @@ function cellTextClass(
 
 export default function ProposalPacketComparison({
   comparison,
-  contact = null,
 }: ProposalPacketComparisonProps) {
   if (comparison.options.length < 2) return null;
 
@@ -130,16 +122,10 @@ export default function ProposalPacketComparison({
                     {option.totalInvestmentLabel}
                   </p>
                 ) : null}
-                {!option.isCurrent ? (
-                  <a
-                    href={buildPackageInterestHref(contact, option.label, "ask-about")}
-                    className={`${PROPOSAL_PACKET_CTA_QUIET} mt-2`}
-                    data-proposal-cta="ask-about-package"
-                  >
-                    {proposalCustomerPacketAskAboutPackageCta(option.label)}
-                  </a>
-                ) : (
+                {option.isCurrent ? (
                   <p className="mt-2 text-[12px] font-medium text-[#2563eb]">Selected for this proposal</p>
+                ) : (
+                  <p className="mt-2 text-[12px] text-[#64748b]">Offered for comparison</p>
                 )}
               </div>
             ))}
@@ -227,16 +213,10 @@ export default function ProposalPacketComparison({
               </p>
             ) : null}
 
-            {!option.isCurrent ? (
-              <a
-                href={buildPackageInterestHref(contact, option.label, "ask-about")}
-                className={PROPOSAL_PACKET_CTA_QUIET}
-                data-proposal-cta="ask-about-package"
-              >
-                {proposalCustomerPacketAskAboutPackageCta(option.label)}
-              </a>
+            {option.isCurrent ? (
+              <p className="mt-3 text-[12px] font-medium text-[#2563eb]">Selected for this proposal</p>
             ) : (
-              <span className="mt-3 block min-h-[44px]" aria-hidden />
+              <p className="mt-3 text-[12px] text-[#64748b]">Offered for comparison</p>
             )}
           </div>
         ))}

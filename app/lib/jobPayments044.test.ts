@@ -309,7 +309,7 @@ describe("Job Card and Public states", () => {
     cancelled_at: null,
   };
 
-  test("Accepted+Approved+unsigned allows Request deposit", () => {
+  test("Accepted+Approved does not expose manual Request deposit", () => {
     const view = buildJobCardPaymentViewModel({
       jobStage: "approved",
       jobDisposition: "active",
@@ -325,9 +325,9 @@ describe("Job Card and Public states", () => {
       transactions: [],
       acceptedTotalCents: 1850000,
     });
-    assert.equal(view.canRequestDeposit, true);
+    assert.equal(view.canRequestDeposit, false);
     assert.equal(view.unsignedApprovedEligible, true);
-    assert.equal(view.action, "request_deposit");
+    assert.equal(view.action, null);
     assert.equal(JOB_CARD_PAYMENTS_REQUEST_DEPOSIT_CTA, "Request deposit");
   });
 

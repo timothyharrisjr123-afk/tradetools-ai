@@ -253,6 +253,10 @@ export const PROPOSAL_CUSTOMER_PACKET_ACCEPT_MODAL_ACK =
 
 export const PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUCCESS_TITLE = "Proposal accepted";
 
+export const PROPOSAL_CUSTOMER_PACKET_CONFIRM_PROPOSAL_CTA = "Confirm this proposal";
+
+export const PROPOSAL_CUSTOMER_PACKET_CONFIRMED_TITLE = "Proposal confirmed";
+
 export const PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUCCESS_NEXT =
   "The contractor has your acceptance.";
 
@@ -274,7 +278,7 @@ export function formatProposalCustomerAcceptedOnSentence(
   acceptedOnLabel: string | null | undefined
 ): string {
   const label = (acceptedOnLabel ?? "").trim();
-  return label ? `Accepted on ${label}` : "Proposal accepted";
+  return label ? `Confirmed on ${label}` : "Proposal confirmed";
 }
 
 export const PROPOSAL_CUSTOMER_PACKET_DISCUSS_OPTIONS_CTA = "Discuss package options";

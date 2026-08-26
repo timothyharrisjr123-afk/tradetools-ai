@@ -144,13 +144,13 @@ export function formatPaymentTermsCustomerCopy(
       });
       if (cents >= JOB_PAYMENT_MIN_AMOUNT_CENTS) {
         return {
-          depositLine: `${pctLabel}% deposit (${formatUsdFromCents(cents)}) due upon acceptance`,
+          depositLine: `${pctLabel}% deposit (${formatUsdFromCents(cents)}) due upon agreement`,
           balanceLine,
         };
       }
     }
     return {
-      depositLine: `${pctLabel}% deposit due upon acceptance`,
+      depositLine: `${pctLabel}% deposit due upon agreement`,
       balanceLine,
     };
   }
@@ -159,7 +159,7 @@ export function formatPaymentTermsCustomerCopy(
       ? formatUsdFromCents(terms.depositFixedCents)
       : "$0.00";
   return {
-    depositLine: `${amount} deposit due upon acceptance`,
+    depositLine: `${amount} deposit due upon agreement`,
     balanceLine,
   };
 }

@@ -364,22 +364,22 @@ describe("R3C request vs acceptance and contractor UX", () => {
     assert.equal(PROPOSAL_CUSTOMER_PACKET_ACCEPT_PROPOSAL_CTA, "Accept proposal");
   });
 
-  test("customer accepted state does not expose contractor workflow", () => {
+  test("customer confirmed state does not expose contractor workflow", () => {
     const actions = readFileSync(
-      join(ROOT, "app/components/proposal-packet/ProposalPacketPackageInterestActions.tsx"),
+      join(ROOT, "app/components/proposal-packet/ProposalPacketCustomerActions.tsx"),
       "utf8"
     );
     const modal = readFileSync(
       join(ROOT, "app/components/proposal-packet/ProposalPacketAcceptModal.tsx"),
       "utf8"
     );
-    assert.match(actions, /data-proposal-accepted-state/);
-    assert.match(actions, /PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUCCESS_TITLE/);
+    assert.match(actions, /data-proposal-confirmed-state/);
+    assert.match(actions, /PROPOSAL_CUSTOMER_PACKET_CONFIRMED_TITLE/);
     assert.doesNotMatch(actions, /ambiguous|Waiting for contractor|Pending approval|job stage/i);
     assert.doesNotMatch(modal, /ambiguous|Waiting for contractor|Review required/i);
     assert.equal(
       formatProposalCustomerAcceptedOnSentence("August 16, 2026"),
-      "Accepted on August 16, 2026"
+      "Confirmed on August 16, 2026"
     );
   });
 

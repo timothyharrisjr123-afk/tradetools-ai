@@ -260,7 +260,6 @@ import {
   type CompanyTimezoneLoadStatus,
 } from "@/app/lib/jobScheduleMapper";
 import { parseJobScheduleList } from "@/app/lib/jobSchedulePersistence";
-import JobCardPaymentsStrip from "@/app/tools/roofing/jobCard/JobCardPaymentsStrip";
 import JobCardRequestPaymentModal from "@/app/tools/roofing/jobCard/JobCardRequestPaymentModal";
 import { useJobPayments } from "@/app/lib/useJobPayments";
 import type { JobPaymentKind } from "@/app/lib/jobPaymentTypes";
@@ -8704,19 +8703,6 @@ Thanks,`;
                       : undefined
                   }
                 />
-                <div className="mt-4">
-                  <JobCardPaymentsStrip
-                    view={jobPayments.view}
-                    onRequestDeposit={() => {
-                      setPaymentModalError(null);
-                      setPaymentModalKind("deposit");
-                    }}
-                    onRequestBalance={() => {
-                      setPaymentModalError(null);
-                      setPaymentModalKind("balance");
-                    }}
-                  />
-                </div>
               </JobCardSectionPanel>
 
               <JobCardSectionPanel

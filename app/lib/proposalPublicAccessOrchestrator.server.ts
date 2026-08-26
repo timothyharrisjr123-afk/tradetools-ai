@@ -23,12 +23,13 @@ import { createAdminClient } from "@/app/lib/supabase/admin";
 import { getPublicProposalVersionGraph } from "@/app/lib/proposalVersionGraphStore.server";
 import {
   buildPublicPaymentViewModel,
+  buildProspectiveDepositPaymentViewModel,
   type JobPaymentRequestRow,
   type JobPaymentTransactionRow,
 } from "@/app/lib/jobPaymentReadModel";
 import { readProposalPaymentTerms } from "@/app/lib/proposalPaymentTermsPersistence";
 import { openJobDepositFromAcceptanceViaAdmin } from "@/app/lib/proposalPaymentTermsPersistence";
-import { DEFAULT_PROPOSAL_PAYMENT_TERMS } from "@/app/lib/proposalPaymentTerms";
+import { DEFAULT_PROPOSAL_PAYMENT_TERMS, termsRequireOnlineDeposit } from "@/app/lib/proposalPaymentTerms";
 
 async function getAcceptanceForToken(input: {
   companyId: string;
@@ -203,10 +204,17 @@ export async function loadPublicProposalByToken(
       return row.proposal_version_id === result.tracking.proposal_version_id;
     });
 
-    const payment = buildPublicPaymentViewModel({
-      requests: payableRequests,
-      transactions: loaded.transactions,
-    });
+    const payment =
+      buildPublicPaymentViewModel({
+        requests: payableRequests,
+        transactions: loaded.transactions,
+      }) ??
+      (!acceptance && termsRequireOnlineDeposit(terms)
+        ? buildProspectiveDepositPaymentViewModel({
+            terms,
+            selectedTotalCents,
+          })
+        : null);
 
     return {
       ...result,

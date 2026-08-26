@@ -3,12 +3,10 @@ import {
   PROPOSAL_CUSTOMER_PACKET_NEXT_STEPS_HEADING,
   PROPOSAL_CUSTOMER_PACKET_NEXT_STEPS_ITEMS,
   PROPOSAL_CUSTOMER_PACKET_SUPPORT_MESSAGE,
-  proposalCustomerPacketReadyWithPackageHeading,
 } from "@/app/lib/proposalCustomerPacketViewModel";
 import { PROPOSAL_CUSTOMER_PACKET_READY_ANCHOR } from "@/app/lib/proposalCustomerPacketInterestAction";
-import ProposalPacketPackageInterestActions from "./ProposalPacketPackageInterestActions";
-import type { ProposalPacketRequestModalContactPrefill } from "./ProposalPacketRequestModal";
-import type { ProposalPacketSignedResult } from "./ProposalPacketSignModal";
+import ProposalPacketCustomerActions from "./ProposalPacketCustomerActions";
+import type { ProposalPacketMode } from "./ProposalPacket";
 import { IconGlobe, IconHome, IconMail, IconPhone, IconShield } from "./ProposalPacketIcons";
 import {
   PROPOSAL_PACKET_CLOSEOUT_GRID,
@@ -85,41 +83,28 @@ function buildContactRows(contact: ProposalCustomerPacketContactViewModel): Cont
 
 type ProposalPacketCloseoutAsideProps = {
   contact: ProposalCustomerPacketContactViewModel | null;
-  recommendedPackageLabel?: string | null;
-  recommendedOptionKey?: string | null;
+  mode?: ProposalPacketMode;
   publicAccessToken?: string | null;
-  contactPrefill?: ProposalPacketRequestModalContactPrefill | null;
-  totalLabel?: string | null;
+  termsRequireDeposit?: boolean;
   accepted?: boolean;
   acceptedOnLabel?: string | null;
-  signed?: boolean;
-  signedOnLabel?: string | null;
-  signerDisplayName?: string | null;
-  onSigned?: (result: ProposalPacketSignedResult) => void;
-  signProminence?: "primary" | "continuation";
+  onConfirmed?: () => void;
 };
 
 /** Closeout: CTA first, then contact + next steps, trust as supportive band. */
 export function ProposalPacketCloseoutAside({
   contact,
-  recommendedPackageLabel = null,
-  recommendedOptionKey = null,
+  mode = "public",
   publicAccessToken = null,
-  contactPrefill = null,
-  totalLabel = null,
+  termsRequireDeposit = false,
   accepted = false,
   acceptedOnLabel = null,
-  signed = false,
-  signedOnLabel = null,
-  signerDisplayName = null,
-  onSigned,
-  signProminence = "primary",
+  onConfirmed,
 }: ProposalPacketCloseoutAsideProps) {
   const companyName = (contact?.companyName ?? "").trim();
-  const packageLabel = (recommendedPackageLabel ?? "").trim();
   const rows = contact ? buildContactRows(contact) : [];
   const hasContact = Boolean(companyName) || rows.length > 0;
-  const heading = proposalCustomerPacketReadyWithPackageHeading(packageLabel);
+  const heading = "Ready to move forward?";
 
   return (
     <aside id={PROPOSAL_CUSTOMER_PACKET_READY_ANCHOR} aria-label="Ready to move forward">
@@ -130,27 +115,18 @@ export function ProposalPacketCloseoutAside({
         <p className={PROPOSAL_PACKET_SECTION_INTRO}>
           {contact?.supportMessage || PROPOSAL_CUSTOMER_PACKET_SUPPORT_MESSAGE}
         </p>
-        {packageLabel ? (
-          <ProposalPacketPackageInterestActions
-            packageLabel={packageLabel}
-            contact={contact}
-            layout="row"
-            secondary="contact"
-            requestProminence="continuation"
-            compact
-            publicAccessToken={publicAccessToken}
-            optionKey={recommendedOptionKey}
-            contactPrefill={contactPrefill}
-            totalLabel={totalLabel}
-            accepted={accepted}
-            acceptedOnLabel={acceptedOnLabel}
-            signed={signed}
-            signedOnLabel={signedOnLabel}
-            signerDisplayName={signerDisplayName}
-            onSigned={onSigned}
-            signProminence={signProminence}
-          />
-        ) : null}
+        <ProposalPacketCustomerActions
+          mode={mode}
+          contact={contact}
+          layout="row"
+          secondary="contact"
+          compact
+          publicAccessToken={publicAccessToken}
+          termsRequireDeposit={termsRequireDeposit}
+          accepted={accepted}
+          acceptedOnLabel={acceptedOnLabel}
+          onConfirmed={onConfirmed}
+        />
       </div>
 
       <div className={PROPOSAL_PACKET_CLOSEOUT_GRID}>

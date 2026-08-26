@@ -162,12 +162,16 @@ describe("043 schema / security / RPC", () => {
 });
 
 describe("R3D public / API / request-vs-sign", () => {
-  test("Public CTAs are Accept & sign, Sign proposal, then Proposal signed", () => {
+  test("Signature infrastructure retained; default public path uses confirm/pay", () => {
     assert.equal(PROPOSAL_CUSTOMER_PACKET_ACCEPT_AND_SIGN_CTA, "Accept & sign");
     assert.equal(PROPOSAL_CUSTOMER_PACKET_SIGN_PROPOSAL_CTA, "Sign proposal");
     assert.equal(PROPOSAL_CUSTOMER_PACKET_SIGNED_TITLE, "Proposal signed");
     assert.equal(PROPOSAL_CUSTOMER_PACKET_REQUEST_PACKAGE_CTA, "Request this package");
-    const actions = readFileSync(
+    const customerActions = readFileSync(
+      join(ROOT, "app/components/proposal-packet/ProposalPacketCustomerActions.tsx"),
+      "utf8"
+    );
+    const legacyActions = readFileSync(
       join(ROOT, "app/components/proposal-packet/ProposalPacketPackageInterestActions.tsx"),
       "utf8"
     );
@@ -175,13 +179,14 @@ describe("R3D public / API / request-vs-sign", () => {
       join(ROOT, "app/components/proposal-packet/ProposalPacketSignModal.tsx"),
       "utf8"
     );
-    assert.match(actions, /data-proposal-cta="accept-and-sign"/);
-    assert.match(actions, /data-proposal-cta="sign-proposal"/);
-    assert.match(actions, /data-proposal-signed-state/);
-    assert.doesNotMatch(actions, /\/api\/proposals\/accept/);
+    assert.match(customerActions, /data-proposal-cta="confirm-proposal"/);
+    assert.doesNotMatch(customerActions, /accept-and-sign/);
+    assert.doesNotMatch(customerActions, /sign-proposal/);
+    assert.match(customerActions, /\/api\/proposals\/accept/);
+    assert.match(legacyActions, /data-proposal-cta="accept-and-sign"/);
     assert.match(modal, /\/api\/proposals\/sign/);
     assert.doesNotMatch(modal, /\/api\/proposals\/accept/);
-    assert.doesNotMatch(actions, /Approve job|job stage|attention_id|signature_id/i);
+    assert.doesNotMatch(customerActions, /Approve job|job stage|attention_id|signature_id/i);
   });
 
   test("sign API hashes token server-side and does not take a package id", () => {

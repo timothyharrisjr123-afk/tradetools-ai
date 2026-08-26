@@ -134,7 +134,7 @@ describe("PAYMENT TERMS", () => {
         { ...DEFAULT_PROPOSAL_PAYMENT_TERMS, depositMode: "percent", depositPercentBps: 3000 },
         1000000
       ).depositLine,
-      /30% deposit \(\$3,000\.00\) due upon acceptance/
+      /30% deposit \(\$3,000\.00\) due upon agreement/
     );
     assert.match(
       formatPaymentTermsCustomerCopy({
@@ -142,7 +142,7 @@ describe("PAYMENT TERMS", () => {
         depositMode: "fixed",
         depositFixedCents: 300000,
       }).depositLine,
-      /\$3,000\.00 deposit due upon acceptance/
+      /\$3,000\.00 deposit due upon agreement/
     );
   });
 });
@@ -176,6 +176,17 @@ describe("SEND READINESS", () => {
       resolveOnlineDepositSendReadiness({ terms, chargesEnabled: true }).blocked,
       false
     );
+  });
+
+  test("unknown terms → Send blocked (fail-closed)", () => {
+    const readiness = resolveOnlineDepositSendReadiness({
+      terms: null,
+      chargesEnabled: true,
+      termsKnown: false,
+    });
+    assert.equal(readiness.blocked, true);
+    assert.equal(readiness.termsKnown, false);
+    assert.match(readiness.message ?? "", /could not be verified/i);
   });
 
   test("online deposit + not connected → Send blocked", () => {

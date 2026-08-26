@@ -20,7 +20,7 @@ export default function ProposalCustomerPreviewPackageComparison({
       aria-label={PROPOSAL_CUSTOMER_PACKET_COMPARE_HEADING}
       data-preview-package-comparison
     >
-      <ProposalPacketComparison comparison={comparison} contact={null} />
+      <ProposalPacketComparison comparison={comparison} />
     </section>
   );
 }

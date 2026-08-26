@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { openHostedCheckoutForRequest } from "@/app/lib/jobPaymentCheckout.server";
 import { resolvePublicJobPaymentCheckoutViaRpc } from "@/app/lib/jobPaymentPersistence";
 import { appOriginFromRequest, withPaymentReturnHint } from "@/app/lib/jobPaymentStripe.server";
+import { recordProposalAcceptance } from "@/app/lib/proposalAcceptanceStore.server";
 import { hashProposalPublicAccessToken } from "@/app/lib/proposalPublicAccessTokenHash";
+import { openJobDepositFromAcceptanceViaAdmin } from "@/app/lib/proposalPaymentTermsPersistence";
 import { createAdminClient } from "@/app/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -12,6 +14,7 @@ const SAFE_ERROR =
 
 /**
  * Public Checkout for an existing payment request bound to the proposal token.
+ * Creates canonical acceptance idempotently when needed, opens deposit, then Checkout.
  * Amount, account, and binding are server-owned.
  */
 export async function POST(req: NextRequest) {
@@ -36,6 +39,33 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    const acceptance = await recordProposalAcceptance(token.trim());
+    if (!acceptance.ok) {
+      const code = String(acceptance.code ?? "not_found");
+      const status =
+        code === "invalid_hash" ||
+        code === "not_found" ||
+        code === "revoked" ||
+        code === "superseded" ||
+        code === "expired" ||
+        code === "invalid_version" ||
+        code === "invalid_binding" ||
+        code === "proposal_unavailable"
+          ? 404
+          : code === "idempotency_conflict"
+            ? 409
+            : 400;
+      return NextResponse.json(
+        { ok: false, message: SAFE_ERROR, code },
+        { status }
+      );
+    }
+
+    await openJobDepositFromAcceptanceViaAdmin({
+      companyId: acceptance.company_id,
+      acceptanceId: acceptance.acceptance_id,
+    });
 
     const hash = hashProposalPublicAccessToken(token);
     const resolved = await resolvePublicJobPaymentCheckoutViaRpc(

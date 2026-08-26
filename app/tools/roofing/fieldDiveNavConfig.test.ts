@@ -31,7 +31,7 @@ describe("fieldDiveNavConfig", () => {
     assert.equal(hasNavHref("/tools/roofing/catalog"), true);
     assert.equal(hasNavHref("/tools/settings"), true);
     assert.equal(hasNavHref("/tools/settings/pricing"), true);
-    assert.equal(hasNavHref("/tools/settings/payments"), true);
+    assert.equal(hasNavHref("/tools/settings/payments"), false);
     assert.equal(hasNavHref("/tools/roofing/calendar"), true);
   });
 

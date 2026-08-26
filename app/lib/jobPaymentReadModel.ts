@@ -29,6 +29,11 @@ import {
   type JobPaymentRequestStatus,
 } from "@/app/lib/jobPaymentTypes";
 import { PUBLIC_PAY_REMAINING_BALANCE_CTA } from "@/app/lib/proposalPaymentTerms";
+import {
+  resolveDepositObligationCents,
+  termsRequireOnlineDeposit,
+  type ProposalPaymentTerms,
+} from "@/app/lib/proposalPaymentTerms";
 import { formatProposalCustomerAcceptedOnLabel } from "@/app/lib/proposalCustomerPacketViewModel";
 
 export type JobPaymentRequestRow = {
@@ -189,13 +194,7 @@ export function buildJobCardPaymentViewModel(input: {
     (row) => row.kind === "refund" && row.status === "refunded"
   );
 
-  const canRequestDeposit =
-    approved &&
-    input.accepted &&
-    chargesEnabled &&
-    remaining >= 100 &&
-    depositPaid <= 0 &&
-    !current;
+  const canRequestDeposit = false;
 
   const canRequestBalance =
     approved &&
@@ -447,6 +446,41 @@ export function buildPublicPaymentViewModel(input: {
   }
 
   return null;
+}
+
+/**
+ * Shows deposit Pay before canonical acceptance when terms require it.
+ * Checkout creates acceptance idempotently, then opens the deposit request.
+ */
+export function buildProspectiveDepositPaymentViewModel(input: {
+  terms: ProposalPaymentTerms;
+  selectedTotalCents: number | null;
+}): PublicPaymentViewModel | null {
+  if (!termsRequireOnlineDeposit(input.terms)) return null;
+  if (
+    input.selectedTotalCents == null ||
+    !Number.isInteger(input.selectedTotalCents) ||
+    input.selectedTotalCents < 100
+  ) {
+    return null;
+  }
+  const cents = resolveDepositObligationCents({
+    mode: input.terms.depositMode,
+    percentBps: input.terms.depositPercentBps,
+    fixedCents: input.terms.depositFixedCents,
+    acceptedTotalCents: input.selectedTotalCents,
+  });
+  if (cents < 100) return null;
+  return {
+    state: "due",
+    kind: "deposit",
+    amountLabel: formatUsdFromCents(cents),
+    kindLabel: PUBLIC_PAYMENT_DEPOSIT_LABEL,
+    paidOnLabel: null,
+    explanation: null,
+    ctaLabel: PUBLIC_PAYMENT_PAY_DEPOSIT_CTA,
+    methodLabel: null,
+  };
 }
 
 export function publicPaymentTitle(

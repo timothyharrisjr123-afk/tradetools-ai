@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { ProposalCustomerPacketViewModel } from "@/app/lib/proposalCustomerPacketViewModel";
+import { termsRequireOnlineDeposit } from "@/app/lib/proposalPaymentTerms";
 import ProposalPacketComparison from "./ProposalPacketComparison";
 import ProposalPacketDetailsContact from "./ProposalPacketDetailsContact";
 import ProposalPacketFooter from "./ProposalPacketFooter";
@@ -11,7 +12,6 @@ import ProposalPacketScope from "./ProposalPacketScope";
 import ProposalPacketTopBar from "./ProposalPacketTopBar";
 import ProposalPacketUpgrades from "./ProposalPacketUpgrades";
 import ProposalPaymentTermsBlock from "./ProposalPaymentTermsBlock";
-import type { ProposalPacketSignedResult } from "./ProposalPacketSignModal";
 import {
   PROPOSAL_PACKET_PAGE,
   PROPOSAL_PACKET_SHELL,
@@ -31,8 +31,8 @@ type ProposalPacketProps = {
 /**
  * Approved FieldDive customer proposal page.
  *
- * Navy brand bar → hero + recommend/invest card → compare → included →
- * upgrades → accordion details → closeout → footer.
+ * Navy brand bar → hero + recommend/invest card → terms → pay → compare →
+ * included → upgrades → accordion details → closeout → footer.
  */
 export default function ProposalPacket({
   packet,
@@ -46,45 +46,22 @@ export default function ProposalPacket({
     (packet.estimate.scopeGroupSummaries.length > 0 ||
       packet.estimate.includedDetails.length > 0);
   const requestToken = mode === "public" ? publicAccessToken : null;
-  const payment = packet.payment;
-  const paymentNeedsAction =
-    payment?.state === "due" ||
-    payment?.state === "pending" ||
-    payment?.state === "failed";
-  const signProminence = paymentNeedsAction ? "continuation" : "primary";
-  const contactPrefill = {
-    name: packet.cover.preparedFor.customerName,
-    email: packet.cover.preparedFor.customerEmail,
-    phone: packet.cover.preparedFor.customerPhone,
-  };
+  const termsRequireDeposit = packet.paymentTerms
+    ? termsRequireOnlineDeposit(packet.paymentTerms)
+    : false;
   const initialStatus = packet.acceptance?.status ?? "open";
   const [accepted, setAccepted] = useState(
     initialStatus === "accepted" || initialStatus === "signed"
   );
-  const [signed, setSigned] = useState(initialStatus === "signed");
   const [acceptedOnLabel, setAcceptedOnLabel] = useState(
     packet.acceptance?.acceptedOnLabel ?? null
   );
-  const [signedOnLabel, setSignedOnLabel] = useState(
-    packet.acceptance?.signedOnLabel ?? null
-  );
-  const [signerDisplayName, setSignerDisplayName] = useState(
-    packet.acceptance?.signerDisplayName ?? null
-  );
 
-  const reloadAfterAgreement = () => {
+  const onConfirmed = () => {
+    setAccepted(true);
     if (typeof window !== "undefined") {
       window.location.reload();
     }
-  };
-
-  const onSigned = (result: ProposalPacketSignedResult) => {
-    setAccepted(true);
-    setSigned(true);
-    setAcceptedOnLabel(result.acceptedOnLabel);
-    setSignedOnLabel(result.signedOnLabel);
-    setSignerDisplayName(result.signerPrintedName);
-    reloadAfterAgreement();
   };
 
   return (
@@ -96,15 +73,12 @@ export default function ProposalPacket({
           estimate={packet.estimate}
           upgrades={packet.upgrades}
           contact={packet.contact}
+          mode={mode}
           publicAccessToken={requestToken}
-          contactPrefill={contactPrefill}
+          termsRequireDeposit={termsRequireDeposit}
           accepted={accepted}
           acceptedOnLabel={acceptedOnLabel}
-          signed={signed}
-          signedOnLabel={signedOnLabel}
-          signerDisplayName={signerDisplayName}
-          onSigned={onSigned}
-          signProminence={signProminence}
+          onConfirmed={onConfirmed}
         />
 
         {packet.paymentTerms ? (
@@ -125,7 +99,7 @@ export default function ProposalPacket({
 
         {showComparison ? (
           <section className={PROPOSAL_PACKET_STORY_SECTION} aria-label="Compare packages">
-            <ProposalPacketComparison comparison={packet.comparison!} contact={packet.contact} />
+            <ProposalPacketComparison comparison={packet.comparison!} />
           </section>
         ) : null}
 
@@ -147,18 +121,12 @@ export default function ProposalPacket({
         <ProposalPacketDetailsContact
           details={packet.details}
           contact={packet.contact}
-          recommendedPackageLabel={packet.estimate?.label ?? null}
-          recommendedOptionKey={packet.estimate?.optionKey ?? null}
+          mode={mode}
           publicAccessToken={requestToken}
-          contactPrefill={contactPrefill}
-          totalLabel={packet.estimate?.totalInvestmentLabel ?? null}
+          termsRequireDeposit={termsRequireDeposit}
           accepted={accepted}
           acceptedOnLabel={acceptedOnLabel}
-          signed={signed}
-          signedOnLabel={signedOnLabel}
-          signerDisplayName={signerDisplayName}
-          onSigned={onSigned}
-          signProminence={signProminence}
+          onConfirmed={onConfirmed}
         />
 
         <ProposalPacketFooter contact={packet.contact} footerMetadata={packet.footerMetadata} />

@@ -6,42 +6,29 @@ import type {
 } from "@/app/lib/proposalCustomerPacketViewModel";
 import { ProposalPacketCloseoutAside } from "./ProposalPacketContact";
 import ProposalPacketDetails from "./ProposalPacketDetails";
-import type { ProposalPacketRequestModalContactPrefill } from "./ProposalPacketRequestModal";
-import type { ProposalPacketSignedResult } from "./ProposalPacketSignModal";
+import type { ProposalPacketMode } from "./ProposalPacket";
 import { PROPOSAL_PACKET_DETAILS_SECTION } from "./proposalPacketStyles";
 
 type ProposalPacketDetailsContactProps = {
   details: ProposalCustomerPacketDetailsViewModel | null;
   contact: ProposalCustomerPacketContactViewModel | null;
-  recommendedPackageLabel?: string | null;
-  recommendedOptionKey?: string | null;
+  mode?: ProposalPacketMode;
   publicAccessToken?: string | null;
-  contactPrefill?: ProposalPacketRequestModalContactPrefill | null;
-  totalLabel?: string | null;
+  termsRequireDeposit?: boolean;
   accepted?: boolean;
   acceptedOnLabel?: string | null;
-  signed?: boolean;
-  signedOnLabel?: string | null;
-  signerDisplayName?: string | null;
-  onSigned?: (result: ProposalPacketSignedResult) => void;
-  signProminence?: "primary" | "continuation";
+  onConfirmed?: () => void;
 };
 
 export default function ProposalPacketDetailsContact({
   details,
   contact,
-  recommendedPackageLabel = null,
-  recommendedOptionKey = null,
+  mode = "public",
   publicAccessToken = null,
-  contactPrefill = null,
-  totalLabel = null,
+  termsRequireDeposit = false,
   accepted = false,
   acceptedOnLabel = null,
-  signed = false,
-  signedOnLabel = null,
-  signerDisplayName = null,
-  onSigned,
-  signProminence = "primary",
+  onConfirmed,
 }: ProposalPacketDetailsContactProps) {
   const hasDetails = details != null && details.tabs.length > 0;
   const hasContact = contact != null;
@@ -59,18 +46,12 @@ export default function ProposalPacketDetailsContact({
         <section className={PROPOSAL_PACKET_DETAILS_SECTION} aria-label="Ready to move forward">
           <ProposalPacketCloseoutAside
             contact={contact}
-            recommendedPackageLabel={recommendedPackageLabel}
-            recommendedOptionKey={recommendedOptionKey}
+            mode={mode}
             publicAccessToken={publicAccessToken}
-            contactPrefill={contactPrefill}
-            totalLabel={totalLabel}
+            termsRequireDeposit={termsRequireDeposit}
             accepted={accepted}
             acceptedOnLabel={acceptedOnLabel}
-            signed={signed}
-            signedOnLabel={signedOnLabel}
-            signerDisplayName={signerDisplayName}
-            onSigned={onSigned}
-            signProminence={signProminence}
+            onConfirmed={onConfirmed}
           />
         </section>
       ) : null}

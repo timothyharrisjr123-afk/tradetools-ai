@@ -97,13 +97,6 @@ export const FIELD_DIVE_NAV_SECTIONS: FieldDiveNavSectionConfig[] = [
         icon: "settings",
       },
       {
-        key: null,
-        label: "Payments",
-        href: "/tools/settings/payments",
-        kind: "link",
-        icon: "settings",
-      },
-      {
         key: "catalog",
         label: "Catalog",
         href: "/tools/roofing/catalog",

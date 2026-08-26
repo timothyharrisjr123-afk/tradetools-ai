@@ -84,7 +84,8 @@ export async function readDraftOnlineDepositSendReadiness(
   const versionId = String(
     (proposal as { current_draft_version_id?: string } | null)?.current_draft_version_id ?? ""
   );
-  const terms = isUuidLike(versionId)
+  const versionKnown = isUuidLike(versionId);
+  const terms = versionKnown
     ? await readProposalPaymentTerms(supabase, {
         companyId: input.companyId,
         proposalVersionId: versionId,
@@ -99,5 +100,6 @@ export async function readDraftOnlineDepositSendReadiness(
   return resolveOnlineDepositSendReadiness({
     terms,
     chargesEnabled: (account as { charges_enabled?: boolean } | null)?.charges_enabled === true,
+    termsKnown: versionKnown && terms !== null,
   });
 }
