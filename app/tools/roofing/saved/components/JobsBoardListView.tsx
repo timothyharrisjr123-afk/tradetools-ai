@@ -122,7 +122,17 @@ export default function JobsBoardListView({
                   <td className="max-w-[200px] truncate px-4 py-3 text-slate-600">
                     {(job.address || "").trim() || "—"}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-slate-700">{getBoardStageLabelForJob(job)}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-700">
+                    <span>{getBoardStageLabelForJob(job)}</span>
+                    {model?.dispositionLabel ? (
+                      <span
+                        className="ml-2 text-xs font-medium text-slate-500"
+                        data-board-disposition={model.dispositionLabel}
+                      >
+                        {model.dispositionLabel}
+                      </span>
+                    ) : null}
+                  </td>
                   <td className="whitespace-nowrap px-4 py-3 tabular-nums text-slate-700">
                     {valueCents > 0 ? formatCentsToCurrency(valueCents) : "—"}
                   </td>

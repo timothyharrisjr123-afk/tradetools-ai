@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import JobsBoardFiltersSort from "./JobsBoardFiltersSort";
-import type { BoardColumnKey, BoardSortKey, BoardViewMode } from "../jobsBoardUtils";
+import type { BoardColumnKey, BoardDispositionFilter, BoardSortKey, BoardViewMode } from "../jobsBoardUtils";
 
 type JobsBoardHeaderProps = {
   query: string;
@@ -15,6 +15,8 @@ type JobsBoardHeaderProps = {
   onVisibleColumnKeysChange: (keys: BoardColumnKey[]) => void;
   updatedOnOrAfter: string | null;
   onUpdatedOnOrAfterChange: (value: string | null) => void;
+  dispositionFilter: BoardDispositionFilter;
+  onDispositionFilterChange: (value: BoardDispositionFilter) => void;
   filtersActive: boolean;
 };
 
@@ -29,6 +31,8 @@ export default function JobsBoardHeader({
   onVisibleColumnKeysChange,
   updatedOnOrAfter,
   onUpdatedOnOrAfterChange,
+  dispositionFilter,
+  onDispositionFilterChange,
   filtersActive,
 }: JobsBoardHeaderProps) {
   return (
@@ -102,6 +106,8 @@ export default function JobsBoardHeader({
               onVisibleColumnKeysChange={onVisibleColumnKeysChange}
               updatedOnOrAfter={updatedOnOrAfter}
               onUpdatedOnOrAfterChange={onUpdatedOnOrAfterChange}
+              dispositionFilter={dispositionFilter}
+              onDispositionFilterChange={onDispositionFilterChange}
               filtersActive={filtersActive}
             />
 

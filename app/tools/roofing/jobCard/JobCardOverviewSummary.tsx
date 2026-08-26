@@ -62,6 +62,14 @@ export default function JobCardOverviewSummary({
         <Row label="Email" value={email.trim() ? email : <EmptyValue />} />
         <Row label="Property" value={hasAddress ? address : <EmptyValue />} />
         <Row label="Stage" value={display.stageLabel} />
+        <Row
+          label="Disposition"
+          value={
+            <span data-jobcard-overview-disposition>
+              {display.dispositionLabel ?? "Active"}
+            </span>
+          }
+        />
         <Row label="Value" value={display.valueLabel ?? "—"} />
         <Row label="Job source" value="Manual intake" />
       </SummaryCard>

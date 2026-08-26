@@ -10,8 +10,11 @@ import {
   resolveCanonicalJobStageLabel,
 } from "@/app/lib/jobLifecycleMapper";
 import { resolveCanonicalJobActionEligibilityFromFacts } from "@/app/lib/jobLifecycleActionEligibility";
-import { OPERATIONAL_JOB_DISPOSITION_LABELS } from "@/app/lib/jobLifecycleTypes";
-import type { OperationalJobDisposition } from "@/app/lib/jobLifecycleTypes";
+import {
+  applyKnownDispositionToJobRecord,
+  dispositionBlockedWorkCopy,
+  visibleDispositionLabel,
+} from "@/app/lib/jobDispositionManagement";
 import { isUuidLike } from "@/app/lib/uuid";
 import { resolveTrustedJobCardSeed } from "@/app/lib/jobCardServerSeed";
 import { useJobCardCanonicalRead } from "@/app/tools/roofing/jobCard/useJobCardCanonicalRead";
@@ -83,6 +86,7 @@ import {
   JOB_CARD_PROPOSALS_TAB_SUBTITLE,
 } from "@/app/tools/roofing/jobCard/jobCardProposalsTabModel";
 import JobCardHeader from "@/app/tools/roofing/jobCard/JobCardHeader";
+import JobCardDispositionControl from "@/app/tools/roofing/jobCard/JobCardDispositionControl";
 import JobCardMetadataStrip from "@/app/tools/roofing/jobCard/JobCardMetadataStrip";
 import JobCardNextActionPanel from "@/app/tools/roofing/jobCard/JobCardNextActionPanel";
 import JobCardTabs, { type JobCardTabId } from "@/app/tools/roofing/jobCard/JobCardTabs";
@@ -219,6 +223,7 @@ export default function JobCardClient({
 
   const {
     hydratedJobRecord,
+    setHydratedJobRecord,
     jobHydrateStatus,
     refreshHydratedJobRecord,
   } = useJobCardCanonicalRead({
@@ -572,14 +577,7 @@ export default function JobCardClient({
       : jobHydrateStatus === "unavailable"
         ? "Unavailable"
         : "Loading",
-    dispositionLabel:
-      hydratedJobRecord &&
-      hydratedJobRecord.status !== "active" &&
-      hydratedJobRecord.status in OPERATIONAL_JOB_DISPOSITION_LABELS
-        ? OPERATIONAL_JOB_DISPOSITION_LABELS[
-            hydratedJobRecord.status as OperationalJobDisposition
-          ]
-        : null,
+    dispositionLabel: visibleDispositionLabel(hydratedJobRecord?.status),
     valueLabel: null,
     lastUpdatedDisplay: null,
     timeInStage: null,
@@ -669,6 +667,41 @@ export default function JobCardClient({
               isBoardOrigin={jobCardBoardOrigin}
               phone={identity.phone}
               email={identity.email}
+              dispositionNote={dispositionBlockedWorkCopy(
+                hydratedJobRecord?.status
+              )}
+              actions={
+                <JobCardDispositionControl
+                  jobId={currentJobId}
+                  disposition={hydratedJobRecord?.status ?? null}
+                  stage={canonicalJobStage}
+                  stageLabel={display.stageLabel}
+                  disabled={
+                    !hydratedJobRecord ||
+                    startWorkBusy ||
+                    completeJobBusy ||
+                    scheduleBusy
+                  }
+                  onApplied={async (result) => {
+                    try {
+                      const refreshed = await refreshHydratedJobRecord(
+                        result.job_id
+                      );
+                      if (!refreshed) {
+                        setHydratedJobRecord((prev) =>
+                          applyKnownDispositionToJobRecord(
+                            prev,
+                            result.job_id,
+                            result.to_status
+                          )
+                        );
+                      }
+                    } finally {
+                      setScheduleActivityTick((value) => value + 1);
+                    }
+                  }}
+                />
+              }
             />
             <JobCardMetadataStrip display={display} />
             <JobCardNextActionPanel

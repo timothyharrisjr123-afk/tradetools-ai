@@ -28,7 +28,11 @@ import { restoreCanonicalBoardFromReturnStatus } from "@/app/lib/boardCanonicalS
 import { useCompanySetupReadiness } from "./useCompanySetupReadiness";
 import { useBoardCanonicalJobs } from "./useBoardCanonicalJobs";
 import {
+  applyBoardDispositionFilter,
   applyBoardUpdatedDateFilter,
+  BOARD_DEFAULT_DISPOSITION_FILTER,
+  BOARD_DEFAULT_SORT_KEY,
+  BOARD_DEFAULT_VIEW_MODE,
   buildJobsBoardCardModel,
   filterJobsByVisibleStages,
   getJobsForBoardColumn,
@@ -41,9 +45,8 @@ import {
   saveBoardViewState,
   sortJobsForBoardColumn,
   sumJobsValueCents,
-  BOARD_DEFAULT_SORT_KEY,
-  BOARD_DEFAULT_VIEW_MODE,
   type BoardColumnKey,
+  type BoardDispositionFilter,
   type BoardSortKey,
   type BoardViewMode,
 } from "./jobsBoardUtils";
@@ -73,6 +76,7 @@ import {
   resolveLastDbJobRecoveryHref,
   searchBoardEntries,
 } from "@/app/lib/jobBoardAdapter";
+import { visibleDispositionLabel } from "@/app/lib/jobDispositionManagement";
 import { resolveDbBoardJobActionEligibility } from "@/app/lib/jobLifecycleActionEligibility";
 import { formatJobCompletedAt } from "@/app/lib/jobCompleteTypes";
 import { formatProductionStartedAt } from "@/app/lib/jobProductionTypes";
@@ -2855,6 +2859,8 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     getDefaultVisibleColumnKeys()
   );
   const [updatedOnOrAfter, setUpdatedOnOrAfter] = useState<string | null>(null);
+  const [dispositionFilter, setDispositionFilter] =
+    useState<BoardDispositionFilter>(BOARD_DEFAULT_DISPOSITION_FILTER);
   const [boardViewMode, setBoardViewMode] = useState<BoardViewMode>(BOARD_DEFAULT_VIEW_MODE);
   const [scheduledView, setScheduledView] = useState<"upcoming" | "past" | "all">("upcoming");
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({
@@ -3643,6 +3649,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     setBoardSortKey(saved.sortKey);
     setVisibleColumnKeys(saved.visibleColumnKeys);
     setUpdatedOnOrAfter(saved.updatedOnOrAfter);
+    setDispositionFilter(saved.dispositionFilter);
     setBoardViewMode(saved.viewMode);
   }, []);
 
@@ -3652,8 +3659,9 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       visibleColumnKeys,
       updatedOnOrAfter,
       viewMode: boardViewMode,
+      dispositionFilter,
     });
-  }, [boardSortKey, visibleColumnKeys, updatedOnOrAfter, boardViewMode]);
+  }, [boardSortKey, visibleColumnKeys, updatedOnOrAfter, boardViewMode, dispositionFilter]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -4047,14 +4055,19 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   const depositReadyJobs = getDepositReadyJobs(currentList, paymentStates ?? {});
 
   const boardFilteredJobs = useMemo(
-    () => applyBoardUpdatedDateFilter(dbBoardSearchFiltered || [], updatedOnOrAfter),
-    [dbBoardSearchFiltered, updatedOnOrAfter]
+    () =>
+      applyBoardDispositionFilter(
+        applyBoardUpdatedDateFilter(dbBoardSearchFiltered || [], updatedOnOrAfter),
+        dispositionFilter
+      ),
+    [dbBoardSearchFiltered, updatedOnOrAfter, dispositionFilter]
   );
 
   const boardFiltersActive = isBoardFiltersActive({
     sortKey: boardSortKey,
     visibleColumnKeys,
     updatedOnOrAfter,
+    dispositionFilter,
   });
 
   const startBoardJobWork = useCallback(
@@ -4147,6 +4160,9 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       return {
         ...buildJobsBoardCardModel(job, batchStatuses, { columnKey }),
         sourceBadge: isLegacyBoardEstimateEntry(job) ? "Legacy" : null,
+        dispositionLabel: visibleDispositionLabel(
+          (job as { jobDisposition?: string | null }).jobDisposition
+        ),
         attention: jobId ? attentionByJobId[jobId] ?? null : null,
         scheduleLabel: schedule
           ? columnKey === "in_progress" || columnKey === "paid"
@@ -4203,6 +4219,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     boardFilteredJobs.length === 0 &&
     (query.trim().length > 0 ||
       !!updatedOnOrAfter ||
+      dispositionFilter !== BOARD_DEFAULT_DISPOSITION_FILTER ||
       (dbBoardSearchFiltered?.length ?? 0) < dbBoardEntries.length);
 
   const statusDrivenGroups = useMemo(() => {
@@ -4469,6 +4486,8 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                   onVisibleColumnKeysChange={setVisibleColumnKeys}
                   updatedOnOrAfter={updatedOnOrAfter}
                   onUpdatedOnOrAfterChange={setUpdatedOnOrAfter}
+                  dispositionFilter={dispositionFilter}
+                  onDispositionFilterChange={setDispositionFilter}
                   filtersActive={boardFiltersActive}
                 />
 

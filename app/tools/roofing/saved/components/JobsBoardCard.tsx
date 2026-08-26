@@ -100,6 +100,14 @@ export default function JobsBoardCard({
             </span>
           ) : null}
         </div>
+        {model.dispositionLabel ? (
+          <p
+            className="mt-1 text-[11px] font-medium text-slate-600"
+            data-board-disposition={model.dispositionLabel}
+          >
+            {model.dispositionLabel}
+          </p>
+        ) : null}
         {model.attention ? (
           <div
             className="mt-1.5 flex min-w-0 items-center gap-1.5 text-[11px] font-semibold text-amber-800"

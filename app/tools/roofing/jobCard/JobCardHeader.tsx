@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { Mail, MapPin, Phone, UserCircle } from "lucide-react";
 import type { JobCardDisplayModel } from "./jobCardDisplayTypes";
@@ -9,6 +10,8 @@ type JobCardHeaderProps = {
   isBoardOrigin: boolean;
   phone?: string;
   email?: string;
+  actions?: ReactNode;
+  dispositionNote?: string | null;
 };
 
 function ContactValue({ value }: { value: string }) {
@@ -19,7 +22,14 @@ function ContactValue({ value }: { value: string }) {
   return <span className="text-slate-700">{trimmed}</span>;
 }
 
-export default function JobCardHeader({ display, isBoardOrigin, phone = "", email = "" }: JobCardHeaderProps) {
+export default function JobCardHeader({
+  display,
+  isBoardOrigin,
+  phone = "",
+  email = "",
+  actions,
+  dispositionNote = null,
+}: JobCardHeaderProps) {
   const backHref = isBoardOrigin ? "/tools/roofing/saved" : "/tools/roofing?entry=packet";
   const backLabel = isBoardOrigin ? "Back to Job Board" : "Back to Job Packet";
 
@@ -64,14 +74,30 @@ export default function JobCardHeader({ display, isBoardOrigin, phone = "", emai
               {display.stageLabel}
             </span>
             {display.dispositionLabel ? (
-              <span className="inline-flex items-center rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600">
+              <span
+                className="inline-flex items-center rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600"
+                data-jobcard-disposition={display.dispositionLabel}
+              >
                 {display.dispositionLabel}
               </span>
-            ) : null}
+            ) : (
+              <span className="sr-only" data-jobcard-disposition="Active">
+                Active
+              </span>
+            )}
             {display.valueLabel ? (
               <span className="text-base font-semibold tabular-nums text-slate-900">{display.valueLabel}</span>
             ) : null}
+            {actions}
           </div>
+          {dispositionNote ? (
+            <p
+              className="max-w-[18rem] text-xs leading-snug text-slate-500 sm:text-right"
+              data-jobcard-disposition-note
+            >
+              {dispositionNote}
+            </p>
+          ) : null}
           <div className="flex items-center gap-2 text-sm text-slate-500">
             <UserCircle className="h-5 w-5 text-slate-400/90" strokeWidth={1.75} aria-hidden />
             <span>Unassigned</span>

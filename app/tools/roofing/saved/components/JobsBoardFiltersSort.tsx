@@ -2,13 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  BOARD_DEFAULT_DISPOSITION_FILTER,
   BOARD_DEFAULT_SORT_KEY,
+  BOARD_DISPOSITION_FILTER_OPTIONS,
   BOARD_SORT_OPTIONS,
   getAllBoardColumnKeys,
   getDefaultVisibleColumnKeys,
   JOBS_BOARD_COLUMNS,
   JOBS_BOARD_WORKING_COLUMN_KEYS,
   type BoardColumnKey,
+  type BoardDispositionFilter,
   type BoardSortKey,
 } from "../jobsBoardUtils";
 
@@ -19,6 +22,8 @@ type JobsBoardFiltersSortProps = {
   onVisibleColumnKeysChange: (keys: BoardColumnKey[]) => void;
   updatedOnOrAfter: string | null;
   onUpdatedOnOrAfterChange: (value: string | null) => void;
+  dispositionFilter: BoardDispositionFilter;
+  onDispositionFilterChange: (value: BoardDispositionFilter) => void;
   filtersActive: boolean;
 };
 
@@ -29,6 +34,8 @@ export default function JobsBoardFiltersSort({
   onVisibleColumnKeysChange,
   updatedOnOrAfter,
   onUpdatedOnOrAfterChange,
+  dispositionFilter,
+  onDispositionFilterChange,
   filtersActive,
 }: JobsBoardFiltersSortProps) {
   const [open, setOpen] = useState(false);
@@ -66,6 +73,7 @@ export default function JobsBoardFiltersSort({
     onSortKeyChange(BOARD_DEFAULT_SORT_KEY);
     onVisibleColumnKeysChange(getDefaultVisibleColumnKeys());
     onUpdatedOnOrAfterChange(null);
+    onDispositionFilterChange(BOARD_DEFAULT_DISPOSITION_FILTER);
   };
 
   return (
@@ -135,6 +143,29 @@ export default function JobsBoardFiltersSort({
                 </label>
                 );
               })}
+            </div>
+          </section>
+
+          <div className="my-3 border-t border-slate-100" />
+
+          <section className="space-y-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Disposition</h3>
+            <div className="space-y-1">
+              {BOARD_DISPOSITION_FILTER_OPTIONS.map((opt) => (
+                <label
+                  key={opt.id}
+                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+                >
+                  <input
+                    type="radio"
+                    name="board-disposition"
+                    checked={dispositionFilter === opt.id}
+                    onChange={() => onDispositionFilterChange(opt.id)}
+                    className="h-3.5 w-3.5 border-slate-300 text-slate-700 focus:ring-slate-200"
+                  />
+                  {opt.label}
+                </label>
+              ))}
             </div>
           </section>
 

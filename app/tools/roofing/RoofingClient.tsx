@@ -77,8 +77,11 @@ import {
   resolveStageEnteredAtIso,
 } from "@/app/lib/jobLifecycleMapper";
 import { resolveCanonicalJobActionEligibilityFromFacts } from "@/app/lib/jobLifecycleActionEligibility";
-import { OPERATIONAL_JOB_DISPOSITION_LABELS } from "@/app/lib/jobLifecycleTypes";
-import type { OperationalJobDisposition } from "@/app/lib/jobLifecycleTypes";
+import {
+  applyKnownDispositionToJobRecord,
+  dispositionBlockedWorkCopy,
+  visibleDispositionLabel,
+} from "@/app/lib/jobDispositionManagement";
 import { findOrCreateCustomer } from "@/app/lib/customerStore";
 import { ensureJobCustomerPersisted } from "@/app/lib/jobCardCustomerPersist";
 import { LAST_DB_JOB_ID_STORAGE_KEY } from "@/app/lib/jobBoardAdapter";
@@ -216,6 +219,7 @@ import type { TemplateSetupReadStatus } from "@/app/lib/jobCardTemplateSetupStat
 import FieldDiveAppShell from "@/app/tools/roofing/FieldDiveAppShell";
 import { buildJobCardDisplayModel } from "@/app/tools/roofing/saved/jobsBoardUtils";
 import JobCardHeader from "@/app/tools/roofing/jobCard/JobCardHeader";
+import JobCardDispositionControl from "@/app/tools/roofing/jobCard/JobCardDispositionControl";
 import JobCardMetadataStrip from "@/app/tools/roofing/jobCard/JobCardMetadataStrip";
 import JobCardNextActionPanel from "@/app/tools/roofing/jobCard/JobCardNextActionPanel";
 import JobCardTabs, { type JobCardTabId } from "@/app/tools/roofing/jobCard/JobCardTabs";
@@ -8353,14 +8357,7 @@ Thanks,`;
             : jobHydrateStatus === "unavailable"
               ? "Unavailable"
               : "Intake",
-        dispositionLabel:
-          hydratedJobRecord &&
-          hydratedJobRecord.status !== "active" &&
-          hydratedJobRecord.status in OPERATIONAL_JOB_DISPOSITION_LABELS
-            ? OPERATIONAL_JOB_DISPOSITION_LABELS[
-                hydratedJobRecord.status as OperationalJobDisposition
-              ]
-            : null,
+        dispositionLabel: visibleDispositionLabel(hydratedJobRecord?.status),
         stageEnteredAt: hydratedJobRecord
           ? resolveStageEnteredAtIso(hydratedJobRecord.stage_entered_at)
           : null,
@@ -8566,6 +8563,41 @@ Thanks,`;
               isBoardOrigin={isBoardOrigin}
               phone={headerPhone}
               email={headerEmail}
+              dispositionNote={dispositionBlockedWorkCopy(
+                hydratedJobRecord?.status
+              )}
+              actions={
+                <JobCardDispositionControl
+                  jobId={currentJobId}
+                  disposition={hydratedJobRecord?.status ?? null}
+                  stage={canonicalJobStage}
+                  stageLabel={jobCardDisplay.stageLabel}
+                  disabled={
+                    !hydratedJobRecord ||
+                    startWorkBusy ||
+                    completeJobBusy ||
+                    scheduleBusy
+                  }
+                  onApplied={async (result) => {
+                    try {
+                      const refreshed = await refreshHydratedJobRecord(
+                        result.job_id
+                      );
+                      if (!refreshed) {
+                        setHydratedJobRecord((prev) =>
+                          applyKnownDispositionToJobRecord(
+                            prev,
+                            result.job_id,
+                            result.to_status
+                          )
+                        );
+                      }
+                    } finally {
+                      setScheduleActivityTick((value) => value + 1);
+                    }
+                  }}
+                />
+              }
             />
             <JobCardMetadataStrip display={jobCardDisplay} />
             <JobCardNextActionPanel

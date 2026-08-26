@@ -86,6 +86,7 @@ const PUBLIC_CHECKOUT = read(
 const MUTATION_API_ROUTES = [
   "app/api/jobs/complete-work/route.ts",
   "app/api/jobs/start-work/route.ts",
+  "app/api/jobs/change-disposition/route.ts",
   "app/api/jobs/schedule/route.ts",
   "app/api/jobs/reschedule/route.ts",
   "app/api/jobs/unschedule/route.ts",

@@ -38,6 +38,7 @@ import {
   composeCompleteActivityItem,
   isSuppressedCompleteStageChange,
 } from "@/app/lib/jobCompleteActivity";
+import { composeDispositionChangedActivity } from "@/app/lib/jobDispositionManagement";
 
 const FORBIDDEN_ACTIVITY_LABEL =
   /\b(Job card opened|Estimate loaded|autosave|previewed|snapshot_frozen|Builder opened|Preview opened|Acceptance confirmed)\b/i;
@@ -186,25 +187,9 @@ export function composeJobActivityItems(
       continue;
     }
     if (event.event_type === "disposition_changed") {
-      const toStatus = payloadString(payload, "to_status");
-      const reopened = payload.reopened === true;
-      if (reopened || toStatus === "active") {
-        push(
-          { label: "Reopened", note: "Disposition returned to Active" },
-          event.occurred_at
-        );
-        continue;
-      }
-      if (toStatus === "on_hold") {
-        push({ label: "On hold", note: "Job placed on hold" }, event.occurred_at);
-        continue;
-      }
-      if (toStatus === "lost") {
-        push({ label: "Lost", note: "Job marked lost" }, event.occurred_at);
-        continue;
-      }
-      if (toStatus === "closed") {
-        push({ label: "Closed", note: "Job closed" }, event.occurred_at);
+      const composed = composeDispositionChangedActivity(payload);
+      if (composed) {
+        push(composed, event.occurred_at, event.id);
       }
     }
   }

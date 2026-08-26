@@ -3,6 +3,7 @@ import type { JobAttentionSummary } from "@/app/lib/jobAttentionReadModel";
 import { isDbBoardJobEntry } from "@/app/lib/jobBoardAdapter";
 import { canonicalJobStageLabel } from "@/app/lib/jobLifecycleMapper";
 import type { CanonicalJobStage } from "@/app/lib/jobLifecycleTypes";
+import { resolveOperationalDisposition } from "@/app/lib/jobDispositionManagement";
 import { formatBoardProposalPresenceLabel } from "@/app/tools/roofing/jobCard/jobCardProposalsTabModel";
 import type { JobCardDisplayModel } from "@/app/tools/roofing/jobCard/jobCardDisplayTypes";
 
@@ -667,6 +668,7 @@ export type JobsBoardCardModel = {
   showCompleteJobAction?: boolean;
   startWorkBusy?: boolean;
   completeJobBusy?: boolean;
+  dispositionLabel?: string | null;
 };
 
 export function buildJobsBoardCardModel(
@@ -756,6 +758,53 @@ export function buildJobCardDisplayModel(
   };
 }
 
+export type BoardDispositionFilter =
+  | "all"
+  | "active"
+  | "on_hold"
+  | "lost"
+  | "closed";
+
+export const BOARD_DEFAULT_DISPOSITION_FILTER: BoardDispositionFilter = "all";
+
+export const BOARD_DISPOSITION_FILTER_OPTIONS: ReadonlyArray<{
+  id: BoardDispositionFilter;
+  label: string;
+}> = [
+  { id: "all", label: "All dispositions" },
+  { id: "active", label: "Active" },
+  { id: "on_hold", label: "On hold" },
+  { id: "lost", label: "Lost" },
+  { id: "closed", label: "Closed" },
+];
+
+export function isBoardDispositionFilter(
+  value: unknown
+): value is BoardDispositionFilter {
+  return (
+    value === "all" ||
+    value === "active" ||
+    value === "on_hold" ||
+    value === "lost" ||
+    value === "closed"
+  );
+}
+
+export function applyBoardDispositionFilter(
+  jobs: RoofingEstimate[],
+  filter: BoardDispositionFilter
+): RoofingEstimate[] {
+  if (filter === "all") return jobs;
+  return jobs.filter((job) => {
+    if (!isDbBoardJobEntry(job)) return false;
+    const disposition =
+      resolveOperationalDisposition(
+        (job as { jobDisposition?: string | null }).jobDisposition
+      ) ?? "active";
+    return disposition === filter;
+  });
+}
+
 export function applyBoardUpdatedDateFilter(
   jobs: RoofingEstimate[],
   updatedOnOrAfter: string | null
@@ -833,6 +882,7 @@ export type BoardViewState = {
   visibleColumnKeys: BoardColumnKey[];
   updatedOnOrAfter: string | null;
   viewMode: BoardViewMode;
+  dispositionFilter: BoardDispositionFilter;
 };
 
 export function loadBoardViewState(): BoardViewState {
@@ -841,6 +891,7 @@ export function loadBoardViewState(): BoardViewState {
     visibleColumnKeys: getDefaultVisibleColumnKeys(),
     updatedOnOrAfter: null,
     viewMode: BOARD_DEFAULT_VIEW_MODE,
+    dispositionFilter: BOARD_DEFAULT_DISPOSITION_FILTER,
   };
   if (typeof window === "undefined") return fallback;
   try {
@@ -866,11 +917,15 @@ export function loadBoardViewState(): BoardViewState {
         ? parsed.updatedOnOrAfter
         : null;
     const viewMode = parsed.viewMode === "list" ? "list" : "board";
+    const dispositionFilter = isBoardDispositionFilter(parsed.dispositionFilter)
+      ? parsed.dispositionFilter
+      : fallback.dispositionFilter;
     return {
       sortKey,
       visibleColumnKeys: validKeys.length > 0 ? validKeys : fallback.visibleColumnKeys,
       updatedOnOrAfter,
       viewMode,
+      dispositionFilter,
     };
   } catch {
     return fallback;
@@ -886,12 +941,17 @@ export function isBoardFiltersActive(args: {
   sortKey: BoardSortKey;
   visibleColumnKeys: BoardColumnKey[];
   updatedOnOrAfter: string | null;
+  dispositionFilter?: BoardDispositionFilter;
 }): boolean {
   const defaultVisible = getDefaultVisibleColumnKeys();
   const allStagesVisible =
     args.visibleColumnKeys.length === defaultVisible.length &&
     defaultVisible.every((k) => args.visibleColumnKeys.includes(k));
   return (
-    args.sortKey !== BOARD_DEFAULT_SORT_KEY || !allStagesVisible || !!args.updatedOnOrAfter
+    args.sortKey !== BOARD_DEFAULT_SORT_KEY ||
+    !allStagesVisible ||
+    !!args.updatedOnOrAfter ||
+    (args.dispositionFilter != null &&
+      args.dispositionFilter !== BOARD_DEFAULT_DISPOSITION_FILTER)
   );
 }
