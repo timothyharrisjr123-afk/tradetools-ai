@@ -12,10 +12,25 @@ export const runtime = "nodejs";
 const SAFE_ERROR =
   "We could not start this payment. Please try again or contact the contractor.";
 
+const TOKEN_FAILURE_CODES = new Set([
+  "invalid_hash",
+  "not_found",
+  "revoked",
+  "superseded",
+  "expired",
+  "invalid_version",
+  "invalid_binding",
+  "proposal_unavailable",
+]);
+
 /**
  * Public Checkout for an existing payment request bound to the proposal token.
  * Creates canonical acceptance idempotently when needed, opens deposit, then Checkout.
  * Amount, account, and binding are server-owned.
+ *
+ * `optionKey` carries the customer's chosen frozen package. It is a stable
+ * option key only — the server resolves it against the token's bound version
+ * and derives the deposit from frozen truth. No client price authority.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -40,22 +55,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const acceptance = await recordProposalAcceptance(token.trim());
+    const acceptance = await recordProposalAcceptance(token.trim(), {
+      customerOptionKey:
+        typeof body?.optionKey === "string" ? body.optionKey : null,
+    });
     if (!acceptance.ok) {
       const code = String(acceptance.code ?? "not_found");
-      const status =
-        code === "invalid_hash" ||
-        code === "not_found" ||
-        code === "revoked" ||
-        code === "superseded" ||
-        code === "expired" ||
-        code === "invalid_version" ||
-        code === "invalid_binding" ||
-        code === "proposal_unavailable"
-          ? 404
-          : code === "idempotency_conflict"
-            ? 409
-            : 400;
+      const status = TOKEN_FAILURE_CODES.has(code)
+        ? 404
+        : code === "idempotency_conflict"
+          ? 409
+          : 400;
       return NextResponse.json(
         { ok: false, message: SAFE_ERROR, code },
         { status }

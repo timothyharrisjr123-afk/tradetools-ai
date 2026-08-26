@@ -31,7 +31,8 @@ function statusForFailure(code: string): number {
 /**
  * Public formal acceptance submit.
  * Token is hashed server-side; company/proposal/version never trusted from body.
- * Does not accept a customer-chosen package — binds frozen selected option.
+ * `optionKey` is a frozen option key only. The server resolves it against the
+ * token's bound version and reads the total from frozen truth — no client price.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -45,11 +46,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (body?.amountCents != null || body?.amount != null || body?.totalCents != null) {
+      return NextResponse.json(
+        { ok: false, message: SAFE_ERROR_MESSAGE, code: "amount_tamper" },
+        { status: 400 }
+      );
+    }
+
     const result = await recordProposalAcceptance(token, {
       acceptedByName:
         typeof body?.acceptedByName === "string" ? body.acceptedByName : null,
       acceptedByEmail:
         typeof body?.acceptedByEmail === "string" ? body.acceptedByEmail : null,
+      customerOptionKey:
+        typeof body?.optionKey === "string" ? body.optionKey : null,
     });
 
     if (!result.ok) {
@@ -67,8 +77,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       acceptedAt: result.accepted_at,
-      acceptedOptionLabel: result.accepted_option_label,
-      acceptedTotalCents: result.accepted_total_cents,
+      acceptedOptionLabel:
+        result.customer_chosen_option_label ?? result.accepted_option_label,
+      acceptedTotalCents: result.contract_total_cents,
+      customerChoseOption: result.customer_chosen_option_id != null,
       idempotentReplay: result.idempotent_replay,
     });
   } catch (error) {

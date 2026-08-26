@@ -52,6 +52,12 @@ export type ProposalAcceptanceRecordSuccess = {
   proposal_option_id: string;
   accepted_option_label: string;
   accepted_total_cents: number;
+  /** Frozen option the customer chose; null when they made no explicit choice. */
+  customer_chosen_option_id: string | null;
+  customer_chosen_option_label: string | null;
+  customer_chosen_total_cents: number | null;
+  /** Contractual total: customer choice when present, contractor frozen otherwise. */
+  contract_total_cents: number;
   accepted_at: string;
   guard_result: Exclude<ProposalAcceptanceGuardResult, "invalid">;
   ambiguity_reason: ProposalAcceptanceAmbiguityReason | null;
@@ -74,7 +80,15 @@ export type ProposalAcceptanceRecordResult =
 export type ProposalAcceptanceSubmitInput = {
   acceptedByName?: string | null;
   acceptedByEmail?: string | null;
+  /**
+   * Stable frozen option key (source_template_option_id) the customer chose.
+   * Omit for single-option proposals. The server resolves it against the
+   * token's bound version and reads the total from frozen truth.
+   */
+  customerOptionKey?: string | null;
 };
+
+export const PROPOSAL_ACCEPTANCE_OPTION_KEY_MAX = 200;
 
 export type ConfirmProposalAcceptanceSuccess = {
   ok: true;
@@ -224,6 +238,28 @@ export function parseProposalAcceptanceRecordResult(
     );
   }
 
+  // Pre-049 rows and single-option proposals report no customer choice.
+  let chosenTotal: number | null = null;
+  if (result.customer_chosen_total_cents != null) {
+    const parsed = Number(result.customer_chosen_total_cents);
+    if (!Number.isInteger(parsed) || parsed < 0) {
+      throw new ProposalAcceptancePersistenceError(
+        `${RECORD_PROPOSAL_ACCEPTANCE_RPC_V1} returned invalid customer_chosen_total_cents.`
+      );
+    }
+    chosenTotal = parsed;
+  }
+
+  const contractTotal =
+    result.contract_total_cents == null
+      ? (chosenTotal ?? total)
+      : Number(result.contract_total_cents);
+  if (!Number.isInteger(contractTotal) || contractTotal < 0) {
+    throw new ProposalAcceptancePersistenceError(
+      `${RECORD_PROPOSAL_ACCEPTANCE_RPC_V1} returned invalid contract_total_cents.`
+    );
+  }
+
   return {
     ok: true,
     acceptance_id: parseUuid(result.acceptance_id, "acceptance_id"),
@@ -235,6 +271,16 @@ export function parseProposalAcceptanceRecordResult(
     proposal_option_id: parseUuid(result.proposal_option_id, "proposal_option_id"),
     accepted_option_label: String(result.accepted_option_label ?? "").trim() || "Package",
     accepted_total_cents: total,
+    customer_chosen_option_id: parseOptionalUuid(
+      result.customer_chosen_option_id,
+      "customer_chosen_option_id"
+    ),
+    customer_chosen_option_label:
+      result.customer_chosen_option_label == null
+        ? null
+        : String(result.customer_chosen_option_label).trim() || null,
+    customer_chosen_total_cents: chosenTotal,
+    contract_total_cents: contractTotal,
     accepted_at: parseTimestamp(result.accepted_at, "accepted_at"),
     guard_result: result.guard_result,
     ambiguity_reason: isAmbiguityReason(reason) ? reason : null,
@@ -320,18 +366,38 @@ export async function recordProposalAcceptanceViaRpc(
     input.acceptedByEmail,
     PROPOSAL_ACCEPTANCE_EMAIL_MAX
   );
+  const customerOptionKey = trimOrNull(
+    input.customerOptionKey,
+    PROPOSAL_ACCEPTANCE_OPTION_KEY_MAX
+  );
 
   const { data, error } = await supabase.rpc(RECORD_PROPOSAL_ACCEPTANCE_RPC_V1, {
     p_token_hash: tokenHash,
     p_accepted_by_name: acceptedByName,
     p_accepted_by_email: acceptedByEmail,
-    p_payload_json: {},
+    p_payload_json: customerOptionKey
+      ? { customer_option_key: customerOptionKey }
+      : {},
   });
 
   if (error) {
     throw new ProposalAcceptancePersistenceError(error.message);
   }
-  return parseProposalAcceptanceRecordResult(data);
+  const result = parseProposalAcceptanceRecordResult(data);
+
+  // Fail closed on customer choice. A pre-049 RPC ignores unknown payload keys,
+  // which would bind the contractor package and derive the deposit from its
+  // total — charging the customer for a package they did not choose. If we sent
+  // a choice and it did not come back bound, refuse rather than mis-charge.
+  if (
+    customerOptionKey &&
+    result.ok &&
+    result.customer_chosen_option_id == null
+  ) {
+    return { ok: false, code: "option_choice_not_bound" };
+  }
+
+  return result;
 }
 
 export async function confirmProposalAcceptanceViaRpc(
