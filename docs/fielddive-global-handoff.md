@@ -58,6 +58,7 @@
 - Read **§6CD** before any canonical visual fixture preference, Active Intake/Proposal/Production screenshot proof, or Instant Estimate foundation classification — **Canonical visual fixture proof closure COMPLETE** (preferred Active Intake/Proposal/Production fixtures via real RPC path; Instant Estimate classified **PLACEHOLDER**; no product/lifecycle change; no migration).
 - Read **§6CE** before any Board Schedule / Job Card Calendar / Main Calendar create-reschedule / shared scheduling workspace / factual day-count context work — **Stage A shared scheduling workspace COMPLETE** (one `JobScheduleWorkspace`; `job_schedules` sole truth; no recommendations; occupancy labels **`1 job` / `N jobs`**; no migration).
 - Read **§6CG** before any proposal payment terms / deposit Checkout / job-level money ledger / Accept-Sign-Pay / Stripe Checkout method language work — **Payment Stage 1 COMPLETE** (proposal-owned terms freeze with send; company defaults prefill only; Stripe readiness before online-deposit Send; auto deposit on accept; Approve is not a payment gate; job-level ledger + revision carry-forward; migration **048 LIVE**).
+- Read **§6CH** before any public customer proposal selection/payment flow, Company Profile payment-setup ownership, Job Card Overview money display, or send-readiness fail-closed work — **Payment Stage 1 flow correction COMPLETE** (review → select → pay; Request this package removed from sent-offer path; signature removed from default public path; Pay creates acceptance idempotently; send fail-closed on unknown terms; Payments nav retired to Company Profile; Overview no dollar amounts; migration **048 unchanged**).
 - Read **§6CF** before any Jobs Board drag/drop / guarded Board movement / Board lifecycle intent work — **Stage B guarded Board movement COMPLETE** (native pointer drag; canonical RPCs only; no direct `jobs.stage` writes; payment excluded from Board).
 - Read **§6BZ** before any leftover contractor-capability API auth, server mutation `jobStore` UUID imports, Proposal Preview independent reads, Attention/Activity error-vs-empty semantics, Board/Calendar nested-interactive a11y, historical `measurement`/`estimating` display mapping, Work Orders placeholder copy, or physical `tmp` hygiene after Wave 1 — **Adversarial Audit Wave 2 COMPLETE** (contractor capability API auth; public-by-design routes preserved; Preview independent read ownership + stale guards; error/absence corrections; Board/Calendar a11y; historical stage compatibility; Work Orders placeholder; 390 Builder/Preview/Public proof; no migration).
 
@@ -16823,11 +16824,71 @@ Desktop + true 390 (`innerWidth === 390`) screenshots: `tmp/fielddive-ui-review/
 
 ### 6CG.5 Remainder / next
 
-**P1:** Send readiness treats a failed terms read as no deposit (fail-open). Combined Accept & sign remains the public primary CTA; Sign reloads so Pay appears. Job Card `canRequestDeposit` still Approve-gated. Settled method label only populates when the webhook payload has `payment_request_id` + parseable method details.
-
-**P2:** Review harness is visual-only (fake UUID; Builder `persist={false}`). Public packet still uses one Pay control (banner variant removed). Offline/cash/check recording is a future terms-channel extension, not V1.
+**Superseded by §6CH for public customer flow / send fail-closed / Overview / nav.** Remaining P2: Review harness is visual-only (fake UUID; Builder `persist={false}`). Settled method label only populates when webhook payload has `payment_request_id` + parseable method details.
 
 **Next:** **PAYMENT STAGE 2 — PAYMENTS WORKSPACE + FINAL BALANCE**. Do not start automatically. Do not start refunds.
+
+---
+
+## 6CH. PAYMENT STAGE 1 — CUSTOMER FLOW CORRECTION (2026-08-26)
+
+**Status:** **COMPLETE / VERIFIED / LOCKED**. Code: **`fix(proposals): simplify customer selection and payment flow`**. Docs: this section. **No push. No package. 039 reserved / absent. 044 SHA unchanged. 047 SHA unchanged (`FFE33FDD562742519BB92568CD5C55528537EA756540D1C6C906F8694B974979`). Migration `20260826_048_proposal_payment_terms_and_job_ledger.sql` unchanged SHA256 `72B46B61050287B094478485986772898BB0753FC0F1712D2825D9581A4BDCF0`.**
+
+### 6CH.1 Customer north star
+
+Real-world customer actions drive the flow:
+
+**Review → select (contractor-frozen option) → pay deposit** (or **Confirm this proposal** when no deposit).
+
+No **Request this package**, no default **Accept & sign**, no dangling **Sign proposal** in the normal sent-offer path.
+
+### 6CH.2 Public surface changes
+
+| Change | Result |
+|--------|--------|
+| **Request this package** | Removed from hero, closeout, and comparison on sent offers |
+| **Accept & sign / Sign proposal** | Removed from default public path; R3D infrastructure retained for optional future contractor-configured agreement |
+| **Pay deposit** | Single payment surface; shown **before** acceptance via prospective deposit VM when terms require it |
+| **Checkout** | `POST /api/public/payment-requests/checkout` creates canonical acceptance idempotently → opens deposit → Stripe Checkout |
+| **No deposit** | **Confirm this proposal** → `POST /api/proposals/accept`; shows **Proposal confirmed** |
+| **Comparison** | **Selected** badge on frozen option; other options informational only (**Offered for comparison**) |
+| **Payment terms copy** | Deposit **due upon agreement** (not “acceptance”) |
+
+### 6CH.3 Signature audit (product-flow, not legal advice)
+
+Industry patterns (Roofr, JobNimbus, Propovio): often sign-then-pay or integrated sign+pay on contractor proposals.
+
+**FieldDive correction decision:** default V1 customer path = **select → pay** (or Confirm when no deposit). Pay/Confirm supplies agreement intent. R3D stores immutable signature marks on frozen versions but is **not** exposed as a mandatory visible customer step in this correction. Signature may return as an optional contractor-configured future requirement tied to a clearly identified frozen agreement.
+
+### 6CH.4 Send readiness fail-closed
+
+When draft payment terms cannot be authoritatively read (`termsKnown: false`), Send is **blocked** with “Payment terms could not be verified.” Legitimate no-deposit proposals still send when terms row proves `depositMode: none`.
+
+### 6CH.5 Company payment setup ownership
+
+Standalone Setup → **Payments** sidebar item **removed**. Long-term ownership: **Company profile → Payments** (`SettingsPaymentsLinkCard` already present). Route `/tools/settings/payments` remains as deep link / internal destination. **Company Profile simplification/redesign** is a **future stage** — not started here.
+
+### 6CH.6 Job Card / Overview
+
+| Item | Decision |
+|------|----------|
+| **Overview dollar amounts** | **Removed** — `JobCardPaymentsStrip` no longer on Overview |
+| **Overview payment status chip** | **Not implemented** — decision remains open for Stage 2 visual review |
+| **Job Card Payments tab** | **Deferred** — Stage 2 |
+| **`canRequestDeposit`** | **HIDE FROM VISIBLE PRODUCT** — always `false`; auto-open + customer Pay owns initial deposit; APIs retained for retries/future |
+| **Board / Calendar** | Remain payment-free |
+
+### 6CH.7 Iconography (record only)
+
+Future cross-app visual-language pass: green **$** = **settled received money only** — never due, pending, failed, or merely requested. Not implemented in this correction.
+
+### 6CH.8 Proof
+
+Focused correction + Stage 1 regression subset **222/222** pass (paymentStage1, flow correction, 044, signatures, acceptance, send gate, nav, architecture). Inherited repo typecheck noise outside touched files unchanged.
+
+Desktop + 390 screenshots: `tmp/fielddive-ui-review/payment-stage-1-flow-correction/` (11 captures). Review harness: `/tools/roofing/jobCard/payment-stage-1-flow-correction`.
+
+**Next:** **PAYMENT STAGE 2 — PAYMENTS WORKSPACE + FINAL BALANCE**. Do not start automatically. Do not start refunds. Do not start Company Profile redesign. Do not start global icon redesign.
 
 ---
 

@@ -53,7 +53,7 @@ export default function ProposalPacket({
   const [accepted, setAccepted] = useState(
     initialStatus === "accepted" || initialStatus === "signed"
   );
-  const [acceptedOnLabel, setAcceptedOnLabel] = useState(
+  const [acceptedOnLabel] = useState(
     packet.acceptance?.acceptedOnLabel ?? null
   );
 
