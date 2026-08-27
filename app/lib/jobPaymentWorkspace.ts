@@ -110,7 +110,7 @@ export type JobPaymentWorkspaceView = {
   state: JobPaymentWorkspaceState;
   statusLabel: string;
   overviewStatusLabel: string | null;
-  nextStep: JobPaymentWorkspaceNextStep;
+  nextStep: JobPaymentWorkspaceNextStep | null;
   connected: boolean;
   chargesEnabled: boolean;
   accepted: boolean;
@@ -537,14 +537,11 @@ function statusLabelFor(state: JobPaymentWorkspaceState): string {
 function nextStepFor(
   state: JobPaymentWorkspaceState,
   connected: boolean
-): JobPaymentWorkspaceNextStep {
+): JobPaymentWorkspaceNextStep | null {
   switch (state) {
     case "no_payment_required":
-      return {
-        label: "No payment to collect yet.",
-        detail: null,
-        connectHref: null,
-      };
+    case "paid_in_full":
+      return null;
     case "setup_required":
       return {
         label: "Connect payments in Company Settings.",
@@ -566,11 +563,6 @@ function nextStepFor(
       return { label: "Payment failed", detail: null, connectHref: null };
     case "deposit_received":
     case "balance_not_yet_due":
-      return {
-        label: "Balance due on completion",
-        detail: null,
-        connectHref: null,
-      };
     case "partially_paid":
       return {
         label: "Balance due on completion",
@@ -578,13 +570,7 @@ function nextStepFor(
         connectHref: null,
       };
     case "balance_due":
-      return {
-        label: "Balance due — collection setup coming in Stage 2B",
-        detail: null,
-        connectHref: null,
-      };
-    case "paid_in_full":
-      return { label: "Paid in full", detail: null, connectHref: null };
+      return { label: "Balance due", detail: null, connectHref: null };
   }
 }
 
@@ -701,9 +687,6 @@ export function buildJobPaymentWorkspace(input: {
     contractTotalCents,
   });
   const nextStep = nextStepFor(state, connected);
-  if (state === "partially_paid" && jobComplete) {
-    nextStep.label = "Balance due — collection setup coming in Stage 2B";
-  }
 
   return {
     contractTotalCents,

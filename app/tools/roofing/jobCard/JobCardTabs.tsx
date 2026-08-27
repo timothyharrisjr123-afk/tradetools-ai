@@ -1,10 +1,11 @@
 "use client";
 
-import type { KeyboardEvent } from "react";
+import { useLayoutEffect, useRef, type FocusEvent, type KeyboardEvent } from "react";
 import {
   JOB_CARD_VISIBLE_TABS,
   type JobCardTabId,
 } from "./jobCardTypes";
+import { scrollJobCardTabIntoRailView } from "./jobCardTabRailScroll";
 
 type JobCardTabsProps = {
   activeTab: JobCardTabId;
@@ -12,10 +13,31 @@ type JobCardTabsProps = {
 };
 
 export default function JobCardTabs({ activeTab, onTabChange }: JobCardTabsProps) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const run = () => {
+      const scroller = scrollerRef.current;
+      const tab = document.getElementById(`job-card-tab-${activeTab}`);
+      if (scroller && tab) scrollJobCardTabIntoRailView(scroller, tab);
+    };
+    run();
+    const frame = window.requestAnimationFrame(run);
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeTab]);
+
+  const bringTabIntoView = (tabEl: HTMLElement | null) => {
+    const scroller = scrollerRef.current;
+    if (!scroller || !tabEl) return;
+    scrollJobCardTabIntoRailView(scroller, tabEl);
+  };
+
   const focusTab = (tabId: JobCardTabId) => {
     onTabChange(tabId);
     window.requestAnimationFrame(() => {
-      document.getElementById(`job-card-tab-${tabId}`)?.focus();
+      const el = document.getElementById(`job-card-tab-${tabId}`);
+      el?.focus();
+      if (el) bringTabIntoView(el);
     });
   };
 
@@ -30,6 +52,10 @@ export default function JobCardTabs({ activeTab, onTabChange }: JobCardTabsProps
     focusTab(next.id);
   };
 
+  const onTabFocus = (event: FocusEvent<HTMLButtonElement>) => {
+    bringTabIntoView(event.currentTarget);
+  };
+
   return (
     <div
       className="min-w-0 max-w-full border-b border-slate-200/80 bg-white"
@@ -37,7 +63,10 @@ export default function JobCardTabs({ activeTab, onTabChange }: JobCardTabsProps
       aria-label="Job card sections"
       data-jobcard-tabs
     >
-      <div className="-mb-px flex min-w-0 max-w-full touch-pan-x gap-0 overflow-x-auto overscroll-x-contain px-5 sm:px-6 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200/60">
+      <div
+        ref={scrollerRef}
+        className="-mb-px flex min-w-0 max-w-full touch-pan-x gap-0 overflow-x-auto overscroll-x-contain px-5 sm:px-6 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200/60"
+      >
         {JOB_CARD_VISIBLE_TABS.map((tab, index) => {
           const isActive = tab.id === activeTab;
           return (
@@ -51,6 +80,7 @@ export default function JobCardTabs({ activeTab, onTabChange }: JobCardTabsProps
               tabIndex={isActive ? 0 : -1}
               data-jobcard-tab={tab.id}
               onClick={() => onTabChange(tab.id)}
+              onFocus={onTabFocus}
               onKeyDown={(event) => onKeyDown(event, index)}
               className={`min-h-11 shrink-0 border-b-2 px-3.5 py-3 text-[13px] font-medium transition sm:px-4 ${
                 isActive

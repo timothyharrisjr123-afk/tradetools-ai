@@ -203,15 +203,13 @@ type FixtureId = keyof typeof FIXTURES;
 
 function PaymentStage2AReviewBody({
   show,
-  surface,
+  initialTab,
 }: {
   show: FixtureId;
-  surface: string;
+  initialTab: JobCardTabId;
 }) {
   const workspace = FIXTURES[show] ?? FIXTURES["deposit-received"];
-  const [tab, setTab] = useState<JobCardTabId>(() =>
-    coerceJobCardVisibleTab(surface === "overview" ? "overview" : "payments")
-  );
+  const [tab, setTab] = useState<JobCardTabId>(initialTab);
 
   return (
     <div className="bg-white" data-stage2a-review={show}>
@@ -249,14 +247,18 @@ function PaymentStage2AReviewBody({
 }
 
 export default function PaymentStage2AReviewHarness() {
-  const show = (useSearchParams().get("show") ?? "deposit-received") as FixtureId;
-  const surface = useSearchParams().get("surface") ?? "payments";
+  const search = useSearchParams();
+  const show = (search.get("show") ?? "deposit-received") as FixtureId;
+  const surface = search.get("surface") ?? "payments";
   const fixture: FixtureId = show in FIXTURES ? show : "deposit-received";
+  const initialTab = coerceJobCardVisibleTab(
+    search.get("tab") ?? (surface === "overview" ? "overview" : "payments")
+  );
   return (
     <PaymentStage2AReviewBody
-      key={`${fixture}-${surface}`}
+      key={`${fixture}-${surface}-${initialTab}`}
       show={fixture}
-      surface={surface}
+      initialTab={initialTab}
     />
   );
 }

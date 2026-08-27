@@ -94,31 +94,33 @@ export default function JobCardPaymentsWorkspace({
         </dl>
       </section>
 
-      <section aria-labelledby="job-card-payments-next">
-        <h3
-          id="job-card-payments-next"
-          className="text-xs font-semibold uppercase tracking-wide text-slate-500"
-        >
-          Next step
-        </h3>
-        <p className="mt-1.5 text-sm text-slate-800" data-jobcard-payments-next>
-          {workspace.nextStep.label}
-        </p>
-        {workspace.nextStep.detail ? (
-          <p className="mt-0.5 text-sm text-slate-500">{workspace.nextStep.detail}</p>
-        ) : null}
-        {workspace.nextStep.connectHref ? (
-          <p className="mt-2">
-            <a
-              href={workspace.nextStep.connectHref}
-              className="inline-flex min-h-11 items-center text-sm font-semibold text-cyan-700 hover:text-cyan-900"
-              data-jobcard-payments-connect
-            >
-              Connect payments
-            </a>
+      {workspace.nextStep ? (
+        <section aria-labelledby="job-card-payments-next">
+          <h3
+            id="job-card-payments-next"
+            className="text-xs font-semibold uppercase tracking-wide text-slate-500"
+          >
+            Next step
+          </h3>
+          <p className="mt-1.5 text-sm text-slate-800" data-jobcard-payments-next>
+            {workspace.nextStep.label}
           </p>
-        ) : null}
-      </section>
+          {workspace.nextStep.detail ? (
+            <p className="mt-0.5 text-sm text-slate-500">{workspace.nextStep.detail}</p>
+          ) : null}
+          {workspace.nextStep.connectHref ? (
+            <p className="mt-2">
+              <a
+                href={workspace.nextStep.connectHref}
+                className="inline-flex min-h-11 items-center text-sm font-semibold text-cyan-700 hover:text-cyan-900"
+                data-jobcard-payments-connect
+              >
+                Connect payments
+              </a>
+            </p>
+          ) : null}
+        </section>
+      ) : null}
 
       <section aria-labelledby="job-card-payments-timeline">
         <h3

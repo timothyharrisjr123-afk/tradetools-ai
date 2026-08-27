@@ -168,6 +168,7 @@ describe("collectible vs net", () => {
     assert.equal(workspace.cashNetCents, 1950000);
     assert.equal(workspace.collectibleRemainingCents, 0);
     assert.equal(workspace.state, "paid_in_full");
+    assert.equal(workspace.nextStep, null);
     assert.ok(workspace.summaryRows.some((row) => row.label === "Refunded"));
   });
 
@@ -253,6 +254,7 @@ describe("payment-state presenter", () => {
     assert.equal(workspace.state, "no_payment_required");
     assert.equal(workspace.statusLabel, "No payment required yet");
     assert.equal(workspace.overviewStatusLabel, null);
+    assert.equal(workspace.nextStep, null);
     assert.equal(workspace.timeline.length, 0);
   });
 
@@ -289,7 +291,11 @@ describe("payment-state presenter", () => {
     assert.equal(workspace.statusLabel, "Deposit due");
     assert.equal(workspace.overviewStatusLabel, "Payment pending");
     assert.equal(workspace.depositNotReceived, true);
-    assert.equal(workspace.nextStep.connectHref, null);
+    assert.equal(
+      workspace.nextStep?.label,
+      "The customer can pay the deposit from the proposal."
+    );
+    assert.equal(workspace.nextStep?.connectHref, null);
   });
 
   test("deposit processing", () => {
@@ -305,6 +311,7 @@ describe("payment-state presenter", () => {
     assert.equal(workspace.state, "deposit_processing");
     assert.equal(workspace.statusLabel, "Deposit processing");
     assert.equal(workspace.overviewStatusLabel, "Payment pending");
+    assert.equal(workspace.nextStep?.label, "Payment processing");
     assert.equal(
       workspace.timeline.some((row) => row.type === "processing"),
       true
@@ -334,7 +341,7 @@ describe("payment-state presenter", () => {
     assert.equal(workspace.state, "deposit_received");
     assert.equal(workspace.statusLabel, "Deposit received");
     assert.equal(workspace.overviewStatusLabel, "Deposit received");
-    assert.equal(workspace.nextStep.label, "Balance due on completion");
+    assert.equal(workspace.nextStep?.label, "Balance due on completion");
     assert.equal(workspace.depositNotReceived, false);
   });
 
@@ -358,6 +365,7 @@ describe("payment-state presenter", () => {
     assert.equal(workspace.state, "payment_failed");
     assert.equal(workspace.statusLabel, "Payment failed");
     assert.equal(workspace.overviewStatusLabel, "Payment failed");
+    assert.equal(workspace.nextStep?.label, "Payment failed");
   });
 
   test("balance due only on Complete", () => {
@@ -395,7 +403,8 @@ describe("payment-state presenter", () => {
     assert.equal(after.state, "balance_due");
     assert.equal(after.statusLabel, "Balance due");
     assert.equal(after.overviewStatusLabel, "Balance due");
-    assert.match(after.nextStep.label, /Stage 2B/);
+    assert.equal(after.nextStep?.label, "Balance due");
+    assert.doesNotMatch(after.nextStep?.label ?? "", /Stage 2|coming in Stage/i);
   });
 
   test("paid in full", () => {
@@ -417,6 +426,7 @@ describe("payment-state presenter", () => {
     assert.equal(workspace.state, "paid_in_full");
     assert.equal(workspace.collectibleRemainingCents, 0);
     assert.equal(workspace.overviewStatusLabel, "Paid in full");
+    assert.equal(workspace.nextStep, null);
   });
 
   test("Stripe not connected", () => {
@@ -431,7 +441,7 @@ describe("payment-state presenter", () => {
     });
     assert.equal(workspace.state, "setup_required");
     assert.equal(workspace.statusLabel, "Payments setup required");
-    assert.ok(workspace.nextStep.connectHref);
+    assert.ok(workspace.nextStep?.connectHref);
   });
 
   test("Overview status never includes a dollar amount", () => {
@@ -512,5 +522,38 @@ describe("Payments tab routing", () => {
     const model = read("app/lib/jobAttentionReadModel.ts");
     assert.match(model, /tab: "payments"/);
     assert.match(model, /record\.tab !== "payments"/);
+  });
+
+  test("contractor-facing Payments UI has no internal stage/roadmap copy", () => {
+    const presenter = read("app/lib/jobPaymentWorkspace.ts");
+    const workspaceUi = read("app/tools/roofing/jobCard/JobCardPaymentsWorkspace.tsx");
+    const overview = read("app/tools/roofing/jobCard/JobCardOverviewSummary.tsx");
+    const harness = read(
+      "app/tools/roofing/jobCard/payment-stage-2a-review/PaymentStage2AReviewHarness.tsx"
+    );
+    for (const source of [presenter, workspaceUi, overview, harness]) {
+      assert.doesNotMatch(source, /coming in Stage/);
+      assert.doesNotMatch(source, /collection setup coming/);
+      assert.doesNotMatch(source, /Stage 2B/);
+    }
+    assert.doesNotMatch(workspaceUi, /Stage 2A/);
+    assert.doesNotMatch(overview, /Stage 2A/);
+    assert.doesNotMatch(harness, /Stage 2A/);
+  });
+
+  test("Next step section is omitted when the presenter has no guidance", () => {
+    const ui = read("app/tools/roofing/jobCard/JobCardPaymentsWorkspace.tsx");
+    assert.match(ui, /workspace\.nextStep \?/);
+    assert.match(ui, /data-jobcard-payments-next/);
+  });
+
+  test("tab rail scrolls the active tab into view", () => {
+    const tabs = read("app/tools/roofing/jobCard/JobCardTabs.tsx");
+    assert.match(tabs, /scrollJobCardTabIntoRailView/);
+    assert.match(tabs, /useLayoutEffect/);
+    assert.match(tabs, /onFocus=\{onTabFocus\}/);
+    assert.match(tabs, /overflow-x-auto/);
+    assert.match(tabs, /shrink-0/);
+    assert.doesNotMatch(tabs, /text-\[9px\]|text-\[10px\]/);
   });
 });
