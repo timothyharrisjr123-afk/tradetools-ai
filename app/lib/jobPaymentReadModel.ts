@@ -67,6 +67,7 @@ export type JobPaymentTransactionRow = {
   amount_cents: number;
   occurred_at: string;
   provider_event_id: string;
+  provider_payment_intent_id?: string | null;
 };
 
 export type CompanyPaymentAccountRow = {

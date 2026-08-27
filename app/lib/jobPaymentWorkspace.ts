@@ -1,0 +1,752 @@
+/**
+ * Payment Stage 2A — canonical Job Card Payments read model.
+ *
+ * Contract total: 053 customer-chosen cents when present, else accepted_total.
+ * Received: canonical gross (one contribution per PaymentIntent / 053 identity).
+ * Collectible remaining: max(0, contract − gross). Refunds do not reopen due.
+ * Cash net: max(0, gross − refunded) — internal, not Remaining.
+ *
+ * UI states are derived. No new DB statuses.
+ */
+
+import { formatUsdFromCents } from "@/app/lib/jobPaymentMoney";
+import {
+  JOB_CARD_PAYMENTS_CONNECT_HREF,
+  JOB_PAYMENT_MIN_AMOUNT_CENTS,
+  JOB_PAYMENT_PROVIDER,
+  type JobPaymentKind,
+  type JobPaymentRequestStatus,
+} from "@/app/lib/jobPaymentTypes";
+import type {
+  CompanyPaymentAccountRow,
+  JobPaymentRequestRow,
+  JobPaymentTransactionRow,
+} from "@/app/lib/jobPaymentReadModel";
+import {
+  DEFAULT_PROPOSAL_PAYMENT_TERMS,
+  termsRequireOnlineDeposit,
+  type ProposalPaymentTerms,
+} from "@/app/lib/proposalPaymentTerms";
+
+export const JOB_PAYMENT_WORKSPACE_CONNECT_HREF = JOB_CARD_PAYMENTS_CONNECT_HREF;
+
+export type JobPaymentWorkspaceState =
+  | "no_payment_required"
+  | "setup_required"
+  | "deposit_due"
+  | "deposit_processing"
+  | "deposit_received"
+  | "payment_failed"
+  | "partially_paid"
+  | "balance_not_yet_due"
+  | "balance_due"
+  | "balance_processing"
+  | "paid_in_full";
+
+export type JobPaymentWorkspaceTimelineType =
+  | "requested"
+  | "received"
+  | "processing"
+  | "failed"
+  | "refund";
+
+export type JobPaymentWorkspaceRequest = Pick<
+  JobPaymentRequestRow,
+  | "id"
+  | "kind"
+  | "status"
+  | "amount_cents"
+  | "requested_at"
+  | "paid_at"
+  | "settled_payment_method_label"
+>;
+
+export type JobPaymentWorkspaceTransaction = Pick<
+  JobPaymentTransactionRow,
+  | "id"
+  | "payment_request_id"
+  | "kind"
+  | "status"
+  | "amount_cents"
+  | "occurred_at"
+  | "provider_event_id"
+> & {
+  provider_payment_intent_id?: string | null;
+};
+
+export type JobPaymentWorkspaceTimelineEvent = {
+  id: string;
+  type: JobPaymentWorkspaceTimelineType;
+  title: string;
+  amountCents: number;
+  methodLabel: string | null;
+  occurredAt: string;
+  occurredAtLabel: string | null;
+  settled: boolean;
+  disclosure: {
+    providerEventId: string | null;
+    paymentIntentId: string | null;
+  } | null;
+};
+
+export type JobPaymentWorkspaceCurrentRequest = {
+  kind: JobPaymentKind;
+  status: JobPaymentRequestStatus;
+  amountCents: number;
+};
+
+export type JobPaymentWorkspaceNextStep = {
+  label: string;
+  detail: string | null;
+  connectHref: string | null;
+};
+
+export type JobPaymentWorkspaceView = {
+  contractTotalCents: number | null;
+  receivedGrossCents: number;
+  refundedCents: number;
+  cashNetCents: number;
+  collectibleRemainingCents: number;
+  state: JobPaymentWorkspaceState;
+  statusLabel: string;
+  overviewStatusLabel: string | null;
+  nextStep: JobPaymentWorkspaceNextStep;
+  connected: boolean;
+  chargesEnabled: boolean;
+  accepted: boolean;
+  depositRequired: boolean;
+  jobComplete: boolean;
+  depositNotReceived: boolean;
+  currentRequest: JobPaymentWorkspaceCurrentRequest | null;
+  timeline: JobPaymentWorkspaceTimelineEvent[];
+  summaryRows: JobPaymentWorkspaceSummaryRow[];
+};
+
+export type JobPaymentWorkspaceSummaryRow = {
+  label: "Contract" | "Received" | "Remaining" | "Refunded";
+  cents: number | null;
+};
+
+export type CanonicalCaptureContribution = {
+  identity: string;
+  amountCents: number;
+  occurredAt: string;
+  paymentRequestId: string;
+  providerPaymentIntentId: string | null;
+  providerEventId: string | null;
+};
+
+function asNonNegativeInt(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+    return null;
+  }
+  return value;
+}
+
+export function proposalAcceptanceContractTotalCents(input: {
+  customerChosenTotalCents?: number | null;
+  acceptedTotalCents?: number | null;
+}): number | null {
+  const chosen = asNonNegativeInt(input.customerChosenTotalCents);
+  if (chosen != null) return chosen;
+  return asNonNegativeInt(input.acceptedTotalCents);
+}
+
+export function jobPaymentCanonicalCaptureIdentity(input: {
+  provider?: string | null;
+  providerPaymentIntentId?: string | null;
+  providerEventId?: string | null;
+}): string {
+  const provider =
+    (input.provider ?? JOB_PAYMENT_PROVIDER).trim() || JOB_PAYMENT_PROVIDER;
+  const pi = (input.providerPaymentIntentId ?? "").trim();
+  if (pi) return `pi:${provider}:${pi}`;
+  const eventId = (input.providerEventId ?? "").trim();
+  return `evt:${provider}:${eventId}`;
+}
+
+function sortByOccurredAt<T extends { occurredAt?: string; occurred_at?: string; id: string }>(
+  rows: readonly T[]
+): T[] {
+  return rows.slice().sort((a, b) => {
+    const ta = Date.parse(String(a.occurredAt ?? a.occurred_at ?? ""));
+    const tb = Date.parse(String(b.occurredAt ?? b.occurred_at ?? ""));
+    const aOk = Number.isFinite(ta);
+    const bOk = Number.isFinite(tb);
+    if (aOk && bOk && ta !== tb) return ta - tb;
+    if (aOk !== bOk) return aOk ? -1 : 1;
+    return a.id.localeCompare(b.id);
+  });
+}
+
+export function canonicalSucceededCaptures(
+  transactions: readonly JobPaymentWorkspaceTransaction[]
+): CanonicalCaptureContribution[] {
+  const succeeded = sortByOccurredAt(
+    transactions.filter((row) => row.kind === "capture" && row.status === "succeeded")
+  );
+  const seen = new Set<string>();
+  const out: CanonicalCaptureContribution[] = [];
+  for (const row of succeeded) {
+    const identity = jobPaymentCanonicalCaptureIdentity({
+      providerPaymentIntentId: row.provider_payment_intent_id,
+      providerEventId: row.provider_event_id,
+    });
+    if (seen.has(identity)) continue;
+    seen.add(identity);
+    out.push({
+      identity,
+      amountCents: Math.max(0, row.amount_cents),
+      occurredAt: row.occurred_at,
+      paymentRequestId: row.payment_request_id,
+      providerPaymentIntentId: (row.provider_payment_intent_id ?? "").trim() || null,
+      providerEventId: (row.provider_event_id ?? "").trim() || null,
+    });
+  }
+  return out;
+}
+
+export function jobPaymentWorkspaceGrossCents(
+  transactions: readonly JobPaymentWorkspaceTransaction[]
+): number {
+  return canonicalSucceededCaptures(transactions).reduce(
+    (sum, row) => sum + row.amountCents,
+    0
+  );
+}
+
+type CanonicalRefundContribution = {
+  identity: string;
+  amountCents: number;
+  occurredAt: string;
+  paymentRequestId: string;
+  providerPaymentIntentId: string | null;
+  providerEventId: string | null;
+};
+
+function canonicalRefunds(
+  transactions: readonly JobPaymentWorkspaceTransaction[]
+): CanonicalRefundContribution[] {
+  const refunds = sortByOccurredAt(
+    transactions.filter((row) => row.kind === "refund" && row.status === "refunded")
+  );
+  const seen = new Set<string>();
+  const out: CanonicalRefundContribution[] = [];
+  for (const row of refunds) {
+    const pi = (row.provider_payment_intent_id ?? "").trim();
+    const identity = pi
+      ? `refund:pi:${JOB_PAYMENT_PROVIDER}:${pi}:${row.amount_cents}`
+      : `refund:evt:${JOB_PAYMENT_PROVIDER}:${(row.provider_event_id ?? "").trim()}`;
+    if (seen.has(identity)) continue;
+    seen.add(identity);
+    out.push({
+      identity,
+      amountCents: Math.max(0, row.amount_cents),
+      occurredAt: row.occurred_at,
+      paymentRequestId: row.payment_request_id,
+      providerPaymentIntentId: pi || null,
+      providerEventId: (row.provider_event_id ?? "").trim() || null,
+    });
+  }
+  return out;
+}
+
+export function jobPaymentWorkspaceRefundedCents(
+  transactions: readonly JobPaymentWorkspaceTransaction[]
+): number {
+  return canonicalRefunds(transactions).reduce((sum, row) => sum + row.amountCents, 0);
+}
+
+export function jobPaymentWorkspaceCashNetCents(input: {
+  receivedGrossCents: number;
+  refundedCents: number;
+}): number {
+  return Math.max(0, input.receivedGrossCents - input.refundedCents);
+}
+
+export function jobPaymentCollectibleRemainingCents(input: {
+  contractTotalCents: number | null;
+  receivedGrossCents: number;
+}): number {
+  if (input.contractTotalCents == null) return 0;
+  return Math.max(0, input.contractTotalCents - input.receivedGrossCents);
+}
+
+export function jobPaymentWorkspaceSummaryRows(input: {
+  contractTotalCents: number | null;
+  receivedGrossCents: number;
+  collectibleRemainingCents: number;
+  refundedCents: number;
+}): JobPaymentWorkspaceSummaryRow[] {
+  const rows: JobPaymentWorkspaceSummaryRow[] = [
+    { label: "Contract", cents: input.contractTotalCents },
+    { label: "Received", cents: input.receivedGrossCents },
+    { label: "Remaining", cents: input.collectibleRemainingCents },
+  ];
+  if (input.refundedCents > 0) {
+    rows.push({ label: "Refunded", cents: input.refundedCents });
+  }
+  return rows;
+}
+
+export function isJobPaymentCompleteStage(stage: string | null | undefined): boolean {
+  return (stage ?? "").trim().toLowerCase() === "complete";
+}
+
+function meaningfulRequests(
+  requests: readonly JobPaymentWorkspaceRequest[]
+): JobPaymentWorkspaceRequest[] {
+  return requests.filter(
+    (row) => row.status !== "cancelled" && row.status !== "expired"
+  );
+}
+
+function activeRequest(
+  requests: readonly JobPaymentWorkspaceRequest[]
+): JobPaymentWorkspaceRequest | null {
+  return (
+    requests.find((row) => row.status === "open" || row.status === "processing") ??
+    requests.find((row) => row.status === "failed") ??
+    null
+  );
+}
+
+function requestById(
+  requests: readonly JobPaymentWorkspaceRequest[],
+  id: string
+): JobPaymentWorkspaceRequest | null {
+  return requests.find((row) => row.id === id) ?? null;
+}
+
+export function formatJobPaymentWorkspaceDate(
+  value: string | null | undefined
+): string | null {
+  const raw = (value ?? "").trim();
+  if (!raw) return null;
+  const ms = Date.parse(raw);
+  if (!Number.isFinite(ms)) return null;
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(new Date(ms));
+  } catch {
+    return null;
+  }
+}
+
+function kindNoun(kind: JobPaymentKind): string {
+  return kind === "deposit" ? "Deposit" : "Balance";
+}
+
+function canonicalFailures(
+  transactions: readonly JobPaymentWorkspaceTransaction[]
+): CanonicalCaptureContribution[] {
+  const failures = sortByOccurredAt(
+    transactions.filter((row) => row.kind === "failure")
+  );
+  const seen = new Set<string>();
+  const out: CanonicalCaptureContribution[] = [];
+  for (const row of failures) {
+    const identity = jobPaymentCanonicalCaptureIdentity({
+      providerPaymentIntentId: row.provider_payment_intent_id,
+      providerEventId: row.provider_event_id,
+    });
+    const key = `fail:${identity}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({
+      identity: key,
+      amountCents: Math.max(0, row.amount_cents),
+      occurredAt: row.occurred_at,
+      paymentRequestId: row.payment_request_id,
+      providerPaymentIntentId: (row.provider_payment_intent_id ?? "").trim() || null,
+      providerEventId: (row.provider_event_id ?? "").trim() || null,
+    });
+  }
+  return out;
+}
+
+export function buildJobPaymentWorkspaceTimeline(input: {
+  requests: readonly JobPaymentWorkspaceRequest[];
+  transactions: readonly JobPaymentWorkspaceTransaction[];
+}): JobPaymentWorkspaceTimelineEvent[] {
+  const events: JobPaymentWorkspaceTimelineEvent[] = [];
+  const captures = canonicalSucceededCaptures(input.transactions);
+  const capturedRequestIds = new Set(captures.map((row) => row.paymentRequestId));
+  const failures = canonicalFailures(input.transactions);
+  const failedRequestIds = new Set(failures.map((row) => row.paymentRequestId));
+
+  for (const request of meaningfulRequests(input.requests)) {
+    if (request.status === "processing" && !capturedRequestIds.has(request.id)) {
+      events.push({
+        id: `processing:${request.id}`,
+        type: "processing",
+        title: "Payment processing",
+        amountCents: request.amount_cents,
+        methodLabel: null,
+        occurredAt: request.requested_at,
+        occurredAtLabel: formatJobPaymentWorkspaceDate(request.requested_at),
+        settled: false,
+        disclosure: null,
+      });
+      continue;
+    }
+    events.push({
+      id: `requested:${request.id}`,
+      type: "requested",
+      title: `${kindNoun(request.kind)} requested`,
+      amountCents: request.amount_cents,
+      methodLabel: null,
+      occurredAt: request.requested_at,
+      occurredAtLabel: formatJobPaymentWorkspaceDate(request.requested_at),
+      settled: false,
+      disclosure: null,
+    });
+    if (request.status === "failed" && !failedRequestIds.has(request.id)) {
+      events.push({
+        id: `failed-request:${request.id}`,
+        type: "failed",
+        title: "Payment failed",
+        amountCents: request.amount_cents,
+        methodLabel: null,
+        occurredAt: request.requested_at,
+        occurredAtLabel: formatJobPaymentWorkspaceDate(request.requested_at),
+        settled: false,
+        disclosure: null,
+      });
+    }
+  }
+
+  for (const capture of captures) {
+    const request = requestById(input.requests, capture.paymentRequestId);
+    const methodLabel = (request?.settled_payment_method_label ?? "").trim() || null;
+    events.push({
+      id: `received:${capture.identity}`,
+      type: "received",
+      title: `${kindNoun(request?.kind ?? "deposit")} received`,
+      amountCents: capture.amountCents,
+      methodLabel,
+      occurredAt: capture.occurredAt,
+      occurredAtLabel: formatJobPaymentWorkspaceDate(capture.occurredAt),
+      settled: true,
+      disclosure:
+        capture.providerPaymentIntentId || capture.providerEventId
+          ? {
+              paymentIntentId: capture.providerPaymentIntentId,
+              providerEventId: capture.providerEventId,
+            }
+          : null,
+    });
+  }
+
+  for (const failure of failures) {
+    events.push({
+      id: `failed:${failure.identity}`,
+      type: "failed",
+      title: "Payment failed",
+      amountCents: failure.amountCents,
+      methodLabel: null,
+      occurredAt: failure.occurredAt,
+      occurredAtLabel: formatJobPaymentWorkspaceDate(failure.occurredAt),
+      settled: false,
+      disclosure:
+        failure.providerPaymentIntentId || failure.providerEventId
+          ? {
+              paymentIntentId: failure.providerPaymentIntentId,
+              providerEventId: failure.providerEventId,
+            }
+          : null,
+    });
+  }
+
+  for (const refund of canonicalRefunds(input.transactions)) {
+    events.push({
+      id: `refund:${refund.identity}`,
+      type: "refund",
+      title: "Refund",
+      amountCents: refund.amountCents,
+      methodLabel: null,
+      occurredAt: refund.occurredAt,
+      occurredAtLabel: formatJobPaymentWorkspaceDate(refund.occurredAt),
+      settled: false,
+      disclosure:
+        refund.providerPaymentIntentId || refund.providerEventId
+          ? {
+              paymentIntentId: refund.providerPaymentIntentId,
+              providerEventId: refund.providerEventId,
+            }
+          : null,
+    });
+  }
+
+  return sortByOccurredAt(events);
+}
+
+function overviewStatusFor(state: JobPaymentWorkspaceState): string | null {
+  switch (state) {
+    case "deposit_due":
+    case "deposit_processing":
+    case "balance_processing":
+      return "Payment pending";
+    case "deposit_received":
+      return "Deposit received";
+    case "balance_not_yet_due":
+      return "Balance due on completion";
+    case "balance_due":
+      return "Balance due";
+    case "paid_in_full":
+      return "Paid in full";
+    case "payment_failed":
+      return "Payment failed";
+    case "partially_paid":
+      return "Partially paid";
+    default:
+      return null;
+  }
+}
+
+function statusLabelFor(state: JobPaymentWorkspaceState): string {
+  switch (state) {
+    case "no_payment_required":
+      return "No payment required yet";
+    case "setup_required":
+      return "Payments setup required";
+    case "deposit_due":
+      return "Deposit due";
+    case "deposit_processing":
+      return "Deposit processing";
+    case "deposit_received":
+      return "Deposit received";
+    case "payment_failed":
+      return "Payment failed";
+    case "partially_paid":
+      return "Partially paid";
+    case "balance_not_yet_due":
+      return "Balance due on completion";
+    case "balance_due":
+      return "Balance due";
+    case "balance_processing":
+      return "Balance processing";
+    case "paid_in_full":
+      return "Paid in full";
+  }
+}
+
+function nextStepFor(
+  state: JobPaymentWorkspaceState,
+  connected: boolean
+): JobPaymentWorkspaceNextStep {
+  switch (state) {
+    case "no_payment_required":
+      return {
+        label: "No payment to collect yet.",
+        detail: null,
+        connectHref: null,
+      };
+    case "setup_required":
+      return {
+        label: "Connect payments in Company Settings.",
+        detail: connected
+          ? "Charges are not enabled yet."
+          : "Payments are not connected yet.",
+        connectHref: JOB_PAYMENT_WORKSPACE_CONNECT_HREF,
+      };
+    case "deposit_due":
+      return {
+        label: "The customer can pay the deposit from the proposal.",
+        detail: null,
+        connectHref: null,
+      };
+    case "deposit_processing":
+    case "balance_processing":
+      return { label: "Payment processing", detail: null, connectHref: null };
+    case "payment_failed":
+      return { label: "Payment failed", detail: null, connectHref: null };
+    case "deposit_received":
+    case "balance_not_yet_due":
+      return {
+        label: "Balance due on completion",
+        detail: null,
+        connectHref: null,
+      };
+    case "partially_paid":
+      return {
+        label: "Balance due on completion",
+        detail: null,
+        connectHref: null,
+      };
+    case "balance_due":
+      return {
+        label: "Balance due — collection setup coming in Stage 2B",
+        detail: null,
+        connectHref: null,
+      };
+    case "paid_in_full":
+      return { label: "Paid in full", detail: null, connectHref: null };
+  }
+}
+
+function deriveWorkspaceState(input: {
+  accepted: boolean;
+  connected: boolean;
+  chargesEnabled: boolean;
+  depositRequired: boolean;
+  jobComplete: boolean;
+  collectibleRemainingCents: number;
+  receivedGrossCents: number;
+  depositGrossCents: number;
+  current: JobPaymentWorkspaceRequest | null;
+  contractTotalCents: number | null;
+}): JobPaymentWorkspaceState {
+  if (!input.accepted) return "no_payment_required";
+  if (!input.connected || !input.chargesEnabled) return "setup_required";
+
+  const collectible = input.collectibleRemainingCents;
+  const paidInFull =
+    collectible < JOB_PAYMENT_MIN_AMOUNT_CENTS &&
+    (input.receivedGrossCents > 0 ||
+      (input.contractTotalCents != null &&
+        input.contractTotalCents < JOB_PAYMENT_MIN_AMOUNT_CENTS));
+
+  if (input.current?.status === "failed") return "payment_failed";
+  if (input.current?.status === "processing") {
+    return input.current.kind === "balance"
+      ? "balance_processing"
+      : "deposit_processing";
+  }
+
+  if (paidInFull) return "paid_in_full";
+
+  if (
+    input.depositRequired &&
+    input.depositGrossCents < JOB_PAYMENT_MIN_AMOUNT_CENTS
+  ) {
+    return "deposit_due";
+  }
+
+  if (collectible >= JOB_PAYMENT_MIN_AMOUNT_CENTS && input.jobComplete) {
+    return "balance_due";
+  }
+
+  if (input.receivedGrossCents > 0 && collectible >= JOB_PAYMENT_MIN_AMOUNT_CENTS) {
+    if (!input.jobComplete && input.depositGrossCents >= JOB_PAYMENT_MIN_AMOUNT_CENTS) {
+      const extra =
+        input.receivedGrossCents - input.depositGrossCents >= JOB_PAYMENT_MIN_AMOUNT_CENTS;
+      return extra ? "partially_paid" : "deposit_received";
+    }
+    if (!input.jobComplete) return "partially_paid";
+  }
+
+  if (collectible >= JOB_PAYMENT_MIN_AMOUNT_CENTS && !input.jobComplete) {
+    return "balance_not_yet_due";
+  }
+
+  if (input.receivedGrossCents > 0 && collectible < JOB_PAYMENT_MIN_AMOUNT_CENTS) {
+    return "paid_in_full";
+  }
+
+  return "no_payment_required";
+}
+
+export function buildJobPaymentWorkspace(input: {
+  jobStage: string | null;
+  accepted: boolean;
+  account: CompanyPaymentAccountRow | null;
+  requests: readonly JobPaymentWorkspaceRequest[];
+  transactions: readonly JobPaymentWorkspaceTransaction[];
+  customerChosenTotalCents?: number | null;
+  acceptedTotalCents?: number | null;
+  terms?: ProposalPaymentTerms | null;
+}): JobPaymentWorkspaceView {
+  const connected = Boolean(input.account);
+  const chargesEnabled = input.account?.charges_enabled === true;
+  const contractTotalCents = proposalAcceptanceContractTotalCents({
+    customerChosenTotalCents: input.customerChosenTotalCents,
+    acceptedTotalCents: input.acceptedTotalCents,
+  });
+  const receivedGrossCents = jobPaymentWorkspaceGrossCents(input.transactions);
+  const refundedCents = jobPaymentWorkspaceRefundedCents(input.transactions);
+  const cashNetCents = jobPaymentWorkspaceCashNetCents({
+    receivedGrossCents,
+    refundedCents,
+  });
+  const collectibleRemainingCents = jobPaymentCollectibleRemainingCents({
+    contractTotalCents,
+    receivedGrossCents,
+  });
+  const terms = input.terms ?? DEFAULT_PROPOSAL_PAYMENT_TERMS;
+  const depositRequired =
+    termsRequireOnlineDeposit(terms) ||
+    input.requests.some((row) => row.kind === "deposit");
+  const jobComplete = isJobPaymentCompleteStage(input.jobStage);
+  const depositRequestIds = new Set(
+    input.requests.filter((row) => row.kind === "deposit").map((row) => row.id)
+  );
+  const depositGrossCents = canonicalSucceededCaptures(input.transactions)
+    .filter((row) => depositRequestIds.has(row.paymentRequestId))
+    .reduce((sum, row) => sum + row.amountCents, 0);
+  const current = activeRequest(input.requests);
+  const state = deriveWorkspaceState({
+    accepted: input.accepted,
+    connected,
+    chargesEnabled,
+    depositRequired,
+    jobComplete,
+    collectibleRemainingCents,
+    receivedGrossCents,
+    depositGrossCents,
+    current,
+    contractTotalCents,
+  });
+  const nextStep = nextStepFor(state, connected);
+  if (state === "partially_paid" && jobComplete) {
+    nextStep.label = "Balance due — collection setup coming in Stage 2B";
+  }
+
+  return {
+    contractTotalCents,
+    receivedGrossCents,
+    refundedCents,
+    cashNetCents,
+    collectibleRemainingCents,
+    state,
+    statusLabel: statusLabelFor(state),
+    overviewStatusLabel: overviewStatusFor(state),
+    nextStep,
+    connected,
+    chargesEnabled,
+    accepted: input.accepted,
+    depositRequired,
+    jobComplete,
+    depositNotReceived:
+      state === "deposit_due" ||
+      state === "deposit_processing" ||
+      (state === "payment_failed" && current?.kind === "deposit"),
+    currentRequest: current
+      ? {
+          kind: current.kind,
+          status: current.status,
+          amountCents: current.amount_cents,
+        }
+      : null,
+    timeline: buildJobPaymentWorkspaceTimeline({
+      requests: input.requests,
+      transactions: input.transactions,
+    }),
+    summaryRows: jobPaymentWorkspaceSummaryRows({
+      contractTotalCents,
+      receivedGrossCents,
+      collectibleRemainingCents,
+      refundedCents,
+    }),
+  };
+}
+
+export function formatJobPaymentWorkspaceAmount(
+  cents: number | null | undefined
+): string {
+  if (cents == null) return "—";
+  return formatUsdFromCents(cents);
+}

@@ -27,7 +27,12 @@ export default function JobCardSectionPanel({
   const chipBase = "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold shrink-0";
 
   return (
-    <section className="flex min-h-full flex-col" role="tabpanel" aria-labelledby={`job-card-tab-${tabId}`}>
+    <section
+      id={`job-card-panel-${tabId}`}
+      className="flex min-h-full flex-col"
+      role="tabpanel"
+      aria-labelledby={`job-card-tab-${tabId}`}
+    >
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">

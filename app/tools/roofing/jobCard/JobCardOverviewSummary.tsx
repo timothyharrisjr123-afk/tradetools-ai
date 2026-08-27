@@ -11,6 +11,7 @@ type JobCardOverviewSummaryProps = {
   measurementStatus: string;
   catalogStatus: string;
   catalogReady: boolean;
+  paymentStatusLabel?: string | null;
 };
 
 function SummaryCard({ title, children }: { title: string; children: React.ReactNode }) {
@@ -44,6 +45,7 @@ export default function JobCardOverviewSummary({
   measurementStatus,
   catalogStatus,
   catalogReady,
+  paymentStatusLabel = null,
 }: JobCardOverviewSummaryProps) {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
@@ -79,6 +81,14 @@ export default function JobCardOverviewSummary({
             )
           }
         />
+        {paymentStatusLabel ? (
+          <Row
+            label="Payment"
+            value={
+              <span data-jobcard-overview-payment>{paymentStatusLabel}</span>
+            }
+          />
+        ) : null}
         {!catalogReady ? (
           <p className="pt-1 text-right">
             <a href="/tools/roofing/catalog" className="text-sm font-semibold text-cyan-700 hover:text-cyan-900">

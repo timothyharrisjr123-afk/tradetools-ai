@@ -207,8 +207,10 @@ describe("visible Job Card tabs", () => {
     assert.equal(isJobCardVisibleTabId("instant_estimate"), false);
     assert.equal(isJobCardVisibleTabId("attachments"), true);
     assert.equal(isJobCardVisibleTabId("measurements"), true);
+    assert.equal(isJobCardVisibleTabId("payments"), true);
     assert.ok(JOB_CARD_VISIBLE_TAB_IDS.includes("attachments"));
     assert.ok(JOB_CARD_VISIBLE_TAB_IDS.includes("measurements"));
+    assert.ok(JOB_CARD_VISIBLE_TAB_IDS.includes("payments"));
     assert.equal(coerceJobCardVisibleTab("work_orders"), "overview");
   });
 

@@ -5,6 +5,11 @@ import {
   type JobPaymentRequestRow,
   type JobPaymentTransactionRow,
 } from "@/app/lib/jobPaymentReadModel";
+import {
+  buildJobPaymentWorkspace,
+  proposalAcceptanceContractTotalCents,
+} from "@/app/lib/jobPaymentWorkspace";
+import { parseProposalPaymentTermsRow } from "@/app/lib/proposalPaymentTerms";
 import { isUuidLike } from "@/app/lib/uuid";
 import { resolveCanonicalJobStage } from "@/app/lib/jobLifecycleMapper";
 import { createClient } from "@/app/lib/supabase/server";
@@ -14,7 +19,9 @@ export const runtime = "nodejs";
 type RouteContext = { params: Promise<{ jobId: string }> };
 
 /**
- * Contractor payment read model for one job. Omits provider ids.
+ * Contractor payment read model for one job.
+ * Workspace omits provider ids from primary fields; timeline disclosure keeps
+ * them behind progressive details only.
  */
 export async function GET(_req: Request, context: RouteContext) {
   try {
@@ -49,7 +56,7 @@ export async function GET(_req: Request, context: RouteContext) {
         supabase
           .from("job_payment_requests")
           .select(
-            "id,company_id,job_id,proposal_id,proposal_version_id,proposal_option_id,proposal_acceptance_id,proposal_signature_id,amount_cents,currency,kind,accepted_total_cents_snapshot,option_label_snapshot,provider_account_id,provider_checkout_session_id,status,requested_at,paid_at,cancelled_at"
+            "id,company_id,job_id,proposal_id,proposal_version_id,proposal_option_id,proposal_acceptance_id,proposal_signature_id,amount_cents,currency,kind,accepted_total_cents_snapshot,option_label_snapshot,provider_account_id,provider_checkout_session_id,status,requested_at,paid_at,cancelled_at,settled_payment_method_label"
           )
           .eq("job_id", jobId)
           .eq("company_id", companyId)
@@ -62,7 +69,9 @@ export async function GET(_req: Request, context: RouteContext) {
           .maybeSingle(),
         supabase
           .from("proposal_acceptances")
-          .select("id,accepted_total_cents,accepted_at,confirmed_at")
+          .select(
+            "id,accepted_total_cents,customer_chosen_total_cents,accepted_at,confirmed_at,proposal_version_id"
+          )
           .eq("job_id", jobId)
           .eq("company_id", companyId)
           .order("accepted_at", { ascending: false })
@@ -79,46 +88,89 @@ export async function GET(_req: Request, context: RouteContext) {
 
     const requestRows = (requests ?? []) as JobPaymentRequestRow[];
     const requestIds = requestRows.map((row) => row.id);
-    const { data: transactions } =
+    const versionId =
+      typeof acceptance?.proposal_version_id === "string"
+        ? acceptance.proposal_version_id
+        : "";
+    const [{ data: transactions }, { data: termsRow }] = await Promise.all([
       requestIds.length > 0
-        ? await supabase
+        ? supabase
             .from("job_payment_transactions")
-            .select("id,payment_request_id,kind,status,amount_cents,occurred_at,provider_event_id")
+            .select(
+              "id,payment_request_id,kind,status,amount_cents,occurred_at,provider_event_id,provider_payment_intent_id"
+            )
             .in("payment_request_id", requestIds)
-        : { data: [] };
+        : Promise.resolve({ data: [] }),
+      versionId && isUuidLike(versionId)
+        ? supabase
+            .from("proposal_version_payment_terms")
+            .select(
+              "deposit_mode,deposit_percent_bps,deposit_fixed_cents,deposit_due_trigger,balance_due_trigger"
+            )
+            .eq("proposal_version_id", versionId)
+            .eq("company_id", companyId)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
 
     const canonical = resolveCanonicalJobStage(job as never);
-    const view = buildJobCardPaymentViewModel({
-      jobStage: canonical,
-      jobDisposition: String((job as { status?: string }).status ?? "active"),
-      accepted: Boolean(acceptance),
-      signed: Boolean(signature),
-      account: account
-        ? {
-            charges_enabled: Boolean(
-              (account as { charges_enabled?: boolean }).charges_enabled
-            ),
-            onboarding_status: String(
-              (account as { onboarding_status?: string }).onboarding_status ?? "pending"
-            ),
-            details_submitted: Boolean(
-              (account as { details_submitted?: boolean }).details_submitted
-            ),
-            payouts_enabled: Boolean(
-              (account as { payouts_enabled?: boolean }).payouts_enabled
-            ),
-          }
-        : null,
-      requests: requestRows,
-      transactions: (transactions ?? []) as JobPaymentTransactionRow[],
+    const accountRow = account
+      ? {
+          charges_enabled: Boolean(
+            (account as { charges_enabled?: boolean }).charges_enabled
+          ),
+          onboarding_status: String(
+            (account as { onboarding_status?: string }).onboarding_status ?? "pending"
+          ),
+          details_submitted: Boolean(
+            (account as { details_submitted?: boolean }).details_submitted
+          ),
+          payouts_enabled: Boolean(
+            (account as { payouts_enabled?: boolean }).payouts_enabled
+          ),
+        }
+      : null;
+    const transactionRows = (transactions ?? []) as JobPaymentTransactionRow[];
+    const contractTotalCents = proposalAcceptanceContractTotalCents({
+      customerChosenTotalCents:
+        typeof acceptance?.customer_chosen_total_cents === "number"
+          ? acceptance.customer_chosen_total_cents
+          : null,
       acceptedTotalCents:
         typeof acceptance?.accepted_total_cents === "number"
           ? acceptance.accepted_total_cents
           : null,
     });
+    const workspace = buildJobPaymentWorkspace({
+      jobStage: canonical,
+      accepted: Boolean(acceptance),
+      account: accountRow,
+      requests: requestRows,
+      transactions: transactionRows,
+      customerChosenTotalCents:
+        typeof acceptance?.customer_chosen_total_cents === "number"
+          ? acceptance.customer_chosen_total_cents
+          : null,
+      acceptedTotalCents:
+        typeof acceptance?.accepted_total_cents === "number"
+          ? acceptance.accepted_total_cents
+          : null,
+      terms: parseProposalPaymentTermsRow(termsRow),
+    });
+    const view = buildJobCardPaymentViewModel({
+      jobStage: canonical,
+      jobDisposition: String((job as { status?: string }).status ?? "active"),
+      accepted: Boolean(acceptance),
+      signed: Boolean(signature),
+      account: accountRow,
+      requests: requestRows,
+      transactions: transactionRows,
+      acceptedTotalCents: contractTotalCents,
+    });
 
     return NextResponse.json({
       ok: true,
+      workspace,
       view,
       requests: requestRows.map((row) => ({
         id: row.id,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams, useRouter } from "next/navigation"
+import { useSearchParams, useRouter, usePathname } from "next/navigation"
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { motion, useSpring, useMotionValueEvent } from "framer-motion";
 import { getAIReview } from "./aiReview";
@@ -225,6 +225,7 @@ import JobCardNextActionPanel from "@/app/tools/roofing/jobCard/JobCardNextActio
 import JobCardTabs, { type JobCardTabId } from "@/app/tools/roofing/jobCard/JobCardTabs";
 import {
   JOB_CARD_TABS,
+  applyJobCardTabToSearch,
   coerceJobCardVisibleTab,
   isJobCardVisibleTabId,
 } from "@/app/tools/roofing/jobCard/jobCardTypes";
@@ -261,6 +262,7 @@ import {
 } from "@/app/lib/jobScheduleMapper";
 import { parseJobScheduleList } from "@/app/lib/jobSchedulePersistence";
 import JobCardRequestPaymentModal from "@/app/tools/roofing/jobCard/JobCardRequestPaymentModal";
+import JobCardPaymentsWorkspace from "@/app/tools/roofing/jobCard/JobCardPaymentsWorkspace";
 import { useJobPayments } from "@/app/lib/useJobPayments";
 import type { JobPaymentKind } from "@/app/lib/jobPaymentTypes";
 import { resolveJobCardIdentityFromRecord } from "@/app/tools/roofing/jobCard/jobCardIdentityUtils";
@@ -1158,6 +1160,7 @@ export default function RoofingClient({
   setEstimateStoreCompanyScope(companyId ?? null);
   const searchParams = useSearchParams();
   const router = useRouter();
+  const pathname = usePathname();
   const loadSavedId = searchParams.get("loadSaved");
   const entryParam = searchParams.get("entry");
   const fromParam = searchParams.get("from");
@@ -1258,9 +1261,15 @@ export default function RoofingClient({
   const measurementSaveInFlightRef = useRef<string | null>(null);
   const measurementFormHydratedRef = useRef<string | null>(null);
   const [jobCardTab, setJobCardTabRaw] = useState<JobCardTabId>("overview");
-  const setJobCardTab = useCallback((tab: JobCardTabId) => {
-    setJobCardTabRaw(coerceJobCardVisibleTab(tab));
-  }, []);
+  const setJobCardTab = useCallback(
+    (tab: JobCardTabId) => {
+      const next = coerceJobCardVisibleTab(tab);
+      setJobCardTabRaw(next);
+      const qs = applyJobCardTabToSearch(searchParams.toString(), next);
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    },
+    [pathname, router, searchParams]
+  );
   const [jobCardBoardOrigin, setJobCardBoardOrigin] = useState(false);
   const [jobScheduleRows, setJobScheduleRows] = useState<JobSchedule[]>([]);
   const [jobSchedulesLoadedForJobId, setJobSchedulesLoadedForJobId] = useState<
@@ -8654,6 +8663,9 @@ Thanks,`;
                   measurementStatus={measurementsHeaderStatus}
                   catalogStatus={catalogReadinessLabel}
                   catalogReady={catalogReadiness.state === "ready_for_templates"}
+                  paymentStatusLabel={
+                    jobPayments.workspace?.overviewStatusLabel ?? null
+                  }
                 />
                 <JobCardScheduleSection
                   canSchedule={jobCardActionEligibility.canSchedule}
@@ -8674,7 +8686,7 @@ Thanks,`;
                   completedAt={hydratedJobRecord?.completed_at ?? null}
                   displayTimezone={companyTimezone}
                   depositNotReceived={
-                    jobPayments.view?.headline?.startsWith("Deposit due") === true
+                    jobPayments.workspace?.depositNotReceived === true
                   }
                   startBusy={startWorkBusy}
                   startError={startWorkError}
@@ -9190,6 +9202,15 @@ Thanks,`;
               </JobCardSectionPanel>
 
               <JobCardSectionPanel
+                tabId="payments"
+                activeTab={jobCardTab}
+                title="Payments"
+                subtitle="Contract, received, and remaining"
+              >
+                <JobCardPaymentsWorkspace workspace={jobPayments.workspace} />
+              </JobCardSectionPanel>
+
+              <JobCardSectionPanel
                 tabId="material_orders"
                 activeTab={jobCardTab}
                 title="Material Orders"
@@ -9354,7 +9375,7 @@ Thanks,`;
                     busy={scheduleBusy}
                     error={scheduleError}
                     depositNotReceived={
-                      jobPayments.view?.headline?.startsWith("Deposit due") === true
+                      jobPayments.workspace?.depositNotReceived === true
                     }
                     onSubmitSchedule={(input) => {
                       if (!currentJobId) return;
@@ -9511,9 +9532,9 @@ Thanks,`;
             : null
         }
         timezoneReturnJobId={currentJobId}
-        depositNotReceived={Boolean(
-          jobPayments.view?.headline?.startsWith("Deposit due")
-        )}
+        depositNotReceived={
+          jobPayments.workspace?.depositNotReceived === true
+        }
         busy={scheduleBusy}
         error={scheduleError}
         onClose={() => {

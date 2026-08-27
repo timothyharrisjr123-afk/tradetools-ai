@@ -235,7 +235,7 @@ export { buildProposalPreviewSentHref } from "@/app/lib/proposalPreviewSentRecor
 
 export function buildJobCardHref(
   jobId: string,
-  options?: { tab?: "overview" | "measurements" | "proposals" }
+  options?: { tab?: "overview" | "measurements" | "proposals" | "payments" }
 ): string {
   const base = `/tools/roofing?entry=job-card&job=${encodeURIComponent(jobId)}`;
   if (options?.tab) {

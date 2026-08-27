@@ -20,6 +20,7 @@ export const JOB_CARD_TABS = [
   { id: "calendar", label: "Calendar" },
   { id: "measurements", label: "Measurements" },
   { id: "proposals", label: "Proposals" },
+  { id: "payments", label: "Payments" },
   { id: "material_orders", label: "Material Orders" },
   { id: "work_orders", label: "Work Orders" },
   { id: "invoices", label: "Invoices" },
@@ -37,6 +38,7 @@ export const JOB_CARD_VISIBLE_TAB_IDS = [
   "calendar",
   "measurements",
   "proposals",
+  "payments",
   "attachments",
 ] as const satisfies readonly JobCardTabId[];
 
@@ -67,4 +69,19 @@ export function coerceJobCardVisibleTab(
   value: string | null | undefined
 ): JobCardVisibleTabId {
   return isJobCardVisibleTabId(value) ? value : "overview";
+}
+
+/** Writes the visible Job Card tab into the current query string. */
+export function applyJobCardTabToSearch(
+  search: string,
+  tab: JobCardVisibleTabId
+): string {
+  const raw = search.startsWith("?") ? search.slice(1) : search;
+  const params = new URLSearchParams(raw);
+  if (tab === "overview") {
+    params.delete("tab");
+  } else {
+    params.set("tab", tab);
+  }
+  return params.toString();
 }

@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { JobCardPaymentViewModel } from "@/app/lib/jobPaymentReadModel";
+import type { JobPaymentWorkspaceView } from "@/app/lib/jobPaymentWorkspace";
 import { isUuidLike } from "@/app/lib/uuid";
 import { prefillDepositCents } from "@/app/lib/jobPaymentMoney";
 import type { CompanyPaymentDepositMode, JobPaymentKind } from "@/app/lib/jobPaymentTypes";
 
 export type JobPaymentsState = {
   view: JobCardPaymentViewModel | null;
+  workspace: JobPaymentWorkspaceView | null;
   prefillDepositCents: number | null;
   reload: () => Promise<void>;
   requestPayment: (
@@ -18,12 +20,14 @@ export type JobPaymentsState = {
 
 async function fetchJobPayments(jobId: string): Promise<{
   view: JobCardPaymentViewModel;
+  workspace: JobPaymentWorkspaceView | null;
   prefill: number | null;
 } | null> {
   const paymentRes = await fetch(`/api/jobs/${jobId}/payment-requests`);
   const payment = (await paymentRes.json()) as {
     ok?: boolean;
     view?: JobCardPaymentViewModel;
+    workspace?: JobPaymentWorkspaceView;
   };
   if (!paymentRes.ok || !payment.view) return null;
 
@@ -51,29 +55,43 @@ async function fetchJobPayments(jobId: string): Promise<{
 
   return {
     view: payment.view,
+    workspace: payment.workspace ?? null,
     prefill: prefillDepositCents({
       mode: defaultDepositMode,
       percentBps,
       fixedCents,
-      acceptedTotalCents: payment.view.acceptedTotalCents ?? 0,
-      remainingCents: payment.view.remainingCents,
+      acceptedTotalCents:
+        payment.workspace?.contractTotalCents ??
+        payment.view.acceptedTotalCents ??
+        0,
+      remainingCents:
+        payment.workspace?.collectibleRemainingCents ?? payment.view.remainingCents,
     }),
   };
 }
 
 export function useJobPayments(jobId: string | null | undefined): JobPaymentsState {
   const [view, setView] = useState<JobCardPaymentViewModel | null>(null);
+  const [workspace, setWorkspace] = useState<JobPaymentWorkspaceView | null>(null);
   const [prefill, setPrefill] = useState<number | null>(null);
   const id = (jobId ?? "").trim();
 
   const apply = useCallback(
-    (result: { view: JobCardPaymentViewModel; prefill: number | null } | null) => {
+    (
+      result: {
+        view: JobCardPaymentViewModel;
+        workspace: JobPaymentWorkspaceView | null;
+        prefill: number | null;
+      } | null
+    ) => {
       if (!result) {
         setView(null);
+        setWorkspace(null);
         setPrefill(null);
         return;
       }
       setView(result.view);
+      setWorkspace(result.workspace);
       setPrefill(result.prefill);
     },
     []
@@ -114,5 +132,11 @@ export function useJobPayments(jobId: string | null | undefined): JobPaymentsSta
     [apply, id]
   );
 
-  return { view, prefillDepositCents: prefill, reload, requestPayment };
+  return {
+    view,
+    workspace,
+    prefillDepositCents: prefill,
+    reload,
+    requestPayment,
+  };
 }

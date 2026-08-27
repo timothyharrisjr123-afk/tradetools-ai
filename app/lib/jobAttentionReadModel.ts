@@ -21,7 +21,7 @@ export type JobAttentionDestination = {
   requestId: string | null;
   acceptanceId: string | null;
   paymentRequestId?: string | null;
-  tab: "proposals" | "overview";
+  tab: "proposals" | "overview" | "payments";
   anchor: "customer_request" | "acceptance_confirmation" | "payments";
 };
 
@@ -238,7 +238,13 @@ export function parseJobAttentionDestination(
     return null;
   }
   if (record.anchor === "payments") {
-    if (record.tab !== "overview" && record.tab !== "proposals") return null;
+    if (
+      record.tab !== "overview" &&
+      record.tab !== "proposals" &&
+      record.tab !== "payments"
+    ) {
+      return null;
+    }
     return {
       kind,
       proposalId,
@@ -246,7 +252,7 @@ export function parseJobAttentionDestination(
       requestId: null,
       acceptanceId: null,
       paymentRequestId: isUuidLike(paymentRequestId) ? paymentRequestId : null,
-      tab: record.tab,
+      tab: "payments",
       anchor: "payments",
     };
   }

@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import FieldDiveAppShell from "@/app/tools/roofing/FieldDiveAppShell";
 import { LAST_DB_JOB_ID_STORAGE_KEY } from "@/app/lib/jobBoardAdapter";
@@ -90,12 +90,16 @@ import JobCardDispositionControl from "@/app/tools/roofing/jobCard/JobCardDispos
 import JobCardMetadataStrip from "@/app/tools/roofing/jobCard/JobCardMetadataStrip";
 import JobCardNextActionPanel from "@/app/tools/roofing/jobCard/JobCardNextActionPanel";
 import JobCardTabs, { type JobCardTabId } from "@/app/tools/roofing/jobCard/JobCardTabs";
-import { coerceJobCardVisibleTab } from "@/app/tools/roofing/jobCard/jobCardTypes";
+import {
+  applyJobCardTabToSearch,
+  coerceJobCardVisibleTab,
+} from "@/app/tools/roofing/jobCard/jobCardTypes";
 import JobCardSectionPanel from "@/app/tools/roofing/jobCard/JobCardSectionPanel";
 import JobCardOverviewSummary from "@/app/tools/roofing/jobCard/JobCardOverviewSummary";
 import JobCardScheduleSection from "@/app/tools/roofing/jobCard/JobCardScheduleSection";
 import JobCardScheduleWorkspacePanel from "@/app/tools/roofing/jobCard/JobCardScheduleWorkspacePanel";
 import JobCardRequestPaymentModal from "@/app/tools/roofing/jobCard/JobCardRequestPaymentModal";
+import JobCardPaymentsWorkspace from "@/app/tools/roofing/jobCard/JobCardPaymentsWorkspace";
 import JobCardProposalsTab, {
   JobCardProposalsAddHeaderButton,
 } from "@/app/tools/roofing/jobCard/JobCardProposalsTab";
@@ -118,6 +122,7 @@ export default function JobCardClient({
 }) {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const pathname = usePathname();
   const jobParam = searchParams.get("job");
   const fromParam = searchParams.get("from");
   const attentionParam = searchParams.get("attention");
@@ -141,9 +146,18 @@ export default function JobCardClient({
   const [jobCardTab, setJobCardTabRaw] = useState<JobCardTabId>(
     coerceJobCardVisibleTab(tabParam)
   );
-  const setJobCardTab = useCallback((tab: JobCardTabId) => {
-    setJobCardTabRaw(coerceJobCardVisibleTab(tab));
-  }, []);
+  const setJobCardTab = useCallback(
+    (tab: JobCardTabId) => {
+      const next = coerceJobCardVisibleTab(tab);
+      setJobCardTabRaw(next);
+      const qs = applyJobCardTabToSearch(searchParams.toString(), next);
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    },
+    [pathname, router, searchParams]
+  );
+  useEffect(() => {
+    setJobCardTabRaw(coerceJobCardVisibleTab(searchParams.get("tab")));
+  }, [searchParams]);
   const [jobCardBoardOrigin, setJobCardBoardOrigin] = useState(isBoardOriginParam);
   const isRestoringRef = useRef(false);
   const loadAppliedRef = useRef(true);
@@ -857,6 +871,9 @@ export default function JobCardClient({
                     measurementStatus="See Measurements"
                     catalogStatus="Loads after schedule"
                     catalogReady={false}
+                    paymentStatusLabel={
+                      jobPayments.workspace?.overviewStatusLabel ?? null
+                    }
                   />
                   <JobCardScheduleSection
                     canSchedule={jobCardActionEligibility.canSchedule}
@@ -877,8 +894,7 @@ export default function JobCardClient({
                     completedAt={hydratedJobRecord?.completed_at ?? null}
                     displayTimezone={companyTimezone}
                     depositNotReceived={
-                      jobPayments.view?.headline?.startsWith("Deposit due") ===
-                      true
+                      jobPayments.workspace?.depositNotReceived === true
                     }
                     startBusy={startWorkBusy}
                     startError={startWorkError}
@@ -940,8 +956,7 @@ export default function JobCardClient({
                     busy={scheduleBusy}
                     error={scheduleError}
                     depositNotReceived={
-                      jobPayments.view?.headline?.startsWith("Deposit due") ===
-                      true
+                      jobPayments.workspace?.depositNotReceived === true
                     }
                     timezoneSettingsHref={
                       currentJobId
@@ -976,6 +991,17 @@ export default function JobCardClient({
                       router.push(action.href);
                       void proposalId;
                     }}
+                  />
+                </JobCardSectionPanel>
+
+                <JobCardSectionPanel
+                  tabId="payments"
+                  activeTab={jobCardTab}
+                  title="Payments"
+                  subtitle="Contract, received, and remaining"
+                >
+                  <JobCardPaymentsWorkspace
+                    workspace={jobPayments.workspace}
                   />
                 </JobCardSectionPanel>
 
