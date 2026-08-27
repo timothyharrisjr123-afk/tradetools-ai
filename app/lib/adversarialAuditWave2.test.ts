@@ -96,6 +96,7 @@ const MUTATION_API_ROUTES = [
   "app/api/jobs/payment-requests/route.ts",
   "app/api/jobs/payment-requests/[id]/checkout/route.ts",
   "app/api/jobs/[jobId]/payment-requests/route.ts",
+  "app/api/jobs/[jobId]/payment-requests/balance/route.ts",
   "app/api/proposals/send/route.ts",
   "app/api/proposals/send-prep/route.ts",
   "app/api/proposals/public-review-link/route.ts",

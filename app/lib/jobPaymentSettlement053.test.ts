@@ -106,7 +106,7 @@ describe("053 — historical live migrations immutable", () => {
     assert.equal(sha(SQL_052), SHA_052);
   });
 
-  test("053 exists and 049-053 are the only migrations after 048", () => {
+  test("053 exists and later live migrations are inventoried", () => {
     assert.equal(existsSync(SQL_053), true);
     const names = readdirSync(MIGRATIONS).filter((n) => n.endsWith(".sql"));
     const above048 = names.filter((n) => /_0(49|5\d)_/.test(n)).sort();
@@ -116,6 +116,7 @@ describe("053 — historical live migrations immutable", () => {
       "20260827_051_public_deposit_created_by_user.sql",
       "20260827_052_proposal_public_option_choice_persistence.sql",
       "20260827_053_canonical_stripe_settlement_and_contract_total.sql",
+      "20260827_054_job_payment_balance_request_lifecycle.sql",
     ]);
   });
 

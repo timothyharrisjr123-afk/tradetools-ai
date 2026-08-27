@@ -11,9 +11,13 @@ import {
   type JobPaymentWorkspaceTimelineEvent,
   type JobPaymentWorkspaceView,
 } from "@/app/lib/jobPaymentWorkspace";
+import { JOB_CARD_PAYMENTS_COLLECT_BALANCE_CTA } from "@/app/lib/jobPaymentTypes";
 
 type JobCardPaymentsWorkspaceProps = {
   workspace: JobPaymentWorkspaceView | null;
+  onCollectRemainingBalance?: () => Promise<unknown> | void;
+  collectBusy?: boolean;
+  collectError?: string | null;
 };
 
 function TimelineIcon({ event }: { event: JobPaymentWorkspaceTimelineEvent }) {
@@ -57,6 +61,9 @@ function TimelineAmount({ event }: { event: JobPaymentWorkspaceTimelineEvent }) 
 
 export default function JobCardPaymentsWorkspace({
   workspace,
+  onCollectRemainingBalance,
+  collectBusy = false,
+  collectError = null,
 }: JobCardPaymentsWorkspaceProps) {
   if (!workspace) {
     return (
@@ -94,7 +101,26 @@ export default function JobCardPaymentsWorkspace({
         </dl>
       </section>
 
-      {workspace.nextStep ? (
+      {workspace.canCollectRemainingBalance && onCollectRemainingBalance ? (
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            disabled={collectBusy}
+            onClick={() => {
+              void onCollectRemainingBalance();
+            }}
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-md bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+            data-jobcard-payments-collect
+          >
+            {collectBusy ? "Collecting…" : JOB_CARD_PAYMENTS_COLLECT_BALANCE_CTA}
+          </button>
+          {collectError ? (
+            <p className="text-sm text-slate-600" data-jobcard-payments-collect-error>
+              {collectError}
+            </p>
+          ) : null}
+        </div>
+      ) : workspace.nextStep ? (
         <section aria-labelledby="job-card-payments-next">
           <h3
             id="job-card-payments-next"

@@ -1002,6 +1002,13 @@ export default function JobCardClient({
                 >
                   <JobCardPaymentsWorkspace
                     workspace={jobPayments.workspace}
+                    onCollectRemainingBalance={
+                      jobPayments.workspace?.canCollectRemainingBalance
+                        ? jobPayments.collectRemainingBalance
+                        : undefined
+                    }
+                    collectBusy={jobPayments.collectBusy}
+                    collectError={jobPayments.collectError}
                   />
                 </JobCardSectionPanel>
 

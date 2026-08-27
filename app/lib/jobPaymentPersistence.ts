@@ -79,21 +79,24 @@ export async function createJobPaymentRequestViaRpc(
     companyId: string;
     jobId: string;
     kind: JobPaymentKind;
-    amountCents: number;
+    amountCents?: number | null;
     proposalSignatureId?: string | null;
   }
 ): Promise<JobPaymentCreateSuccess | JobPaymentRpcFailure> {
   if (!isUuidLike(input.companyId) || !isUuidLike(input.jobId)) {
     return { ok: false, code: "invalid_payload" };
   }
+  const payload: Record<string, unknown> = {
+    company_id: input.companyId,
+    job_id: input.jobId,
+    kind: input.kind,
+    proposal_signature_id: input.proposalSignatureId ?? null,
+  };
+  if (input.kind === "deposit" && input.amountCents != null) {
+    payload.amount_cents = input.amountCents;
+  }
   const record = await rpcJson(supabase, CREATE_JOB_PAYMENT_REQUEST_RPC_V1, {
-    p_payload: {
-      company_id: input.companyId,
-      job_id: input.jobId,
-      kind: input.kind,
-      amount_cents: input.amountCents,
-      proposal_signature_id: input.proposalSignatureId ?? null,
-    },
+    p_payload: payload,
   });
   if (record.ok !== true) {
     return {
@@ -103,6 +106,17 @@ export async function createJobPaymentRequestViaRpc(
     };
   }
   return record as unknown as JobPaymentCreateSuccess;
+}
+
+export async function collectJobRemainingBalanceViaRpc(
+  supabase: SupabaseClient,
+  input: { companyId: string; jobId: string }
+): Promise<JobPaymentCreateSuccess | JobPaymentRpcFailure> {
+  return createJobPaymentRequestViaRpc(supabase, {
+    companyId: input.companyId,
+    jobId: input.jobId,
+    kind: "balance",
+  });
 }
 
 export async function cancelJobPaymentRequestViaRpc(

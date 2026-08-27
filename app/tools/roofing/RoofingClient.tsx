@@ -9207,7 +9207,16 @@ Thanks,`;
                 title="Payments"
                 subtitle="Contract, received, and remaining"
               >
-                <JobCardPaymentsWorkspace workspace={jobPayments.workspace} />
+                <JobCardPaymentsWorkspace
+                  workspace={jobPayments.workspace}
+                  onCollectRemainingBalance={
+                    jobPayments.workspace?.canCollectRemainingBalance
+                      ? jobPayments.collectRemainingBalance
+                      : undefined
+                  }
+                  collectBusy={jobPayments.collectBusy}
+                  collectError={jobPayments.collectError}
+                />
               </JobCardSectionPanel>
 
               <JobCardSectionPanel

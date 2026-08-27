@@ -384,6 +384,7 @@ describe("payment-state presenter", () => {
       transactions: [txn()],
     });
     assert.equal(before.state, "deposit_received");
+    assert.equal(before.canCollectRemainingBalance, false);
     assert.notEqual(before.statusLabel, "Balance due");
 
     const after = buildJobPaymentWorkspace({
@@ -403,7 +404,7 @@ describe("payment-state presenter", () => {
     assert.equal(after.state, "balance_due");
     assert.equal(after.statusLabel, "Balance due");
     assert.equal(after.overviewStatusLabel, "Balance due");
-    assert.equal(after.nextStep?.label, "Balance due");
+    assert.equal(after.canCollectRemainingBalance, true);
     assert.doesNotMatch(after.nextStep?.label ?? "", /Stage 2|coming in Stage/i);
   });
 
@@ -427,6 +428,7 @@ describe("payment-state presenter", () => {
     assert.equal(workspace.collectibleRemainingCents, 0);
     assert.equal(workspace.overviewStatusLabel, "Paid in full");
     assert.equal(workspace.nextStep, null);
+    assert.equal(workspace.canCollectRemainingBalance, false);
   });
 
   test("Stripe not connected", () => {

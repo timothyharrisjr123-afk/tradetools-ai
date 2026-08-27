@@ -16,6 +16,13 @@ export type JobPaymentsState = {
     kind: JobPaymentKind,
     amountCents: number
   ) => Promise<{ ok: boolean; code?: string }>;
+  collectRemainingBalance: () => Promise<{
+    ok: boolean;
+    code?: string;
+    idempotentReplay?: boolean;
+  }>;
+  collectBusy: boolean;
+  collectError: string | null;
 };
 
 async function fetchJobPayments(jobId: string): Promise<{
@@ -74,6 +81,8 @@ export function useJobPayments(jobId: string | null | undefined): JobPaymentsSta
   const [view, setView] = useState<JobCardPaymentViewModel | null>(null);
   const [workspace, setWorkspace] = useState<JobPaymentWorkspaceView | null>(null);
   const [prefill, setPrefill] = useState<number | null>(null);
+  const [collectBusy, setCollectBusy] = useState(false);
+  const [collectError, setCollectError] = useState<string | null>(null);
   const id = (jobId ?? "").trim();
 
   const apply = useCallback(
@@ -132,11 +141,63 @@ export function useJobPayments(jobId: string | null | undefined): JobPaymentsSta
     [apply, id]
   );
 
+  const collectRemainingBalance = useCallback(async () => {
+    if (!isUuidLike(id)) return { ok: false, code: "invalid_payload" };
+    setCollectBusy(true);
+    setCollectError(null);
+    try {
+      const response = await fetch(`/api/jobs/${id}/payment-requests/balance`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        code?: string;
+        idempotentReplay?: boolean;
+      };
+      if (payload.ok) {
+        apply(await fetchJobPayments(id));
+        return { ok: true, idempotentReplay: payload.idempotentReplay === true };
+      }
+      const code = payload.code ?? "invalid_payload";
+      setCollectError(collectBalanceErrorCopy(code));
+      return { ok: false, code };
+    } catch {
+      setCollectError("Could not collect the remaining balance.");
+      return { ok: false, code: "internal_error" };
+    } finally {
+      setCollectBusy(false);
+    }
+  }, [apply, id]);
+
   return {
     view,
     workspace,
     prefillDepositCents: prefill,
     reload,
     requestPayment,
+    collectRemainingBalance,
+    collectBusy,
+    collectError,
   };
+}
+
+function collectBalanceErrorCopy(code: string): string {
+  if (code === "not_complete") {
+    return "Balance can be collected after the job is complete.";
+  }
+  if (code === "nothing_due") {
+    return "Nothing remaining to collect.";
+  }
+  if (code === "not_connected") {
+    return "Connect payments in Company Settings before collecting.";
+  }
+  if (code === "job_not_active") {
+    return "This job is not active.";
+  }
+  if (code === "conflicting_request") {
+    return "A payment request is already in progress.";
+  }
+  return "Could not collect the remaining balance.";
 }

@@ -89,6 +89,8 @@ export const JOB_CARD_PAYMENTS_CONNECT_CTA = "Connect payments";
 export const JOB_CARD_PAYMENTS_REQUEST_DEPOSIT_CTA = "Request deposit";
 export const JOB_CARD_PAYMENTS_REQUEST_BALANCE_CTA =
   "Request remaining balance";
+export const JOB_CARD_PAYMENTS_COLLECT_BALANCE_CTA =
+  "Collect remaining balance";
 
 export const PUBLIC_PAYMENT_DUE_TITLE = "Payment due";
 export const PUBLIC_PAYMENT_PENDING_TITLE = "Payment pending";
@@ -122,6 +124,8 @@ export const JOB_PAYMENT_CREATE_ERROR_CODES = [
   "conflicting_request",
   "deposit_already_paid",
   "deposit_required",
+  "not_complete",
+  "nothing_due",
   "invalid_amount",
   "signature_mismatch",
   "already_paid",

@@ -40,6 +40,7 @@ export type JobPaymentWorkspaceState =
   | "partially_paid"
   | "balance_not_yet_due"
   | "balance_due"
+  | "balance_requested"
   | "balance_processing"
   | "paid_in_full";
 
@@ -118,6 +119,7 @@ export type JobPaymentWorkspaceView = {
   jobComplete: boolean;
   depositNotReceived: boolean;
   currentRequest: JobPaymentWorkspaceCurrentRequest | null;
+  canCollectRemainingBalance: boolean;
   timeline: JobPaymentWorkspaceTimelineEvent[];
   summaryRows: JobPaymentWorkspaceSummaryRow[];
 };
@@ -496,6 +498,8 @@ function overviewStatusFor(state: JobPaymentWorkspaceState): string | null {
       return "Balance due on completion";
     case "balance_due":
       return "Balance due";
+    case "balance_requested":
+      return "Balance requested";
     case "paid_in_full":
       return "Paid in full";
     case "payment_failed":
@@ -527,6 +531,8 @@ function statusLabelFor(state: JobPaymentWorkspaceState): string {
       return "Balance due on completion";
     case "balance_due":
       return "Balance due";
+    case "balance_requested":
+      return "Balance requested";
     case "balance_processing":
       return "Balance processing";
     case "paid_in_full":
@@ -571,6 +577,8 @@ function nextStepFor(
       };
     case "balance_due":
       return { label: "Balance due", detail: null, connectHref: null };
+    case "balance_requested":
+      return null;
   }
 }
 
@@ -604,6 +612,10 @@ function deriveWorkspaceState(input: {
   }
 
   if (paidInFull) return "paid_in_full";
+
+  if (input.current?.status === "open" && input.current.kind === "balance") {
+    return "balance_requested";
+  }
 
   if (
     input.depositRequired &&
@@ -714,6 +726,7 @@ export function buildJobPaymentWorkspace(input: {
           amountCents: current.amount_cents,
         }
       : null,
+    canCollectRemainingBalance: state === "balance_due",
     timeline: buildJobPaymentWorkspaceTimeline({
       requests: input.requests,
       transactions: input.transactions,
