@@ -29,7 +29,12 @@ import {
 } from "@/app/lib/jobPaymentReadModel";
 import { readProposalPaymentTerms } from "@/app/lib/proposalPaymentTermsPersistence";
 import { openJobDepositFromAcceptanceViaAdmin } from "@/app/lib/proposalPaymentTermsPersistence";
-import { DEFAULT_PROPOSAL_PAYMENT_TERMS, termsRequireOnlineDeposit } from "@/app/lib/proposalPaymentTerms";
+import {
+  DEFAULT_PROPOSAL_PAYMENT_TERMS,
+  termsRequireOnlineDeposit,
+} from "@/app/lib/proposalPaymentTerms";
+import { readProposalPublicOptionChoiceCurrent } from "@/app/lib/proposalPublicOptionChoicePersistence";
+import { isUuidLike } from "@/app/lib/uuid";
 
 async function getAcceptanceForToken(input: {
   companyId: string;
@@ -75,6 +80,46 @@ async function getAcceptanceForToken(input: {
         ? String(signature.signer_printed_name)
         : null,
     };
+  } catch {
+    return null;
+  }
+}
+
+async function resolveCustomerDisplayOptionKey(input: {
+  companyId: string;
+  proposalId: string;
+  proposalVersionId: string;
+}): Promise<string | null> {
+  try {
+    const supabase = createAdminClient();
+    const { data: acceptance } = await supabase
+      .from("proposal_acceptances")
+      .select("customer_chosen_option_id")
+      .eq("company_id", input.companyId)
+      .eq("proposal_id", input.proposalId)
+      .eq("proposal_version_id", input.proposalVersionId)
+      .order("accepted_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const chosenOptionId = String(
+      (acceptance as { customer_chosen_option_id?: string } | null)?.customer_chosen_option_id ??
+        ""
+    );
+    if (isUuidLike(chosenOptionId)) {
+      const { data: option } = await supabase
+        .from("proposal_options")
+        .select("source_template_option_id")
+        .eq("id", chosenOptionId)
+        .eq("company_id", input.companyId)
+        .maybeSingle();
+      const key = String(
+        (option as { source_template_option_id?: string } | null)?.source_template_option_id ?? ""
+      ).trim();
+      if (key) return key;
+    }
+
+    const provisional = await readProposalPublicOptionChoiceCurrent(supabase, input);
+    return provisional?.option_key ?? null;
   } catch {
     return null;
   }
@@ -134,6 +179,8 @@ export async function loadPublicProposalByToken(
     buildDocumentViewModel: deps?.buildDocumentViewModel ?? buildProposalPublicProposalDocumentViewModel,
     recordView: deps?.recordView ?? recordProposalCustomerView,
     getAcceptanceForToken: deps?.getAcceptanceForToken ?? getAcceptanceForToken,
+    resolveCustomerDisplayOptionKey:
+      deps?.resolveCustomerDisplayOptionKey ?? resolveCustomerDisplayOptionKey,
   };
 
   const result = await loadPublicProposalByTokenCore(
@@ -158,26 +205,34 @@ export async function loadPublicProposalByToken(
       .maybeSingle();
     const jobId = String((proposal as { job_id?: string } | null)?.job_id ?? "");
 
-    const { data: version } = await supabase
-      .from("proposal_versions")
-      .select("selected_option_id")
-      .eq("id", result.tracking.proposal_version_id)
-      .eq("company_id", result.tracking.company_id)
-      .maybeSingle();
-    const selectedOptionId = String(
-      (version as { selected_option_id?: string } | null)?.selected_option_id ?? ""
+    const currentComparisonOption = result.document.packet.comparison?.options.find(
+      (option) => option.isCurrent
     );
-    let selectedTotalCents: number | null = null;
-    if (selectedOptionId) {
-      const { data: option } = await supabase
-        .from("proposal_options")
-        .select("customer_total_cents")
-        .eq("id", selectedOptionId)
-        .eq("company_id", result.tracking.company_id)
-        .maybeSingle();
-      const cents = (option as { customer_total_cents?: number } | null)?.customer_total_cents;
-      selectedTotalCents = Number.isInteger(cents) ? (cents as number) : null;
-    }
+    const selectedTotalCents =
+      currentComparisonOption?.totalCents != null &&
+      Number.isInteger(currentComparisonOption.totalCents)
+        ? currentComparisonOption.totalCents
+        : await (async () => {
+            const { data: version } = await supabase
+              .from("proposal_versions")
+              .select("selected_option_id")
+              .eq("id", result.tracking.proposal_version_id)
+              .eq("company_id", result.tracking.company_id)
+              .maybeSingle();
+            const selectedOptionId = String(
+              (version as { selected_option_id?: string } | null)?.selected_option_id ?? ""
+            );
+            if (!selectedOptionId) return null;
+            const { data: option } = await supabase
+              .from("proposal_options")
+              .select("customer_total_cents")
+              .eq("id", selectedOptionId)
+              .eq("company_id", result.tracking.company_id)
+              .maybeSingle();
+            const cents = (option as { customer_total_cents?: number } | null)
+              ?.customer_total_cents;
+            return Number.isInteger(cents) ? (cents as number) : null;
+          })();
 
     const acceptance = await getAcceptanceForToken({
       companyId: result.tracking.company_id,

@@ -53,21 +53,91 @@ export async function upsertDraftProposalPaymentTermsViaRpc(
   return { ok: true };
 }
 
+export type OpenJobDepositFromAcceptanceSuccess = {
+  ok: true;
+  skipped: boolean;
+  id?: string;
+  amount_cents?: number;
+  idempotent_replay?: boolean;
+  code?: string;
+};
+
+export type OpenJobDepositFromAcceptanceFailure = {
+  ok: false;
+  code: string;
+};
+
+export type OpenJobDepositFromAcceptanceResult =
+  | OpenJobDepositFromAcceptanceSuccess
+  | OpenJobDepositFromAcceptanceFailure;
+
+const OPEN_JOB_DEPOSIT_KNOWN_FAILURE_CODES = new Set([
+  "invalid_payload",
+  "no_acceptance",
+  "superseded",
+  "no_actor",
+  "job_not_active",
+  "not_connected",
+  "deposit_open_failed",
+]);
+
+function mapOpenJobDepositFailureCode(code: unknown): string {
+  const value = typeof code === "string" ? code.trim() : "";
+  if (OPEN_JOB_DEPOSIT_KNOWN_FAILURE_CODES.has(value)) return value;
+  return "deposit_open_failed";
+}
+
 export async function openJobDepositFromAcceptanceViaAdmin(input: {
   companyId: string;
   acceptanceId: string;
-}): Promise<void> {
-  if (!isUuidLike(input.companyId) || !isUuidLike(input.acceptanceId)) return;
+  admin?: Pick<SupabaseClient, "rpc">;
+}): Promise<OpenJobDepositFromAcceptanceResult> {
+  if (!isUuidLike(input.companyId) || !isUuidLike(input.acceptanceId)) {
+    return { ok: false, code: "invalid_payload" };
+  }
   try {
-    const admin = createAdminClient();
-    await admin.rpc(OPEN_JOB_DEPOSIT_FROM_ACCEPTANCE_RPC_V1, {
+    const admin = input.admin ?? createAdminClient();
+    const { data, error } = await admin.rpc(OPEN_JOB_DEPOSIT_FROM_ACCEPTANCE_RPC_V1, {
       p_payload: {
         company_id: input.companyId,
         acceptance_id: input.acceptanceId,
       },
     });
-  } catch {
-    // Acceptance must remain valid if deposit open fails.
+    if (error) {
+      console.error("[open_job_deposit] rpc error", {
+        companyId: input.companyId,
+        acceptanceId: input.acceptanceId,
+        code: error.code ?? null,
+      });
+      return { ok: false, code: "deposit_open_failed" };
+    }
+    const record =
+      data && typeof data === "object" ? (data as Record<string, unknown>) : null;
+    if (record?.ok !== true) {
+      const mapped = mapOpenJobDepositFailureCode(record?.code);
+      console.error("[open_job_deposit] rpc rejected", {
+        companyId: input.companyId,
+        acceptanceId: input.acceptanceId,
+        code: mapped,
+      });
+      return { ok: false, code: mapped };
+    }
+    return {
+      ok: true,
+      skipped: record.skipped === true,
+      id: record.id == null ? undefined : String(record.id),
+      amount_cents:
+        typeof record.amount_cents === "number" ? record.amount_cents : undefined,
+      idempotent_replay: record.idempotent_replay === true,
+      code: record.code == null ? undefined : String(record.code),
+    };
+  } catch (error) {
+    console.error("[open_job_deposit] unexpected failure", {
+      companyId: input.companyId,
+      acceptanceId: input.acceptanceId,
+      name: error instanceof Error ? error.name : "unknown",
+    });
+    return { ok: false, code: "deposit_open_failed" };
   }
 }
 

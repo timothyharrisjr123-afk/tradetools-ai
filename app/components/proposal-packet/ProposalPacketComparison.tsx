@@ -33,6 +33,8 @@ type ProposalPacketComparisonProps = {
   onChoose?: (optionKey: string) => void;
   /** Choice is contractual once accepted, so the picker locks. */
   locked?: boolean;
+  /** True while a package choice is being persisted. */
+  pending?: boolean;
 };
 
 function cellTextClass(
@@ -57,6 +59,7 @@ export default function ProposalPacketComparison({
   chosenOptionKey = null,
   onChoose,
   locked = false,
+  pending = false,
 }: ProposalPacketComparisonProps) {
   if (comparison.options.length < 2) return null;
 
@@ -87,7 +90,7 @@ export default function ProposalPacketComparison({
     chosenOptionKey != null ? optionKey === chosenOptionKey : fallbackIsCurrent;
 
   return (
-    <div>
+    <div aria-busy={pending || undefined}>
       <div className="mb-3.5">
         <h2 className={PROPOSAL_PACKET_SECTION_TITLE}>
           {choosable
@@ -179,6 +182,7 @@ export default function ProposalPacketComparison({
                         type="button"
                         onClick={() => onChoose!(option.optionKey)}
                         aria-pressed={chosen}
+                        disabled={pending}
                         className={chosen ? PROPOSAL_PACKET_CHOICE_BUTTON_CHOSEN : PROPOSAL_PACKET_CHOICE_BUTTON}
                         data-proposal-choose-option={option.optionKey}
                       >
@@ -287,6 +291,7 @@ export default function ProposalPacketComparison({
                   type="button"
                   onClick={() => onChoose!(option.optionKey)}
                   aria-pressed={chosen}
+                  disabled={pending}
                   className={`mt-3 ${
                     chosen ? PROPOSAL_PACKET_CHOICE_BUTTON_CHOSEN : PROPOSAL_PACKET_CHOICE_BUTTON
                   }`}

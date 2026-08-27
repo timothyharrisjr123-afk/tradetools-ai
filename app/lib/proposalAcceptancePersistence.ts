@@ -18,6 +18,8 @@ import {
   type ProposalAcceptanceGuardResult,
   type ProposalAcceptanceInvalidReason,
 } from "@/app/lib/proposalAcceptanceTypes";
+import { readProposalPublicOptionChoiceCurrent } from "@/app/lib/proposalPublicOptionChoicePersistence";
+import { RESOLVE_PROPOSAL_PUBLIC_ACCESS_TOKEN_RPC_V1 } from "@/app/lib/proposalPublicAccessRpcPersistence";
 import {
   hashProposalPublicAccessToken,
   ProposalPublicAccessTokenHashError,
@@ -371,12 +373,33 @@ export async function recordProposalAcceptanceViaRpc(
     PROPOSAL_ACCEPTANCE_OPTION_KEY_MAX
   );
 
+  let commitOptionKey = customerOptionKey;
+  try {
+    const { data: resolved } = await supabase.rpc(RESOLVE_PROPOSAL_PUBLIC_ACCESS_TOKEN_RPC_V1, {
+      p_token_hash: tokenHash,
+    });
+    const binding =
+      resolved && typeof resolved === "object" ? (resolved as Record<string, unknown>) : null;
+    if (binding?.ok === true) {
+      const durable = await readProposalPublicOptionChoiceCurrent(supabase, {
+        companyId: String(binding.company_id ?? ""),
+        proposalId: String(binding.proposal_id ?? ""),
+        proposalVersionId: String(binding.proposal_version_id ?? ""),
+      });
+      if (durable?.option_key) {
+        commitOptionKey = durable.option_key;
+      }
+    }
+  } catch {
+    // Fall back to the client-supplied key. Durable choice is preferred when present.
+  }
+
   const { data, error } = await supabase.rpc(RECORD_PROPOSAL_ACCEPTANCE_RPC_V1, {
     p_token_hash: tokenHash,
     p_accepted_by_name: acceptedByName,
     p_accepted_by_email: acceptedByEmail,
-    p_payload_json: customerOptionKey
-      ? { customer_option_key: customerOptionKey }
+    p_payload_json: commitOptionKey
+      ? { customer_option_key: commitOptionKey }
       : {},
   });
 
@@ -390,7 +413,7 @@ export async function recordProposalAcceptanceViaRpc(
   // total — charging the customer for a package they did not choose. If we sent
   // a choice and it did not come back bound, refuse rather than mis-charge.
   if (
-    customerOptionKey &&
+    commitOptionKey &&
     result.ok &&
     result.customer_chosen_option_id == null
   ) {

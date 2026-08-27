@@ -72,10 +72,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await openJobDepositFromAcceptanceViaAdmin({
+    const deposit = await openJobDepositFromAcceptanceViaAdmin({
       companyId: acceptance.company_id,
       acceptanceId: acceptance.acceptance_id,
     });
+    if (!deposit.ok) {
+      return NextResponse.json(
+        { ok: false, message: SAFE_ERROR, code: deposit.code },
+        { status: 400 }
+      );
+    }
 
     const hash = hashProposalPublicAccessToken(token);
     const resolved = await resolvePublicJobPaymentCheckoutViaRpc(

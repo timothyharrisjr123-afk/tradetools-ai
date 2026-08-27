@@ -35,6 +35,9 @@ const SHA_043 = "2B7D86548ECB20365F83B8B0882B7F2C4F17A4C6EB7F77A3B30D47FD73BDEF6
 const SHA_044 = "9E098700C57228442B28C44E6177C5630456912A207CA55B1A5DCB1F7CBDB09F";
 const SHA_047 = "FFE33FDD562742519BB92568CD5C55528537EA756540D1C6C906F8694B974979";
 const SHA_048 = "72B46B61050287B094478485986772898BB0753FC0F1712D2825D9581A4BDCF0";
+const SHA_049 = "36337F5F0032F2CBD6CC43DB6CC708C6FF82BBC78CF010FE5E8992F76FC6E2B4";
+const SHA_050 = "719673DCE6147C1899E760AADAE0CEC22333D48E2F2C5855AFCB442D0A43162D";
+const SHA_051 = "7384BB14759A4D7C8AA6E7728E71286F5A0D614C3FA383F1D3A18E3F0EF31783";
 
 function sha(path: string): string {
   return createHash("sha256").update(readFileSync(path)).digest("hex").toUpperCase();
@@ -50,19 +53,33 @@ describe("049 — historical migrations untouched", () => {
     assert.ok(!names.some((name) => name.includes("_039_")));
   });
 
-  test("040, 043, 044, 047, 048 SHAs unchanged", () => {
+  test("040, 043, 044, 047, 048, 049, 050, 051 SHAs unchanged", () => {
     assert.equal(sha(SQL_040), SHA_040);
     assert.equal(sha(SQL_043), SHA_043);
     assert.equal(sha(SQL_044), SHA_044);
     assert.equal(sha(SQL_047), SHA_047);
     assert.equal(sha(SQL_048), SHA_048);
+    assert.equal(sha(SQL_049), SHA_049);
+    assert.equal(
+      sha(join(MIGRATIONS, "20260827_050_job_payment_request_customer_choice_binding.sql")),
+      SHA_050
+    );
+    assert.equal(
+      sha(join(MIGRATIONS, "20260827_051_public_deposit_created_by_user.sql")),
+      SHA_051
+    );
   });
 
-  test("049 exists and is the only new migration", () => {
+  test("049 exists and later live migrations are explicitly inventoried", () => {
     assert.equal(existsSync(SQL_049), true);
     const names = readdirSync(MIGRATIONS).filter((n) => n.endsWith(".sql"));
-    const above048 = names.filter((n) => /_0(49|5\d)_/.test(n));
-    assert.deepEqual(above048, ["20260826_049_proposal_customer_option_choice.sql"]);
+    const above048 = names.filter((n) => /_0(49|5\d)_/.test(n)).sort();
+    assert.deepEqual(above048, [
+      "20260826_049_proposal_customer_option_choice.sql",
+      "20260827_050_job_payment_request_customer_choice_binding.sql",
+      "20260827_051_public_deposit_created_by_user.sql",
+      "20260827_052_proposal_public_option_choice_persistence.sql",
+    ]);
   });
 });
 
@@ -299,7 +316,7 @@ describe("Phase 0 — app layer price authority", () => {
 
   test("acceptance persistence sends the key only inside the payload", () => {
     const lib = read("app/lib/proposalAcceptancePersistence.ts");
-    assert.match(lib, /customer_option_key: customerOptionKey/);
+    assert.match(lib, /customer_option_key: commitOptionKey/);
     assert.doesNotMatch(lib, /p_total_cents|p_amount_cents/);
   });
 
@@ -321,7 +338,7 @@ describe("Phase 0 — fail-closed interlock", () => {
   test("interlock only applies when a choice was actually sent", () => {
     assert.match(
       lib,
-      /customerOptionKey &&\s*\n\s*result\.ok &&\s*\n\s*result\.customer_chosen_option_id == null/
+      /commitOptionKey &&\s*\n\s*result\.ok &&\s*\n\s*result\.customer_chosen_option_id == null/
     );
   });
 

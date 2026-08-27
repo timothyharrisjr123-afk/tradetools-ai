@@ -1,9 +1,12 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { formatUsdFromCents } from "@/app/lib/jobPaymentMoney";
 import type { ProposalCustomerPacketViewModel } from "@/app/lib/proposalCustomerPacketViewModel";
-import { proposalCustomerAmountLabel } from "@/app/lib/proposalCustomerPacketViewModel";
+import {
+  proposalCustomerAmountLabel,
+  PROPOSAL_CUSTOMER_PACKET_CHOICE_SAVE_ERROR,
+} from "@/app/lib/proposalCustomerPacketViewModel";
 import {
   resolveDepositObligationCents,
   termsRequireOnlineDeposit,
@@ -66,15 +69,16 @@ export default function ProposalPacket({
   );
   const [acceptedOnLabel] = useState(packet.acceptance?.acceptedOnLabel ?? null);
 
-  // Selection is client state until the customer commits. The default is the
-  // package the contractor put forward, so a single-offer proposal needs no
-  // interaction at all.
+  // Hydrated from server truth: accepted choice, else durable provisional
+  // choice, else the contractor's frozen current/default. The UI is not canonical.
   const defaultKey =
     options.find((option) => option.isCurrent)?.optionKey ??
     packet.estimate?.optionKey ??
     options[0]?.optionKey ??
     null;
   const [chosenKey, setChosenKey] = useState<string | null>(defaultKey);
+  const [pendingKey, setPendingKey] = useState<string | null>(null);
+  const [choiceError, setChoiceError] = useState<string | null>(null);
 
   const chosenOption = useMemo(
     () => options.find((option) => option.optionKey === chosenKey) ?? null,
@@ -97,6 +101,42 @@ export default function ProposalPacket({
     }
   };
 
+  const persistChoice = useCallback(
+    (optionKey: string) => {
+      if (!requestToken || accepted || pendingKey) return;
+      if (optionKey === chosenKey) return;
+      const previous = chosenKey;
+      setChoiceError(null);
+      setChosenKey(optionKey);
+      setPendingKey(optionKey);
+
+      void (async () => {
+        try {
+          const response = await fetch("/api/proposals/public-option-choice", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: requestToken, optionKey }),
+          });
+          const data = (await response.json().catch(() => null)) as
+            | { ok?: boolean; optionKey?: string }
+            | null;
+          if (!response.ok || data?.ok !== true) {
+            setChosenKey(previous);
+            setChoiceError(PROPOSAL_CUSTOMER_PACKET_CHOICE_SAVE_ERROR);
+            return;
+          }
+          setChosenKey(typeof data.optionKey === "string" ? data.optionKey : optionKey);
+        } catch {
+          setChosenKey(previous);
+          setChoiceError(PROPOSAL_CUSTOMER_PACKET_CHOICE_SAVE_ERROR);
+        } finally {
+          setPendingKey(null);
+        }
+      })();
+    },
+    [accepted, chosenKey, pendingKey, requestToken]
+  );
+
   // Send the chosen key only when the customer actually had a choice to make.
   const action = useProposalPurchaseAction({
     terms,
@@ -106,6 +146,15 @@ export default function ProposalPacket({
     accepted,
     onConfirmed,
   });
+
+  const purchaseAction = {
+    ...action,
+    busy: action.busy || pendingKey != null,
+    submit: () => {
+      if (pendingKey) return;
+      action.submit();
+    },
+  };
 
   const purchaseRef = useRef<HTMLElement | null>(null);
 
@@ -136,9 +185,15 @@ export default function ProposalPacket({
             <ProposalPacketComparison
               comparison={packet.comparison!}
               chosenOptionKey={chosenKey}
-              onChoose={mode === "public" ? setChosenKey : undefined}
+              onChoose={mode === "public" ? persistChoice : undefined}
               locked={accepted}
+              pending={pendingKey != null}
             />
+            {choiceError ? (
+              <p className="mt-3 text-[13px] text-[#b45309]" role="alert">
+                {choiceError}
+              </p>
+            ) : null}
           </section>
         ) : null}
 
@@ -158,7 +213,7 @@ export default function ProposalPacket({
               payment={packet.payment ?? null}
               accepted={accepted}
               acceptedOnLabel={acceptedOnLabel}
-              action={action}
+              action={purchaseAction}
             />
           </section>
         ) : null}
@@ -191,7 +246,7 @@ export default function ProposalPacket({
         <ProposalPacketStickyPurchaseBar
           watchRef={purchaseRef}
           dueLabel={stickyDueLabel}
-          action={action}
+          action={purchaseAction}
         />
       ) : null}
     </main>

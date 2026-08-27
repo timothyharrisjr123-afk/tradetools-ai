@@ -231,6 +231,9 @@ export const PROPOSAL_CUSTOMER_PACKET_CHOOSE_INTRO =
 
 export const PROPOSAL_CUSTOMER_PACKET_CHOSEN_BADGE = "Chosen";
 
+export const PROPOSAL_CUSTOMER_PACKET_CHOICE_SAVE_ERROR =
+  "We could not save that package. Please try again.";
+
 export function proposalCustomerPacketChooseCta(label: string): string {
   const trimmed = label.trim();
   return trimmed ? `Choose ${trimmed}` : "Choose this package";

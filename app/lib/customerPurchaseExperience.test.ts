@@ -85,7 +85,7 @@ describe("Phase 1 — multi-option selection", () => {
 
   test("contractor preview stays a read-only document", () => {
     const packet = read(`${PACKET_DIR}/ProposalPacket.tsx`);
-    assert.match(packet, /onChoose=\{mode === "public" \? setChosenKey : undefined\}/);
+    assert.match(packet, /onChoose=\{mode === "public" \? persistChoice : undefined\}/);
   });
 
   test("choose wording is customer buying language", () => {

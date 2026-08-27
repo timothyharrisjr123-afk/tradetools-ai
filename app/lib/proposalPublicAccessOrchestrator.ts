@@ -76,6 +76,16 @@ export type ProposalPublicAccessOrchestratorDeps = {
     signedAt?: string | null;
     signerPrintedName?: string | null;
   } | null>;
+  /**
+   * Server-authoritative display option key for this frozen version.
+   * Precedence is owned by the server impl: accepted choice, then durable
+   * provisional choice, then null so the contractor frozen default is used.
+   */
+  resolveCustomerDisplayOptionKey?: (input: {
+    companyId: string;
+    proposalId: string;
+    proposalVersionId: string;
+  }) => Promise<string | null>;
 };
 
 function isSentOrSignedVersionKind(kind: string): kind is "sent" | "signed" {
@@ -163,9 +173,17 @@ export async function loadPublicProposalByToken(
 
   let document: ProposalPublicProposalDocumentViewModel;
   try {
-    const selectedTemplateOptionId = resolveSelectedTemplateOptionIdFromGraph(
+    const contractorDefaultKey = resolveSelectedTemplateOptionIdFromGraph(
       graph as unknown as ProposalDraftGraph
     );
+    const durableKey = deps.resolveCustomerDisplayOptionKey
+      ? await deps.resolveCustomerDisplayOptionKey({
+          companyId: resolveResult.company_id,
+          proposalId: resolveResult.proposal_id,
+          proposalVersionId: resolveResult.proposal_version_id,
+        })
+      : null;
+    const selectedTemplateOptionId = durableKey ?? contractorDefaultKey;
     const dto = deps.buildDto(graph as ProposalPublicGraphInput, selectedTemplateOptionId);
     document = deps.buildDocumentViewModel(dto, { versionKind: resolveVersionKind(graph) });
   } catch {
