@@ -48,6 +48,10 @@ const SQL_052 = join(
   MIGRATIONS,
   "20260827_052_proposal_public_option_choice_persistence.sql"
 );
+const SQL_053 = join(
+  MIGRATIONS,
+  "20260827_053_canonical_stripe_settlement_and_contract_total.sql"
+);
 
 function sha(path: string): string {
   return createHash("sha256").update(readFileSync(path)).digest("hex").toUpperCase();
@@ -84,7 +88,9 @@ describe("049 — historical migrations untouched", () => {
       "20260827_050_job_payment_request_customer_choice_binding.sql",
       "20260827_051_public_deposit_created_by_user.sql",
       "20260827_052_proposal_public_option_choice_persistence.sql",
+      "20260827_053_canonical_stripe_settlement_and_contract_total.sql",
     ]);
+    assert.equal(existsSync(SQL_053), true);
   });
 });
 
