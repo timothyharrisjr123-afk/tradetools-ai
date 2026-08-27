@@ -38,6 +38,16 @@ const SHA_048 = "72B46B61050287B094478485986772898BB0753FC0F1712D2825D9581A4BDCF
 const SHA_049 = "36337F5F0032F2CBD6CC43DB6CC708C6FF82BBC78CF010FE5E8992F76FC6E2B4";
 const SHA_050 = "719673DCE6147C1899E760AADAE0CEC22333D48E2F2C5855AFCB442D0A43162D";
 const SHA_051 = "7384BB14759A4D7C8AA6E7728E71286F5A0D614C3FA383F1D3A18E3F0EF31783";
+const SHA_052 = "B5EC89909B1C593E2F5DFD122FB2C40F037EE42B32D7249CF9D754E1158C62ED";
+const SQL_050 = join(
+  MIGRATIONS,
+  "20260827_050_job_payment_request_customer_choice_binding.sql"
+);
+const SQL_051 = join(MIGRATIONS, "20260827_051_public_deposit_created_by_user.sql");
+const SQL_052 = join(
+  MIGRATIONS,
+  "20260827_052_proposal_public_option_choice_persistence.sql"
+);
 
 function sha(path: string): string {
   return createHash("sha256").update(readFileSync(path)).digest("hex").toUpperCase();
@@ -53,21 +63,16 @@ describe("049 — historical migrations untouched", () => {
     assert.ok(!names.some((name) => name.includes("_039_")));
   });
 
-  test("040, 043, 044, 047, 048, 049, 050, 051 SHAs unchanged", () => {
+  test("040, 043, 044, 047, 048, 049, 050, 051, 052 SHAs unchanged", () => {
     assert.equal(sha(SQL_040), SHA_040);
     assert.equal(sha(SQL_043), SHA_043);
     assert.equal(sha(SQL_044), SHA_044);
     assert.equal(sha(SQL_047), SHA_047);
     assert.equal(sha(SQL_048), SHA_048);
     assert.equal(sha(SQL_049), SHA_049);
-    assert.equal(
-      sha(join(MIGRATIONS, "20260827_050_job_payment_request_customer_choice_binding.sql")),
-      SHA_050
-    );
-    assert.equal(
-      sha(join(MIGRATIONS, "20260827_051_public_deposit_created_by_user.sql")),
-      SHA_051
-    );
+    assert.equal(sha(SQL_050), SHA_050);
+    assert.equal(sha(SQL_051), SHA_051);
+    assert.equal(sha(SQL_052), SHA_052);
   });
 
   test("049 exists and later live migrations are explicitly inventoried", () => {
