@@ -59,7 +59,8 @@
 - Read **§6CE** before any Board Schedule / Job Card Calendar / Main Calendar create-reschedule / shared scheduling workspace / factual day-count context work — **Stage A shared scheduling workspace COMPLETE** (one `JobScheduleWorkspace`; `job_schedules` sole truth; no recommendations; occupancy labels **`1 job` / `N jobs`**; no migration).
 - Read **§6CG** before any proposal payment terms / deposit Checkout / job-level money ledger / Accept-Sign-Pay / Stripe Checkout method language work — **Payment Stage 1 COMPLETE** (proposal-owned terms freeze with send; company defaults prefill only; Stripe readiness before online-deposit Send; auto deposit on accept; Approve is not a payment gate; job-level ledger + revision carry-forward; migration **048 LIVE**).
 - Read **§6CH** before any public customer proposal selection/payment flow, Company Profile payment-setup ownership, Job Card Overview money display, or send-readiness fail-closed work — **Payment Stage 1 flow correction COMPLETE** (review → select → pay; Request this package removed from sent-offer path; signature removed from default public path; Pay creates acceptance idempotently; send fail-closed on unknown terms; Payments nav retired to Company Profile; Overview no dollar amounts; migration **048 unchanged**).
-- Read **§6CM** before any Job Card Payments tab, balance request, customer balance Checkout, payment Activity, refund UI, or payment-icon work — **PAYMENT STAGE 2A COMPLETE / VERIFIED / LOCKED**. Canonical Job Card Payments workspace/read model is live. Final QA correction removed roadmap copy, scrolled the active mobile tab into view, and omitted terminal Next step. **Do not start Stage 2B** (balance-request writes). Refunds are **after** Stage 2E. Cohesion C is **not** started.
+- Read **§6CN** before any Collect remaining balance / balance-request / Complete-gated payment-request work — **PAYMENT STAGE 2B COMPLETE / VERIFIED / LOCKED**. Contractor creates/reuses one canonical `kind=balance` request after Complete. **054 LIVE / HISTORICAL / IMMUTABLE**. Exact next is **Stage 2C customer balance payment**. Do **not** start 2C/2D/2E, refunds, or Cohesion C.
+- Read **§6CM** before any Job Card Payments tab, balance request, customer balance Checkout, payment Activity, refund UI, or payment-icon work — **PAYMENT STAGE 2A COMPLETE / VERIFIED / LOCKED**. Canonical Job Card Payments workspace/read model is live. Final QA correction removed roadmap copy, scrolled the active mobile tab into view, and omitted terminal Next step. Balance-request writes are **§6CN**. Refunds are **after** Stage 2E. Cohesion C is **not** started.
 - Read **§6CL** before changing Payment Stage 2 product-flow rules — **ARCHITECTURE / PRODUCT FLOW LOCKED**. 2A implementation is **§6CM**.
 - Read **§6CK** before any public customer package-choice, deposit-open, or settlement-identity work — **COHESION A COMPLETE / VERIFIED / LOCKED**. Canonical Stripe settlement is one capture per PaymentIntent; customer-chosen cents govern the job ledger; **053 LIVE / HISTORICAL / IMMUTABLE**. Payment Stage 2 architecture is **§6CL**. Payment Stage 2A is **§6CM**.
 - Read **§6CJ** before any Company Settings / Pricing visual polish or mobile interaction work — **Cohesion B visual correction COMPLETE** after screenshot review (quiet close, full mobile IA, content-height drawers, Anderson Roofing fixture, margin/markup labels; **no logic changes**). **049 is LIVE** — see **§6CK**; do not treat §6CJ "staged" language as current.
@@ -69,6 +70,7 @@
 
 **Last updated checkpoint:**
 
+- **Payment Stage 2B code checkpoint:** **`559ea71`** — `feat(payments): add balance request lifecycle` (**PAYMENT STAGE 2B COMPLETE / VERIFIED / LOCKED** — Complete-gated Collect remaining balance; canonical `kind=balance` request; collectible = contract − gross; no-deposit/gross-zero allowed; idempotent open/processing replay; **054 LIVE / HISTORICAL / IMMUTABLE** SHA256 **`5BBDCBD4394CF9538DA6B941C12E4865CBF3882FE1562281C387DC80ACCF2004`**. See **§6CN**).
 - **Payment Stage 2A final QA code checkpoint:** **`85b4828`** — `fix(payments): finish job payment workspace polish` (**PAYMENT STAGE 2A COMPLETE / VERIFIED / LOCKED** — roadmap terminology removed; active mobile tab scrolls into view; terminal Next step omitted; payment math unchanged. See **§6CM.10**).
 - **Payment Stage 2A code checkpoint:** **`0149d4f`** — `feat(payments): add job payment workspace` (**PAYMENT STAGE 2A COMPLETE / VERIFIED / LOCKED** — Job Card **Payments** tab; 053 contract total; collectible = contract − gross; read-only timeline; Overview quiet status; Board unchanged; **no migration 054**. See **§6CM**).
 - **Payment Stage 2 architecture checkpoint:** **`cbc4078`** — `docs: lock Payment Stage 2 architecture` (**PAYMENT STAGE 2 — ARCHITECTURE / PRODUCT FLOW LOCK COMPLETE**. See **§6CL**).
@@ -155,7 +157,7 @@
 - **Historical note (Preview + Send pre-V2C):** Checkpoint **`8bb19b4`** / docs **`86739d0`** unify the contractor Preview header, readiness, actions, and customer proposal into one surface; elevate the customer packet; and rework Send/sharing into a premium delivery composer. Superseded for current Preview/Send resume by **V2C frozen at `521c148`**.
 - **Historical note (Builder continuity):** Checkpoint **`a49b346`** aligns Builder with that Preview direction as contractor edit/review mode: premium command header; integrated section navigation (not a boxed tray); selected Enhanced package card with Change package vs Edit scope clarified; estimate + totals on one surface; cleaned row actions + preserved inline Edit qty; Edit scope drawer as contractor quantity review with accordion open/switch/collapse; intentional removed-lines collapsible. Protected systems untouched. Superseded for Builder resume by **V2B frozen at `f339652`**.
 
-**Trust order:** Header/current checkpoint → **§6CM** (Payment Stage 2A **COMPLETE / VERIFIED / LOCKED** — Job Card Payments workspace/read model) → **§6CL** (Payment Stage 2 **ARCHITECTURE / PRODUCT FLOW LOCKED**) → **§6CK** (Cohesion A **COMPLETE / VERIFIED / LOCKED** — **049–053 LIVE / HISTORICAL / IMMUTABLE**; one capture per provider payment; customer-chosen contract total) → **§6CJ** (Cohesion B visual correction **COMPLETE** — 049 staged language in that section is **historical**) → **§6CI** (Premium Cohesion Cut 1 **COMPLETE** — 049 staged language in that section is **historical**; live status is **§6CK**) → **§6CH** (Payment Stage 1 flow correction **COMPLETE** — superseded for the customer purchase path by §6CI) → **§6CG** (Payment Stage 1 **COMPLETE / VERIFIED / LOCKED** — proposal-owned terms; freeze with send; Settings prefill only; Stripe readiness before online-deposit Send; Accept/Sign/Pay deposit; Approve is not a Checkout gate; job-level ledger; revision carry-forward; **048 LIVE**) → **§6CF** (Stage B guarded Board movement **COMPLETE / VERIFIED / LOCKED**) → **§6CE** (Stage A shared scheduling workspace **COMPLETE / VERIFIED / LOCKED**) → **§6CD** (Canonical visual fixture proof closure **COMPLETE / VERIFIED / LOCKED** — preferred Active Intake/Proposal/Production fixtures; Instant Estimate **PLACEHOLDER**) → **§6CC** (Canonical fixture + visible surface coherence **COMPLETE / VERIFIED / LOCKED** — fixture classes; stage-aware proposal guidance; deferred tabs hidden) → **§6CB** (R3I contractor disposition management **COMPLETE / VERIFIED / LOCKED** — Job Card Job actions; stage/disposition separation; Board badges + filter; Reactivate = `to_status=active`; no migration) → **§6CA** (Runtime ownership hardening **COMPLETE** — Job Card compile graph split; Board jobs-first; truthful schedule/proposal errors; Attention stale guard; public test cleanup) → **§6BZ** (Adversarial Audit Wave 2 **COMPLETE** — contractor capability API auth; server mutation UUID import hygiene; Preview independent reads + stale guards; error/absence semantics; Board/Calendar a11y; historical stage aliases; Work Orders placeholder; 390 proof) → **§6BY** (Adversarial Audit Wave 1 **COMPLETE** — canonical Board ownership; truthful Board/Calendar failure; stale Job Card + Calendar guards; Attention coalescing) → **§6BX** (Post-R3H combined architecture hardening **COMPLETE** — read ownership; fan-out coalescing; middleware API auth; Activity decoupling) → **§6BW** (Stage AB lifecycle action guard parity **COMPLETE** — shared eligibility ownership) → **§6BV** (R3H Guarded Job Completion **COMPLETE / LIVE / VERIFIED / LOCKED** at `f941259`; **047 LIVE / historical**) → **§6BU** (R3G Guarded Production Start **COMPLETE / LIVE / VERIFIED** at `a175814`; **046 LIVE / historical**) → **§6BT** (R3F Unified Job Scheduling **COMPLETE / LIVE / VERIFIED** at `f876ed9`; **045 LIVE / historical**) → **§6BS** (R3E Payments COMPLETE / LIVE at `f6c1301`; 044 historical) → **§6BR** (R3D Signatures COMPLETE / LIVE) → **§6BQ** (R3C Acceptance) → **§6BP** (Job Lifecycle Foundation) → **§6BO.13.4.9 R3** / Proposal Flow V2 history → remaining historical sections. **Do not proceed** to the next feature until explicitly approved. Do not mutate existing sent/signed/superseded snapshots or applied migrations. Do not reopen Proposal Flow V2 except for a proven correctness, security, or explicitly approved cross-surface requirement.
+**Trust order:** Header/current checkpoint → **§6CN** (Payment Stage 2B **COMPLETE / VERIFIED / LOCKED** — Complete-gated Collect remaining balance; **054 LIVE**) → **§6CM** (Payment Stage 2A **COMPLETE / VERIFIED / LOCKED** — Job Card Payments workspace/read model) → **§6CL** (Payment Stage 2 **ARCHITECTURE / PRODUCT FLOW LOCKED**) → **§6CK** (Cohesion A **COMPLETE / VERIFIED / LOCKED** — **049–053 LIVE / HISTORICAL / IMMUTABLE**; one capture per provider payment; customer-chosen contract total) → **§6CJ** (Cohesion B visual correction **COMPLETE** — 049 staged language in that section is **historical**) → **§6CI** (Premium Cohesion Cut 1 **COMPLETE** — 049 staged language in that section is **historical**; live status is **§6CK**) → **§6CH** (Payment Stage 1 flow correction **COMPLETE** — superseded for the customer purchase path by §6CI) → **§6CG** (Payment Stage 1 **COMPLETE / VERIFIED / LOCKED** — proposal-owned terms; freeze with send; Settings prefill only; Stripe readiness before online-deposit Send; Accept/Sign/Pay deposit; Approve is not a Checkout gate; job-level ledger; revision carry-forward; **048 LIVE**) → **§6CF** (Stage B guarded Board movement **COMPLETE / VERIFIED / LOCKED**) → **§6CE** (Stage A shared scheduling workspace **COMPLETE / VERIFIED / LOCKED**) → **§6CD** (Canonical visual fixture proof closure **COMPLETE / VERIFIED / LOCKED** — preferred Active Intake/Proposal/Production fixtures; Instant Estimate **PLACEHOLDER**) → **§6CC** (Canonical fixture + visible surface coherence **COMPLETE / VERIFIED / LOCKED** — fixture classes; stage-aware proposal guidance; deferred tabs hidden) → **§6CB** (R3I contractor disposition management **COMPLETE / VERIFIED / LOCKED** — Job Card Job actions; stage/disposition separation; Board badges + filter; Reactivate = `to_status=active`; no migration) → **§6CA** (Runtime ownership hardening **COMPLETE** — Job Card compile graph split; Board jobs-first; truthful schedule/proposal errors; Attention stale guard; public test cleanup) → **§6BZ** (Adversarial Audit Wave 2 **COMPLETE** — contractor capability API auth; server mutation UUID import hygiene; Preview independent reads + stale guards; error/absence semantics; Board/Calendar a11y; historical stage aliases; Work Orders placeholder; 390 proof) → **§6BY** (Adversarial Audit Wave 1 **COMPLETE** — canonical Board ownership; truthful Board/Calendar failure; stale Job Card + Calendar guards; Attention coalescing) → **§6BX** (Post-R3H combined architecture hardening **COMPLETE** — read ownership; fan-out coalescing; middleware API auth; Activity decoupling) → **§6BW** (Stage AB lifecycle action guard parity **COMPLETE** — shared eligibility ownership) → **§6BV** (R3H Guarded Job Completion **COMPLETE / LIVE / VERIFIED / LOCKED** at `f941259`; **047 LIVE / historical**) → **§6BU** (R3G Guarded Production Start **COMPLETE / LIVE / VERIFIED** at `a175814`; **046 LIVE / historical**) → **§6BT** (R3F Unified Job Scheduling **COMPLETE / LIVE / VERIFIED** at `f876ed9`; **045 LIVE / historical**) → **§6BS** (R3E Payments COMPLETE / LIVE at `f6c1301`; 044 historical) → **§6BR** (R3D Signatures COMPLETE / LIVE) → **§6BQ** (R3C Acceptance) → **§6BP** (Job Lifecycle Foundation) → **§6BO.13.4.9 R3** / Proposal Flow V2 history → remaining historical sections. **Do not proceed** to the next feature until explicitly approved. Do not mutate existing sent/signed/superseded snapshots or applied migrations. Do not reopen Proposal Flow V2 except for a proven correctness, security, or explicitly approved cross-surface requirement.
 
 **DB-first foundation is live** (§6AD). **3J3E option selection persists** (§6AE). **Pricing trust hardening complete** (§6AF). **3J4C document-first Builder complete** (§6AG) — Estimate page renders the actual proposal document inline (package selector, sections, line items, totals); right rail is a contextual **Proposal Helper** inspector; old workspace tabs and Overview panel **removed**. **R16A** (§6AX) removed the amber **Preview-unlock blocker banner** from the Estimate **canvas**; pricing/blocking guidance remains in the rail. **3J4D** refined Estimate line readability (§6AH). **3J4E** refined package/options surface inside Estimate (§6AI). **3J4F** extended Builder to customer-facing text pages — Terms, Warranty, Project Overview, custom_text render persisted `body_markdown` when present (§6AJ). **R14** adds display-time `{{token_name}}` merge on those text pages from frozen `proposalDocumentContext` + R13 resolver (`f359ad4`, §6AW) — stored `body_markdown` unchanged; no write-back. **R4–R6** template content editor on `/tools/roofing/templates` **complete** (`9db2030`–`3c6214c`). **R7** light global IA nav **complete** (`05b9c54`). **R8** light Jobs Board identity **complete** (`1191ddd`). **R9** Job Card create/open draft flow **satisfied** (`1915b2d` + pre-R10 P1 at `d0ba188`). **R10** template structure + estimate settings **complete** (`bc42b1e`–`b3dd904`, §6AQ). **R11** company branding Settings **complete** (`0146dac`–`139e8a3`, §6AR). **R11c** stamps company core + branding into `proposal_versions.context_echo` at new draft create only (`29722a0`, §6AS) — **no Builder cover UI**. **R12** stamps DB-truth customer identity into `proposal_versions.context_echo` at new draft create only (`31059e3`, §6AT) — **no Job Card UI changes, no Builder customer display**. **R13** adds pure frozen document token foundation (`e40db30`, §6AU) — registry, `ProposalDocumentContext`, resolver. **R15** adds read-only branded **Cover** tab in Proposal Builder (`ab5a400`, §6AV) — consumes `proposalDocumentContext` + resolver; **not** Preview/PDF/send/sign/payment. **R14** wires body text pages to the same frozen context at display time (`f359ad4`, §6AW). **R16A** separates contractor workspace chrome from customer document IA (`18cebca`, §6AX) — customer-logical page strip order, workspace header, simplified body shell; **not** Preview/PDF/lifecycle/hub. **R16B** adds per-proposal draft body authoring for text pages (`589f5a0`, §6AY) — raw `body_markdown` persist, R14 display merge only, Estimate line-items-only de-duplication on persisted path; **not** token picker, page visibility, media, Preview, or lifecycle. **R16C1** adds Builder strip overflow page navigation (`967f0de`, §6BA) — More pages menu for persisted overflow pages by `page.id`, dirty-edit guard preserved, portal menu fix; **not** page visibility, Preview, or lifecycle. **R16C2** adds registry-driven document token picker in the R16B editor (`0cf76d2`, §6BB) — Insert field menu inserts raw `{{token_name}}` only; R14 display-time merge unchanged; save persists raw `body_markdown` only; **not** page visibility, Preview, or lifecycle. **R16C3** adds DB-backed proposal page visibility hide-show foundation (`25f1375`, §6BC) — toggles existing `proposal_pages.visible_to_customer` via `updateDraftProposalPageVisibility`; hidden pages remain contractor-visible and editable in Builder; Cover/Estimate required; `getCustomerPreviewPages` R17 contract helper only; **not** Preview, customer route, PDF, or lifecycle. **R17A/R17B** adds authenticated contractor Customer Preview foundation (`8ac2bcb`, §6BE) — pure `proposalCustomerPreviewViewModel` + `/tools/roofing/proposals/preview?job=&proposal=` route; header Preview enabled when persisted draft loads; dirty-edit guard before Preview navigation; **not** public/tokenized customer access, PDF, Send, Sign, Payment, or lifecycle. **R17C1** adds Preview Estimate document presentation layer (`9c2244a`, §6BF) — pure `proposalCustomerEstimatePresenter` + Preview-only estimate UI; shared `proposalPackagePresentation`; Preview Estimate no longer imports Builder workbench table components; **not** R17C2 Builder workbench hierarchy (now complete at `3e65774`, §6BG), R17C3 typography polish, R18, PDF, Send, Sign, Payment, or lifecycle. **R17C2 Phase 1** adds pure Builder workbench estimate presenter (`3c04322`, §6BG) — `proposalBuilderWorkbenchEstimatePresenter` DTO only; no UI. **R17C2 Phase 2** adds zoned Builder Estimate workbench UI + scope review / hard blocker split + gated Edit Option shell (`3e65774`, §6BG) — **not** R17D scope decision backend, R17C3 typography, R18, PDF, Send, Sign, Payment, or lifecycle. **R17D Phase 1** adds persisted scope decision overlay + merge-on-refresh foundation (`43c83a2`, §6BH) — `proposal_option_scope_decisions` migration (`20260618_009`); **`manual_quantity` proven in tests**; zero-decision refresh unchanged; migration **appears applied** on configured project per §6BI. **R17D Phase 2** adds manual quantity UI/API — first real Edit Option action wired in Builder (`f5712ff`, §6BI); **`manual_quantity` only**; other Edit Option actions remain disabled; **full post-Phase-2 audit passed** (§6BI); **not** R17C3 typography, R18, PDF, Send, Sign, Payment, or lifecycle. Main workflow: **Job Board → DB job card (`job=`) → Create proposal / Open proposal → create/reuse DB proposal draft → Builder (`job=` + `proposal=`) → package selection persists to DB; refresh draft pricing when measurement changes**. Legacy `loadSaved=` / `currentSaved` / board-origin paths are **preserved but separated** — they **cannot create DB proposals directly**. **DB proposal math uses the new spine only** (`measurement_records` → `proposalQuantityResolver` → `proposalPricingEngine` → snapshots) — **not** legacy saved-estimate / Core-Enhanced-Premium estimator math. **`createDraftProposal`** runs from Job Card **Create proposal** only when checklist + pricing gates pass; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**, **no silent fallback** on invalid `proposal=`. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope**.
 
@@ -17040,11 +17042,12 @@ Prior lock-attempt commits were **provisional**: **`714e766`** (049–052 choice
 | `20260827_050_job_payment_request_customer_choice_binding.sql` | `719673DCE6147C1899E760AADAE0CEC22333D48E2F2C5855AFCB442D0A43162D` | LIVE / HISTORICAL. Payment request binds the accepted customer choice. Was live-untracked; committed byte-for-byte in this slice. |
 | `20260827_051_public_deposit_created_by_user.sql` | `7384BB14759A4D7C8AA6E7728E71286F5A0D614C3FA383F1D3A18E3F0EF31783` | LIVE / HISTORICAL. Public deposit `created_by_user` ownership. Was live-untracked; committed byte-for-byte in this slice. |
 | `20260827_052_proposal_public_option_choice_persistence.sql` | `B5EC89909B1C593E2F5DFD122FB2C40F037EE42B32D7249CF9D754E1158C62ED` | LIVE / HISTORICAL / IMMUTABLE. Applied statement-split ~**2026-08-27T00:20:13Z–00:21:40Z**. |
-| `20260827_053_canonical_stripe_settlement_and_contract_total.sql` | `1800F3C89648EB87F9B428A700ECC9F8EE26932BFB70E3CE9A8CAD4AB0B5D29B` | LIVE / HISTORICAL / IMMUTABLE. Applied statement-split **2026-08-27T02:01:26.157Z–02:02:26.806Z** (17 statements, all status 0). Any later SQL is **054**. |
+| `20260827_053_canonical_stripe_settlement_and_contract_total.sql` | `1800F3C89648EB87F9B428A700ECC9F8EE26932BFB70E3CE9A8CAD4AB0B5D29B` | LIVE / HISTORICAL / IMMUTABLE. Applied statement-split **2026-08-27T02:01:26.157Z–02:02:26.806Z** (17 statements, all status 0). |
+| `20260827_054_job_payment_balance_request_lifecycle.sql` | `5BBDCBD4394CF9538DA6B941C12E4865CBF3882FE1562281C387DC80ACCF2004` | LIVE / HISTORICAL / IMMUTABLE. Applied statement-split **2026-08-27T21:31:17.578Z–21:31:49.784Z** (8 statements, all status 0). Any later SQL is **055**. |
 
 ### §6CK.2 Migration-history metadata — unrepaired by design
 
-Live `supabase_migrations.schema_migrations` still contains only **`20260531`**. Historical migrations including 038–053 were applied **statement-by-statement** (`npx supabase db query --db-url … -f`, split helpers). **`db push` is unsafe** (would replay from 001). This project intentionally has live SQL that is **not** represented in Supabase migration metadata. **Do not run `migration repair`.** Do not invent a backfill. Document this as standing operating practice. Follow-up retained.
+Live `supabase_migrations.schema_migrations` still contains only **`20260531`**. Historical migrations including 038–054 were applied **statement-by-statement** (`npx supabase db query --db-url … -f`, split helpers). **`db push` is unsafe** (would replay from 001). This project intentionally has live SQL that is **not** represented in Supabase migration metadata. **Do not run `migration repair`.** Do not invent a backfill. Document this as standing operating practice. Follow-up retained.
 
 ### §6CK.3 Durable provisional customer choice (052)
 
@@ -17445,7 +17448,7 @@ Premium FieldDive: one summary + one action + quiet stacked timeline. No Stripe 
 
 ### §6CL.24 Next
 
-Stage 2A is **COMPLETE in §6CM**. Exact next: **Stage 2B — balance-due / request lifecycle**. Refunds after 2E. Cohesion C not started.
+Stage 2A is **COMPLETE in §6CM**. Stage 2B is **COMPLETE in §6CN**. Exact next: **Stage 2C — customer balance payment**. Refunds after 2E. Cohesion C not started.
 
 ---
 
@@ -17453,7 +17456,7 @@ Stage 2A is **COMPLETE in §6CM**. Exact next: **Stage 2B — balance-due / requ
 
 **Status: PAYMENT STAGE 2A COMPLETE / VERIFIED / LOCKED.**
 
-Code **`0149d4f`** `feat(payments): add job payment workspace`. Final QA **`85b4828`** `fix(payments): finish job payment workspace polish`. Docs this commit. Architecture remains **§6CL**. **No migration 054.** **039 reserved. 044–053 historical / immutable.** **NO PUSH.** Do **not** start 2B balance-request writes. Do **not** start 2C customer balance payment. Do **not** start 2D Activity enrichment. Do **not** start 2E live settlement. Do **not** start refunds. Do **not** start Cohesion C.
+Code **`0149d4f`** `feat(payments): add job payment workspace`. Final QA **`85b4828`** `fix(payments): finish job payment workspace polish`. Architecture remains **§6CL**. **2A had no migration 054.** **039 reserved. 044–053 historical / immutable.** **NO PUSH.** Stage 2B balance-request writes are **§6CN**. Do **not** start 2C from this section.
 
 ### §6CM.1 What shipped
 
@@ -17498,11 +17501,12 @@ Focused Payment Stage 2A **23/23** at `0149d4f`. Final QA focused **30/30**. Reg
 
 `jobCardProposalSetupCard.test.ts` case 10 (`hasVisibleContractorProposal` in `RoofingClient`) is **pre-existing at `cbc4078`** and was not introduced here.
 
-### §6CM.7 Remaining Stage 2B
+### §6CM.7 Remaining after 2A
 
-- Contractor **Collect remaining balance** after Complete.
-- Fail-close `create_job_payment_request_v1`: require Complete for `kind=balance`; allow balance when collectible ≥ 100 even if gross/net is 0 (`deposit_required` gap).
-- Send payment link / retry failed request (existing Checkout; deferred from 2A to keep 2A read-only).
+Stage 2B Collect remaining balance shipped in **§6CN**. Still later:
+
+- Customer Pay remaining / settled-copy correction (**2C**).
+- Send payment link / retry failed request (existing Checkout; not invented in 2B).
 - Cancel open/failed HTTP.
 - Attention destination already coerced to Payments tab in 2A; keep compatible with 044 stored `tab=overview`.
 
@@ -17516,7 +17520,7 @@ Focused Payment Stage 2A **23/23** at `0149d4f`. Final QA focused **30/30**. Reg
 
 ### §6CM.9 Next
 
-**STAGE 2B — Balance-due / request lifecycle.** Do not start refunds. Do not start Cohesion C.
+**STAGE 2C — Customer balance payment.** Do not start refunds. Do not start Cohesion C. See **§6CN**.
 
 ### §6CM.10 Final QA correction (2026-08-27)
 
@@ -17529,7 +17533,90 @@ After manual screenshot review. Architecture and payment math **unchanged**. **S
 - Overview quiet status, no dollars. Board unchanged.
 - Final screenshots: `tmp/fielddive-ui-review/payment-stage-2a-final/`.
 
-**Exact next remains Stage 2B — balance-request lifecycle.** Do not start 2B here.
+**Exact next after 2A was Stage 2B, now COMPLETE in §6CN.**
+
+---
+
+## §6CN. PAYMENT STAGE 2B — BALANCE REQUEST LIFECYCLE (2026-08-27)
+
+**Status: PAYMENT STAGE 2B COMPLETE / VERIFIED / LOCKED.**
+
+Code **`559ea71`** `feat(payments): add balance request lifecycle`. Docs this commit. Architecture remains **§6CL**. Workspace/read model remains **§6CM**. **054 LIVE / HISTORICAL / IMMUTABLE.** **039 reserved. 044–053 byte-unchanged.** **NO PUSH.** Do **not** start Stage 2C customer balance payment. Do **not** start 2D Activity. Do **not** start 2E live settlement. Do **not** start refunds. Do **not** start Cohesion C. Do **not** change Jobs Board payment UI. Do **not** add Overview dollars.
+
+### §6CN.1 What shipped
+
+- Complete makes remaining collectible **eligible**. Payment does **not** gate Complete. Complete does **not** auto-create a request.
+- Job Card Payments shows **one** primary action when eligible: **Collect remaining balance**.
+- Authenticated contractor POST `/api/jobs/[jobId]/payment-requests/balance` → `create_job_payment_request_v1` with `kind=balance`. Client identifies the job only. Amount, company, contract, gross, collectible, stage, and eligibility are server/DB-owned.
+- Request becomes visible in Payments as **Balance requested** (timeline **Balance requested** + amount + date). No second Collect CTA. No Send payment link beside Collect.
+- Customer Pay remaining / public settled-copy correction remain **2C**. 2B only created the contractor request and the minimum backend needed by existing API architecture.
+
+### §6CN.2 Migration 054
+
+File `supabase/migrations/20260827_054_job_payment_balance_request_lifecycle.sql`. SHA256 **`5BBDCBD4394CF9538DA6B941C12E4865CBF3882FE1562281C387DC80ACCF2004`**. Applied statement-split **2026-08-27T21:31:17.578Z–21:31:49.784Z** (8 statements, all status 0) on **`rhquhnujjnzjhweypavd`**. Not `db push`. After apply, **054 is historical / immutable**.
+
+| Object | Grants |
+|--------|--------|
+| `job_payment_collectible_cents_v1(uuid, uuid)` | EXECUTE `authenticated`, `service_role`. Revoked `public`, `anon`. |
+| `create_job_payment_request_v1(jsonb)` | EXECUTE `authenticated`, `service_role`. Revoked `public`, `anon`. |
+
+Live source confirmed: Complete gate `'not_complete'`; amount `v_amount := v_collectible`; `'nothing_due'`; no `deposit_required`; idempotent open/processing replay; no `jobs.stage` write; collectible = 053 contract − 053 gross, not net.
+
+### §6CN.3 Eligibility, amount, kind
+
+Required: canonical job stage = `complete`; disposition active; 053 contractual total > 0; `collectible_remaining_cents > 0` (≥ 100); no conflicting open/processing request of another kind; company membership; Stripe charges enabled; existing lifecycle/security guards.
+
+Amount = `job_payment_collectible_cents_v1` = `max(0, 053 contract − 053 gross)`. **Not** contract − net. Refund concessions do not reopen collectible.
+
+Kind = canonical **`balance`**. Deposit path keeps 048 additional-deposit math. Client `amount_cents` is ignored for balance.
+
+### §6CN.4 Idempotency / immutability
+
+First valid Collect inserts one open `kind=balance` request. Repeat Collect returns the same open or processing row (`idempotent_replay`). Unique active request per `(company, job, kind)` for `open`/`processing`. After that request is paid, a later balance request may be created if Complete + collectible > 0 + no conflicting request (contract increase). Processing does not mutate amount (050 amount immutability retained; 054 does not `SET amount_cents`). Failed balance rows are not reopened/amount-mutated; 2B does **not** invent a Retry CTA.
+
+### §6CN.5 Presenter / surfaces
+
+| State | Payments status | Collect CTA | Overview |
+|-------|-----------------|-------------|----------|
+| Approved / Scheduled / Production + remaining | Balance due on completion / Deposit received | No | quiet status, no dollars |
+| Complete + remaining > 0 | Balance due | **Collect remaining balance** | Balance due |
+| Open balance request | Balance requested | No | Balance requested |
+| Processing balance | Balance processing | No | Payment pending |
+| Paid in full / collectible 0 | Paid in full | No | Paid in full |
+| Refund after full gross | Paid in full; Remaining $0 | No | Paid in full |
+
+Board unchanged. Overview never shows Collect or amounts.
+
+### §6CN.6 Live collectible proofs (no Stripe)
+
+Helper queried against live Complete jobs on **`rhquhnujjnzjhweypavd`**:
+
+- `5728f9fa-…` contract **1850000** / gross **0** / collectible **1850000** (no-deposit / gross-zero).
+- `edf91e08-…` contract **1850000** / gross **500000** / collectible **1350000** (deposit remainder).
+
+No live Stripe Checkout was created. No production request rows were inserted; request lifecycle is owned by 054 SQL + the Payments harness.
+
+### §6CN.7 Visual proof
+
+Screenshots: `tmp/fielddive-ui-review/payment-stage-2b/` (desktop + 390 A–G, plus Overview quiet lines). Review harness `/tools/roofing/jobCard/payment-stage-2b-review`.
+
+Desktop and 390: one primary action; no developer language; amounts match contract − gross; no duplicate Collect; no Overview dollars; Board unchanged; 390 Collect sits in document flow above History (does not cover timeline).
+
+### §6CN.8 Tests / lint
+
+Focused 054 **17/17**. Broader 2B + 2A + 044 + 048 + flow correction + 049 + 052 + 053 + customer purchase + Complete + Attention + lifecycle fixture + Board card + Wave 2 mutation graph **310/310**. Touched eslint **clean** (RoofingClient legacy `any` warnings/errors are pre-existing and were not part of this slice). Filtered typecheck: **zero errors in this slice** (pre-existing `RoofingClientV2` errors only). `git diff --check` **clean**. **No packages.**
+
+### §6CN.9 P0 / P1 / P2
+
+**P0:** none for 2B.
+
+**P1:** none remaining inside 2B. Exact next is 2C.
+
+**P2:** failed-balance Retry CTA not invented; cancel-open HTTP still absent; Send payment link on an already-open request still deferred; customer Pay remaining / settled-copy (**2C**); RLS disabled on `customers` / legacy `payments` / `subscriptions`; 052 authenticated write GRANTs; `schema_migrations` still `20260531`.
+
+### §6CN.10 Next
+
+**STAGE 2C — Customer balance payment.** Do not start 2D. Do not start 2E. Do not start refunds. Do not start Cohesion C.
 
 ---
 
@@ -18722,6 +18809,7 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
+- **2026-08-27:** **PAYMENT STAGE 2B COMPLETE / VERIFIED / LOCKED** — code **`559ea71`** `feat(payments): add balance request lifecycle`; docs this commit. Complete-gated contractor **Collect remaining balance**; one canonical `kind=balance` request; collectible = 053 contract − gross; no-deposit/gross-zero no longer blocked by `deposit_required`; idempotent open/processing replay; client cannot supply amount. Migration **054 LIVE / HISTORICAL / IMMUTABLE** SHA256 **`5BBDCBD4394CF9538DA6B941C12E4865CBF3882FE1562281C387DC80ACCF2004`** applied statement-split **2026-08-27T21:31:17Z–21:31:49Z** on **`rhquhnujjnzjhweypavd`**. Screenshots `tmp/fielddive-ui-review/payment-stage-2b/`. Focused **17/17**. Regression **310/310**. **039 reserved. 044–053 unchanged.** **No push.** Exact next: **2C customer balance payment**. See **§6CN**.
 - **2026-08-27:** **PAYMENT STAGE 2A FINAL QA / TRULY LOCKED** — code **`85b4828`** `fix(payments): finish job payment workspace polish`; docs this commit. Removed contractor-facing Stage 2B/roadmap copy; Job Card tab rail scrolls the active tab into view at 390; Paid in full omits Next step; payment math unchanged. Screenshots `tmp/fielddive-ui-review/payment-stage-2a-final/`. Focused **30/30**. **No migration 054.** **No push.** Exact next: **2B**. See **§6CM.10**.
 - **2026-08-27:** **PAYMENT STAGE 2A COMPLETE / VERIFIED / LOCKED** — code **`0149d4f`** `feat(payments): add job payment workspace`; docs **`57bacf2`**. Job Card **Payments** tab (`tab=payments`) is the contractor financial workspace. Canonical read model: 053 customer-chosen contract total; received = canonical gross; collectible = contract − gross; cash net distinct; refund does not reopen due. Status presenter; read-only timeline with 053 duplicate-capture suppression; Overview quiet status (no dollars); Board unchanged; green $ only for settled received inside Payments. Screenshots `tmp/fielddive-ui-review/payment-stage-2a/`. Focused **23/23**. **No migration 054.** **No push.** Exact next: **2B**. See **§6CM**.
 - **2026-08-27:** **PAYMENT STAGE 2 ARCHITECTURE / PRODUCT FLOW LOCKED** — docs **`cbc4078`** `docs: lock Payment Stage 2 architecture` (**§6CL**). No app code, no SQL, no tests, no packages, no push. Job Card **Payments** tab is the contractor workspace. Complete makes remaining **eligible**; contractor **Collect remaining balance** (no auto-request). Amount due = contract − **gross** (refunds do not silently re-open due). Current `create_job_payment_request_v1` `deposit_required` when net=0 is a Stage 2B gap for no-deposit jobs. Overview: quiet status, no dollars. Board: no payment clutter. Refunds after Stage 2E. First cut **2A** is now **§6CM**.
