@@ -13,6 +13,7 @@ function statusForCode(code: string): number {
   if (code === "not_found") return 404;
   if (code === "not_connected") return 409;
   if (code === "conflicting_request") return 409;
+  if (code === "deposit_not_generic") return 400;
   return 400;
 }
 
@@ -33,18 +34,16 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const jobId = typeof body?.jobId === "string" ? body.jobId.trim() : "";
     const kind = typeof body?.kind === "string" ? body.kind.trim() : "";
-    const amountCents = Number(body?.amountCents);
     const proposalSignatureId =
       typeof body?.proposalSignatureId === "string"
         ? body.proposalSignatureId.trim()
         : null;
 
-    if (
-      !isUuidLike(jobId) ||
-      !(JOB_PAYMENT_KINDS as readonly string[]).includes(kind) ||
-      !Number.isInteger(amountCents)
-    ) {
+    if (!isUuidLike(jobId) || !(JOB_PAYMENT_KINDS as readonly string[]).includes(kind)) {
       return NextResponse.json({ ok: false, code: "invalid_payload" }, { status: 400 });
+    }
+    if (kind === "deposit") {
+      return NextResponse.json({ ok: false, code: "deposit_not_generic" }, { status: 400 });
     }
     if (body?.amountCents != null && body.amount !== undefined) {
       return NextResponse.json({ ok: false, code: "invalid_payload" }, { status: 400 });
@@ -54,7 +53,6 @@ export async function POST(req: NextRequest) {
       companyId,
       jobId,
       kind: kind as (typeof JOB_PAYMENT_KINDS)[number],
-      amountCents,
       proposalSignatureId: proposalSignatureId && isUuidLike(proposalSignatureId)
         ? proposalSignatureId
         : null,

@@ -60,6 +60,7 @@ export const AFTER_048_MIGRATIONS = [
   "20260827_052_proposal_public_option_choice_persistence.sql",
   "20260827_053_canonical_stripe_settlement_and_contract_total.sql",
   "20260827_054_job_payment_balance_request_lifecycle.sql",
+  "20260827_055_payment_domain_invariants.sql",
 ] as const;
 
 const ACCOUNT = {
@@ -122,7 +123,7 @@ describe("054 — historical migrations immutable", () => {
     assert.equal(sha(SQL_053), SHA_053);
   });
 
-  test("054 exists as the only migration after 053", () => {
+  test("054 exists after 053; 055 is inventoried after 054", () => {
     assert.equal(existsSync(SQL_054), true);
     const names = readdirSync(MIGRATIONS).filter((n) => n.endsWith(".sql"));
     const above048 = names.filter((n) => /_0(49|5\d)_/.test(n)).sort();

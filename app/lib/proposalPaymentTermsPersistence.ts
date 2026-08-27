@@ -78,6 +78,7 @@ const OPEN_JOB_DEPOSIT_KNOWN_FAILURE_CODES = new Set([
   "no_actor",
   "job_not_active",
   "not_connected",
+  "conflicting_request",
   "deposit_open_failed",
 ]);
 

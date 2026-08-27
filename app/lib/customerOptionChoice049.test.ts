@@ -90,6 +90,7 @@ describe("049 — historical migrations untouched", () => {
       "20260827_052_proposal_public_option_choice_persistence.sql",
       "20260827_053_canonical_stripe_settlement_and_contract_total.sql",
       "20260827_054_job_payment_balance_request_lifecycle.sql",
+      "20260827_055_payment_domain_invariants.sql",
     ]);
     assert.equal(existsSync(SQL_053), true);
   });

@@ -28,7 +28,6 @@ import {
   type JobPaymentTransactionRow,
 } from "@/app/lib/jobPaymentReadModel";
 import { readProposalPaymentTerms } from "@/app/lib/proposalPaymentTermsPersistence";
-import { openJobDepositFromAcceptanceViaAdmin } from "@/app/lib/proposalPaymentTermsPersistence";
 import {
   DEFAULT_PROPOSAL_PAYMENT_TERMS,
   termsRequireOnlineDeposit,
@@ -240,12 +239,6 @@ export async function loadPublicProposalByToken(
       proposalId: result.tracking.proposal_id,
       proposalVersionId: result.tracking.proposal_version_id,
     });
-    if (acceptance?.id) {
-      await openJobDepositFromAcceptanceViaAdmin({
-        companyId: result.tracking.company_id,
-        acceptanceId: acceptance.id,
-      });
-    }
 
     const loaded = jobId
       ? await getPaymentForJob({

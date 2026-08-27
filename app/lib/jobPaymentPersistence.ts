@@ -86,15 +86,15 @@ export async function createJobPaymentRequestViaRpc(
   if (!isUuidLike(input.companyId) || !isUuidLike(input.jobId)) {
     return { ok: false, code: "invalid_payload" };
   }
+  if (input.kind === "deposit") {
+    return { ok: false, code: "deposit_not_generic" };
+  }
   const payload: Record<string, unknown> = {
     company_id: input.companyId,
     job_id: input.jobId,
     kind: input.kind,
     proposal_signature_id: input.proposalSignatureId ?? null,
   };
-  if (input.kind === "deposit" && input.amountCents != null) {
-    payload.amount_cents = input.amountCents;
-  }
   const record = await rpcJson(supabase, CREATE_JOB_PAYMENT_REQUEST_RPC_V1, {
     p_payload: payload,
   });

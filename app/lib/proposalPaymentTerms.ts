@@ -1,5 +1,5 @@
 /**
- * Proposal payment terms — company default prefills drafts; sent versions freeze.
+ * Proposal payment terms — drafts initialize to none; sent versions freeze.
  * FieldDive owns obligation language. Stripe owns payment-method presentation.
  */
 

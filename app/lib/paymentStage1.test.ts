@@ -355,8 +355,8 @@ describe("architecture source locks", () => {
   });
 
   test("Accept and sign open deposit after success", () => {
-    assert.match(read("app/api/proposals/accept/route.ts"), /openJobDepositFromAcceptanceViaAdmin/);
-    assert.match(read("app/api/proposals/sign/route.ts"), /openJobDepositFromAcceptanceViaAdmin/);
+    assert.match(read("app/api/proposals/accept/route.ts"), /openCanonicalDepositFromAcceptedProposal/);
+    assert.match(read("app/api/proposals/sign/route.ts"), /openCanonicalDepositFromAcceptedProposal/);
   });
 
   test("Settings copy does not fake method lists", () => {

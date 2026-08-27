@@ -103,11 +103,11 @@ describe("proposal packet customer CTA targets — premium purchase flow", () =>
   test("checkout creates acceptance before resolving payment request", () => {
     const checkout = read("app/api/public/payment-requests/checkout/route.ts");
     assert.match(checkout, /recordProposalAcceptance/);
-    assert.match(checkout, /openJobDepositFromAcceptanceViaAdmin/);
+    assert.match(checkout, /openCanonicalDepositFromAcceptedProposal/);
     assert.match(checkout, /resolvePublicJobPaymentCheckoutViaRpc/);
     const postBody = checkout.slice(checkout.indexOf("export async function POST"));
     const acceptIdx = postBody.indexOf("recordProposalAcceptance");
-    const depositIdx = postBody.indexOf("openJobDepositFromAcceptanceViaAdmin");
+    const depositIdx = postBody.indexOf("openCanonicalDepositFromAcceptedProposal");
     const resolveIdx = postBody.indexOf("resolvePublicJobPaymentCheckoutViaRpc");
     assert.ok(acceptIdx >= 0 && depositIdx > acceptIdx && resolveIdx > depositIdx);
   });

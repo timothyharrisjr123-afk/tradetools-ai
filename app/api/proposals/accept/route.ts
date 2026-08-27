@@ -4,7 +4,7 @@ import {
   ProposalAcceptanceValidationError,
 } from "@/app/lib/proposalAcceptancePersistence";
 import { recordProposalAcceptance } from "@/app/lib/proposalAcceptanceStore.server";
-import { openJobDepositFromAcceptanceViaAdmin } from "@/app/lib/proposalPaymentTermsPersistence";
+import { openCanonicalDepositFromAcceptedProposal } from "@/app/lib/jobPaymentAcceptanceObligation.server";
 
 export const runtime = "nodejs";
 
@@ -69,14 +69,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const deposit = await openJobDepositFromAcceptanceViaAdmin({
+    const deposit = await openCanonicalDepositFromAcceptedProposal({
       companyId: result.company_id,
       acceptanceId: result.acceptance_id,
     });
     if (!deposit.ok) {
       return NextResponse.json(
         { ok: false, message: SAFE_ERROR_MESSAGE, code: deposit.code },
-        { status: 400 }
+        { status: deposit.code === "conflicting_request" ? 409 : 400 }
       );
     }
 

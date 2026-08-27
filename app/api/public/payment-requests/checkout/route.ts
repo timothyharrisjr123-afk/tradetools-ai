@@ -4,7 +4,7 @@ import { resolvePublicJobPaymentCheckoutViaRpc } from "@/app/lib/jobPaymentPersi
 import { appOriginFromRequest, withPaymentReturnHint } from "@/app/lib/jobPaymentStripe.server";
 import { recordProposalAcceptance } from "@/app/lib/proposalAcceptanceStore.server";
 import { hashProposalPublicAccessToken } from "@/app/lib/proposalPublicAccessTokenHash";
-import { openJobDepositFromAcceptanceViaAdmin } from "@/app/lib/proposalPaymentTermsPersistence";
+import { openCanonicalDepositFromAcceptedProposal } from "@/app/lib/jobPaymentAcceptanceObligation.server";
 import { createAdminClient } from "@/app/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -72,14 +72,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const deposit = await openJobDepositFromAcceptanceViaAdmin({
+    const deposit = await openCanonicalDepositFromAcceptedProposal({
       companyId: acceptance.company_id,
       acceptanceId: acceptance.acceptance_id,
     });
     if (!deposit.ok) {
       return NextResponse.json(
         { ok: false, message: SAFE_ERROR, code: deposit.code },
-        { status: 400 }
+        { status: deposit.code === "conflicting_request" ? 409 : 400 }
       );
     }
 
