@@ -63,6 +63,7 @@ export const AFTER_048_MIGRATIONS = [
   "20260827_055_payment_domain_invariants.sql",
   "20260827_056_flexible_collect_payment.sql",
   "20260828_057_job_attachments.sql",
+  "20260828_058_job_tasks.sql",
 ] as const;
 
 const ACCOUNT = {

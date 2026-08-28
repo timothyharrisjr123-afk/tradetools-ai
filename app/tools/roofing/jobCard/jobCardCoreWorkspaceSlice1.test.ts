@@ -50,7 +50,6 @@ import {
 } from "@/app/tools/roofing/jobCard/jobCardProposalsTabModel";
 import JobCardOverviewSummary from "@/app/tools/roofing/jobCard/JobCardOverviewSummary";
 import JobCardForwardLifecycleAction from "@/app/tools/roofing/jobCard/JobCardForwardLifecycleAction";
-import JobCardQuietEmptyState from "@/app/tools/roofing/jobCard/JobCardQuietEmptyState";
 import { deriveJobsBoardHeadline } from "@/app/tools/roofing/saved/jobsBoardUtils";
 
 const ROOT = process.cwd();
@@ -379,21 +378,13 @@ describe("Attention", () => {
 });
 
 describe("Reserved domains and Board", () => {
-  test("Tasks stay visible with quiet empty states; Attachments is operational", () => {
-    assert.match(SECONDARY, /quiet\("tasks"/);
+  test("Tasks and Attachments are operational; remaining domains stay quiet", () => {
+    assert.match(SECONDARY, /JobCardTasksWorkspace/);
     assert.match(SECONDARY, /JobCardAttachmentsWorkspace/);
-    assert.match(SECONDARY, /No tasks yet/);
+    assert.doesNotMatch(SECONDARY, /quiet\("tasks"/);
     assert.doesNotMatch(SECONDARY, /quiet\("attachments"/);
     assert.doesNotMatch(SECONDARY, /No files yet/);
     assert.doesNotMatch(SECONDARY, /Future surface|Coming Soon|roadmap/i);
-    const html = renderToStaticMarkup(
-      createElement(JobCardQuietEmptyState, {
-        message: "No tasks yet.",
-        testId: "tasks",
-      })
-    );
-    assert.match(html, /No tasks yet/);
-    assert.doesNotMatch(html, /Coming Soon|Future surface/);
   });
 
   test("Board Approved wording and no Tasks 0/0", () => {

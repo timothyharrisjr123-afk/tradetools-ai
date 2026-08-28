@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import JobCardSectionPanel from "@/app/tools/roofing/jobCard/JobCardSectionPanel";
 import JobCardQuietEmptyState from "@/app/tools/roofing/jobCard/JobCardQuietEmptyState";
 import JobCardAttachmentsWorkspace from "@/app/tools/roofing/jobCard/JobCardAttachmentsWorkspace";
+import JobCardTasksWorkspace from "@/app/tools/roofing/jobCard/JobCardTasksWorkspace";
 import { useJobCardAttachments } from "@/app/tools/roofing/jobCard/useJobCardAttachments";
+import { useJobCardTasks } from "@/app/tools/roofing/jobCard/useJobCardTasks";
 import type { JobCardTabId } from "@/app/tools/roofing/jobCard/jobCardTypes";
 import { applyTemplateSetupFetchResult } from "@/app/lib/jobCardTemplateSetupState";
 import type { TemplateSetupReadStatus } from "@/app/lib/jobCardTemplateSetupState";
@@ -18,8 +20,9 @@ type JobCardSecondaryPanelsProps = {
 };
 
 /**
- * Reserved Job Card domains that are not yet operational, plus Attachments.
+ * Reserved Job Card domains that are not yet operational, plus Tasks and Attachments.
  * Measurements are owned by JobCardMeasurementsWorkspace, not this file.
+ * Tasks is owned by JobCardTasksWorkspace in this file.
  * Attachments is owned by JobCardAttachmentsWorkspace in this file.
  */
 export default function JobCardSecondaryPanels({
@@ -30,9 +33,14 @@ export default function JobCardSecondaryPanels({
 }: JobCardSecondaryPanelsProps) {
   void listedDraftProposalId;
   const attachmentsEnabled = activeTab === "attachments";
+  const tasksEnabled = activeTab === "tasks";
   const attachments = useJobCardAttachments({
     jobId,
     enabled: attachmentsEnabled && Boolean(jobId),
+  });
+  const tasks = useJobCardTasks({
+    jobId,
+    enabled: tasksEnabled && Boolean(jobId),
   });
   const [templateStatus, setTemplateStatus] =
     useState<TemplateSetupReadStatus>("idle");
@@ -90,7 +98,17 @@ export default function JobCardSecondaryPanels({
           templates configured.”
         </p>
       ) : null}
-      {quiet("tasks", "Tasks", "No tasks yet.", "tasks")}
+      <JobCardTasksWorkspace
+        activeTab={activeTab}
+        tasks={tasks.tasks}
+        loading={tasks.loading}
+        error={tasks.error}
+        onCreate={tasks.create}
+        onUpdate={tasks.updateContent}
+        onComplete={tasks.complete}
+        onReopen={tasks.reopen}
+        onRemove={tasks.remove}
+      />
       {quiet("material_orders", "Material Orders", "No material orders yet.", "material_orders")}
       {quiet("work_orders", "Work Orders", "No work orders yet.", "work_orders")}
       {quiet("invoices", "Invoices", "No invoices yet.", "invoices")}
