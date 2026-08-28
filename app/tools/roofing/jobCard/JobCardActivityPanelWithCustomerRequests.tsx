@@ -6,7 +6,6 @@ import { listJobActivityEventsForJob } from "@/app/lib/jobActivityReadPersistenc
 import type { JobActivityEvent } from "@/app/lib/jobLifecycleTypes";
 import type { JobCardProposalSentFactsById } from "@/app/lib/proposalJobCardLifecycleRead";
 import type { ProposalRecordStatusSummary } from "@/app/lib/proposalRecordTypes";
-import { formatCustomerRequestActivityNote } from "@/app/lib/proposalCustomerRequestReviewViewModel";
 import {
   composeProposalAcceptanceActivityItems,
   listJobProposalAcceptances,
@@ -26,7 +25,6 @@ import {
   listJobPaymentTransactionsForRequests,
 } from "@/app/lib/jobPaymentClientRead";
 import { applyPaymentEnrichmentFailure } from "@/app/lib/surfaceReadFailureSemantics";
-import { useJobProposalCustomerRequests } from "@/app/lib/useProposalCustomerRequests";
 import JobCardActivityPanel, {
   type JobCardActivityItem,
 } from "./JobCardActivityPanel";
@@ -58,11 +56,8 @@ export default function JobCardActivityPanelWithCustomerRequests({
   ownedSignatureItems = null,
   skipPaymentEnrichment = false,
 }: JobCardActivityPanelWithCustomerRequestsProps) {
-  const { requests } = useJobProposalCustomerRequests({
-    proposalIds,
-    jobId,
-    enabled: secondaryEffectsEnabled && proposalIds.length > 0,
-  });
+  void proposalIds;
+  void baseItems;
   const [jobEvents, setJobEvents] = useState<JobActivityEvent[]>([]);
   const [acceptanceItems, setAcceptanceItems] = useState<
     ProposalAcceptanceActivityItem[]
@@ -73,9 +68,6 @@ export default function JobCardActivityPanelWithCustomerRequests({
   const [paymentItems, setPaymentItems] = useState<JobPaymentActivityItem[]>(
     []
   );
-  const [paymentEnrichmentError, setPaymentEnrichmentError] = useState<
-    string | null
-  >(null);
 
   useEffect(() => {
     const id = (jobId ?? "").trim();
@@ -143,7 +135,6 @@ export default function JobCardActivityPanelWithCustomerRequests({
             transactions,
           })
         );
-        setPaymentEnrichmentError(null);
       })
       .catch(() => {
         if (!cancelled) {
@@ -153,7 +144,6 @@ export default function JobCardActivityPanelWithCustomerRequests({
             });
             return applied.items;
           });
-          setPaymentEnrichmentError("Payment history unavailable.");
         }
       });
     return () => {
@@ -162,22 +152,11 @@ export default function JobCardActivityPanelWithCustomerRequests({
   }, [jobId, secondaryEffectsEnabled, skipPaymentEnrichment]);
 
   const items = useMemo(() => {
-    const requestItems: JobCardActivityItem[] = requests.map((request) => ({
-      when: request.createdAtLabel ?? undefined,
-      label: request.headline,
-      note: formatCustomerRequestActivityNote({
-        message: request.messagePreview,
-        status: request.status,
-        requested_option_label: request.packageLabel,
-      }),
-    }));
-
     return composeJobActivityItems({
       jobCreatedAt,
       jobActivityEvents: jobEvents,
       proposals,
       sentFactsByProposalId,
-      customerRequestItems: [...requestItems, ...baseItems],
       acceptanceItems: ownedAcceptanceItems
         ? [...ownedAcceptanceItems]
         : acceptanceItems,
@@ -193,11 +172,9 @@ export default function JobCardActivityPanelWithCustomerRequests({
     ownedSignatureItems,
     paymentItems,
     skipPaymentEnrichment,
-    baseItems,
     jobCreatedAt,
     jobEvents,
     proposals,
-    requests,
     sentFactsByProposalId,
   ]);
 
@@ -206,14 +183,6 @@ export default function JobCardActivityPanelWithCustomerRequests({
       data-jobcard-activity-with-customer-requests
       data-jobcard-secondary-ready={secondaryEffectsEnabled ? "true" : "false"}
     >
-      {paymentEnrichmentError ? (
-        <p
-          className="px-4 pt-2 text-[11px] text-slate-500"
-          data-activity-payment-enrichment-error
-        >
-          {paymentEnrichmentError}
-        </p>
-      ) : null}
       <JobCardActivityPanel items={items} />
     </div>
   );

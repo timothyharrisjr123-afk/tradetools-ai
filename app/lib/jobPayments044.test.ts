@@ -394,13 +394,14 @@ describe("Job Card and Public states", () => {
         },
       ],
     });
+    assert.ok(items.length >= 2);
     const composed = composeJobActivityItems({
       paymentItems: items,
     });
-    const received = composed.filter((row) => row.label === "Payment received");
-    const requested = composed.filter((row) => row.label === "Payment requested");
-    assert.equal(requested.length, 1);
-    assert.equal(received.length, 1);
+    assert.equal(
+      composed.some((row) => /payment/i.test(row.label)),
+      false
+    );
   });
 });
 

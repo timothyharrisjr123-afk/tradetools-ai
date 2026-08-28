@@ -129,7 +129,7 @@ describe("acceptance Activity through Job Card composer", () => {
       items.map((item) => item.label),
       [
         "Proposal accepted",
-        "Moved to Approved",
+        "Work approved",
         "Proposal accepted",
         "Job created",
       ]
@@ -138,7 +138,7 @@ describe("acceptance Activity through Job Card composer", () => {
 });
 
 describe("signature Activity through Job Card composer", () => {
-  test("Proposal signed sorts by signed_at and dedupes by signature id", () => {
+  test("Proposal signed stays out of contractor Activity", () => {
     const SIGNATURE_A = "cccccccc-cccc-4ccc-8ccc-cccccccccc01";
     const SIGNATURE_B = "cccccccc-cccc-4ccc-8ccc-cccccccccc02";
     const signatureItems = composeProposalSignatureActivityItems([
@@ -163,9 +163,9 @@ describe("signature Activity through Job Card composer", () => {
     });
     assert.deepEqual(
       items.map((item) => item.label),
-      ["Proposal signed", "Proposal signed", "Job created"]
+      ["Job created"]
     );
-    assert.equal(items[0]?.note, "Jane Homeowner");
+    assert.equal(items.some((item) => item.label === "Proposal signed"), false);
   });
 });
 

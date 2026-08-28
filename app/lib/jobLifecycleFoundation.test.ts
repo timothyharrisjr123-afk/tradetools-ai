@@ -289,7 +289,7 @@ describe("board canonical lanes", () => {
 });
 
 describe("activity composer", () => {
-  test("includes job created, stage change, and customer request", () => {
+  test("includes job created and hides first-proposal stage plus customer requests", () => {
     const items = composeJobActivityItems({
       jobCreatedAt: "2026-08-01T00:00:00.000Z",
       jobActivityEvents: [
@@ -315,11 +315,11 @@ describe("activity composer", () => {
       ],
     });
     assert.equal(items.some((item) => item.label === "Job created"), true);
-    assert.equal(items.some((item) => item.label === "Moved to Proposal"), true);
-    assert.equal(items.some((item) => item.label === "Customer requested Enhanced"), true);
+    assert.equal(items.some((item) => item.label === "Moved to Proposal"), false);
+    assert.equal(items.some((item) => item.label === "Customer requested Enhanced"), false);
   });
 
-  test("composes proposal created and sent from durable facts", () => {
+  test("composes proposal sent from durable facts, not draft created", () => {
     const items = composeJobActivityItems({
       proposals: [
         {
@@ -341,7 +341,7 @@ describe("activity composer", () => {
         [JOB_ID]: { latestSentFrozenAt: "2026-08-03T00:00:00.000Z" },
       },
     });
-    assert.equal(items.some((item) => item.label === "Proposal created"), true);
+    assert.equal(items.some((item) => item.label === "Proposal created"), false);
     assert.equal(items.some((item) => item.label === "Proposal sent"), true);
   });
 
@@ -385,7 +385,7 @@ describe("activity composer", () => {
     });
     assert.deepEqual(
       items.map((item) => item.label),
-      ["Moved to Approved", "Proposal accepted", "Job created"]
+      ["Work approved", "Proposal accepted", "Job created"]
     );
   });
 
@@ -427,7 +427,7 @@ describe("activity composer", () => {
       items.map((item) => item.label),
       [
         "Proposal accepted",
-        "Moved to Approved",
+        "Work approved",
         "Proposal accepted",
         "Job created",
       ]

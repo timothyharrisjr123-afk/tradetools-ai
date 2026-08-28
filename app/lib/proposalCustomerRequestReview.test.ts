@@ -426,7 +426,8 @@ describe("R3B3 contractor copy", () => {
 
     assert.match(proposals, /request\.status !== "dismissed"/);
     assert.doesNotMatch(activity, /status !== "dismissed"/);
-    assert.match(activity, /requests[\s\S]*\.map\(\(request\)/);
+    assert.doesNotMatch(activity, /customerRequestItems/);
+    assert.doesNotMatch(activity, /useJobProposalCustomerRequests/);
     // V2C3 — Preview is awareness-only; Job Card owns history + Mark seen/Dismiss.
     assert.match(previewAwareness, /partitionCustomerRequestReviewItems\(requests\)/);
     assert.match(previewAwareness, /data-preview-request-awareness/);

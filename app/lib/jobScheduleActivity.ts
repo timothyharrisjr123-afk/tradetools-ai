@@ -33,27 +33,23 @@ export function composeScheduleActivityItem(event: JobActivityEvent): {
       parseScheduleWindowPayload(payload.window) ??
       parseScheduleWindowPayload(payload);
     return {
-      label: "Job scheduled",
-      note: window ? formatScheduleWindowLabel(window) : "Work scheduled",
+      label: "Work scheduled",
+      note: window ? formatScheduleWindowLabel(window) : "",
     };
   }
   if (event.event_type === "job_rescheduled") {
-    const previous = parseScheduleWindowPayload(payload.previous_window);
     const next =
       parseScheduleWindowPayload(payload.window) ??
       parseScheduleWindowPayload(payload);
-    const from = previous ? formatScheduleWindowLabel(previous) : "prior window";
-    const to = next ? formatScheduleWindowLabel(next) : "new window";
     return {
-      label: "Job rescheduled",
-      note: `${from} → ${to}`,
+      label: "Work rescheduled",
+      note: next ? formatScheduleWindowLabel(next) : "",
     };
   }
   if (event.event_type === "job_unscheduled") {
-    const previous = parseScheduleWindowPayload(payload.previous_window);
     return {
-      label: "Job unscheduled",
-      note: previous ? formatScheduleWindowLabel(previous) : "Schedule removed",
+      label: "Work schedule removed",
+      note: "",
     };
   }
   return null;

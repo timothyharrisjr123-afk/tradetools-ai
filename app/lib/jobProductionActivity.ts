@@ -3,7 +3,10 @@
  * The paired stage_changed(reason=work_started) row remains durable but hidden.
  */
 
-import { formatProductionStartedAt } from "@/app/lib/jobProductionTypes";
+import {
+  formatScheduleWindowLabel,
+  parseScheduleWindowPayload,
+} from "@/app/lib/jobScheduleMapper";
 import type { JobActivityEvent } from "@/app/lib/jobLifecycleTypes";
 
 export function isSuppressedProductionStageChange(
@@ -20,25 +23,13 @@ export function composeProductionActivityItem(
   timezone?: string | null
 ): { label: string; note: string } | null {
   if (event.event_type !== "job_work_started") return null;
-  const plannedWindow =
-    event.payload_json?.planned_window &&
-    typeof event.payload_json.planned_window === "object"
-      ? (event.payload_json.planned_window as Record<string, unknown>)
-      : null;
-  const resolvedTimezone =
-    timezone ??
-    (typeof plannedWindow?.timezone === "string"
-      ? plannedWindow.timezone
-      : null);
-  const startedAt =
-    typeof event.payload_json?.production_started_at === "string"
-      ? event.payload_json.production_started_at
-      : event.created_at;
+  void timezone;
+  const planned =
+    parseScheduleWindowPayload(event.payload_json?.planned_window) ??
+    parseScheduleWindowPayload(event.payload_json?.window);
   return {
     label: "Work started",
-    note:
-      formatProductionStartedAt(startedAt, resolvedTimezone) ??
-      "Production started",
+    note: planned ? formatScheduleWindowLabel(planned) : "",
   };
 }
 

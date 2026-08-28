@@ -424,7 +424,7 @@ describe("schedule mapper", () => {
 });
 
 describe("activity presentation", () => {
-  test("shows Job scheduled and suppresses Moved to Scheduled", () => {
+  test("shows Work scheduled and suppresses Moved to Scheduled", () => {
     const items = composeJobActivityItems({
       jobActivityEvents: [
         {
@@ -456,11 +456,11 @@ describe("activity presentation", () => {
         },
       ],
     });
-    assert.equal(items.some((item) => item.label === "Job scheduled"), true);
+    assert.equal(items.some((item) => item.label === "Work scheduled"), true);
     assert.equal(items.some((item) => item.label === "Moved to Scheduled"), false);
   });
 
-  test("shows Job unscheduled and suppresses Moved to Approved", () => {
+  test("shows Work schedule removed and suppresses Moved to Approved", () => {
     const items = composeJobActivityItems({
       jobActivityEvents: [
         {
@@ -492,7 +492,7 @@ describe("activity presentation", () => {
         },
       ],
     });
-    assert.equal(items.some((item) => item.label === "Job unscheduled"), true);
+    assert.equal(items.some((item) => item.label === "Work schedule removed"), true);
     assert.equal(items.some((item) => item.label === "Moved to Approved"), false);
   });
 });
