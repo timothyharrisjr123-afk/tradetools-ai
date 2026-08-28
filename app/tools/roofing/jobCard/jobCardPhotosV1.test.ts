@@ -92,6 +92,8 @@ describe("empty and add", () => {
       })
     );
     assert.doesNotMatch(html, new RegExp(JOB_ATTACHMENTS_TAKE_PHOTO));
+    assert.match(html, new RegExp(JOB_ATTACHMENTS_CHOOSE_PHOTOS));
+    assert.match(html, new RegExp(JOB_ATTACHMENTS_UPLOAD_FILE));
   });
 });
 
@@ -145,6 +147,7 @@ describe("gallery files progress viewer caption", () => {
     assert.match(html, /data-jobcard-attachment-pending="uploading"/);
     assert.match(html, /data-jobcard-attachment-pending="failed"/);
     assert.match(html, /Retry/);
+    assert.match(html, /data-jobcard-attachment-failed-actions/);
   });
 
   test("viewer shows caption and meta without EXIF dump", () => {

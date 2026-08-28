@@ -86,6 +86,7 @@ const PDF: JobAttachmentListItem = {
 type SceneId =
   | "empty"
   | "add-menu"
+  | "add-menu-desktop"
   | "populated"
   | "uploading"
   | "failed"
@@ -104,6 +105,7 @@ const SCENES: Record<
 > = {
   empty: { attachments: [], cameraAvailable: false },
   "add-menu": { attachments: [], cameraAvailable: true },
+  "add-menu-desktop": { attachments: [], cameraAvailable: false },
   populated: { attachments: POPULATED, cameraAvailable: false },
   uploading: {
     attachments: POPULATED.slice(1),
@@ -156,7 +158,7 @@ export default function PhotosV1ReviewHarness() {
   const show = (search.get("show") ?? "populated") as SceneId;
   const scene = SCENES[show] ?? SCENES.populated;
   const [tab] = useState<JobCardTabId>("attachments");
-  const [menuNudge] = useState(show === "add-menu");
+  const [menuNudge] = useState(show === "add-menu" || show === "add-menu-desktop");
 
   return (
     <div className="bg-white" data-photos-v1-review={show}>
@@ -173,7 +175,7 @@ export default function PhotosV1ReviewHarness() {
               pending={scene.pending}
               cameraAvailable={scene.cameraAvailable}
               initialViewerId={scene.initialViewerId}
-              initialMenuOpen={show === "add-menu"}
+              initialMenuOpen={show === "add-menu" || show === "add-menu-desktop"}
               currentUserId="user-1"
               onAddFiles={() => undefined}
               onRetry={() => undefined}

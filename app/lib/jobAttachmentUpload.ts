@@ -128,6 +128,9 @@ export function canUseCameraCapture(
     ontouch?: boolean;
     maxTouchPoints?: number;
     coarsePointer?: boolean;
+    finePointer?: boolean;
+    hoverCapable?: boolean;
+    touchFirst?: boolean;
     captureAttr?: boolean;
   } = {}
 ): boolean {
@@ -136,17 +139,44 @@ export function canUseCameraCapture(
     (typeof document !== "undefined" &&
       "capture" in document.createElement("input"));
   if (!captureAttr) return false;
-  const ontouch =
-    env.ontouch ??
-    (typeof window !== "undefined" && "ontouchstart" in window);
+
   const maxTouchPoints =
     env.maxTouchPoints ??
     (typeof navigator !== "undefined" ? navigator.maxTouchPoints : 0);
   const coarsePointer =
     env.coarsePointer ??
     (typeof window !== "undefined" &&
-      window.matchMedia?.("(pointer: coarse)").matches);
-  return Boolean(ontouch || (maxTouchPoints && maxTouchPoints > 0) || coarsePointer);
+      window.matchMedia?.("(pointer: coarse)").matches === true);
+  const finePointer =
+    env.finePointer ??
+    (typeof window !== "undefined" &&
+      window.matchMedia?.("(pointer: fine)").matches === true);
+  const hoverCapable =
+    env.hoverCapable ??
+    (typeof window !== "undefined" &&
+      window.matchMedia?.("(hover: hover)").matches === true);
+  const touchFirst =
+    env.touchFirst ??
+    (typeof window !== "undefined" &&
+      window.matchMedia?.("(hover: none) and (pointer: coarse)").matches ===
+        true);
+  const ontouch =
+    env.ontouch ??
+    (typeof window !== "undefined" && "ontouchstart" in window);
+
+  // Primary mouse/trackpad desktop: no meaningful rear-camera capture.
+  if (
+    hoverCapable &&
+    finePointer &&
+    !coarsePointer &&
+    maxTouchPoints === 0 &&
+    !ontouch &&
+    !touchFirst
+  ) {
+    return false;
+  }
+
+  return Boolean(touchFirst || coarsePointer || maxTouchPoints > 0 || ontouch);
 }
 
 export async function putFileToSignedUrl(input: {
