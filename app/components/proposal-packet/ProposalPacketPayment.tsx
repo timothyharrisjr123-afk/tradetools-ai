@@ -69,14 +69,18 @@ export default function ProposalPacketPayment({
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
           {publicPaymentTitle(payment.state, payment.kind)}
         </p>
-        <p className="mt-1 text-sm font-medium text-slate-800">{payment.kindLabel}</p>
-        <p className="mt-0.5 text-2xl font-semibold tabular-nums text-slate-950">
-          {payment.amountLabel}
-        </p>
-        {payment.state === "received" && payment.paidOnLabel ? (
+        {payment.kindLabel ? (
+          <p className="mt-1 text-sm font-medium text-slate-800">{payment.kindLabel}</p>
+        ) : null}
+        {payment.amountLabel ? (
+          <p className="mt-0.5 text-2xl font-semibold tabular-nums text-slate-950">
+            {payment.amountLabel}
+          </p>
+        ) : null}
+        {payment.state === "payment_received" && payment.paidOnLabel ? (
           <p className="mt-1 text-sm text-slate-600">Paid {payment.paidOnLabel}</p>
         ) : null}
-        {payment.state === "received" && payment.methodLabel ? (
+        {payment.state === "payment_received" && payment.methodLabel ? (
           <p className="mt-1 text-sm text-slate-600" data-public-payment-method>
             {payment.methodLabel}
           </p>

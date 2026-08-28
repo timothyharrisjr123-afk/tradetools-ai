@@ -260,7 +260,7 @@ export const PROPOSAL_PACKET_PURCHASE_DUE_AMOUNT =
 
 /** Sticky mobile purchase bar — presentation of the same primary action. */
 export const PROPOSAL_PACKET_STICKY_BAR =
-  "fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t border-[#dbe4ef] bg-white/95 px-4 py-3 shadow-[0_-6px_24px_rgba(11,31,51,0.10)] backdrop-blur lg:hidden";
+  "fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t border-[#dbe4ef] bg-white/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-6px_24px_rgba(11,31,51,0.10)] backdrop-blur lg:hidden";
 
 /**
  * Quiet continuation request (closeout) — same label semantics as primary request,

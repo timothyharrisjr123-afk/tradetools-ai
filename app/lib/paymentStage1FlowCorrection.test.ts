@@ -54,7 +54,7 @@ describe("Payment Stage 1 flow correction", () => {
       selectedTotalCents: 1500000,
     });
     assert.ok(vm);
-    assert.equal(vm?.state, "due");
+    assert.equal(vm?.state, "deposit_due");
     assert.equal(vm?.ctaLabel, "Pay deposit");
     assert.equal(vm?.amountLabel, "$4,500.00");
     assert.equal(buildPublicPaymentViewModel({ requests: [] }), null);
@@ -143,7 +143,10 @@ describe("Payment Stage 1 flow correction", () => {
 
   test("orchestrator injects prospective deposit when no request yet", () => {
     const orchestrator = read("app/lib/proposalPublicAccessOrchestrator.server.ts");
-    assert.match(orchestrator, /buildProspectiveDepositPaymentViewModel/);
+    assert.match(orchestrator, /buildPublicPaymentViewModel/);
+    assert.match(orchestrator, /accepted: Boolean\(acceptance\)/);
+    assert.match(orchestrator, /contractTotalCents: selectedTotalCents/);
+    assert.doesNotMatch(orchestrator, /openCanonicalDepositFromAcceptedProposal/);
   });
 
   test("send readiness unknown message is exported", () => {

@@ -2,10 +2,10 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { formatUsdFromCents } from "@/app/lib/jobPaymentMoney";
-import type { ProposalCustomerPacketViewModel } from "@/app/lib/proposalCustomerPacketViewModel";
 import {
   proposalCustomerAmountLabel,
   PROPOSAL_CUSTOMER_PACKET_CHOICE_SAVE_ERROR,
+  type ProposalCustomerPacketViewModel,
 } from "@/app/lib/proposalCustomerPacketViewModel";
 import {
   resolveDepositObligationCents,
@@ -41,7 +41,7 @@ type ProposalPacketProps = {
  * FieldDive customer proposal — a buying decision, not a status page.
  *
  * brand → project context → choose a package if more than one is offered →
- * one purchase composition (package, price, terms, due today, one action) →
+ * one purchase composition (package, price, current payment, one action) →
  * included work → included upgrades → warranty/notes/terms → questions → footer.
  *
  * The decision sits immediately after the options so money is never separated
@@ -139,7 +139,6 @@ export default function ProposalPacket({
 
   // Send the chosen key only when the customer actually had a choice to make.
   const action = useProposalPurchaseAction({
-    terms,
     payment: packet.payment ?? null,
     publicAccessToken: requestToken,
     chosenOptionKey: showChoice ? chosenKey : null,
@@ -175,7 +174,10 @@ export default function ProposalPacket({
   const showPurchase = terms != null || packet.payment != null || packet.estimate != null;
 
   return (
-    <main className={PROPOSAL_PACKET_PAGE} data-proposal-packet-mode={mode}>
+    <main
+      className={`${PROPOSAL_PACKET_PAGE} ${mode === "public" ? "pb-28 lg:pb-7" : ""}`}
+      data-proposal-packet-mode={mode}
+    >
       <article className={PROPOSAL_PACKET_SHELL} aria-label="Customer proposal">
         <ProposalPacketTopBar cover={packet.cover} />
         <ProposalPacketHero cover={packet.cover} estimate={packet.estimate} />
@@ -245,6 +247,7 @@ export default function ProposalPacket({
       {mode === "public" ? (
         <ProposalPacketStickyPurchaseBar
           watchRef={purchaseRef}
+          payment={packet.payment ?? null}
           dueLabel={stickyDueLabel}
           action={purchaseAction}
         />

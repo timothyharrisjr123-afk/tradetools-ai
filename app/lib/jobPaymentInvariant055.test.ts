@@ -307,7 +307,7 @@ describe("055 — app coordination", () => {
     assert.doesNotMatch(orchestrator, /openCanonicalDepositFromAcceptedProposal/);
     assert.doesNotMatch(orchestrator, /openJobDepositFromAcceptanceViaAdmin/);
     assert.doesNotMatch(orchestrator, /open_job_deposit_from_acceptance_v1/);
-    assert.match(orchestrator, /buildProspectiveDepositPaymentViewModel/);
+    assert.match(orchestrator, /buildPublicPaymentViewModel/);
   });
 
   test("accept, sign, and checkout share the thin obligation helper", () => {
@@ -346,7 +346,7 @@ describe("055 — app coordination", () => {
 
   test("Pay-as-first-accept: deposit required uses Pay even when unaccepted", () => {
     const hook = read("app/components/proposal-packet/useProposalPurchaseAction.ts");
-    assert.match(hook, /requiresDeposit\s*\n\s*\? "pay"/);
+    assert.match(hook, /isCustomerPaymentPayableState\(paymentState\)/);
     assert.match(hook, /kind === "pay" \? "\/api\/public\/payment-requests\/checkout"/);
     assert.match(hook, /"\/api\/proposals\/accept"/);
   });

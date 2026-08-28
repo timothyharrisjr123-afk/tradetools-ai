@@ -1,4 +1,5 @@
 import ProposalPacket from "@/app/components/proposal-packet/ProposalPacket";
+import { applyCustomerPaymentReturnHint } from "@/app/lib/jobPaymentCustomerPresenter";
 import type { ProposalPublicProposalDocumentViewModel } from "@/app/lib/proposalPublicProposalViewModel";
 
 type PublicProposalPageProps = {
@@ -12,21 +13,13 @@ export default function PublicProposalPage({
   publicAccessToken,
   paymentReturnHint = null,
 }: PublicProposalPageProps) {
-  const packet = paymentReturnHint
-    ? {
-        ...document.packet,
-        payment: document.packet.payment
-          ? {
-              ...document.packet.payment,
-              state:
-                paymentReturnHint === "pending" &&
-                document.packet.payment.state !== "received"
-                  ? "pending"
-                  : document.packet.payment.state,
-            }
-          : document.packet.payment,
-      }
-    : document.packet;
+  const packet = {
+    ...document.packet,
+    payment: applyCustomerPaymentReturnHint(
+      document.packet.payment ?? null,
+      paymentReturnHint
+    ),
+  };
   return (
     <ProposalPacket
       packet={packet}

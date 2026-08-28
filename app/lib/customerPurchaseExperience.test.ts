@@ -11,7 +11,6 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 import {
   PROPOSAL_CUSTOMER_PACKET_CHOSEN_BADGE,
-  PROPOSAL_CUSTOMER_PACKET_DUE_TODAY_LABEL,
   PROPOSAL_CUSTOMER_PACKET_YOUR_PACKAGE_LABEL,
   proposalCustomerAmountLabel,
   proposalCustomerPacketChooseCta,
@@ -124,9 +123,10 @@ describe("Phase 1 — unified purchase composition", () => {
     const purchase = read(`${PACKET_DIR}/ProposalPacketPurchase.tsx`);
     assert.match(purchase, /PROPOSAL_CUSTOMER_PACKET_YOUR_PACKAGE_LABEL/);
     assert.match(purchase, /packageTotalLabel/);
-    assert.match(purchase, /formatPaymentTermsCustomerCopy/);
-    assert.match(purchase, /PROPOSAL_CUSTOMER_PACKET_DUE_TODAY_LABEL/);
+    assert.match(purchase, /originalTerms/);
     assert.match(purchase, /PROPOSAL_PACKET_CTA_PRIMARY_DOMINANT/);
+    assert.doesNotMatch(purchase, /Due today/);
+    assert.doesNotMatch(purchase, /DUE_TODAY/);
   });
 
   test("the old split payment-terms and deposit-due surfaces are gone", () => {
@@ -137,15 +137,14 @@ describe("Phase 1 — unified purchase composition", () => {
 
   test("terms copy carries no amount, so the amount appears once in the due line", () => {
     const purchase = read(`${PACKET_DIR}/ProposalPacketPurchase.tsx`);
-    assert.match(purchase, /formatPaymentTermsCustomerCopy\(terms, null\)/);
+    assert.match(purchase, /data-proposal-payment-amount/);
     const copy = formatPaymentTermsCustomerCopy(PERCENT_TERMS, null);
     assert.ok(!copy.depositLine.includes("$"), copy.depositLine);
-    assert.equal((purchase.match(/data-proposal-due-today/g) ?? []).length, 1);
+    assert.equal((purchase.match(/data-proposal-due-today/g) ?? []).length, 0);
   });
 
   test("customer labels read as buying language", () => {
     assert.equal(PROPOSAL_CUSTOMER_PACKET_YOUR_PACKAGE_LABEL, "Your package");
-    assert.equal(PROPOSAL_CUSTOMER_PACKET_DUE_TODAY_LABEL, "Due today");
   });
 
   test("customer money drops trailing cents but keeps real ones", () => {
@@ -179,7 +178,8 @@ describe("Phase 1 — unified purchase composition", () => {
 
   test("once accepted the server-owned amount governs", () => {
     const purchase = read(`${PACKET_DIR}/ProposalPacketPurchase.tsx`);
-    assert.match(purchase, /accepted \|\| state === "failed"\s*\?\s*payment\?\.amountLabel/);
+    assert.match(purchase, /isCustomerPaymentPayableState\(state\)/);
+    assert.match(purchase, /payment\?\.amountLabel/);
   });
 });
 
@@ -188,7 +188,8 @@ describe("Phase 1 — one canonical action", () => {
     assert.equal(termsRequireOnlineDeposit(PERCENT_TERMS), true);
     assert.equal(termsRequireOnlineDeposit(NO_DEPOSIT_TERMS), false);
     const hook = read(`${PACKET_DIR}/useProposalPurchaseAction.ts`);
-    assert.match(hook, /requiresDeposit\s*\?\s*"pay"/);
+    assert.match(hook, /isCustomerPaymentPayableState\(paymentState\)/);
+    assert.match(hook, /confirm_proposal/);
     assert.match(hook, /PROPOSAL_CUSTOMER_PACKET_CONFIRM_PROPOSAL_CTA/);
   });
 
@@ -208,8 +209,8 @@ describe("Phase 1 — one canonical action", () => {
 
   test("no action is offered once payment has settled or is in flight", () => {
     const hook = read(`${PACKET_DIR}/useProposalPurchaseAction.ts`);
-    assert.match(hook, /paymentState === "received" \|\| paymentState === "pending"/);
-    assert.match(hook, /settled\s*\?\s*"none"/);
+    assert.match(hook, /isCustomerPaymentPayableState\(paymentState\)/);
+    assert.match(hook, /accepted\s*\n\s*\? "none"/);
   });
 
   test("repeated presses cannot double-submit", () => {

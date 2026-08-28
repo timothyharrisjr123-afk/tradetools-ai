@@ -23,15 +23,11 @@ import { createAdminClient } from "@/app/lib/supabase/admin";
 import { getPublicProposalVersionGraph } from "@/app/lib/proposalVersionGraphStore.server";
 import {
   buildPublicPaymentViewModel,
-  buildProspectiveDepositPaymentViewModel,
   type JobPaymentRequestRow,
   type JobPaymentTransactionRow,
 } from "@/app/lib/jobPaymentReadModel";
 import { readProposalPaymentTerms } from "@/app/lib/proposalPaymentTermsPersistence";
-import {
-  DEFAULT_PROPOSAL_PAYMENT_TERMS,
-  termsRequireOnlineDeposit,
-} from "@/app/lib/proposalPaymentTerms";
+import { DEFAULT_PROPOSAL_PAYMENT_TERMS } from "@/app/lib/proposalPaymentTerms";
 import { readProposalPublicOptionChoiceCurrent } from "@/app/lib/proposalPublicOptionChoicePersistence";
 import { isUuidLike } from "@/app/lib/uuid";
 
@@ -155,7 +151,9 @@ async function getPaymentForJob(input: {
     if (ids.length === 0) return { requests, transactions: [] };
     const { data: txns } = await supabase
       .from("job_payment_transactions")
-      .select("id,payment_request_id,kind,status,amount_cents,occurred_at,provider_event_id")
+      .select(
+        "id,payment_request_id,kind,status,amount_cents,occurred_at,provider_event_id,provider_payment_intent_id"
+      )
       .in("payment_request_id", ids);
     return {
       requests,
@@ -247,22 +245,15 @@ export async function loadPublicProposalByToken(
         })
       : { requests: [], transactions: [] };
 
-    const payableRequests = loaded.requests.filter((row) => {
-      if (row.status === "paid" || row.status === "processing") return true;
-      return row.proposal_version_id === result.tracking.proposal_version_id;
+    const payment = buildPublicPaymentViewModel({
+      requests: loaded.requests,
+      transactions: loaded.transactions,
+      accepted: Boolean(acceptance),
+      terms,
+      contractTotalCents: selectedTotalCents,
+      proposalVersionId: result.tracking.proposal_version_id,
+      acceptanceId: acceptance?.id ? acceptance.id : null,
     });
-
-    const payment =
-      buildPublicPaymentViewModel({
-        requests: payableRequests,
-        transactions: loaded.transactions,
-      }) ??
-      (!acceptance && termsRequireOnlineDeposit(terms)
-        ? buildProspectiveDepositPaymentViewModel({
-            terms,
-            selectedTotalCents,
-          })
-        : null);
 
     return {
       ...result,

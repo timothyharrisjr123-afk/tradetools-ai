@@ -15,28 +15,25 @@ import {
   JOB_CARD_PAYMENTS_NOT_CONNECTED,
   JOB_CARD_PAYMENTS_NOT_REQUESTED,
   JOB_CARD_PAYMENTS_PAID_IN_FULL,
-  PUBLIC_PAYMENT_BALANCE_LABEL,
-  PUBLIC_PAYMENT_DEPOSIT_LABEL,
-  PUBLIC_PAYMENT_PROGRESS_LABEL,
-  PUBLIC_PAYMENT_DUE_TITLE,
-  PUBLIC_PAYMENT_PARTIAL_REFUND_EXPLANATION,
-  PUBLIC_PAYMENT_PENDING_EXPLANATION,
-  PUBLIC_PAYMENT_PENDING_TITLE,
-  PUBLIC_PAYMENT_PAY_DEPOSIT_CTA,
-  PUBLIC_PAYMENT_PAY_CTA,
-  PUBLIC_PAYMENT_RECEIVED_TITLE,
-  PUBLIC_PAYMENT_REFUNDED_EXPLANATION,
-  PUBLIC_PAYMENT_REFUNDED_TITLE,
   type JobPaymentKind,
   type JobPaymentRequestStatus,
 } from "@/app/lib/jobPaymentTypes";
-import { PUBLIC_PAY_REMAINING_BALANCE_CTA } from "@/app/lib/proposalPaymentTerms";
-import {
-  resolveDepositObligationCents,
-  termsRequireOnlineDeposit,
-  type ProposalPaymentTerms,
-} from "@/app/lib/proposalPaymentTerms";
-import { formatProposalCustomerAcceptedOnLabel } from "@/app/lib/proposalCustomerPacketViewModel";
+
+export type {
+  PublicPaymentHistoryItem,
+  PublicPaymentOriginalTerms,
+  PublicPaymentViewModel,
+  PublicPaymentViewState,
+} from "@/app/lib/jobPaymentCustomerPresenter";
+export {
+  applyCustomerPaymentReturnHint,
+  buildProspectiveDepositPaymentViewModel,
+  buildPublicPaymentViewModel,
+  customerCurrentRequest,
+  isCustomerPaymentPayableState,
+  publicCheckoutShouldOpenCanonicalDeposit,
+  publicPaymentTitle,
+} from "@/app/lib/jobPaymentCustomerPresenter";
 
 export type JobPaymentRequestRow = {
   id: string;
@@ -96,24 +93,6 @@ export type JobCardPaymentViewModel = {
   remainingCents: number;
   acceptedTotalCents: number | null;
   unsignedApprovedEligible: boolean;
-};
-
-export type PublicPaymentViewState =
-  | "due"
-  | "pending"
-  | "received"
-  | "failed"
-  | "refunded";
-
-export type PublicPaymentViewModel = {
-  state: PublicPaymentViewState;
-  kind: JobPaymentKind;
-  amountLabel: string;
-  kindLabel: string;
-  paidOnLabel: string | null;
-  explanation: string | null;
-  ctaLabel: string | null;
-  methodLabel: string | null;
 };
 
 export function netPaidCents(
@@ -355,149 +334,6 @@ export function buildJobCardPaymentViewModel(input: {
     acceptedTotalCents: acceptedTotal,
     unsignedApprovedEligible,
   };
-}
-
-function publicPaymentKindLabel(kind: JobPaymentKind): string {
-  if (kind === "deposit") return PUBLIC_PAYMENT_DEPOSIT_LABEL;
-  if (kind === "progress") return PUBLIC_PAYMENT_PROGRESS_LABEL;
-  return PUBLIC_PAYMENT_BALANCE_LABEL;
-}
-
-function obligationCta(kind: JobPaymentKind): string {
-  if (kind === "deposit") return PUBLIC_PAYMENT_PAY_DEPOSIT_CTA;
-  if (kind === "progress") return PUBLIC_PAYMENT_PAY_CTA;
-  return PUBLIC_PAY_REMAINING_BALANCE_CTA;
-}
-
-export function buildPublicPaymentViewModel(input: {
-  requests: readonly JobPaymentRequestRow[];
-  transactions?: readonly JobPaymentTransactionRow[];
-  returnHint?: "pending" | "cancelled" | null;
-}): PublicPaymentViewModel | null {
-  const current = activeRequest(input.requests);
-  const paid = [...input.requests]
-    .filter((row) => row.status === "paid")
-    .sort((a, b) => String(b.paid_at ?? "").localeCompare(String(a.paid_at ?? "")))[0];
-  const refunded = (input.transactions ?? []).some(
-    (row) => row.kind === "refund" && row.status === "refunded"
-  );
-  const methodLabel = (paid?.settled_payment_method_label ?? "").trim() || null;
-
-  if (current?.status === "failed") {
-    return {
-      state: "failed",
-      kind: current.kind,
-      amountLabel: formatUsdFromCents(current.amount_cents),
-      kindLabel:
-        publicPaymentKindLabel(current.kind),
-      paidOnLabel: null,
-      explanation: "This payment did not complete. You can try again.",
-      ctaLabel: obligationCta(current.kind),
-      methodLabel: null,
-    };
-  }
-
-  if (current) {
-    const pending =
-      current.status === "processing" || input.returnHint === "pending";
-    return {
-      state: pending ? "pending" : "due",
-      kind: current.kind,
-      amountLabel: formatUsdFromCents(current.amount_cents),
-      kindLabel:
-        publicPaymentKindLabel(current.kind),
-      paidOnLabel: null,
-      explanation: pending ? PUBLIC_PAYMENT_PENDING_EXPLANATION : null,
-      ctaLabel: pending ? null : obligationCta(current.kind),
-      methodLabel: null,
-    };
-  }
-
-  if (paid && !refunded) {
-    return {
-      state: "received",
-      kind: paid.kind,
-      amountLabel: formatUsdFromCents(paid.amount_cents),
-      kindLabel:
-        publicPaymentKindLabel(paid.kind),
-      paidOnLabel: formatProposalCustomerAcceptedOnLabel(paid.paid_at),
-      explanation: null,
-      ctaLabel: null,
-      methodLabel,
-    };
-  }
-
-  if (paid && refunded) {
-    const net = netPaidCents(input.requests, input.transactions ?? []);
-    const refundedCents = (input.transactions ?? [])
-      .filter((row) => row.kind === "refund" && row.status === "refunded")
-      .reduce((sum, row) => sum + row.amount_cents, 0);
-    const full = net < 100;
-    return {
-      state: "refunded",
-      kind: paid.kind,
-      amountLabel: formatUsdFromCents(full ? paid.amount_cents : refundedCents),
-      kindLabel:
-        publicPaymentKindLabel(paid.kind),
-      paidOnLabel: null,
-      explanation: full
-        ? PUBLIC_PAYMENT_REFUNDED_EXPLANATION
-        : `${PUBLIC_PAYMENT_PARTIAL_REFUND_EXPLANATION} ${formatUsdFromCents(net)} remains.`,
-      ctaLabel: null,
-      methodLabel,
-    };
-  }
-
-  return null;
-}
-
-/**
- * Shows deposit Pay before canonical acceptance when terms require it.
- * Checkout creates acceptance idempotently, then opens the deposit request.
- */
-export function buildProspectiveDepositPaymentViewModel(input: {
-  terms: ProposalPaymentTerms;
-  selectedTotalCents: number | null;
-}): PublicPaymentViewModel | null {
-  if (!termsRequireOnlineDeposit(input.terms)) return null;
-  if (
-    input.selectedTotalCents == null ||
-    !Number.isInteger(input.selectedTotalCents) ||
-    input.selectedTotalCents < 100
-  ) {
-    return null;
-  }
-  const cents = resolveDepositObligationCents({
-    mode: input.terms.depositMode,
-    percentBps: input.terms.depositPercentBps,
-    fixedCents: input.terms.depositFixedCents,
-    acceptedTotalCents: input.selectedTotalCents,
-  });
-  if (cents < 100) return null;
-  return {
-    state: "due",
-    kind: "deposit",
-    amountLabel: formatUsdFromCents(cents),
-    kindLabel: PUBLIC_PAYMENT_DEPOSIT_LABEL,
-    paidOnLabel: null,
-    explanation: null,
-    ctaLabel: PUBLIC_PAYMENT_PAY_DEPOSIT_CTA,
-    methodLabel: null,
-  };
-}
-
-export function publicPaymentTitle(
-  state: PublicPaymentViewState,
-  kind?: JobPaymentKind
-): string {
-  if (state === "pending") {
-    return kind === "deposit" ? "Deposit pending" : PUBLIC_PAYMENT_PENDING_TITLE;
-  }
-  if (state === "received") {
-    return kind === "deposit" ? "Deposit received" : PUBLIC_PAYMENT_RECEIVED_TITLE;
-  }
-  if (state === "refunded") return PUBLIC_PAYMENT_REFUNDED_TITLE;
-  return kind === "deposit" ? "Deposit due" : PUBLIC_PAYMENT_DUE_TITLE;
 }
 
 export type JobPaymentActivityItem = {

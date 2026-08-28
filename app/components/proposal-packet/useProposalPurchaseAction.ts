@@ -1,16 +1,15 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { PublicPaymentViewModel } from "@/app/lib/jobPaymentReadModel";
+import {
+  isCustomerPaymentPayableState,
+  type PublicPaymentViewModel,
+} from "@/app/lib/jobPaymentCustomerPresenter";
 import {
   PROPOSAL_CUSTOMER_PACKET_CONFIRM_PROPOSAL_CTA,
   PROPOSAL_CUSTOMER_PACKET_CONFIRM_PROPOSAL_BUSY,
 } from "@/app/lib/proposalCustomerPacketViewModel";
-import {
-  PUBLIC_PAY_DEPOSIT_CTA,
-  termsRequireOnlineDeposit,
-  type ProposalPaymentTerms,
-} from "@/app/lib/proposalPaymentTerms";
+import { PUBLIC_PAY_DEPOSIT_CTA } from "@/app/lib/proposalPaymentTerms";
 
 export const PROPOSAL_PURCHASE_PAY_BUSY_LABEL = "Opening…";
 
@@ -33,7 +32,6 @@ export type ProposalPurchaseAction = {
 };
 
 type UseProposalPurchaseActionInput = {
-  terms: ProposalPaymentTerms | null;
   payment: PublicPaymentViewModel | null;
   publicAccessToken: string | null;
   /** Frozen option key the customer chose. Null when there is nothing to choose. */
@@ -50,7 +48,6 @@ type UseProposalPurchaseActionInput = {
  * the sticky bar is presentation, not a second code path.
  */
 export function useProposalPurchaseAction({
-  terms,
   payment,
   publicAccessToken,
   chosenOptionKey,
@@ -60,24 +57,21 @@ export function useProposalPurchaseAction({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const requiresDeposit = terms ? termsRequireOnlineDeposit(terms) : false;
   const paymentState = payment?.state ?? null;
-  const settled =
-    paymentState === "received" || paymentState === "pending" || paymentState === "refunded";
-
   const payableNow =
-    (paymentState === "due" || paymentState === "failed") &&
-    Boolean(payment?.ctaLabel);
+    isCustomerPaymentPayableState(paymentState) && Boolean(payment?.ctaLabel);
 
   const kind: ProposalPurchaseActionKind = !publicAccessToken
     ? "none"
-    : settled
-      ? "none"
-      : payableNow || requiresDeposit
-        ? "pay"
+    : payableNow
+      ? "pay"
+      : paymentState === "confirm_proposal"
+        ? "confirm"
         : accepted
           ? "none"
-          : "confirm";
+          : paymentState
+            ? "none"
+            : "confirm";
 
   const submit = useCallback(() => {
     if (!publicAccessToken || busy || kind === "none") return;

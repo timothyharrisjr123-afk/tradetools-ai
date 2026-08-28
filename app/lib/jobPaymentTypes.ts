@@ -109,6 +109,30 @@ export const PUBLIC_PAYMENT_PROGRESS_LABEL = "Progress payment";
 export const PUBLIC_PAYMENT_BALANCE_LABEL = "Remaining balance";
 export const PUBLIC_PAYMENT_PAY_DEPOSIT_CTA = "Pay deposit";
 export const PUBLIC_PAYMENT_PAY_CTA = "Pay";
+export const PUBLIC_PAYMENT_PAY_NOW_CTA = "Pay now";
+export const PUBLIC_PAYMENT_TRY_AGAIN_CTA = "Try payment again";
+export const PUBLIC_PAYMENT_DEPOSIT_DUE_TITLE = "Deposit due";
+export const PUBLIC_PAYMENT_PROCESSING_TITLE = "Payment processing";
+export const PUBLIC_PAYMENT_PROCESSING_EXPLANATION =
+  "We're confirming your payment. You don't need to pay again.";
+export const PUBLIC_PAYMENT_DIDNT_GO_THROUGH = "Payment didn't go through";
+export const PUBLIC_PAYMENT_FAILED_DEPOSIT_RETRY_EXPLANATION =
+  "You can try the deposit payment again.";
+export const PUBLIC_PAYMENT_FAILED_INACTIVE_EXPLANATION =
+  "This payment didn't complete. Your contractor can create a new payment request if payment is still needed.";
+export const PUBLIC_PAYMENT_NO_PAYMENT_DUE_NOW = "No payment is due right now.";
+export const PUBLIC_PAYMENT_PAID_IN_FULL_TITLE = "Paid in full";
+export const PUBLIC_PAYMENT_PAID_IN_FULL_EXPLANATION =
+  "No further payment is due on this proposal.";
+export const PUBLIC_PAYMENT_PAYMENTS_COMPLETE_TITLE = "Payments complete";
+export const PUBLIC_PAYMENT_PAYMENTS_COMPLETE_EXPLANATION =
+  "A refund was recorded. No further payment is due on this proposal.";
+export const PUBLIC_PAYMENT_CONTRACTOR_REQUESTED =
+  "Your contractor requested this payment.";
+export const PUBLIC_PAYMENT_STRIPE_NOTE =
+  "You'll continue to Stripe Checkout. The amount is set.";
+export const PUBLIC_PAYMENT_HISTORY_HEADING = "Payments";
+export const PUBLIC_PAYMENT_ORIGINAL_TERMS_HEADING = "Original proposal terms";
 export const PUBLIC_PAYMENT_PENDING_EXPLANATION =
   "Your payment is processing. This can take a short time for cards and longer for bank payments. You do not need to pay again.";
 export const PUBLIC_PAYMENT_REFUNDED_EXPLANATION =

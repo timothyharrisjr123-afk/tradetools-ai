@@ -334,13 +334,13 @@ describe("Job Card and Public states", () => {
   test("public due / pending / received", () => {
     assert.equal(
       buildPublicPaymentViewModel({ requests: [request] })?.state,
-      "due"
+      "deposit_due"
     );
     assert.equal(
       buildPublicPaymentViewModel({
         requests: [{ ...request, status: "processing" }],
       })?.state,
-      "pending"
+      "processing"
     );
     assert.equal(
       buildPublicPaymentViewModel({
@@ -352,7 +352,7 @@ describe("Job Card and Public states", () => {
           },
         ],
       })?.state,
-      "received"
+      "payment_received"
     );
     assert.equal(
       buildPublicPaymentViewModel({
@@ -375,7 +375,7 @@ describe("Job Card and Public states", () => {
           },
         ],
       })?.state,
-      "refunded"
+      "payment_received"
     );
   });
 

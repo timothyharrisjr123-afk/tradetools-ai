@@ -292,7 +292,7 @@ describe("056 — API / UI / copy-link contracts", () => {
     const depositMint = checkout.indexOf("openCanonicalDepositFromAcceptedProposal");
     assert.ok(resolveFirst >= 0 && depositMint > resolveFirst);
     const purchase = read("app/components/proposal-packet/useProposalPurchaseAction.ts");
-    assert.match(purchase, /payableNow \|\| requiresDeposit/);
+    assert.match(purchase, /isCustomerPaymentPayableState/);
     const vm = buildPublicPaymentViewModel({
       requests: [
         {
@@ -320,7 +320,7 @@ describe("056 — API / UI / copy-link contracts", () => {
     });
     assert.equal(vm?.kind, "progress");
     assert.equal(vm?.kindLabel, "Progress payment");
-    assert.equal(vm?.ctaLabel, "Pay");
+    assert.equal(vm?.ctaLabel, "Pay now");
   });
 });
 

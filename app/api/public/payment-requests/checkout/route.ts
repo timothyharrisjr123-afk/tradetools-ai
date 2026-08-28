@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { openHostedCheckoutForRequest } from "@/app/lib/jobPaymentCheckout.server";
+import { publicCheckoutShouldOpenCanonicalDeposit } from "@/app/lib/jobPaymentCustomerPresenter";
 import { resolvePublicJobPaymentCheckoutViaRpc } from "@/app/lib/jobPaymentPersistence";
 import { appOriginFromRequest, withPaymentReturnHint } from "@/app/lib/jobPaymentStripe.server";
 import { recordProposalAcceptance } from "@/app/lib/proposalAcceptanceStore.server";
@@ -23,10 +24,43 @@ const TOKEN_FAILURE_CODES = new Set([
   "proposal_unavailable",
 ]);
 
+async function loadCheckoutRequestSnapshots(input: {
+  companyId: string;
+  jobId: string;
+}): Promise<
+  {
+    kind: string;
+    status: string;
+    proposal_version_id: string;
+    proposal_acceptance_id: string;
+    requested_at: string;
+  }[]
+> {
+  try {
+    const { data, error } = await createAdminClient()
+      .from("job_payment_requests")
+      .select("kind,status,proposal_version_id,proposal_acceptance_id,requested_at")
+      .eq("company_id", input.companyId)
+      .eq("job_id", input.jobId)
+      .order("requested_at", { ascending: true });
+    if (error || !data) return [];
+    return data as {
+      kind: string;
+      status: string;
+      proposal_version_id: string;
+      proposal_acceptance_id: string;
+      requested_at: string;
+    }[];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Public Checkout for a payment request bound to the proposal token.
  * Existing open|processing requests (progress/balance/deposit) resolve first.
- * Deposit mint happens only when no current payable request exists.
+ * Deposit mint happens on `not_found`, or on `not_payable` only for failed-deposit retry.
+ * Failed progress/balance never invoke the deposit helper.
  * Amount, account, and binding are server-owned.
  *
  * `optionKey` carries the customer's chosen frozen package. It is a stable
@@ -78,7 +112,23 @@ export async function POST(req: NextRequest) {
       createAdminClient(),
       hash
     );
-    if (resolved.ok !== true && String(resolved.code ?? "") === "not_found") {
+    const resolveCode = String(resolved.code ?? (resolved.ok === true ? "ok" : "not_found"));
+    let requests: Awaited<ReturnType<typeof loadCheckoutRequestSnapshots>> = [];
+    if (resolveCode === "not_payable") {
+      requests = await loadCheckoutRequestSnapshots({
+        companyId: acceptance.company_id,
+        jobId: acceptance.job_id,
+      });
+    }
+    const mayOpenDeposit =
+      resolved.ok !== true &&
+      publicCheckoutShouldOpenCanonicalDeposit({
+        resolveCode,
+        requests,
+        proposalVersionId: acceptance.proposal_version_id,
+        acceptanceId: acceptance.acceptance_id,
+      });
+    if (mayOpenDeposit) {
       const deposit = await openCanonicalDepositFromAcceptedProposal({
         companyId: acceptance.company_id,
         acceptanceId: acceptance.acceptance_id,

@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { isCustomerPaymentPayableState } from "@/app/lib/jobPaymentCustomerPresenter";
+import type { PublicPaymentViewModel } from "@/app/lib/jobPaymentReadModel";
 import {
   PROPOSAL_CUSTOMER_PACKET_CONFIRM_PROPOSAL_SHORT_CTA,
-  PROPOSAL_CUSTOMER_PACKET_DUE_TODAY_LABEL,
+  proposalCustomerAmountLabel,
 } from "@/app/lib/proposalCustomerPacketViewModel";
 import {
   PROPOSAL_PACKET_CTA_PRIMARY,
@@ -14,17 +16,14 @@ import type { ProposalPurchaseAction } from "./useProposalPurchaseAction";
 type ProposalPacketStickyPurchaseBarProps = {
   /** Element to watch. The bar appears only once the decision scrolls away. */
   watchRef: React.RefObject<HTMLElement | null>;
+  payment: PublicPaymentViewModel | null;
   dueLabel: string | null;
   action: ProposalPurchaseAction;
 };
 
-/**
- * Small-screen presentation of the SAME primary action. It renders the action
- * from useProposalPurchaseAction rather than owning a second handler, so there
- * is exactly one canonical commitment path.
- */
 export default function ProposalPacketStickyPurchaseBar({
   watchRef,
+  payment,
   dueLabel,
   action,
 }: ProposalPacketStickyPurchaseBarProps) {
@@ -40,7 +39,6 @@ export default function ProposalPacketStickyPurchaseBar({
       (entries) => {
         const entry = entries[0];
         if (!entry) return;
-        // Show only after the composition has scrolled fully out of view above.
         setVisible(!entry.isIntersecting && entry.boundingClientRect.top < 0);
       },
       { threshold: 0 }
@@ -55,16 +53,19 @@ export default function ProposalPacketStickyPurchaseBar({
     action.kind === "confirm" && !action.busy
       ? PROPOSAL_CUSTOMER_PACKET_CONFIRM_PROPOSAL_SHORT_CTA
       : action.label;
+  const amount = proposalCustomerAmountLabel(dueLabel ?? payment?.amountLabel);
+  const showDue =
+    action.kind === "pay" && isCustomerPaymentPayableState(payment?.state) && amount;
 
   return (
     <div className={PROPOSAL_PACKET_STICKY_BAR} data-proposal-sticky-purchase>
-      {action.kind === "pay" && dueLabel ? (
+      {showDue ? (
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#64748b]">
-            {PROPOSAL_CUSTOMER_PACKET_DUE_TODAY_LABEL}
+          <p className="truncate text-[12px] font-medium text-[#64748b]">
+            {payment?.kindLabel ?? payment?.heading}
           </p>
           <p className="truncate text-[17px] font-semibold tabular-nums tracking-[-0.03em] text-[#0b1f33]">
-            {dueLabel}
+            {amount}
           </p>
         </div>
       ) : (
@@ -75,6 +76,8 @@ export default function ProposalPacketStickyPurchaseBar({
         className={`${PROPOSAL_PACKET_CTA_PRIMARY} shrink-0 px-4`}
         onClick={action.submit}
         disabled={action.busy}
+        aria-busy={action.busy || undefined}
+        aria-label={label ?? undefined}
         data-proposal-sticky-action={action.kind}
       >
         {label}

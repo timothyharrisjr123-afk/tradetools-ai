@@ -320,9 +320,9 @@ describe("ACCEPT/PAY and ledger", () => {
         },
       ],
     });
-    assert.equal(pending?.state, "pending");
-    assert.equal(publicPaymentTitle("pending", "deposit"), "Deposit pending");
-    assert.notEqual(publicPaymentTitle("pending", "deposit"), "Deposit received");
+    assert.equal(pending?.state, "processing");
+    assert.equal(publicPaymentTitle("processing", "deposit"), "Payment processing");
+    assert.notEqual(publicPaymentTitle("processing", "deposit"), "Deposit received");
   });
 
   test("authoritative method may display after payment", () => {
@@ -383,7 +383,7 @@ describe("architecture source locks", () => {
     assert.doesNotMatch(packet, /variant="banner"/);
 
     const purchase = read("app/components/proposal-packet/ProposalPacketPurchase.tsx");
-    assert.match(purchase, /formatPaymentTermsCustomerCopy/);
+    assert.match(purchase, /originalTerms/);
     assert.equal((purchase.match(/data-public-pay=/g) ?? []).length, 1);
   });
 

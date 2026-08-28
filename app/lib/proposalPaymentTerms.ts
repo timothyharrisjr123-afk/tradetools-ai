@@ -44,6 +44,8 @@ export const PAYMENT_TERMS_SECTION_LABEL = "Payment terms";
 export const PAYMENT_TERMS_BALANCE_ON_COMPLETION =
   "Remaining balance due upon completion";
 export const PAYMENT_TERMS_NO_DEPOSIT = "No deposit required";
+export const PAYMENT_TERMS_NO_DEPOSIT_WAS_REQUIRED = "No deposit was required.";
+export const PAYMENT_TERMS_ORIGINAL_HEADING = "Original proposal terms";
 export const SEND_GATE_PAYMENTS_SETUP_LABEL = "Payments setup required";
 export const SEND_GATE_PAYMENTS_SETUP_BODY =
   "Connect payments before sending a proposal that collects a deposit online.";
@@ -161,6 +163,25 @@ export function formatPaymentTermsCustomerCopy(
   return {
     depositLine: `${amount} deposit due upon agreement`,
     balanceLine,
+  };
+}
+
+/**
+ * Frozen terms as contract history — never competing live-due copy.
+ * Amounts stay on the current request block, not in this demoted block.
+ */
+export function formatOriginalProposalTermsCopy(
+  terms: ProposalPaymentTerms,
+  input: { hideBalanceLine?: boolean } = {}
+): { heading: string; depositLine: string; balanceLine: string | null } {
+  const live = formatPaymentTermsCustomerCopy(terms, null);
+  return {
+    heading: PAYMENT_TERMS_ORIGINAL_HEADING,
+    depositLine:
+      terms.depositMode === "none"
+        ? PAYMENT_TERMS_NO_DEPOSIT_WAS_REQUIRED
+        : live.depositLine,
+    balanceLine: input.hideBalanceLine ? null : live.balanceLine,
   };
 }
 
