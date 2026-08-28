@@ -359,7 +359,7 @@ const CUSTOMER_REFUND_PAYMENT: PublicPaymentViewModel = {
       id: "payment:fixture",
       type: "payment",
       kind: "balance",
-      kindLabel: "Remaining balance",
+      kindLabel: "Balance payment received",
       amountLabel: "$7,250.00",
       paidOnLabel: "Aug 26, 2026",
       detail: null,

@@ -9,6 +9,7 @@
 import { formatUsdFromCents } from "@/app/lib/jobPaymentMoney";
 import { JOB_PAYMENT_MIN_AMOUNT_CENTS, type JobPaymentKind } from "@/app/lib/jobPaymentTypes";
 import {
+  PUBLIC_PAYMENT_BALANCE_EVENT_LABEL,
   PUBLIC_PAYMENT_BALANCE_LABEL,
   PUBLIC_PAYMENT_CONTRACTOR_REQUESTED,
   PUBLIC_PAYMENT_DEPOSIT_DUE_TITLE,
@@ -134,6 +135,13 @@ export function publicPaymentKindLabel(kind: JobPaymentKind): string {
   if (kind === "deposit") return PUBLIC_PAYMENT_DEPOSIT_LABEL;
   if (kind === "progress") return PUBLIC_PAYMENT_PROGRESS_LABEL;
   return PUBLIC_PAYMENT_BALANCE_LABEL;
+}
+
+/** Event/history wording for a settled payment kind — never “Remaining balance”. */
+export function publicPaymentReceivedKindLabel(kind: JobPaymentKind): string {
+  if (kind === "deposit") return PUBLIC_PAYMENT_DEPOSIT_LABEL;
+  if (kind === "progress") return PUBLIC_PAYMENT_PROGRESS_LABEL;
+  return PUBLIC_PAYMENT_BALANCE_EVENT_LABEL;
 }
 
 export function obligationCta(kind: JobPaymentKind): string {
@@ -353,7 +361,7 @@ function receivedHistory(
     id: `payment:${row.id}`,
     type: "payment" as const,
     kind: row.kind,
-    kindLabel: `${publicPaymentKindLabel(row.kind)} received`,
+    kindLabel: `${publicPaymentReceivedKindLabel(row.kind)} received`,
     amountLabel: formatUsdFromCents(row.amount_cents),
     paidOnLabel: formatProposalCustomerAcceptedOnLabel(row.paid_at),
     detail: null,
@@ -646,7 +654,7 @@ export function buildPublicPaymentViewModel(input: {
       state: "payment_received",
       kind: paid.kind,
       amountLabel: formatUsdFromCents(paid.amount_cents),
-      kindLabel: publicPaymentKindLabel(paid.kind),
+      kindLabel: publicPaymentReceivedKindLabel(paid.kind),
       heading: PUBLIC_PAYMENT_RECEIVED_TITLE,
       explanation: PUBLIC_PAYMENT_NO_PAYMENT_DUE_NOW,
       contextNote: null,
@@ -664,7 +672,7 @@ export function buildPublicPaymentViewModel(input: {
       state: "payment_received",
       kind: paid.kind,
       amountLabel: formatUsdFromCents(paid.amount_cents),
-      kindLabel: publicPaymentKindLabel(paid.kind),
+      kindLabel: publicPaymentReceivedKindLabel(paid.kind),
       heading: PUBLIC_PAYMENT_RECEIVED_TITLE,
       explanation: PUBLIC_PAYMENT_NO_PAYMENT_DUE_NOW,
       contextNote: null,

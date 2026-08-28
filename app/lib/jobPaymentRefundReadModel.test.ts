@@ -256,6 +256,14 @@ describe("Refunds V1 customer and form contracts", () => {
     assert.equal(view?.state, "payments_complete_with_refund");
     assert.equal(view?.history.length, 3);
     assert.equal(
+      view?.history.find((item) => item.type === "payment")?.kindLabel,
+      "Balance payment received"
+    );
+    assert.ok(
+      !view?.history.some((item) => /Remaining balance/i.test(item.kindLabel)),
+      "historical balance capture must not read as current Remaining"
+    );
+    assert.equal(
       view?.history.find((item) => item.kindLabel === "Refund processing")?.detail,
       "A refund of $12.50 is being processed."
     );

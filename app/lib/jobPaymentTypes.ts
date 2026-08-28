@@ -154,7 +154,10 @@ export const PUBLIC_PAYMENT_RECEIVED_TITLE = "Payment received";
 export const PUBLIC_PAYMENT_REFUNDED_TITLE = "Payment refunded";
 export const PUBLIC_PAYMENT_DEPOSIT_LABEL = "Deposit";
 export const PUBLIC_PAYMENT_PROGRESS_LABEL = "Progress payment";
+/** Current amount due for an open balance request — not historical event copy. */
 export const PUBLIC_PAYMENT_BALANCE_LABEL = "Remaining balance";
+/** Historical balance payment/request event — never implies current money due. */
+export const PUBLIC_PAYMENT_BALANCE_EVENT_LABEL = "Balance payment";
 export const PUBLIC_PAYMENT_PAY_DEPOSIT_CTA = "Pay deposit";
 export const PUBLIC_PAYMENT_PAY_CTA = "Pay";
 export const PUBLIC_PAYMENT_PAY_NOW_CTA = "Pay now";

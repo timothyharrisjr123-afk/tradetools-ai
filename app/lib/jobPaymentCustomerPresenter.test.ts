@@ -295,6 +295,14 @@ describe("Stage 2D — collected states", () => {
     assert.match(view?.explanation ?? "", /A refund was recorded/);
     assert.doesNotMatch(view?.explanation ?? "", /outstanding|Paid in full/);
     assert.equal(view?.ctaLabel, null);
+    assert.equal(view?.history.length, 2);
+    assert.equal(view?.history[0]?.kindLabel, "Balance payment received");
+    assert.equal(view?.history[0]?.amountLabel, "$18,500.00");
+    assert.ok(
+      !view?.history.some((item) => /Remaining balance/i.test(item.kindLabel)),
+      "zero collectible must not imply current money due via Remaining balance"
+    );
+    assert.equal(view?.history[1]?.kindLabel, "Refund sent");
   });
 
   test("no current request with remaining is idle", () => {
@@ -334,6 +342,36 @@ describe("Stage 2D — sequential history", () => {
     assert.equal(view?.state, "progress_due");
     assert.equal(view?.history.length, 1);
     assert.match(view?.history[0]?.kindLabel ?? "", /Deposit received/);
+  });
+
+  test("balance history uses event wording while open balance due keeps Remaining balance", () => {
+    const balancePaid = request({
+      id: "balance-paid",
+      kind: "balance",
+      status: "paid",
+      amount_cents: 725000,
+      paid_at: "2026-08-26T12:00:00.000Z",
+      requested_at: "2026-08-26T11:00:00.000Z",
+    });
+    const balanceOpen = request({
+      id: "balance-open",
+      kind: "balance",
+      status: "open",
+      amount_cents: 100000,
+      requested_at: "2026-08-27T11:00:00.000Z",
+    });
+    const view = vm([balancePaid, balanceOpen], {
+      requests: [balancePaid, balanceOpen],
+      transactions: [capture(balancePaid.id, 725000, "2026-08-26T12:00:00.000Z", "pi_b")],
+      contractTotalCents: 1850000,
+    });
+    assert.equal(view?.state, "balance_due");
+    assert.equal(view?.kindLabel, "Remaining balance");
+    assert.equal(view?.amountLabel, "$1,000.00");
+    assert.equal(view?.history.length, 1);
+    assert.equal(view?.history[0]?.kindLabel, "Balance payment received");
+    assert.equal(view?.history[0]?.amountLabel, "$7,250.00");
+    assert.ok(!/Remaining balance/i.test(view?.history[0]?.kindLabel ?? ""));
   });
 });
 
