@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import JobCardSectionPanel from "@/app/tools/roofing/jobCard/JobCardSectionPanel";
 import JobCardQuietEmptyState from "@/app/tools/roofing/jobCard/JobCardQuietEmptyState";
+import JobCardAttachmentsWorkspace from "@/app/tools/roofing/jobCard/JobCardAttachmentsWorkspace";
+import { useJobCardAttachments } from "@/app/tools/roofing/jobCard/useJobCardAttachments";
 import type { JobCardTabId } from "@/app/tools/roofing/jobCard/jobCardTypes";
 import { applyTemplateSetupFetchResult } from "@/app/lib/jobCardTemplateSetupState";
 import type { TemplateSetupReadStatus } from "@/app/lib/jobCardTemplateSetupState";
@@ -16,8 +18,9 @@ type JobCardSecondaryPanelsProps = {
 };
 
 /**
- * Reserved Job Card domains that are not yet operational.
+ * Reserved Job Card domains that are not yet operational, plus Attachments.
  * Measurements are owned by JobCardMeasurementsWorkspace, not this file.
+ * Attachments is owned by JobCardAttachmentsWorkspace in this file.
  */
 export default function JobCardSecondaryPanels({
   activeTab,
@@ -25,8 +28,12 @@ export default function JobCardSecondaryPanels({
   companyId,
   listedDraftProposalId,
 }: JobCardSecondaryPanelsProps) {
-  void jobId;
   void listedDraftProposalId;
+  const attachmentsEnabled = activeTab === "attachments";
+  const attachments = useJobCardAttachments({
+    jobId,
+    enabled: attachmentsEnabled && Boolean(jobId),
+  });
   const [templateStatus, setTemplateStatus] =
     useState<TemplateSetupReadStatus>("idle");
   const [templateError, setTemplateError] = useState<string | null>(null);
@@ -88,7 +95,23 @@ export default function JobCardSecondaryPanels({
       {quiet("work_orders", "Work Orders", "No work orders yet.", "work_orders")}
       {quiet("invoices", "Invoices", "No invoices yet.", "invoices")}
       {quiet("job_costing", "Job Costing", "No job costing yet.", "job_costing")}
-      {quiet("attachments", "Attachments", "No files yet.", "attachments")}
+      <JobCardSectionPanel
+        tabId="attachments"
+        activeTab={activeTab}
+        title="Attachments"
+      >
+        <JobCardAttachmentsWorkspace
+          attachments={attachments.attachments}
+          pending={attachments.pending}
+          loading={attachments.loading}
+          error={attachments.error}
+          onAddFiles={attachments.uploadFiles}
+          onRetry={attachments.retry}
+          onCancelPending={attachments.cancel}
+          onCaption={attachments.patchCaption}
+          onRemove={attachments.remove}
+        />
+      </JobCardSectionPanel>
       {quiet("instant_estimate", "Instant Estimate", "No instant estimate yet.", "instant_estimate")}
     </>
   );

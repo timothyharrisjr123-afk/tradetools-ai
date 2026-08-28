@@ -70,7 +70,7 @@ function request(
 }
 
 describe("056 — historical migrations immutable", () => {
-  test("039 remains reserved; 044-055 unchanged; 056 is next", () => {
+  test("039 remains reserved; 044-055 unchanged; 056 remains historical", () => {
     const names = readdirSync(MIGRATIONS);
     assert.ok(!names.some((name) => name.includes("_039_")));
     assert.equal(existsSync(SQL_056), true);

@@ -379,11 +379,12 @@ describe("Attention", () => {
 });
 
 describe("Reserved domains and Board", () => {
-  test("Tasks and Attachments stay visible with quiet empty states", () => {
+  test("Tasks stay visible with quiet empty states; Attachments is operational", () => {
     assert.match(SECONDARY, /quiet\("tasks"/);
-    assert.match(SECONDARY, /quiet\("attachments"/);
+    assert.match(SECONDARY, /JobCardAttachmentsWorkspace/);
     assert.match(SECONDARY, /No tasks yet/);
-    assert.match(SECONDARY, /No files yet/);
+    assert.doesNotMatch(SECONDARY, /quiet\("attachments"/);
+    assert.doesNotMatch(SECONDARY, /No files yet/);
     assert.doesNotMatch(SECONDARY, /Future surface|Coming Soon|roadmap/i);
     const html = renderToStaticMarkup(
       createElement(JobCardQuietEmptyState, {
