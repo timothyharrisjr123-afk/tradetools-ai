@@ -11,7 +11,7 @@
 
 **When to read related docs:**
 
-- Read **§6CZ** first for Whole Job Card final integration — **COMPLETE / ACCEPTED**. Exact next major roadmap move: **refunds as a product** (**§6CT** — do not start until authorized). Read **§6CY** for Activity contractor chronology. Read **§6CX** for Tasks V1. Payment domain remains **§6CT** locked.
+- Read **§6DA** first for **REFUNDS V1 COMPLETE / ACCEPTED**. Processor-backed refunds are capture-owned, individually identified by Stripe Refund, concurrency/idempotency protected, and isolated from lifecycle/proposal/payment-request/Activity truth. The handoff names no successor implementation after Refunds V1; the exact next move is an **explicit product-priority decision**, not automatic work on deferred payment features. Read **§6CZ** for Whole Job Card final integration.
 - Read **`docs/fielddive-flow-map.md`** when changing routes, IA, screen flow, or Job Board / Job Card navigation — but **§6CU / §6BO.13 / §6AL / §6AM / §6AN / §6AO supersede** older flow-map terminology where they conflict (e.g. Job Board vs Command Center — **no separate Command Center** per §6BO.13).
 - Read **`docs/competitive-architecture-audit.md`** when adding modules, changing dashboard/Job Board architecture, or comparing against Roofr/competitor-style workflow.
 - Read **§6AL** before any recovery or template/Builder/lifecycle work — **mandatory stage order**.
@@ -65,7 +65,7 @@
 - Read **§6CW** before any Photos / Attachments / job file storage / signed URL / gallery work — **PHOTOS / ATTACHMENTS V1 COMPLETE / ACCEPTED**. Generic private shared file spine; documentation photos ≠ measurement-source imagery; `listed_in_job_gallery`; camera/library/file; batch; private signed access; PDF files; soft delete; no Activity spam; no customer publish; no proposal embed; no measurement acquisition. Tasks V1 is **§6CX**.
 - Read **§6CV** before any Measurements report / current measurement / Details / Earlier measurements / Make current / measurement–proposal binding work — **MEASUREMENT REPORT V1 COMPLETE / ACCEPTED**. Standing first-class measurement domain; progressive Details; explicit Make current; draft staleness Proposal Builder-owned. Photos V1 is **§6CW**. Do **not** start Tasks, Activity cleanup, or refunds until authorized.
 - Read **§6CU** before any Job Card workspace, Prepare proposal, Overview, Attention, Board handoff, Tasks/Attachments empty-state, or contractor-flow work after Slice 1 — **SLICE 1 CORE CONTRACTOR WORKSPACE COMPLETE / ACCEPTED**. Live Job Card is one coherent workspace around canonical truth. Create proposal → Prepare (not Measurements). Measurement required inside Prepare. Domain-preservation + FLOW WHEN NEEDED. Payment domain remains **§6CT** locked. Measurement report depth is **§6CV**.
-- Read **§6CT** before any payment-domain work after 2A–2E — **STAGE 2F PAYMENT LIVE / VISUAL LOCK COMPLETE**. Payment domain is locked. Live Stripe test-mode proved one progress Checkout + signed webhook settlement. Sequential / failed / refund / paid-in-full proven with live $100 + fixtures. Remaining payment P1 is **refunds as a product** (do not start until authorized). **057** is job attachments (**§6CW**), not a payment migration.
+- Read **§6CT** for the pre-Refunds Stage 2F payment live/visual lock. Its remaining payment P1, **refunds as a product**, is now **COMPLETE / ACCEPTED** at **§6DA**. **057** is job attachments (**§6CW**), not a payment migration.
 - Read **§6CS** before any Job Card Payments history / financial timeline / payment Activity work — **STAGE 2E PAYMENT HISTORY COMPLETE**. All financial detail lives on the Payments tab. Activity has no payment events. Canonical Payment History presenter (requested/received/failed/cancelled/refund). No migration 057. Live/visual lock is **§6CT**.
 - Read **§6CR** before any customer payment-request / public `/p/{token}` payment UI / checkout retry / Paid in full / Payments complete work — **STAGE 2D CUSTOMER PAYMENT-REQUEST EXPERIENCE COMPLETE**. Canonical customer presenter; kind-aware failed deposit retry (new row, never revive); failed progress/balance inactive; collectible 0 + refund → Payments complete; no migration 057. Contractor Payment History is **§6CS**. Exact next after 2D was **Stage 2E**, now **§6CS**.
 - Read **§6CQ** before any Collect payment / progress payment / Settings Payments / customer payment-request / Stage 2D work — **STAGE 2C FLEXIBLE COLLECT PAYMENT COMPLETE**. Contractor Collect (Remaining / Percentage / Fixed); server-owned amount and kind (`progress` or Complete exact-remaining `balance`); never deposit. **056 LIVE**. Current request is `open|processing` only. Copy binds to canonical accepted version. Settings Default deposit is gone. Customer public experience is **§6CR**. Exact next after 2C was **Stage 2D**, now **§6CR**.
@@ -82,6 +82,7 @@
 
 **Last updated checkpoint:**
 
+- **Refunds V1 code checkpoint:** **`2da27ac`** — `feat(payments): add processor-backed refunds`; docs this commit (**REFUNDS V1 COMPLETE / ACCEPTED**, see **§6DA**). Migration **059 LIVE** SHA256 **`F14E5EEAA5D407F8D8011D4CA246DD49644C1421985A17BE80B987DF57DA412B`** on **`rhquhnujjnzjhweypavd`**. Capture-level ownership; individual Stripe Refund identity; full/partial/sequential/equal-amount refunds; succeeded-only settled totals; in-flight reservation; concurrency-safe command replay; gross Collected and contractual Remaining preserved; contractor/customer history; no lifecycle/proposal/payment-request/Activity mutation. Proof `tmp/fielddive-ui-review/refunds-v1/`. **NO PUSH.** Exact next: **explicit product-priority decision**; no post-refunds implementation is authorized by the current handoff.
 - **Whole Job Card final integration docs checkpoint:** this docs commit — `docs: checkpoint whole job card integration` (**WHOLE JOB CARD FINAL INTEGRATION COMPLETE / ACCEPTED**. See **§6CZ**). All Job Card domains audited together; cross-domain truth consistent; action ownership preserved; Board handoffs verified; desktop + 390 verified; no completed domain reopened unnecessarily. **No code commit required.** Proof `tmp/fielddive-ui-review/job-card-final-acceptance/`. **NO PUSH.** Exact next major roadmap move: **refunds as a product** (**§6CT** — do not start until authorized).
 - **Activity contractor chronology code checkpoint:** **`e2513ba`** — `refactor(activity): present contractor job chronology` (see **§6CY**).
 - **Tasks V1 code checkpoint:** **`7841ccc`** — `feat(tasks): add job task workspace` (`7841ccc9ee99b29bbfdd5ce80e87131284ef087c`) (**TASKS V1 COMPLETE / ACCEPTED**. See **§6CX**). Migration **058 LIVE** SHA256 **`A705AE8416A29F74658A9D3CCE06B65F231E7A2719984465ED538181CB39E4C4`** on **`rhquhnujjnzjhweypavd`**. Proof `tmp/fielddive-ui-review/tasks-v1/`.
@@ -18924,7 +18925,65 @@ Integration regression gate **372/372** (Job Card workspace, lifecycle, schedule
 
 ### §6CZ.5 Next roadmap move
 
-**NEXT:** **refunds as a product** (**§6CT**). Do **not** start until authorized. Do **not** start Measurement Acquisition from this section alone.
+**Completed next:** **refunds as a product** is now **REFUNDS V1 COMPLETE / ACCEPTED** at **§6DA**.
+
+---
+
+## §6DA — Refunds V1 (COMPLETE / ACCEPTED)
+
+**Status:** COMPLETE / ACCEPTED.
+
+**Code checkpoint:** **`2da27ac`** — `feat(payments): add processor-backed refunds`.
+
+**Docs checkpoint:** this docs commit — `docs: checkpoint payment refunds`.
+
+**Migration:** `supabase/migrations/20260828_059_job_payment_refunds.sql` — **LIVE** on verified project **`rhquhnujjnzjhweypavd`**; SHA256 **`F14E5EEAA5D407F8D8011D4CA246DD49644C1421985A17BE80B987DF57DA412B`**. Live metadata/RLS/RPC behavior and transaction semantics verified after apply. Legacy refund audit found **0** `job_payment_transactions.kind='refund'` rows, so no backfill or heuristic matching was performed.
+
+### §6DA.1 Locked refund truth
+
+- One refund belongs to one canonical successful capture transaction. The connected-account Stripe Refund `re_...` is canonical provider identity.
+- Full, partial, multiple sequential, and equal-amount sequential refunds are supported without amount-based identity guessing.
+- Lifecycle is `initiating | pending | requires_action | succeeded | failed | canceled`. Only `succeeded` contributes to settled **Refunded**. `initiating | pending | requires_action` reserve refundable capacity; `failed | canceled` release it.
+- Per capture: `refundable = max(0, capture amount − succeeded refunds − in-flight refunds)`. Reservation is serialized under a capture-scoped advisory transaction lock.
+- Stable command identity is the refund row UUID; Stripe idempotency is `job-refund:{refundId}:v1`. Ambiguous Stripe responses remain `initiating` and retry the same command/key. Definitive rejection records `failed`.
+- **Collected** remains gross canonical successful captures. **Refunded** is succeeded money-out. **Remaining** remains `max(0, contract total − gross captures)` and never reopens because of a refund.
+
+### §6DA.2 Schema, security, and reconciliation
+
+- Durable projection: `job_payment_refunds`. Append-only delivery receipts: `job_payment_refund_event_receipts`.
+- Authenticated matching-company members can read. Authenticated direct writes/deletes are denied; reservation is membership/job/capture validated through the canonical RPC, while lifecycle reconciliation remains service-role only.
+- Core company/job/request/capture/amount/currency/creator/reason/provider-account/PaymentIntent/idempotency bindings are immutable. Bound Stripe Refund/Charge identity cannot be replaced.
+- Webhooks support `refund.created`, `refund.updated`, and `refund.failed` with exact Refund-object statuses. Duplicate connected-account event IDs are no-ops; terminal states cannot regress to in-flight.
+- `charge.refunded` is audit/reconciliation signal only. Its cumulative `amount_refunded` is never booked; the webhook lists individual connected-account Refund objects and reconciles their `re_...` identities.
+- Metadata-free Stripe Dashboard refunds correlate through connected account plus canonical PaymentIntent/Charge and become `origin='stripe_dashboard'`; no equal-amount heuristic is used.
+
+### §6DA.3 Contractor and customer product
+
+- Contractor initiation is owned by one refundable successful capture in Payments history. There is no generic job refund button and no Refunds tab.
+- Form shows original payment, already refunded, refundable now, exact amount, optional internal reason, and the locked Remaining consequence. One deliberate confirmation precedes submission.
+- Contractor history shows **Refund processing**, **Refund sent**, **Refund failed**, and **Refund canceled**. Summary is always **Contract total / Collected / Remaining / Refunded**, including `$0.00` Refunded.
+- Customer history shows truthful pending/requires-action processing and succeeded sent copy. Failed/canceled attempts and all internal/provider diagnostics are omitted.
+- Zero collectible plus a succeeded refund is **Payments complete** with “A refund was recorded. No further payment is due on this proposal.” A remaining collectible balance stays due and is not increased by refunds.
+
+### §6DA.4 Isolation
+
+Refunds do **not** change payment-request kind/amount/status/history, remint a deposit, create a receivable, change `jobs.stage` or disposition/schedule, alter proposal acceptance/signature/version/package/terms/contract total, or write Activity, Tasks, Attachments, Measurements, Calendar, or Attention.
+
+### §6DA.5 Verification
+
+- Dedicated Refunds contracts: **31/31**. Selected payment/webhook/customer/Activity regression run: **197/197**. Proposal terms/acceptance/lifecycle/Job Card regression run: **205/205**. Changed-file ESLint: pass.
+- Repository `tsc --noEmit` retains established unrelated debt. The nine Refunds test target-level regex errors found by the gate were corrected; final output contains **0 Refunds V1 changed-file errors**.
+- Stripe context was proven **TEST MODE** (`sk_test_`) on connected account `acct_1U5GG6RqWWrHCa1M` before mutation.
+- Live Stripe proof: full `$50` refund; sequential `$100 + $200 + $150 + $150 + $300`; equal `$150 + $150`; same-command replay returned one row/one Refund; concurrent `$200` vs `$100` with only `$200` available produced one success and one `amount_exceeds_refundable`.
+- Metadata-free Dashboard-style `$50` Refund `re_3U8smjRqWWrHCa1M099FZfW8` reconciled as `stripe_dashboard`. Duplicate signed event produced one receipt. Newer synthetic pending delivery against succeeded truth was classified `stale`. A cumulative `charge.refunded` signal at `$950` reconciled six individual Refund IDs and left canonical total `$950`, not an extra cumulative booking.
+- Ordinary Stripe test-card refunds settled immediately. Natural provider `pending` / `requires_action` / `failed` / `canceled` states are **live-unproven** and covered by lifecycle fixtures/tests; they were not fabricated as live Stripe outcomes.
+- Desktop and true 390 review passed after two in-scope corrections: always show **Refunded `$0.00`**, and make capture Refund actions full-width 44px targets on mobile. Proof: `tmp/fielddive-ui-review/refunds-v1/`.
+
+### §6DA.6 Deferred and exact next
+
+Deferred: elevated refund authorization roles, fee/application-fee policy, disputes/chargebacks, in-app cancel, email payment links, contractor payment-request Retry UI, invoices, and destination-charge reversal behavior. Direct-charge Connect remains the current architecture.
+
+**Exact next roadmap move:** the authoritative handoff does not name a successor implementation after Refunds V1. Hold an **explicit product-priority decision** before starting another phase. Do not automatically start deferred payment work, Cohesion C, Measurement Acquisition, invoices, disputes, or fee policy.
 
 ---
 
@@ -19216,7 +19275,7 @@ Confirm: **Create proposal / Open proposal** on Job Card creates/reuses DB draft
 
 ## 11. FORWARD ROADMAP / NO-DRIFT NEXT STEPS
 
-**Current checkpoint override:** Header + **§6CZ** + **§6CY** + **§6CX** + **§6CW** + **§6CV** + **§6CU** supersede stale checkpoint lines in this section and stale **§8 CURRENT NEXT** / old **§11 body** / old **§6AL R18 row**. **Code:** **`e2513ba` — refactor(activity): present contractor job chronology**. **Docs:** this commit. **Whole Job Card final integration COMPLETE / ACCEPTED** (**§6CZ**). **Activity contractor chronology COMPLETE / ACCEPTED** (**§6CY**). **Immediate next major roadmap move:** **refunds as a product** (**§6CT** — do not start until authorized). Do **not** start Measurement Acquisition, Catalog P0, or refunds without authorization. Historical body below (R13 / R15 / Slice 2 Catalog P0) is **not** current resume. **Do not create a separate Command Center** — evolve Job Board (§6BO.13). **Do not create NEXT STEP / readiness-card / coaching systems** (**§6CU.2** / **§6CV.1**).
+**Current checkpoint override:** Header + **§6DA** + **§6CZ** supersede stale checkpoint lines in this section and stale **§8 CURRENT NEXT** / old **§11 body** / old **§6AL R18 row**. **Code:** **`2da27ac` — feat(payments): add processor-backed refunds**. **Docs:** this commit. **REFUNDS V1 COMPLETE / ACCEPTED** (**§6DA**). **Whole Job Card final integration COMPLETE / ACCEPTED** (**§6CZ**). The handoff names no successor implementation after Refunds V1. **Immediate next:** an **explicit product-priority decision**; do not auto-start deferred payment work, Cohesion C, Measurement Acquisition, Catalog P0, invoices, disputes, or fee policy. Historical body below is **not** current resume. **Do not create a separate Command Center** — evolve Job Board (§6BO.13). **Do not create NEXT STEP / readiness-card / coaching systems** (**§6CU.2** / **§6CV.1**).
 
 Use this section as the **ordered checklist** for future GPT/Cursor sessions.
 
@@ -20124,6 +20183,7 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
+- **2026-08-28:** **REFUNDS V1 COMPLETE / ACCEPTED** — code **`2da27ac`** `feat(payments): add processor-backed refunds`; docs this commit (**§6DA**). Migration **059 LIVE** SHA256 **`F14E5EEAA5D407F8D8011D4CA246DD49644C1421985A17BE80B987DF57DA412B`** on **`rhquhnujjnzjhweypavd`**. Capture-owned individual Stripe Refund identity; full/partial/sequential/equal refunds; succeeded-only Refunded; in-flight reservation; capture lock + DB/Stripe idempotency; gross Collected; contractual Remaining unaffected; Dashboard and `charge.refunded` reconciliation; contractor/customer history; no payment-request/lifecycle/proposal/Activity/other-domain mutation. Dedicated **31/31**; selected regressions **197/197 + 205/205**; no new Refunds TypeScript errors. Stripe test-mode proof included full, sequential/equal, replay, concurrency, Dashboard, duplicate, out-of-order, and cumulative-signal cases; natural pending/failed states live-unproven and fixture-covered. Desktop + true 390 proof `tmp/fielddive-ui-review/refunds-v1/`. **No push.** Exact next: **explicit product-priority decision**; no successor implementation is authorized by the current handoff.
 - **2026-08-28:** **WHOLE JOB CARD FINAL INTEGRATION COMPLETE / ACCEPTED** — docs this commit (**§6CZ**). All Job Card domains audited together (Overview, Tasks, Calendar, Measurements, Proposals, Payments, Attachments, Activity, Board handoffs, desktop + 390 tab rail). Cross-domain truth consistent; action ownership preserved; no P0/P1 integration contradiction found. **No code commit required.** Integration regression **372/372**. Visual proof `tmp/fielddive-ui-review/job-card-final-acceptance/`. **No push.** Exact next major roadmap move: **refunds as a product** (**§6CT** — do not start until authorized).
 - **2026-08-28:** **ACTIVITY CONTRACTOR CHRONOLOGY COMPLETE / ACCEPTED** — code **`e2513ba`**; docs **`c4dd585`** (**§6CY**).
 - **2026-08-28:** **TASKS V1 COMPLETE / ACCEPTED** — code **`7841ccc`** `feat(tasks): add job task workspace` (`7841ccc9ee99b29bbfdd5ce80e87131284ef087c`); docs prior commit (**§6CX**). First-class but intentionally thin job-scoped memory/coordination. Title required; optional `due_on` date; optional notes; open/complete only; quick complete; reopen; completed collapsed; overdue quiet; **no `assigned_to`**. No templates/automations/copilot; no Attachment refs; no Activity events; no Board/Overview chrome. Open tasks do **not** block Complete. Calendar remains scheduled occurrence. Attention remains material-exception owner. Migration **058 LIVE / HISTORICAL / IMMUTABLE** SHA256 **`A705AE8416A29F74658A9D3CCE06B65F231E7A2719984465ED538181CB39E4C4`** applied statement-split **2026-08-28T17:45:58.800Z–17:46:00.313Z** (27 statements, all status 0) on **`rhquhnujjnzjhweypavd`**. Focused Tasks **33/33**. No new TS errors. Visual proof `tmp/fielddive-ui-review/tasks-v1/`. **No push.** Activity chronology later **COMPLETE / ACCEPTED** at **`e2513ba`** (**§6CY**).
