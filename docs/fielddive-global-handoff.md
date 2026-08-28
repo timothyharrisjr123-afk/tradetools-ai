@@ -11,7 +11,7 @@
 
 **When to read related docs:**
 
-- Read **§6CU** first for current Job Card / contractor workspace / Measurements / Prepare / Overview / Attention / Board resume after Slice 1 — **COMPLETE / ACCEPTED**. Exact next: **Measurement report experience**. Payment domain remains **§6CT** locked. Do **not** start refunds, Photos, Tasks, or Activity cleanup until authorized.
+- Read **§6CV** first for Measurement Report V1 — **COMPLETE / ACCEPTED**. Exact next: **Photos / Attachments field experience architecture** (research first). Read **§6CU** for Slice 1 core workspace foundation. Payment domain remains **§6CT** locked. Do **not** start Photos implementation, Tasks, Activity cleanup, or refunds until authorized.
 - Read **`docs/fielddive-flow-map.md`** when changing routes, IA, screen flow, or Job Board / Job Card navigation — but **§6CU / §6BO.13 / §6AL / §6AM / §6AN / §6AO supersede** older flow-map terminology where they conflict (e.g. Job Board vs Command Center — **no separate Command Center** per §6BO.13).
 - Read **`docs/competitive-architecture-audit.md`** when adding modules, changing dashboard/Job Board architecture, or comparing against Roofr/competitor-style workflow.
 - Read **§6AL** before any recovery or template/Builder/lifecycle work — **mandatory stage order**.
@@ -60,8 +60,9 @@
 - Read **§6CE** before any Board Schedule / Job Card Calendar / Main Calendar create-reschedule / shared scheduling workspace / factual day-count context work — **Stage A shared scheduling workspace COMPLETE** (one `JobScheduleWorkspace`; `job_schedules` sole truth; no recommendations; occupancy labels **`1 job` / `N jobs`**; no migration).
 - Read **§6CG** before any proposal payment terms / deposit Checkout / job-level money ledger / Accept-Sign-Pay / Stripe Checkout method language work — **Payment Stage 1 COMPLETE** (proposal-owned terms freeze with send; company defaults prefill only; Stripe readiness before online-deposit Send; auto deposit on accept; Approve is not a payment gate; job-level ledger + revision carry-forward; migration **048 LIVE**).
 - Read **§6CH** before any public customer proposal selection/payment flow, Company Profile payment-setup ownership, Job Card Overview money display, or send-readiness fail-closed work — **Payment Stage 1 flow correction COMPLETE** (review → select → pay; Request this package removed from sent-offer path; signature removed from default public path; Pay creates acceptance idempotently; send fail-closed on unknown terms; Payments nav retired to Company Profile; Overview no dollar amounts; migration **048 unchanged**).
-- Read **§6CU** before any Job Card workspace, Measurements, Prepare proposal, Overview, Attention, Board handoff, Tasks/Attachments empty-state, or contractor-flow work after Slice 1 — **SLICE 1 CORE CONTRACTOR WORKSPACE COMPLETE / ACCEPTED**. Live Job Card is one coherent workspace around canonical truth. Create proposal → Prepare (not Measurements). Measurement required inside Prepare. Domain-preservation + FLOW WHEN NEEDED. Payment domain remains **§6CT** locked. Exact next: **Measurement report experience**. Do **not** start refunds, Photos, Tasks, or Activity cleanup until authorized.
-- Read **§6CT** before any payment-domain work after 2A–2E — **STAGE 2F PAYMENT LIVE / VISUAL LOCK COMPLETE**. Payment domain is locked. Live Stripe test-mode proved one progress Checkout + signed webhook settlement. Sequential / failed / refund / paid-in-full proven with live $100 + fixtures. No migration 057. Remaining payment P1 is **refunds as a product** (do not start until authorized). Current product next after Slice 1 is **§6CU** (measurement report), not refunds.
+- Read **§6CV** before any Measurements report / current measurement / Details / Earlier measurements / Make current / measurement–proposal binding work — **MEASUREMENT REPORT V1 COMPLETE / ACCEPTED**. Standing first-class measurement domain; progressive Details; explicit Make current; draft staleness Proposal Builder-owned. Exact next: **Photos / Attachments field experience architecture**. Do **not** start Photos implementation, Tasks, Activity cleanup, or refunds until authorized.
+- Read **§6CU** before any Job Card workspace, Prepare proposal, Overview, Attention, Board handoff, Tasks/Attachments empty-state, or contractor-flow work after Slice 1 — **SLICE 1 CORE CONTRACTOR WORKSPACE COMPLETE / ACCEPTED**. Live Job Card is one coherent workspace around canonical truth. Create proposal → Prepare (not Measurements). Measurement required inside Prepare. Domain-preservation + FLOW WHEN NEEDED. Payment domain remains **§6CT** locked. Measurement report depth is **§6CV**.
+- Read **§6CT** before any payment-domain work after 2A–2E — **STAGE 2F PAYMENT LIVE / VISUAL LOCK COMPLETE**. Payment domain is locked. Live Stripe test-mode proved one progress Checkout + signed webhook settlement. Sequential / failed / refund / paid-in-full proven with live $100 + fixtures. No migration 057. Remaining payment P1 is **refunds as a product** (do not start until authorized). Current product next is **§6CV** Photos architecture, not refunds.
 - Read **§6CS** before any Job Card Payments history / financial timeline / payment Activity work — **STAGE 2E PAYMENT HISTORY COMPLETE**. All financial detail lives on the Payments tab. Activity has no payment events. Canonical Payment History presenter (requested/received/failed/cancelled/refund). No migration 057. Live/visual lock is **§6CT**.
 - Read **§6CR** before any customer payment-request / public `/p/{token}` payment UI / checkout retry / Paid in full / Payments complete work — **STAGE 2D CUSTOMER PAYMENT-REQUEST EXPERIENCE COMPLETE**. Canonical customer presenter; kind-aware failed deposit retry (new row, never revive); failed progress/balance inactive; collectible 0 + refund → Payments complete; no migration 057. Contractor Payment History is **§6CS**. Exact next after 2D was **Stage 2E**, now **§6CS**.
 - Read **§6CQ** before any Collect payment / progress payment / Settings Payments / customer payment-request / Stage 2D work — **STAGE 2C FLEXIBLE COLLECT PAYMENT COMPLETE**. Contractor Collect (Remaining / Percentage / Fixed); server-owned amount and kind (`progress` or Complete exact-remaining `balance`); never deposit. **056 LIVE**. Current request is `open|processing` only. Copy binds to canonical accepted version. Settings Default deposit is gone. Customer public experience is **§6CR**. Exact next after 2C was **Stage 2D**, now **§6CR**.
@@ -78,9 +79,10 @@
 
 **Last updated checkpoint:**
 
-- **Slice 1 core contractor workspace code checkpoint:** **`463e4cb`** — `feat(jobs): unify core job workspace flow` (`463e4cbd218738f40ec60eaeedec8aebf6afab6c`); docs this commit (**SLICE 1 CORE WORKSPACE + MEASUREMENT CAPTURE COMPLETE / ACCEPTED**. Live Job Card Create proposal → real Prepare; Board Intake→Proposal same flow; measurement prerequisite in-flow; Measurements tab real; Overview current-job truth; one primary forward lifecycle action; Calendar owns schedule mutation; minimal Attention; Tasks/Attachments quiet truthful empties; payment/lifecycle/pricing/SQL untouched. See **§6CU**). Working tree after docs: **`?? supabase/.temp/`** only. **NO PUSH.** Exact next: **Measurement report experience / Measurements workspace depth**. Do **not** start refunds, Photos, Tasks, or Activity cleanup.
-- **Prior docs/code checkpoint:** **`3570181`** — `docs: checkpoint Stage 2F final visual correction` (Stage 2F visual lock docs). Payment domain remains locked at **§6CT**.
-- **Stage 2F payment live / visual lock checkpoint:** **`f7e6a35`** — `fix(payments): refine final payment workspace states`; docs **`3570181`** (**STAGE 2F FINAL VISUAL CORRECTION COMPLETE**. Contractor refund wording + desktop Payment History readability. Payment domain locked. Prior live lock **`49cc476`** / **`3e3371d`**. No migration 057. Proof `tmp/fielddive-ui-review/stage-2f/stage-2f-final-*.png`. See **§6CT**). Remaining payment P1: **refunds as a product** (do not start until authorized). Current product next is **§6CU**.
+- **Measurement Report V1 code checkpoint:** **`aaea0c9`** — `feat(measurements): add job measurement report workspace` (`aaea0c9ae4e2016a71ac9a8a903968b7fb8855f9`); docs this commit (**MEASUREMENT REPORT V1 COMPLETE / ACCEPTED**. Current report summary; Details progressive disclosure; Earlier measurements = non-current; explicit Make current; Ready manual edit append-only; draft stale confirm target-scoped; frozen informational only; Overview/Board coarse; no provider/PDF; FLOW WHEN NEEDED. See **§6CV**). Working tree after docs: **`?? supabase/.temp/`** only. **NO PUSH.** Exact next: **Photos / Attachments field experience architecture** (research first). Do **not** start Photos implementation, Tasks, Activity cleanup, or refunds.
+- **Prior docs checkpoint:** **`34c1271`** — `docs: checkpoint core contractor workspace flow` (Slice 1 docs). Slice 1 code remains **`463e4cb`**.
+- **Slice 1 core contractor workspace code checkpoint:** **`463e4cb`** — `feat(jobs): unify core job workspace flow` (`463e4cbd218738f40ec60eaeedec8aebf6afab6c`); docs **`34c1271`** (**SLICE 1 CORE WORKSPACE + MEASUREMENT CAPTURE COMPLETE / ACCEPTED**. See **§6CU**). Measurement report depth is **§6CV**.
+- **Stage 2F payment live / visual lock checkpoint:** **`f7e6a35`** — `fix(payments): refine final payment workspace states`; docs **`3570181`** (**STAGE 2F FINAL VISUAL CORRECTION COMPLETE**. Contractor refund wording + desktop Payment History readability. Payment domain locked. Prior live lock **`49cc476`** / **`3e3371d`**. No migration 057. Proof `tmp/fielddive-ui-review/stage-2f/stage-2f-final-*.png`. See **§6CT**). Remaining payment P1: **refunds as a product** (do not start until authorized). Current product next is **§6CV** Photos architecture.
 - **Stage 2E payment history checkpoint:** **`ded81a2`** — `feat(payments): add job payment history` (**STAGE 2E PAYMENT HISTORY COMPLETE**. Payments tab is the financial timeline. Activity has no payment events. Requested/received/failed/cancelled/refund history with canonical capture identity. No migration 057. Proof `tmp/fielddive-ui-review/stage-2e/`. See **§6CS**). Live/visual lock is **§6CT**.
 - **Stage 2D customer payment-request checkpoint:** **`e28381a`** — `feat(payments): refine customer payment experience` (**STAGE 2D CUSTOMER PAYMENT-REQUEST EXPERIENCE COMPLETE**. Canonical customer presenter on `/p/{token}`; kind-aware failed-deposit retry creates a new row; failed progress/balance have no Pay; Paid in full vs Payments complete; Due today removed; no migration 057. Proof `tmp/fielddive-ui-review/stage-2d/`. See **§6CR**). Exact next after 2D was **Stage 2E**, now **§6CS**.
 - **Stage 2C visual acceptance checkpoint:** **`f8cf063`** — `fix(payments): align flexible collect runtime surfaces` (**STAGE 2C FULL ACCEPTANCE**. Live Job Card Collect payment proven. Prior `2a-*` files were stale Stage 2A captures. Next step heading retired. Proof `tmp/fielddive-ui-review/stage-2c/`. See **§6CQ.7**).
@@ -146,6 +148,7 @@
 - **R3I Contractor Disposition Management:** **COMPLETE / VERIFIED / LOCKED.** See **§6CB**.
 - **Canonical fixture + visible surface coherence:** **COMPLETE / VERIFIED / LOCKED.** See **§6CC**.
 - **Canonical visual fixture proof closure:** **COMPLETE / VERIFIED / LOCKED.** See **§6CD**.
+- **Measurement Report V1:** **COMPLETE / ACCEPTED.** See **§6CV**.
 - **Slice 1 core contractor workspace:** **COMPLETE / ACCEPTED.** See **§6CU**. Payment domain remains **§6CT** locked.
 - **Proposal Flow V2:** **COMPLETE / LOCKED** (unchanged; code lock **`dbea772`**).
 - **Previous code checkpoint:** **`dbea772`** — `feat(proposals): complete customer package comparison` (Proposal Flow **V2G COMPLETE** — customer package-comparison flag, frozen composition-derived comparison, frozen option-total pricing display, Preview/Public parity, legacy fallback, final customer presentation integration).
@@ -166,16 +169,16 @@
 - **Earlier docs checkpoint:** **`d4278a7`** — `docs: checkpoint completed proposal revision lifecycle` (V2F COMPLETE at **`c54fc0a`**).
 - **Earlier docs checkpoint:** **`04f5290`** — `docs: lock job lifecycle stage architecture` (**§6BP** — approved plan only at that time; **now implemented** at **`7510abd`**).
 - **Earlier docs checkpoint:** **`80ae9ee`** — `docs: checkpoint reusable proposal templates completion`.
-- **Working tree:** Code committed at Slice 1 (`463e4cb`); this pass is **docs only** (`docs/fielddive-global-handoff.md`). Expected otherwise: **`?? supabase/.temp/`** only. **Nothing staged. NO PUSH.**
+- **Working tree:** Code committed at Measurement Report V1 (`aaea0c9`); this pass is **docs only** (`docs/fielddive-global-handoff.md`). Expected otherwise: **`?? supabase/.temp/`** only. **Nothing staged. NO PUSH.**
 - **Push state:** Local only / not pushed. **NO PUSH.**
-- **Accepted:** **Slice 1 core contractor workspace COMPLETE / ACCEPTED** at **`463e4cb`**. **Stage 2F payment live / visual lock COMPLETE / LOCKED** at **`f7e6a35`** / docs **`3570181`**. **Canonical visual fixture proof closure COMPLETE / VERIFIED / LOCKED** at **`a98fbd5`**. **Canonical fixture + visible surface coherence COMPLETE / VERIFIED / LOCKED** at **`37e3d0d`**. **R3I Contractor Disposition Management COMPLETE / VERIFIED / LOCKED** at **`6426c6a`**. **R3H Guarded Job Completion COMPLETE / LIVE / VERIFIED / LOCKED** at **`f941259`**. **R3G Guarded Production Start COMPLETE / LIVE / VERIFIED** at **`a175814`**. **R3F Unified Job Scheduling COMPLETE / LIVE / VERIFIED** at **`f876ed9`**. **R3E Contractor Deposit Payments COMPLETE / LIVE / VERIFIED** at **`f6c1301`**. **R3D Customer Proposal Signatures COMPLETE / LIVE** at **`0d06ad8`**. **R3C Formal Customer Acceptance COMPLETE / LIVE** at **`d1514a1`**. **Revision timing COMPLETE / LIVE** at **`ef2559f`**. **Job Lifecycle Foundation COMPLETE / LIVE / VERIFIED** at **`7510abd`**. **Proposal Flow V2 COMPLETE / LOCKED** at **`dbea772`**. See **§6CD**, **§6CC**, **§6CB**, **§6BV**, **§6BU**, **§6BT**, **§6BS**, **§6BR**, **§6BQ**, and **§6BO.13.4.9 R3**.
-- **Next:** **Measurement report experience / Measurements workspace depth.** Do **not** start automatically. Do **not** start refunds, Photos, Tasks, or Activity cleanup. Payment domain remains locked (**§6CT**). Preserve Payment Stage 1 locks (§6CG) + Stage B Board + Stage A workspace + R3I + R3H + PERF-1 + Slice 1 workspace rules (**§6CU**). Application lifecycle writes must remain guarded. Payment never writes `jobs.stage`. **Live migrations on `rhquhnujjnzjhweypavd`:** **038** Job Lifecycle Foundation; **039 absent / reserved**; **040–042** acceptance/revision timing; **043** Proposal Signatures; **044** Job Payments (**historical / unchanged**); **045** Unified Job Scheduling; **046** Guarded Production Start; **047** Guarded Job Completion (**historical SHA `FFE33FDD562742519BB92568CD5C55528537EA756540D1C6C906F8694B974979`**); **048** Proposal payment terms + job ledger (**LIVE** SHA256 **`72B46B61050287B094478485986772898BB0753FC0F1712D2825D9581A4BDCF0`**); **049–056** payment cohesion / collect / history (**historical / unchanged**). Do not modify applied migrations. Do not reopen Proposal Flow V2 casually. **Work Orders** and **full Invoicing** are **not** committed product stages (hidden from current Job Card nav; code retained).
+- **Accepted:** **Measurement Report V1 COMPLETE / ACCEPTED** at **`aaea0c9`**. **Slice 1 core contractor workspace COMPLETE / ACCEPTED** at **`463e4cb`**. **Stage 2F payment live / visual lock COMPLETE / LOCKED** at **`f7e6a35`** / docs **`3570181`**. **Canonical visual fixture proof closure COMPLETE / VERIFIED / LOCKED** at **`a98fbd5`**. **Canonical fixture + visible surface coherence COMPLETE / VERIFIED / LOCKED** at **`37e3d0d`**. **R3I Contractor Disposition Management COMPLETE / VERIFIED / LOCKED** at **`6426c6a`**. **R3H Guarded Job Completion COMPLETE / LIVE / VERIFIED / LOCKED** at **`f941259`**. **R3G Guarded Production Start COMPLETE / LIVE / VERIFIED** at **`a175814`**. **R3F Unified Job Scheduling COMPLETE / LIVE / VERIFIED** at **`f876ed9`**. **R3E Contractor Deposit Payments COMPLETE / LIVE / VERIFIED** at **`f6c1301`**. **R3D Customer Proposal Signatures COMPLETE / LIVE** at **`0d06ad8`**. **R3C Formal Customer Acceptance COMPLETE / LIVE** at **`d1514a1`**. **Revision timing COMPLETE / LIVE** at **`ef2559f`**. **Job Lifecycle Foundation COMPLETE / LIVE / VERIFIED** at **`7510abd`**. **Proposal Flow V2 COMPLETE / LOCKED** at **`dbea772`**. See **§6CV**, **§6CU**, **§6CD**, **§6CC**, **§6CB**, **§6BV**, **§6BU**, **§6BT**, **§6BS**, **§6BR**, **§6BQ**, and **§6BO.13.4.9 R3**.
+- **Next:** **Photos / Attachments field experience architecture** (research / architecture first; do **not** implement until authorized). Do **not** start Tasks, Activity cleanup, or refunds. Payment domain remains locked (**§6CT**). Preserve Payment Stage 1 locks (§6CG) + Stage B Board + Stage A workspace + R3I + R3H + PERF-1 + Slice 1 (**§6CU**) + Measurement Report V1 (**§6CV**). Application lifecycle writes must remain guarded. Payment never writes `jobs.stage`. **Live migrations on `rhquhnujjnzjhweypavd`:** **038** Job Lifecycle Foundation; **039 absent / reserved**; **040–042** acceptance/revision timing; **043** Proposal Signatures; **044** Job Payments (**historical / unchanged**); **045** Unified Job Scheduling; **046** Guarded Production Start; **047** Guarded Job Completion (**historical SHA `FFE33FDD562742519BB92568CD5C55528537EA756540D1C6C906F8694B974979`**); **048** Proposal payment terms + job ledger (**LIVE** SHA256 **`72B46B61050287B094478485986772898BB0753FC0F1712D2825D9581A4BDCF0`**); **049–056** payment cohesion / collect / history (**historical / unchanged**). Do not modify applied migrations. Do not reopen Proposal Flow V2 casually. **Work Orders** and **full Invoicing** are **not** committed product stages (hidden from current Job Card nav; code retained).
 - **Job lifecycle model (COMPLETE / LIVE / VERIFIED):** See **§6BP**, **§6BQ**, **§6BT**, **§6BU**, and **§6BV**. Canonical six stages: Intake → Proposal → Approved → Scheduled → Production → Complete. Enabled writes include **Intake → Proposal** (first real proposal AUTO), **Proposal → Approved** (explicit contractor Approve job after customer Accept — not AUTO), **Approved → Scheduled** (schedule RPC only), **Scheduled → Approved** (unschedule RPC only), **Scheduled → Production** (Start work RPC only), and **Production → Complete** (Complete job RPC only). Generic stage transition cannot mint Scheduled, Production, or Complete. Job stage, proposal state, financial state, Attention, Activity, Tasks, disposition, and archived visibility remain separate concepts.
 - **Product model (locked):** **Templates** = FieldDive **prepared-setup command surface** for reusable setups and package options — **not** an admin table, stacked setup console, or bolted-on CRUD panel. Hierarchy: **prepared setup first** → **guided creation when needed** → **contextual adjust second** → **Advanced third**. **+ Template** = 3-step guided create (**Basics → Packages → Review & create**; One / Two / Three / Custom package models). **Templates → Adjust packages** = post-create package-option management (Copy existing default, Start blank shell, reorder, remove from setup, set starting package / R1 `is_default`) — **does not create new templates**. **Templates library lifecycle (R2A)** = archive/restore reusable setups (`proposal_templates.status` + synced `active`); **not** package-option soft-remove. **Preferred setup (R2B)** = which reusable setup FieldDive suggests first for a company workflow (`company_template_preferences`; initial scope `roofing` / `proposal` / `preferred_setup`); **separate from** package-option `is_default` (UI may say **Starting package**). **Templates Proposal packet wording (R3A / V2E5)** = landing **Proposal packet → Edit customer wording** is the normal reusable wording owner; setup-owned defaults copy into proposal pages; Advanced Content tab was removed as a duplicate write path; **Builder** owns proposal-specific wording after create; **Preview** renders **current draft** customer-document truth for contractor review/send; **Public** resolves **frozen sent** version via public token (no template save-back). **Public packet (R3A0)** = FieldDive customer-facing proposal structure with request/ask CTAs (base template accepted, not final design). **Customer package request (R3B)** = non-binding contractor-attention signal (`proposal_customer_requests`); **not** accept / approve / sign / pay / schedule / Jobs Board stage move. **Attention (R3B4)** = durable company operational condition (`job_attention_items`) with separate personal read (`job_attention_user_state`); **Slice 1:** residual intervention only when FieldDive cannot safely resolve automatically — not ordinary lifecycle progression, not acceptance coaching when Overview already owns Approve, not `payments_not_connected` on Job Card (**§6CU.13**); **not** a task, stage, or lifecycle mutation. **Job Card** = one operating workspace around canonical truth (**§6CU**); select **preferred** eligible setup first when set, else starter / first active eligible; then select one package option only when 2+ active options (R1 default/sort); **at most one primary forward lifecycle action** per current state; **Prepare proposal** is the real create-proposal flow from Job Card and Board Intake→Proposal (measurement prerequisite handled in-flow — do **not** send the contractor to the Measurements tab to hunt); Proposals tab owns prepare/scope/pricing/send/accept/sign/frozen version/payment terms; Activity remains operational chronology only (no payment events). **Builder** = document-first job-specific draft preparation after create (draft `proposal_options` truth, not live template options); **requires `job` + `proposal`**; healthy Builder is quiet; **Customer review** is the primary CTA; compact request banner only when a request is active; job-only setup-preview is retired. **Preview** = contractor review/send surface over **current draft** document; quiet when healthy; primary **Send**; request awareness only (Mark seen/Dismiss stay Job Card). **Public** = customer frozen/sent version. Correct flow: **Job Card → Prepare proposal → Builder → Customer review / Preview → Send → customer frozen/public version**; customer may **Request this package** (non-binding) → attention opens → contractor discovers via Jobs Board / Job Card next-action → **review / mark seen / dismiss**.
 - **Historical note (Preview + Send pre-V2C):** Checkpoint **`8bb19b4`** / docs **`86739d0`** unify the contractor Preview header, readiness, actions, and customer proposal into one surface; elevate the customer packet; and rework Send/sharing into a premium delivery composer. Superseded for current Preview/Send resume by **V2C frozen at `521c148`**.
 - **Historical note (Builder continuity):** Checkpoint **`a49b346`** aligns Builder with that Preview direction as contractor edit/review mode: premium command header; integrated section navigation (not a boxed tray); selected Enhanced package card with Change package vs Edit scope clarified; estimate + totals on one surface; cleaned row actions + preserved inline Edit qty; Edit scope drawer as contractor quantity review with accordion open/switch/collapse; intentional removed-lines collapsible. Protected systems untouched. Superseded for Builder resume by **V2B frozen at `f339652`**.
 
-**Trust order:** Header/current checkpoint → **§6CU** (Slice 1 core contractor workspace **COMPLETE / ACCEPTED** — one Job Card ecosystem; Prepare in-flow; measurement authority; domain-preservation; FLOW WHEN NEEDED; one primary forward lifecycle action; next = Measurement report experience) → **§6CT** (Stage 2F Payment live / visual lock **COMPLETE** — payment domain locked; one live Stripe test-mode progress Checkout + signed webhook settlement; no 057; remaining payment P1 = refunds, do not start until authorized) → **§6CS** (Stage 2E Payment History **COMPLETE** — Payments tab financial timeline; Activity has no payment events; no 057) → **§6CR** (Stage 2D customer payment-request experience **COMPLETE** — canonical public presenter; kind-aware failed deposit retry; no 057) → **§6CQ** (Stage 2C Flexible Collect **COMPLETE** — **056 LIVE**; Remaining/%/Fixed; server-owned amount/kind; `progress`/`balance`; accepted-version Copy) → **§6CP** (Pre-2C payment-domain invariant recovery **COMPLETE** — **055 LIVE**; one-active-per-job; acceptance-owned deposit) → **§6CO** (Payment Flexibility **ARCHITECTURE LOCKED** — Settings infrastructure; proposal terms; Collect payment; 2B retained) → **§6CN** (Payment Stage 2B **COMPLETE / VERIFIED / LOCKED** — Complete-gated Collect remaining balance; **054 LIVE**) → **§6CM** (Payment Stage 2A **COMPLETE / VERIFIED / LOCKED** — Job Card Payments workspace/read model) → **§6CL** (Payment Stage 2 **ARCHITECTURE / PRODUCT FLOW LOCKED** — superseded for collection flexibility by **§6CO**; 2A/2B implementation history remains) → **§6CK** (Cohesion A **COMPLETE / VERIFIED / LOCKED** — **049–053 LIVE / HISTORICAL / IMMUTABLE**; one capture per provider payment; customer-chosen contract total) → **§6CJ** (Cohesion B visual correction **COMPLETE** — 049 staged language in that section is **historical**) → **§6CI** (Premium Cohesion Cut 1 **COMPLETE** — 049 staged language in that section is **historical**; live status is **§6CK**) → **§6CH** (Payment Stage 1 flow correction **COMPLETE** — superseded for the customer purchase path by §6CI) → **§6CG** (Payment Stage 1 **COMPLETE / VERIFIED / LOCKED** — proposal-owned terms; freeze with send; Settings prefill only; Stripe readiness before online-deposit Send; Accept/Sign/Pay deposit; Approve is not a Checkout gate; job-level ledger; revision carry-forward; **048 LIVE**) → **§6CF** (Stage B guarded Board movement **COMPLETE / VERIFIED / LOCKED**) → **§6CE** (Stage A shared scheduling workspace **COMPLETE / VERIFIED / LOCKED**) → **§6CD** (Canonical visual fixture proof closure **COMPLETE / VERIFIED / LOCKED** — preferred Active Intake/Proposal/Production fixtures; Instant Estimate **PLACEHOLDER**) → **§6CC** (Canonical fixture + visible surface coherence **COMPLETE / VERIFIED / LOCKED** — fixture classes; stage-aware proposal guidance; deferred tabs hidden) → **§6CB** (R3I contractor disposition management **COMPLETE / VERIFIED / LOCKED** — Job Card Job actions; stage/disposition separation; Board badges + filter; Reactivate = `to_status=active`; no migration) → **§6CA** (Runtime ownership hardening **COMPLETE** — Job Card compile graph split; Board jobs-first; truthful schedule/proposal errors; Attention stale guard; public test cleanup) → **§6BZ** (Adversarial Audit Wave 2 **COMPLETE** — contractor capability API auth; server mutation UUID import hygiene; Preview independent reads + stale guards; error/absence semantics; Board/Calendar a11y; historical stage aliases; Work Orders placeholder; 390 proof) → **§6BY** (Adversarial Audit Wave 1 **COMPLETE** — canonical Board ownership; truthful Board/Calendar failure; stale Job Card + Calendar guards; Attention coalescing) → **§6BX** (Post-R3H combined architecture hardening **COMPLETE** — read ownership; fan-out coalescing; middleware API auth; Activity decoupling) → **§6BW** (Stage AB lifecycle action guard parity **COMPLETE** — shared eligibility ownership) → **§6BV** (R3H Guarded Job Completion **COMPLETE / LIVE / VERIFIED / LOCKED** at `f941259`; **047 LIVE / historical**) → **§6BU** (R3G Guarded Production Start **COMPLETE / LIVE / VERIFIED** at `a175814`; **046 LIVE / historical**) → **§6BT** (R3F Unified Job Scheduling **COMPLETE / LIVE / VERIFIED** at `f876ed9`; **045 LIVE / historical**) → **§6BS** (R3E Payments COMPLETE / LIVE at `f6c1301`; 044 historical) → **§6BR** (R3D Signatures COMPLETE / LIVE) → **§6BQ** (R3C Acceptance) → **§6BP** (Job Lifecycle Foundation) → **§6BO.13.4.9 R3** / Proposal Flow V2 history → remaining historical sections. **Do not proceed** to the next feature until explicitly approved. Do not mutate existing sent/signed/superseded snapshots or applied migrations. Do not reopen Proposal Flow V2 except for a proven correctness, security, or explicitly approved cross-surface requirement.
+**Trust order:** Header/current checkpoint → **§6CV** (Measurement Report V1 **COMPLETE / ACCEPTED** — current report summary; Details progressive disclosure; Earlier measurements = non-current; explicit Make current; Ready manual append-only; draft stale Proposal Builder-owned; next = Photos / Attachments architecture) → **§6CU** (Slice 1 core contractor workspace **COMPLETE / ACCEPTED** — one Job Card ecosystem; Prepare in-flow; measurement authority foundation; domain-preservation; FLOW WHEN NEEDED; one primary forward lifecycle action) → **§6CT** (Stage 2F Payment live / visual lock **COMPLETE** — payment domain locked; one live Stripe test-mode progress Checkout + signed webhook settlement; no 057; remaining payment P1 = refunds, do not start until authorized) → **§6CS** (Stage 2E Payment History **COMPLETE** — Payments tab financial timeline; Activity has no payment events; no 057) → **§6CR** (Stage 2D customer payment-request experience **COMPLETE** — canonical public presenter; kind-aware failed deposit retry; no 057) → **§6CQ** (Stage 2C Flexible Collect **COMPLETE** — **056 LIVE**; Remaining/%/Fixed; server-owned amount/kind; `progress`/`balance`; accepted-version Copy) → **§6CP** (Pre-2C payment-domain invariant recovery **COMPLETE** — **055 LIVE**; one-active-per-job; acceptance-owned deposit) → **§6CO** (Payment Flexibility **ARCHITECTURE LOCKED** — Settings infrastructure; proposal terms; Collect payment; 2B retained) → **§6CN** (Payment Stage 2B **COMPLETE / VERIFIED / LOCKED** — Complete-gated Collect remaining balance; **054 LIVE**) → **§6CM** (Payment Stage 2A **COMPLETE / VERIFIED / LOCKED** — Job Card Payments workspace/read model) → **§6CL** (Payment Stage 2 **ARCHITECTURE / PRODUCT FLOW LOCKED** — superseded for collection flexibility by **§6CO**; 2A/2B implementation history remains) → **§6CK** (Cohesion A **COMPLETE / VERIFIED / LOCKED** — **049–053 LIVE / HISTORICAL / IMMUTABLE**; one capture per provider payment; customer-chosen contract total) → **§6CJ** (Cohesion B visual correction **COMPLETE** — 049 staged language in that section is **historical**) → **§6CI** (Premium Cohesion Cut 1 **COMPLETE** — 049 staged language in that section is **historical**; live status is **§6CK**) → **§6CH** (Payment Stage 1 flow correction **COMPLETE** — superseded for the customer purchase path by §6CI) → **§6CG** (Payment Stage 1 **COMPLETE / VERIFIED / LOCKED** — proposal-owned terms; freeze with send; Settings prefill only; Stripe readiness before online-deposit Send; Accept/Sign/Pay deposit; Approve is not a Checkout gate; job-level ledger; revision carry-forward; **048 LIVE**) → **§6CF** (Stage B guarded Board movement **COMPLETE / VERIFIED / LOCKED**) → **§6CE** (Stage A shared scheduling workspace **COMPLETE / VERIFIED / LOCKED**) → **§6CD** (Canonical visual fixture proof closure **COMPLETE / VERIFIED / LOCKED** — preferred Active Intake/Proposal/Production fixtures; Instant Estimate **PLACEHOLDER**) → **§6CC** (Canonical fixture + visible surface coherence **COMPLETE / VERIFIED / LOCKED** — fixture classes; stage-aware proposal guidance; deferred tabs hidden) → **§6CB** (R3I contractor disposition management **COMPLETE / VERIFIED / LOCKED** — Job Card Job actions; stage/disposition separation; Board badges + filter; Reactivate = `to_status=active`; no migration) → **§6CA** (Runtime ownership hardening **COMPLETE** — Job Card compile graph split; Board jobs-first; truthful schedule/proposal errors; Attention stale guard; public test cleanup) → **§6BZ** (Adversarial Audit Wave 2 **COMPLETE** — contractor capability API auth; server mutation UUID import hygiene; Preview independent reads + stale guards; error/absence semantics; Board/Calendar a11y; historical stage aliases; Work Orders placeholder; 390 proof) → **§6BY** (Adversarial Audit Wave 1 **COMPLETE** — canonical Board ownership; truthful Board/Calendar failure; stale Job Card + Calendar guards; Attention coalescing) → **§6BX** (Post-R3H combined architecture hardening **COMPLETE** — read ownership; fan-out coalescing; middleware API auth; Activity decoupling) → **§6BW** (Stage AB lifecycle action guard parity **COMPLETE** — shared eligibility ownership) → **§6BV** (R3H Guarded Job Completion **COMPLETE / LIVE / VERIFIED / LOCKED** at `f941259`; **047 LIVE / historical**) → **§6BU** (R3G Guarded Production Start **COMPLETE / LIVE / VERIFIED** at `a175814`; **046 LIVE / historical**) → **§6BT** (R3F Unified Job Scheduling **COMPLETE / LIVE / VERIFIED** at `f876ed9`; **045 LIVE / historical**) → **§6BS** (R3E Payments COMPLETE / LIVE at `f6c1301`; 044 historical) → **§6BR** (R3D Signatures COMPLETE / LIVE) → **§6BQ** (R3C Acceptance) → **§6BP** (Job Lifecycle Foundation) → **§6BO.13.4.9 R3** / Proposal Flow V2 history → remaining historical sections. **Do not proceed** to the next feature until explicitly approved. Do not mutate existing sent/signed/superseded snapshots or applied migrations. Do not reopen Proposal Flow V2 except for a proven correctness, security, or explicitly approved cross-surface requirement.
 
 **DB-first foundation is live** (§6AD). **3J3E option selection persists** (§6AE). **Pricing trust hardening complete** (§6AF). **3J4C document-first Builder complete** (§6AG) — Estimate page renders the actual proposal document inline (package selector, sections, line items, totals); right rail is a contextual **Proposal Helper** inspector; old workspace tabs and Overview panel **removed**. **R16A** (§6AX) removed the amber **Preview-unlock blocker banner** from the Estimate **canvas**; pricing/blocking guidance remains in the rail. **3J4D** refined Estimate line readability (§6AH). **3J4E** refined package/options surface inside Estimate (§6AI). **3J4F** extended Builder to customer-facing text pages — Terms, Warranty, Project Overview, custom_text render persisted `body_markdown` when present (§6AJ). **R14** adds display-time `{{token_name}}` merge on those text pages from frozen `proposalDocumentContext` + R13 resolver (`f359ad4`, §6AW) — stored `body_markdown` unchanged; no write-back. **R4–R6** template content editor on `/tools/roofing/templates` **complete** (`9db2030`–`3c6214c`). **R7** light global IA nav **complete** (`05b9c54`). **R8** light Jobs Board identity **complete** (`1191ddd`). **R9** Job Card create/open draft flow **satisfied** (`1915b2d` + pre-R10 P1 at `d0ba188`). **R10** template structure + estimate settings **complete** (`bc42b1e`–`b3dd904`, §6AQ). **R11** company branding Settings **complete** (`0146dac`–`139e8a3`, §6AR). **R11c** stamps company core + branding into `proposal_versions.context_echo` at new draft create only (`29722a0`, §6AS) — **no Builder cover UI**. **R12** stamps DB-truth customer identity into `proposal_versions.context_echo` at new draft create only (`31059e3`, §6AT) — **no Job Card UI changes, no Builder customer display**. **R13** adds pure frozen document token foundation (`e40db30`, §6AU) — registry, `ProposalDocumentContext`, resolver. **R15** adds read-only branded **Cover** tab in Proposal Builder (`ab5a400`, §6AV) — consumes `proposalDocumentContext` + resolver; **not** Preview/PDF/send/sign/payment. **R14** wires body text pages to the same frozen context at display time (`f359ad4`, §6AW). **R16A** separates contractor workspace chrome from customer document IA (`18cebca`, §6AX) — customer-logical page strip order, workspace header, simplified body shell; **not** Preview/PDF/lifecycle/hub. **R16B** adds per-proposal draft body authoring for text pages (`589f5a0`, §6AY) — raw `body_markdown` persist, R14 display merge only, Estimate line-items-only de-duplication on persisted path; **not** token picker, page visibility, media, Preview, or lifecycle. **R16C1** adds Builder strip overflow page navigation (`967f0de`, §6BA) — More pages menu for persisted overflow pages by `page.id`, dirty-edit guard preserved, portal menu fix; **not** page visibility, Preview, or lifecycle. **R16C2** adds registry-driven document token picker in the R16B editor (`0cf76d2`, §6BB) — Insert field menu inserts raw `{{token_name}}` only; R14 display-time merge unchanged; save persists raw `body_markdown` only; **not** page visibility, Preview, or lifecycle. **R16C3** adds DB-backed proposal page visibility hide-show foundation (`25f1375`, §6BC) — toggles existing `proposal_pages.visible_to_customer` via `updateDraftProposalPageVisibility`; hidden pages remain contractor-visible and editable in Builder; Cover/Estimate required; `getCustomerPreviewPages` R17 contract helper only; **not** Preview, customer route, PDF, or lifecycle. **R17A/R17B** adds authenticated contractor Customer Preview foundation (`8ac2bcb`, §6BE) — pure `proposalCustomerPreviewViewModel` + `/tools/roofing/proposals/preview?job=&proposal=` route; header Preview enabled when persisted draft loads; dirty-edit guard before Preview navigation; **not** public/tokenized customer access, PDF, Send, Sign, Payment, or lifecycle. **R17C1** adds Preview Estimate document presentation layer (`9c2244a`, §6BF) — pure `proposalCustomerEstimatePresenter` + Preview-only estimate UI; shared `proposalPackagePresentation`; Preview Estimate no longer imports Builder workbench table components; **not** R17C2 Builder workbench hierarchy (now complete at `3e65774`, §6BG), R17C3 typography polish, R18, PDF, Send, Sign, Payment, or lifecycle. **R17C2 Phase 1** adds pure Builder workbench estimate presenter (`3c04322`, §6BG) — `proposalBuilderWorkbenchEstimatePresenter` DTO only; no UI. **R17C2 Phase 2** adds zoned Builder Estimate workbench UI + scope review / hard blocker split + gated Edit Option shell (`3e65774`, §6BG) — **not** R17D scope decision backend, R17C3 typography, R18, PDF, Send, Sign, Payment, or lifecycle. **R17D Phase 1** adds persisted scope decision overlay + merge-on-refresh foundation (`43c83a2`, §6BH) — `proposal_option_scope_decisions` migration (`20260618_009`); **`manual_quantity` proven in tests**; zero-decision refresh unchanged; migration **appears applied** on configured project per §6BI. **R17D Phase 2** adds manual quantity UI/API — first real Edit Option action wired in Builder (`f5712ff`, §6BI); **`manual_quantity` only**; other Edit Option actions remain disabled; **full post-Phase-2 audit passed** (§6BI); **not** R17C3 typography, R18, PDF, Send, Sign, Payment, or lifecycle. Main workflow: **Job Board → DB job card (`job=`) → Create proposal / Open proposal → create/reuse DB proposal draft → Builder (`job=` + `proposal=`) → package selection persists to DB; refresh draft pricing when measurement changes**. Legacy `loadSaved=` / `currentSaved` / board-origin paths are **preserved but separated** — they **cannot create DB proposals directly**. **DB proposal math uses the new spine only** (`measurement_records` → `proposalQuantityResolver` → `proposalPricingEngine` → snapshots) — **not** legacy saved-estimate / Core-Enhanced-Premium estimator math. **`createDraftProposal`** runs from Job Card **Create proposal** only when checklist + pricing gates pass; **Builder reads** persisted drafts via **`getDraftGraph`** + **`proposalDraftGraphAdapter`** when `?proposal=` is present — **no Builder create path**, **no silent fallback** on invalid `proposal=`. **Do not** persist placeholder/unconfigured pricing policy. **Catalog custom delete/deactivate** is **not implemented** and remains a **separate later scope**.
 
@@ -183,7 +186,9 @@
 
 | Commit | Summary |
 |--------|---------|
-| *(this docs commit)* | **Docs** — Record **Slice 1 core contractor workspace COMPLETE / ACCEPTED**; next = Measurement report experience; no migrations; no push |
+| *(this docs commit)* | **Docs** — Record **Measurement Report V1 COMPLETE / ACCEPTED**; next = Photos / Attachments architecture; no migrations; no push |
+| `aaea0c9` | **Measurement Report V1** — Job measurement report workspace: current summary, Details, history, Make current, append-only Ready edit |
+| `34c1271` | **Docs** — Checkpoint core contractor workspace flow (Slice 1) |
 | `463e4cb` | **Slice 1** — Unify core job workspace flow: Prepare, measurement capture, Overview, one forward lifecycle action, Board, Attention, quiet Tasks/Attachments |
 | `3570181` | **Docs** — Checkpoint Stage 2F final visual correction |
 | `f7e6a35` | **Stage 2F visual** — Refine final payment workspace states; payment domain locked |
@@ -18181,7 +18186,7 @@ Unused `PROPOSAL_CUSTOMER_PACKET_DUE_TODAY_LABEL`; unused `composeJobPaymentActi
 
 ### §6CT.7 Next
 
-**Refunds as a product** is the remaining payment P1. Do not start until authorized. Do not start Cohesion C. Do not start contractor Retry UI, email payment links, invoices, or schedules. **Current product next after Slice 1 is §6CU — Measurement report experience**, not refunds.
+**Refunds as a product** is the remaining payment P1. Do not start until authorized. Do not start Cohesion C. Do not start contractor Retry UI, email payment links, invoices, or schedules. **Current product next after Measurement Report V1 is §6CV — Photos / Attachments field experience architecture**, not refunds.
 
 ### §6CT.8 Final visual correction (`f7e6a35`)
 
@@ -18200,13 +18205,13 @@ Presenter/UI only. Collectible remains `contract − gross`. Refunded is display
 
 **Code checkpoint:** **`463e4cb`** — `feat(jobs): unify core job workspace flow` (`463e4cbd218738f40ec60eaeedec8aebf6afab6c`).
 
-**Docs checkpoint:** this commit — `docs: checkpoint core contractor workspace flow`.
+**Docs checkpoint:** **`34c1271`** — `docs: checkpoint core contractor workspace flow`.
 
 **Previous docs/code checkpoint:** **`3570181`** — `docs: checkpoint Stage 2F final visual correction`.
 
-**Working tree at this docs pass:** clean except **`?? supabase/.temp/`**. Nothing staged. **NO PUSH.**
+**Working tree at Slice 1 docs pass:** clean except **`?? supabase/.temp/`**. Nothing staged. **NO PUSH.**
 
-**Exact next:** **Measurement report experience / Measurements workspace depth.** Do **not** start refunds, Photos, Tasks, or Activity cleanup. Do **not** start Slice 2 from this checkpoint.
+**Exact next after Slice 1:** Measurement report experience — later **COMPLETE / ACCEPTED** at **`aaea0c9`** (**§6CV**). Current next after Measurement Report V1: **Photos / Attachments field experience architecture**. Do **not** start refunds, Photos implementation, Tasks, or Activity cleanup from this section alone.
 
 ### §6CU.1 Slice 1 result
 
@@ -18487,40 +18492,157 @@ Known P2: tab rail positioning may still feel slightly clipped at edges.
 
 ### §6CU.19 Next roadmap move
 
-The next implementation domain is **Measurement report experience / Measurements workspace depth**.
+**Measurement Report V1 is COMPLETE / ACCEPTED** — see **§6CV**.
 
-**NOT:** refunds, payment features, Activity cleanup, Photos yet, Tasks yet.
+**Exact next:** **Photos / Attachments field experience architecture** (research / architecture first; do **not** implement until authorized).
 
-Goal: turn Measurements from a useful capture foundation into a polished contractor measurement / report workspace.
-
-Likely scope to research / define before implementation:
-
-- report summary
-- quantities hierarchy
-- roof area / squares
-- waste
-- pitches / facets / slopes if real
-- source / provider
-- selected / current report
-- versions / revisions / history
-- proposal binding
-- staleness
-- view / report experience
-- manual edit
-- provider / PDF / import future boundaries
-- 390 field usability
-
-Use targeted Roofr research as a benchmark where useful. **Do not blindly copy Roofr.** FieldDive may adapt / improve where its architecture supports a simpler system.
+**NOT:** refunds, payment features, Activity cleanup, Tasks yet, Photos implementation yet.
 
 ### §6CU.20 Forward roadmap after Measurements
 
 Preserve this high-level sequence. Do not artificially create many micro-stages.
 
-1. Measurement report experience
-2. Photos / Attachments field experience
+1. Measurement report experience — **COMPLETE / ACCEPTED** (**§6CV**)
+2. Photos / Attachments field experience — **NEXT** (architecture first)
 3. Tasks only if still justified after Calendar / Photos / Attention workflows
 4. Activity chronology / density cleanup at an appropriate cohesion checkpoint
 5. Remaining payment follow-ups / refunds only when deliberately prioritized
+
+---
+
+## §6CV — Measurement Report V1 (COMPLETE / ACCEPTED)
+
+**Status:** COMPLETE / ACCEPTED.
+
+**Code checkpoint:** **`aaea0c9`** — `feat(measurements): add job measurement report workspace` (`aaea0c9ae4e2016a71ac9a8a903968b7fb8855f9`).
+
+**Docs checkpoint:** this commit — `docs: checkpoint measurement report workspace`.
+
+**Previous docs checkpoint:** **`34c1271`** — `docs: checkpoint core contractor workspace flow` (Slice 1).
+
+**Working tree at this docs pass:** clean except **`?? supabase/.temp/`**. Nothing staged. **NO PUSH.**
+
+**Exact next:** **Photos / Attachments field experience architecture** (research first). Do **not** start Photos implementation, Tasks, Activity cleanup, or refunds.
+
+### §6CV.1 Product principle
+
+**FLOW WHEN NEEDED. STAY QUIET WHEN NOT NEEDED.**
+
+Premium comes from hierarchy, typography, density, truthful information, spacing, and progressive disclosure — not coaching banners, NEXT STEP cards, readiness panels, badge farms, or nested card stacks.
+
+### §6CV.2 Architecture / authority
+
+Measurements is a **standing first-class job domain**.
+
+**Canonical current measurement authority:**
+
+1. `measurement_records.is_selected`
+2. fallback `jobs.selected_measurement_id`
+
+**Never:**
+
+- first row
+- proposal snapshot / frozen proposal measurement id as live current
+- latest-created by assumption
+
+Proposal retains its own measurement id / context snapshot. Do not mix live current measurement into frozen proposal truth.
+
+### §6CV.3 Current measurement summary
+
+When a current measurement exists:
+
+- Current measurement header + Add measurement (+ Edit when manual)
+- Name · Ready / Incomplete / Stale / Rejected
+- Primary metrics: Area, Squares, Waste, Pitch when present
+- Stories · source · date (human-readable, e.g. Aug 28, 2026)
+- Empty / null metrics omitted
+
+Empty state: **No measurement yet** + **Add measurement**. No teaching paragraph. No source selector until more than one real source exists.
+
+### §6CV.4 Details progressive disclosure
+
+- Omitted when no additional real quantities
+- Collapsed by default with compact **Details** + chevron
+- Contractor intentionally expands
+- Groups with real values only: Roof geometry, Lengths, Flashing / edge, Penetrations, Tear-off
+- Compact definition lists; 390 stacks single-column
+- No wide table / spreadsheet UX
+
+### §6CV.5 Earlier measurements / Make current
+
+- Earlier measurements = **non-current** rows only (current not duplicated)
+- Newest first
+- Row tap **views / expands** only — does **not** change selection
+- Expanded view does not restate the same quantity summary when no extra details exist
+- **Make current** is an explicit action on the expanded historical row
+- Rejected / stale / already-current cannot be selected
+- When Make current would stale a draft proposal: quiet confirmation **inside** the historical row context, identifying the target measurement. Cancel / Set as current. Does **not** auto-refresh proposal pricing. Proposal Builder owns Refresh draft pricing. No Attention / amber coaching afterward.
+
+### §6CV.6 Manual edit / append-only truth
+
+- Incomplete current manual → Edit may update that same row
+- Ready current manual → Edit prefills; Save creates a **new** row; new row becomes current; previous Ready remains history
+- Provider measurement remains view-only in V1
+
+### §6CV.7 Proposal binding / staleness ownership
+
+- No proposal / draft uses current → quiet
+- Draft uses earlier / updated measurement → quiet “Proposal draft uses an earlier measurement” + **Review proposal**
+- Sent / frozen uses earlier → “Sent proposal is based on an earlier measurement” (informational only; no refresh CTA; do not mutate)
+
+Primary stale-pricing owner: **Proposal Builder**. Measurements = secondary contextual echo only. Overview / Board / Attention: **no** measurement-stale warnings.
+
+### §6CV.8 Overview / Board
+
+- Overview: coarse echo only (`2,400 sq ft · 10% waste` or `No measurement`)
+- Board: coarse **Measured** or omit
+- No history / Details / SQ / waste / pitch / staleness enrichment
+
+### §6CV.9 Terminology / non-goals in V1
+
+Contractor terms: Measurement, Current measurement, Add measurement, Details, Earlier measurements, Make current.
+
+Do **not** expose: measurement record, UUID, is_selected, estimate_ready, production_ready, quantity_map, source_type enum, Processing/Failed/Superseded until provider workflows exist.
+
+**V1 does NOT include:** provider integration, PDF/report attachment, roof diagram, provider import mapper, report file storage, confidence/verification, revision diff, material BOM, waste scenario table, advanced provider statuses, Photos, Tasks, Activity cleanup, payments/refunds, SQL/migrations, new RPC, pricing math, proposal authority writes, lifecycle RPC changes.
+
+Visual-review harness amber warning banner was **developer-only** and **removed** from final proof (`measurement-report-v1-review`). Live Job Card never showed that banner.
+
+### §6CV.10 Mobile / verification
+
+True 390 is first-class: current summary, metrics, Add/Edit, Details, history, viewing earlier, Make current, stale confirm. No page-level horizontal overflow. No desktop-only detail pane.
+
+Focused verification: **83 pass / 0 fail** (measurement report model + workspace V1 + Slice 1 workspace + proposal staleness + catalog economics staleness + quantity-resolution staleness + pricing-trust). No new TypeScript errors from this slice. No SQL/migrations. No payment/lifecycle/pricing-engine changes.
+
+Final visual proof: `tmp/fielddive-ui-review/measurement-report-v1-final/` (no amber harness beacon).
+
+### §6CV.11 Deferred measurement work (not incomplete V1)
+
+- provider integration
+- PDF/report attachment
+- roof diagram
+- provider import mapper
+- report file storage
+- confidence/verification
+- revision diff
+- material BOM
+- waste scenario table
+- advanced provider statuses
+
+### §6CV.12 Next roadmap move
+
+**NEXT:** **Photos / Attachments field experience architecture**
+
+Goal: contractor opens job → take/upload photo → FieldDive automatically binds it to job → easy field-friendly gallery → simple documents/files → no folder-manager complexity.
+
+**Research / architecture first before implementation.**
+
+Later sequence preserved:
+
+1. Photos / Attachments field experience
+2. Tasks only if still justified
+3. Activity contractor chronology / density cleanup
+4. remaining payment/refund work only when deliberately prioritized
 
 ---
 
@@ -18648,7 +18770,8 @@ git log --oneline -15
 Then open and read **in this file** (in order):
 
 1. **Header / checkpoint block** (code + docs checkpoint, tests, next recommended) **and Recent commit table**
-2. **§6CU** — Slice 1 core contractor workspace **COMPLETE / ACCEPTED** (current resume; next = Measurement report experience)
+2. **§6CV** — Measurement Report V1 **COMPLETE / ACCEPTED** (current resume; next = Photos / Attachments architecture)
+3. **§6CU** — Slice 1 core contractor workspace **COMPLETE / ACCEPTED**
 3. **§6AG** — 3J4C document-first Proposal Builder (read before any Builder UI change)
 4. **§6AH** — 3J4D Estimate readability
 5. **§6AI** — 3J4E package/options detail surface
@@ -18698,11 +18821,16 @@ Then open and read **in this file** (in order):
 
 **Latest docs checkpoint:** this commit — `docs: checkpoint core contractor workspace flow` (prior docs: **`3570181`** — Stage 2F final visual correction).
 
-**Mandatory read:** **§6CU** (current Job Card / Measurements / Prepare / Overview / Attention / Board), then **§6CT** (payment domain locked). Historical §6BO.13 Catalog P0 is **not** the current next.
+**Mandatory read:** **§6CV** (Measurement Report V1), then **§6CU** (Slice 1 Job Card / Prepare / Overview / Attention / Board), then **§6CT** (payment domain locked). Historical §6BO.13 Catalog P0 is **not** the current next.
 
 **Next action (mandatory first resume step):**
 
-1. **Measurement report experience / Measurements workspace depth** — research / define before implementation (**§6CU.19**). Do **not** start until authorized.
+1. **Photos / Attachments field experience architecture** — research / define before implementation (**§6CV.12**). Do **not** start until authorized.
+2. Tasks only if still justified after Calendar / Photos / Attention workflows
+3. Activity contractor chronology / density cleanup
+4. Remaining payment/refund work only when deliberately prioritized
+
+**Completed prior next:** Measurement report experience — **COMPLETE / ACCEPTED** (**§6CV** / **`aaea0c9`**).
 2. **Do not start** refunds, payment features, Photos, Tasks, or Activity cleanup.
 3. **Do not start** Catalog P0 as the current next (historical §6BO.13 / old §9 body below).
 4. Preserve Slice 1 locks: FLOW WHEN NEEDED; one primary forward lifecycle action; domain-preservation; canonical measurement authority; Prepare in-flow.
@@ -18805,7 +18933,7 @@ Confirm: **Create proposal / Open proposal** on Job Card creates/reuses DB draft
 
 ## 11. FORWARD ROADMAP / NO-DRIFT NEXT STEPS
 
-**Current checkpoint override:** Header + **§6CU** supersede stale checkpoint lines in this section and stale **§8 CURRENT NEXT** / old **§11 body** / old **§6AL R18 row**. **Code:** **`463e4cb` — feat(jobs): unify core job workspace flow**. **Docs:** this commit (prior docs: **`3570181`**). **Slice 1 core contractor workspace COMPLETE / ACCEPTED** (**§6CU**). Payment domain remains **§6CT** locked. **Immediate next:** **Measurement report experience / Measurements workspace depth**. Do **not** start refunds, Photos, Tasks, Activity cleanup, or Catalog P0 as the current next. Historical body below (R13 / R15 / Slice 2 Catalog P0) is **not** current resume. **Do not create a separate Command Center** — evolve Job Board (§6BO.13). **Do not create NEXT STEP / readiness-card / coaching systems** (**§6CU.2**).
+**Current checkpoint override:** Header + **§6CV** + **§6CU** supersede stale checkpoint lines in this section and stale **§8 CURRENT NEXT** / old **§11 body** / old **§6AL R18 row**. **Code:** **`aaea0c9` — feat(measurements): add job measurement report workspace**. **Docs:** this commit (prior docs: **`34c1271`**). **Measurement Report V1 COMPLETE / ACCEPTED** (**§6CV**). Slice 1 remains **`463e4cb`** (**§6CU**). Payment domain remains **§6CT** locked. **Immediate next:** **Photos / Attachments field experience architecture** (research first). Do **not** start Photos implementation, Tasks, Activity cleanup, refunds, or Catalog P0 as the current next. Historical body below (R13 / R15 / Slice 2 Catalog P0) is **not** current resume. **Do not create a separate Command Center** — evolve Job Board (§6BO.13). **Do not create NEXT STEP / readiness-card / coaching systems** (**§6CU.2** / **§6CV.1**).
 
 Use this section as the **ordered checklist** for future GPT/Cursor sessions.
 
@@ -19713,7 +19841,8 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
-- **2026-08-28:** **SLICE 1 CORE CONTRACTOR WORKSPACE COMPLETE / ACCEPTED** — code **`463e4cb`** `feat(jobs): unify core job workspace flow` (`463e4cbd218738f40ec60eaeedec8aebf6afab6c`); docs this commit (**§6CU**). Job Card is one coherent workspace around canonical truth. Create proposal → Prepare (measurement in-flow). Measurements tab real (foundation, not final report). Domain-preservation. FLOW WHEN NEEDED. One primary forward lifecycle action. Calendar owns schedule. Minimal Attention. Tasks/Attachments quiet truthful empties. Activity payment-free with known density debt. RPC null measurement is not a contractor workflow. R3G late-stage fixtures are lifecycle-canonical / measurement-synthetic. Focused **179/179**. Truth-gate **110/110**. **No SQL. No payment architecture. No lifecycle RPC. No pricing math. No push.** Exact next: **Measurement report experience**. Do **not** start refunds, Photos, Tasks, or Activity cleanup.
+- **2026-08-28:** **MEASUREMENT REPORT V1 COMPLETE / ACCEPTED** — code **`aaea0c9`** `feat(measurements): add job measurement report workspace` (`aaea0c9ae4e2016a71ac9a8a903968b7fb8855f9`); docs this commit (**§6CV**). Current report summary; Details progressive disclosure; Earlier measurements = non-current only; explicit Make current; Ready manual edit append-only; draft stale confirm target-scoped; frozen informational only; Overview/Board coarse; no provider/PDF; FLOW WHEN NEEDED. Visual harness amber banner removed from final proof. Focused **83/83**. **No SQL. No payment architecture. No lifecycle RPC. No pricing math. No push.** Exact next: **Photos / Attachments field experience architecture**. Do **not** start Photos implementation, Tasks, Activity cleanup, or refunds.
+- **2026-08-28:** **SLICE 1 CORE CONTRACTOR WORKSPACE COMPLETE / ACCEPTED** — code **`463e4cb`** `feat(jobs): unify core job workspace flow` (`463e4cbd218738f40ec60eaeedec8aebf6afab6c`); docs **`34c1271`** (**§6CU**). Job Card is one coherent workspace around canonical truth. Create proposal → Prepare (measurement in-flow). Measurements tab real (foundation; report depth later completed in **§6CV**). Domain-preservation. FLOW WHEN NEEDED. One primary forward lifecycle action. Calendar owns schedule. Minimal Attention. Tasks/Attachments quiet truthful empties. Activity payment-free with known density debt. RPC null measurement is not a contractor workflow. R3G late-stage fixtures are lifecycle-canonical / measurement-synthetic. Focused **179/179**. Truth-gate **110/110**. **No SQL. No payment architecture. No lifecycle RPC. No pricing math. No push.**
 - **2026-08-27:** **STAGE 2F FINAL VISUAL CORRECTION COMPLETE** — code **`f7e6a35`** `fix(payments): refine final payment workspace states`; docs **`3570181`** (**§6CT.8**). Contractor refund wording is **Payments complete** when collectible 0 and refunded > 0 (**Paid in full** only when refunded 0). Payment History desktop constrained to `max-w-xl` with title/amount on one row; 390 stacked preserved. Accounting unchanged. Proof `tmp/fielddive-ui-review/stage-2f/stage-2f-final-*.png`. Focused **125/125**. **No migration 057.** **No push.** Remaining payment P1: **refunds as a product** (do not start until authorized). Current product next is **§6CU**.
 - **2026-08-27:** **STAGE 2F PAYMENT LIVE / VISUAL LOCK COMPLETE** — code **`49cc476`** `fix(payments): close final payment verification gaps`; docs **`3e3371d`** (**§6CT**). Payment domain locked. One live Stripe test-mode $100 progress Checkout + signed webhook settlement (listen was not running). Sequential / failed / refund / paid-in-full via live $100 + 2D/2E fixtures. Accepted-version portal. Failed deposit retry = new row. Activity payment-free. Complete ≠ Paid. Settings Stripe-only; Proposal owns terms. Desktop + 390 proof `tmp/fielddive-ui-review/stage-2f/`. Focused **295/295**. **No migration 057.** **No push.** Exact next: **refunds as a product** (do not start until authorized).
 - **2026-08-27:** **STAGE 2E PAYMENT HISTORY COMPLETE** — code **`ded81a2`** `feat(payments): add job payment history`; docs this commit (**§6CS**). Payments tab is the financial timeline (summary → current payment → Collect → history). Activity has no payment events. Requested/received/failed/cancelled/refund with canonical capture identity; newest-first day grouping; no processing history row. **No migration 057.** Focused 2E + related **82/82**. Proof `tmp/fielddive-ui-review/stage-2e/`. **No push.** Exact next: **Stage 2F — Payment live / visual lock**.
