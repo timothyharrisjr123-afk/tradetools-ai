@@ -311,7 +311,9 @@ describe("payment-state presenter", () => {
     assert.equal(workspace.nextStep, null);
     assert.equal(workspace.currentRequest?.status, "processing");
     assert.equal(
-      workspace.timeline.some((row) => row.type === "processing"),
+      (workspace.timeline as Array<{ type: string }>).some(
+        (row) => row.type === "processing"
+      ),
       false
     );
     assert.equal(

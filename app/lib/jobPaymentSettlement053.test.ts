@@ -118,6 +118,7 @@ describe("053 — historical live migrations immutable", () => {
       "20260827_053_canonical_stripe_settlement_and_contract_total.sql",
       "20260827_054_job_payment_balance_request_lifecycle.sql",
       "20260827_055_payment_domain_invariants.sql",
+      "20260827_056_flexible_collect_payment.sql",
     ]);
   });
 
