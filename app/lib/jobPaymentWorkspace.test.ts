@@ -312,6 +312,10 @@ describe("payment-state presenter", () => {
     assert.equal(workspace.currentRequest?.status, "processing");
     assert.equal(
       workspace.timeline.some((row) => row.type === "processing"),
+      false
+    );
+    assert.equal(
+      workspace.timeline.some((row) => row.title === "Deposit requested"),
       true
     );
   });

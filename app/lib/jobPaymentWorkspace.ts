@@ -49,9 +49,11 @@ export type JobPaymentWorkspaceState =
 export type JobPaymentWorkspaceTimelineType =
   | "requested"
   | "received"
-  | "processing"
   | "failed"
+  | "cancelled"
   | "refund";
+
+export type JobPaymentHistoryTone = "default" | "settled" | "muted";
 
 export type JobPaymentWorkspaceRequest = Pick<
   JobPaymentRequestRow,
@@ -62,7 +64,9 @@ export type JobPaymentWorkspaceRequest = Pick<
   | "requested_at"
   | "paid_at"
   | "settled_payment_method_label"
->;
+> & {
+  cancelled_at?: string | null;
+};
 
 export type JobPaymentWorkspaceTransaction = Pick<
   JobPaymentTransactionRow,
@@ -81,15 +85,23 @@ export type JobPaymentWorkspaceTimelineEvent = {
   id: string;
   type: JobPaymentWorkspaceTimelineType;
   title: string;
+  subtitle: string | null;
   amountCents: number;
   methodLabel: string | null;
   occurredAt: string;
   occurredAtLabel: string | null;
+  occurredAtTimeLabel: string | null;
   settled: boolean;
+  tone: JobPaymentHistoryTone;
   disclosure: {
     providerEventId: string | null;
     paymentIntentId: string | null;
   } | null;
+};
+
+export type JobPaymentHistoryGroup = {
+  heading: string;
+  events: JobPaymentWorkspaceTimelineEvent[];
 };
 
 export type JobPaymentWorkspaceCurrentRequest = {
@@ -299,14 +311,6 @@ export function isJobPaymentCompleteStage(stage: string | null | undefined): boo
   return (stage ?? "").trim().toLowerCase() === "complete";
 }
 
-function meaningfulRequests(
-  requests: readonly JobPaymentWorkspaceRequest[]
-): JobPaymentWorkspaceRequest[] {
-  return requests.filter(
-    (row) => row.status !== "cancelled" && row.status !== "expired"
-  );
-}
-
 function currentActiveRequest(
   requests: readonly JobPaymentWorkspaceRequest[]
 ): JobPaymentWorkspaceRequest | null {
@@ -319,7 +323,11 @@ function currentActiveRequest(
 function latestFailedRequest(
   requests: readonly JobPaymentWorkspaceRequest[]
 ): JobPaymentWorkspaceRequest | null {
-  return requests.find((row) => row.status === "failed") ?? null;
+  const latest = requests
+    .filter((row) => row.status !== "cancelled" && row.status !== "expired")
+    .slice()
+    .sort((a, b) => String(b.requested_at).localeCompare(String(a.requested_at)))[0];
+  return latest?.status === "failed" ? latest : null;
 }
 
 function requestById(
@@ -347,10 +355,90 @@ export function formatJobPaymentWorkspaceDate(
   }
 }
 
-function kindNoun(kind: JobPaymentKind): string {
-  if (kind === "deposit") return "Deposit";
-  if (kind === "progress") return "Progress";
-  return "Balance";
+export function formatJobPaymentWorkspaceTime(
+  value: string | null | undefined
+): string | null {
+  const raw = (value ?? "").trim();
+  if (!raw) return null;
+  const ms = Date.parse(raw);
+  if (!Number.isFinite(ms)) return null;
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date(ms));
+  } catch {
+    return null;
+  }
+}
+
+export function formatJobPaymentWorkspaceDateTime(
+  value: string | null | undefined
+): string | null {
+  const date = formatJobPaymentWorkspaceDate(value);
+  const time = formatJobPaymentWorkspaceTime(value);
+  if (date && time) return `${date} · ${time}`;
+  return date ?? time;
+}
+
+function sameCalendarDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+export function formatJobPaymentHistoryDayHeading(
+  value: string | null | undefined,
+  now = new Date()
+): string {
+  const raw = (value ?? "").trim();
+  const ms = Date.parse(raw);
+  if (!Number.isFinite(ms)) return "Unknown date";
+  const day = new Date(ms);
+  if (sameCalendarDay(day, now)) return "Today";
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (sameCalendarDay(day, yesterday)) return "Yesterday";
+  try {
+    const opts: Intl.DateTimeFormatOptions =
+      day.getFullYear() === now.getFullYear()
+        ? { month: "short", day: "numeric" }
+        : { month: "short", day: "numeric", year: "numeric" };
+    return new Intl.DateTimeFormat("en-US", opts).format(day);
+  } catch {
+    return formatJobPaymentWorkspaceDate(value) ?? "Unknown date";
+  }
+}
+
+export function groupJobPaymentHistory(
+  events: readonly JobPaymentWorkspaceTimelineEvent[],
+  now = new Date()
+): JobPaymentHistoryGroup[] {
+  const groups: JobPaymentHistoryGroup[] = [];
+  for (const event of events) {
+    const heading = formatJobPaymentHistoryDayHeading(event.occurredAt, now);
+    const last = groups[groups.length - 1];
+    if (last && last.heading === heading) {
+      last.events.push(event);
+    } else {
+      groups.push({ heading, events: [event] });
+    }
+  }
+  return groups;
+}
+
+function requestedTitle(kind: JobPaymentKind): string {
+  if (kind === "deposit") return "Deposit requested";
+  if (kind === "progress") return "Progress payment requested";
+  return "Remaining balance requested";
+}
+
+function receivedTitle(kind: JobPaymentKind): string {
+  if (kind === "deposit") return "Deposit received";
+  if (kind === "progress") return "Progress payment received";
+  return "Remaining balance received";
 }
 
 function canonicalFailures(
@@ -387,46 +475,58 @@ export function buildJobPaymentWorkspaceTimeline(input: {
 }): JobPaymentWorkspaceTimelineEvent[] {
   const events: JobPaymentWorkspaceTimelineEvent[] = [];
   const captures = canonicalSucceededCaptures(input.transactions);
-  const capturedRequestIds = new Set(captures.map((row) => row.paymentRequestId));
   const failures = canonicalFailures(input.transactions);
   const failedRequestIds = new Set(failures.map((row) => row.paymentRequestId));
 
-  for (const request of meaningfulRequests(input.requests)) {
-    if (request.status === "processing" && !capturedRequestIds.has(request.id)) {
-      events.push({
-        id: `processing:${request.id}`,
-        type: "processing",
-        title: "Payment processing",
-        amountCents: request.amount_cents,
-        methodLabel: null,
-        occurredAt: request.requested_at,
-        occurredAtLabel: formatJobPaymentWorkspaceDate(request.requested_at),
-        settled: false,
-        disclosure: null,
-      });
-      continue;
-    }
+  const stamped = (iso: string) => ({
+    occurredAt: iso,
+    occurredAtLabel: formatJobPaymentWorkspaceDateTime(iso),
+    occurredAtTimeLabel: formatJobPaymentWorkspaceTime(iso),
+  });
+
+  for (const request of input.requests) {
+    if (request.status === "expired") continue;
+
     events.push({
       id: `requested:${request.id}`,
       type: "requested",
-      title: `${kindNoun(request.kind)} requested`,
+      title: requestedTitle(request.kind),
+      subtitle: null,
       amountCents: request.amount_cents,
       methodLabel: null,
-      occurredAt: request.requested_at,
-      occurredAtLabel: formatJobPaymentWorkspaceDate(request.requested_at),
+      ...stamped(request.requested_at),
       settled: false,
+      tone: "default",
       disclosure: null,
     });
+
+    if (request.status === "cancelled") {
+      const cancelledAt = (request.cancelled_at ?? "").trim() || request.requested_at;
+      events.push({
+        id: `cancelled:${request.id}`,
+        type: "cancelled",
+        title: "Payment request cancelled",
+        subtitle: jobPaymentCurrentRequestKindLabel(request.kind),
+        amountCents: request.amount_cents,
+        methodLabel: null,
+        ...stamped(cancelledAt),
+        settled: false,
+        tone: "muted",
+        disclosure: null,
+      });
+    }
+
     if (request.status === "failed" && !failedRequestIds.has(request.id)) {
       events.push({
         id: `failed-request:${request.id}`,
         type: "failed",
         title: "Payment failed",
+        subtitle: jobPaymentCurrentRequestKindLabel(request.kind),
         amountCents: request.amount_cents,
         methodLabel: null,
-        occurredAt: request.requested_at,
-        occurredAtLabel: formatJobPaymentWorkspaceDate(request.requested_at),
+        ...stamped(request.requested_at),
         settled: false,
+        tone: "muted",
         disclosure: null,
       });
     }
@@ -434,16 +534,16 @@ export function buildJobPaymentWorkspaceTimeline(input: {
 
   for (const capture of captures) {
     const request = requestById(input.requests, capture.paymentRequestId);
-    const methodLabel = (request?.settled_payment_method_label ?? "").trim() || null;
     events.push({
       id: `received:${capture.identity}`,
       type: "received",
-      title: `${kindNoun(request?.kind ?? "deposit")} received`,
+      title: receivedTitle(request?.kind ?? "deposit"),
+      subtitle: null,
       amountCents: capture.amountCents,
-      methodLabel,
-      occurredAt: capture.occurredAt,
-      occurredAtLabel: formatJobPaymentWorkspaceDate(capture.occurredAt),
+      methodLabel: (request?.settled_payment_method_label ?? "").trim() || null,
+      ...stamped(capture.occurredAt),
       settled: true,
+      tone: "settled",
       disclosure:
         capture.providerPaymentIntentId || capture.providerEventId
           ? {
@@ -455,15 +555,17 @@ export function buildJobPaymentWorkspaceTimeline(input: {
   }
 
   for (const failure of failures) {
+    const request = requestById(input.requests, failure.paymentRequestId);
     events.push({
       id: `failed:${failure.identity}`,
       type: "failed",
       title: "Payment failed",
+      subtitle: request ? jobPaymentCurrentRequestKindLabel(request.kind) : null,
       amountCents: failure.amountCents,
       methodLabel: null,
-      occurredAt: failure.occurredAt,
-      occurredAtLabel: formatJobPaymentWorkspaceDate(failure.occurredAt),
+      ...stamped(failure.occurredAt),
       settled: false,
+      tone: "muted",
       disclosure:
         failure.providerPaymentIntentId || failure.providerEventId
           ? {
@@ -478,12 +580,13 @@ export function buildJobPaymentWorkspaceTimeline(input: {
     events.push({
       id: `refund:${refund.identity}`,
       type: "refund",
-      title: "Refund",
+      title: "Refund recorded",
+      subtitle: null,
       amountCents: refund.amountCents,
       methodLabel: null,
-      occurredAt: refund.occurredAt,
-      occurredAtLabel: formatJobPaymentWorkspaceDate(refund.occurredAt),
+      ...stamped(refund.occurredAt),
       settled: false,
+      tone: "muted",
       disclosure:
         refund.providerPaymentIntentId || refund.providerEventId
           ? {
@@ -494,7 +597,7 @@ export function buildJobPaymentWorkspaceTimeline(input: {
     });
   }
 
-  return sortByOccurredAt(events);
+  return sortByOccurredAt(events).reverse();
 }
 
 function overviewStatusFor(state: JobPaymentWorkspaceState): string | null {
@@ -623,9 +726,9 @@ function deriveWorkspaceState(input: {
     if (input.current.kind === "progress") return "progress_requested";
   }
 
-  if (!input.current && input.failed) return "payment_failed";
-
   if (paidInFull) return "paid_in_full";
+
+  if (!input.current && input.failed) return "payment_failed";
 
   if (input.current?.status === "open" && input.current.kind === "balance") {
     return "balance_requested";

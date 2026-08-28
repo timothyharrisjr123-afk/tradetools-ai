@@ -1,15 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import {
-  AlertTriangle,
-  Clock3,
-  DollarSign,
-  Minus,
-} from "lucide-react";
+import { useMemo, useState } from "react";
 import JobCardCollectPaymentSheet from "@/app/tools/roofing/jobCard/JobCardCollectPaymentSheet";
 import {
   formatJobPaymentWorkspaceAmount,
+  groupJobPaymentHistory,
   jobPaymentCurrentRequestKindLabel,
   type JobPaymentWorkspaceTimelineEvent,
   type JobPaymentWorkspaceView,
@@ -37,48 +32,64 @@ type JobCardPaymentsWorkspaceProps = {
   copyError?: string | null;
 };
 
-function TimelineIcon({ event }: { event: JobPaymentWorkspaceTimelineEvent }) {
-  if (event.type === "received") {
-    return (
-      <DollarSign
-        className="h-4 w-4 text-emerald-600"
-        aria-label="Received"
-      />
-    );
-  }
-  if (event.type === "processing") {
-    return <Clock3 className="h-4 w-4 text-slate-500" aria-label="Processing" />;
-  }
-  if (event.type === "failed") {
-    return (
-      <AlertTriangle className="h-4 w-4 text-amber-600" aria-label="Failed" />
-    );
-  }
-  if (event.type === "refund") {
-    return <Minus className="h-4 w-4 text-slate-500" aria-label="Refund" />;
-  }
-  return <span className="h-4 w-4" aria-hidden />;
+function currentStatusLabel(status: string): string {
+  if (status === "processing") return "Processing";
+  return "Open";
 }
 
-function TimelineAmount({ event }: { event: JobPaymentWorkspaceTimelineEvent }) {
+function summaryLabel(label: string): string {
+  if (label === "Received") return "Collected";
+  if (label === "Contract") return "Contract total";
+  return label;
+}
+
+function HistoryAmount({ event }: { event: JobPaymentWorkspaceTimelineEvent }) {
   const amount = formatJobPaymentWorkspaceAmount(event.amountCents);
-  if (event.type === "refund") {
-    return <span className="font-medium tabular-nums text-slate-800">-{amount}</span>;
-  }
+  const display = event.type === "refund" ? `−${amount}` : amount;
   return (
     <span
-      className={`font-medium tabular-nums ${
-        event.settled ? "text-emerald-800" : "text-slate-800"
+      className={`text-sm font-medium tabular-nums ${
+        event.tone === "muted" ? "text-slate-500" : "text-slate-900"
       }`}
     >
-      {amount}
+      {display}
     </span>
   );
 }
 
-function currentStatusLabel(status: string): string {
-  if (status === "processing") return "Processing";
-  return "Open";
+function HistoryRow({ event }: { event: JobPaymentWorkspaceTimelineEvent }) {
+  const when = event.occurredAtTimeLabel ?? event.occurredAtLabel;
+  return (
+    <li
+      className="border-t border-slate-100 py-3 first:border-t-0"
+      data-jobcard-payments-event={event.type}
+    >
+      <div className="flex items-start gap-3">
+        <span
+          className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
+            event.type === "received"
+              ? "bg-slate-800"
+              : event.type === "failed" || event.type === "cancelled"
+                ? "bg-slate-400"
+                : "bg-slate-300"
+          }`}
+          aria-hidden
+        />
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-slate-800">{event.title}</p>
+            {event.subtitle ? (
+              <p className="mt-0.5 text-xs text-slate-500">{event.subtitle}</p>
+            ) : null}
+            {when ? <p className="mt-0.5 text-xs text-slate-400">{when}</p> : null}
+          </div>
+          <p className="sm:text-right">
+            <HistoryAmount event={event} />
+          </p>
+        </div>
+      </div>
+    </li>
+  );
 }
 
 export default function JobCardPaymentsWorkspace({
@@ -93,6 +104,10 @@ export default function JobCardPaymentsWorkspace({
   copyError = null,
 }: JobCardPaymentsWorkspaceProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
+  const historyGroups = useMemo(
+    () => (workspace ? groupJobPaymentHistory(workspace.timeline) : []),
+    [workspace]
+  );
 
   if (!workspace) {
     return (
@@ -105,32 +120,38 @@ export default function JobCardPaymentsWorkspace({
   const current = workspace.currentRequest;
   const showCollect =
     workspace.canCollectPayment && onCollectPayment && current == null;
+  const showQuietStatus = current == null && workspace.statusLabel.length > 0;
+  const summaryCols =
+    workspace.summaryRows.length > 3
+      ? "sm:grid-cols-2 lg:grid-cols-4"
+      : "sm:grid-cols-3";
 
   return (
-    <div className="flex flex-col gap-6" data-jobcard-payments-workspace>
-      <section aria-labelledby="job-card-payments-status">
-        <p
-          id="job-card-payments-status"
-          className="text-sm font-medium text-slate-900"
-          data-jobcard-payments-status={workspace.state}
-        >
-          {workspace.statusLabel}
-        </p>
-        <dl className="mt-3 divide-y divide-slate-100 border-y border-slate-100">
+    <div className="flex flex-col gap-8" data-jobcard-payments-workspace>
+      <section aria-labelledby="job-card-payments-summary">
+        <h3 id="job-card-payments-summary" className="sr-only">
+          Payment summary
+        </h3>
+        {showQuietStatus ? (
+          <p
+            className="mb-4 text-sm text-slate-600"
+            data-jobcard-payments-status={workspace.state}
+          >
+            {workspace.statusLabel}
+          </p>
+        ) : (
+          <p className="sr-only" data-jobcard-payments-status={workspace.state}>
+            {workspace.statusLabel}
+          </p>
+        )}
+        <dl className={`grid grid-cols-1 gap-x-8 gap-y-3 ${summaryCols}`}>
           {workspace.summaryRows.map((row) => (
-            <div
-              key={row.label}
-              className="flex items-baseline justify-between gap-4 py-2.5"
-            >
-              <dt className="text-sm text-slate-500">
-                {row.label === "Received"
-                  ? "Collected"
-                  : row.label === "Contract"
-                    ? "Contract total"
-                    : row.label}
+            <div key={row.label} className="min-w-0">
+              <dt className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                {summaryLabel(row.label)}
               </dt>
               <dd
-                className="text-sm font-medium tabular-nums text-slate-900"
+                className="mt-1 text-base font-semibold tabular-nums text-slate-900"
                 data-jobcard-payments-summary={row.label.toLowerCase()}
               >
                 {formatJobPaymentWorkspaceAmount(row.cents)}
@@ -141,21 +162,24 @@ export default function JobCardPaymentsWorkspace({
       </section>
 
       {current ? (
-        <section aria-labelledby="job-card-payments-current" data-jobcard-payments-current>
+        <section
+          aria-labelledby="job-card-payments-current"
+          data-jobcard-payments-current
+        >
           <h3
             id="job-card-payments-current"
-            className="text-xs font-semibold uppercase tracking-wide text-slate-500"
+            className="text-[11px] font-semibold uppercase tracking-wide text-slate-400"
           >
-            Current request
+            Current payment
           </h3>
-          <p className="mt-1.5 text-sm font-medium text-slate-900">
+          <p className="mt-2 text-sm font-medium text-slate-900">
             {jobPaymentCurrentRequestKindLabel(current.kind)}
           </p>
-          <p className="mt-0.5 text-sm tabular-nums text-slate-700">
+          <p className="mt-1 text-xl font-semibold tabular-nums tracking-tight text-slate-900">
             {formatJobPaymentWorkspaceAmount(current.amountCents)}
           </p>
-          <p className="mt-0.5 text-sm text-slate-500">{currentStatusLabel(current.status)}</p>
-          <div className="mt-3 flex flex-col gap-2">
+          <p className="mt-1 text-sm text-slate-500">{currentStatusLabel(current.status)}</p>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             {onCopyPaymentLink ? (
               <button
                 type="button"
@@ -182,32 +206,40 @@ export default function JobCardPaymentsWorkspace({
                 {cancelBusy ? "Cancelling…" : JOB_CARD_PAYMENTS_CANCEL_REQUEST_CTA}
               </button>
             ) : null}
-            {copyError ? (
-              <p className="text-sm text-slate-600" data-jobcard-payments-copy-error>
-                {copyError}
-              </p>
-            ) : null}
           </div>
+          {copyError ? (
+            <p className="mt-2 text-sm text-slate-600" data-jobcard-payments-copy-error>
+              {copyError}
+            </p>
+          ) : null}
         </section>
       ) : null}
 
       {showCollect ? (
-        <div className="flex flex-col gap-2">
-          <button
-            type="button"
-            disabled={collectBusy}
-            onClick={() => setSheetOpen(true)}
-            className="inline-flex min-h-11 w-full items-center justify-center rounded-md bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-            data-jobcard-payments-collect
+        <section aria-labelledby="job-card-payments-collect">
+          <h3
+            id="job-card-payments-collect"
+            className="text-[11px] font-semibold uppercase tracking-wide text-slate-400"
           >
-            {JOB_CARD_PAYMENTS_COLLECT_CTA}
-          </button>
-          {collectError && !sheetOpen ? (
-            <p className="text-sm text-slate-600" data-jobcard-payments-collect-error>
-              {collectError}
-            </p>
-          ) : null}
-        </div>
+            Collect payment
+          </h3>
+          <div className="mt-3 flex flex-col gap-2">
+            <button
+              type="button"
+              disabled={collectBusy}
+              onClick={() => setSheetOpen(true)}
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-md bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+              data-jobcard-payments-collect
+            >
+              {JOB_CARD_PAYMENTS_COLLECT_CTA}
+            </button>
+            {collectError && !sheetOpen ? (
+              <p className="text-sm text-slate-600" data-jobcard-payments-collect-error>
+                {collectError}
+              </p>
+            ) : null}
+          </div>
+        </section>
       ) : null}
 
       {!showCollect && !current && workspace.nextStep?.connectHref ? (
@@ -222,42 +254,39 @@ export default function JobCardPaymentsWorkspace({
         </p>
       ) : null}
 
-      <section aria-labelledby="job-card-payments-timeline">
+      <section aria-labelledby="job-card-payments-history">
         <h3
-          id="job-card-payments-timeline"
-          className="text-xs font-semibold uppercase tracking-wide text-slate-500"
+          id="job-card-payments-history"
+          className="text-[11px] font-semibold uppercase tracking-wide text-slate-400"
         >
-          History
+          Payment history
         </h3>
         {workspace.timeline.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-600" data-jobcard-payments-timeline-empty>
+          <p className="mt-3 text-sm text-slate-500" data-jobcard-payments-timeline-empty>
             No payment activity yet.
           </p>
         ) : (
-          <ol className="mt-2 flex flex-col" data-jobcard-payments-timeline>
-            {workspace.timeline.map((event) => (
-              <li
-                key={event.id}
-                className="flex gap-3 border-t border-slate-100 py-3 first:border-t-0"
-                data-jobcard-payments-event={event.type}
+          <div className="mt-3" data-jobcard-payments-timeline data-jobcard-payments-history>
+            {historyGroups.map((group) => (
+              <section
+                key={group.heading}
+                aria-labelledby={`job-card-payments-history-${group.heading.replace(/\s+/g, "-").toLowerCase()}`}
+                className="mt-5 first:mt-0"
               >
-                <div className="mt-0.5 shrink-0">
-                  <TimelineIcon event={event} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
-                    <p className="text-sm font-medium text-slate-900">{event.title}</p>
-                    <TimelineAmount event={event} />
-                  </div>
-                  <p className="mt-0.5 text-sm text-slate-500">
-                    {[event.methodLabel, event.occurredAtLabel]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
-                </div>
-              </li>
+                <h4
+                  id={`job-card-payments-history-${group.heading.replace(/\s+/g, "-").toLowerCase()}`}
+                  className="text-[11px] font-semibold uppercase tracking-wide text-slate-400"
+                >
+                  {group.heading}
+                </h4>
+                <ol className="mt-1">
+                  {group.events.map((event) => (
+                    <HistoryRow key={event.id} event={event} />
+                  ))}
+                </ol>
+              </section>
             ))}
-          </ol>
+          </div>
         )}
       </section>
 

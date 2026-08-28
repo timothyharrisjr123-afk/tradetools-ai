@@ -286,7 +286,7 @@ describe("2B presenter CTA states", () => {
     assert.equal(workspace.canCollectRemainingBalance, false);
     assert.equal(workspace.nextStep, null);
     assert.equal(
-      workspace.timeline.some((row) => row.title === "Balance requested"),
+      workspace.timeline.some((row) => row.title === "Remaining balance requested"),
       true
     );
   });

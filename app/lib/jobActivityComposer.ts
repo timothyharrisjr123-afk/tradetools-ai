@@ -7,7 +7,9 @@
  *   3. proposal_customer_requests (composed by the panel)
  *   4. proposal_acceptances (composed by the panel; chronology owner is accepted_at)
  *   5. proposal_signatures (composed by the panel; chronology owner is signed_at)
- *   6. job payment requests/transactions (requested_at / provider occurred_at)
+ *   6. job payment requests/transactions — accepted by the composer for
+ *      harnesses/tests only. Live Job Card sets skipPaymentEnrichment so
+ *      Activity contains no payment events (Stage 2E).
  *
  * Never surfaces Job Card opened, autosave, previewed, snapshot_frozen,
  * Acceptance confirmed, or Acknowledge.

@@ -344,6 +344,11 @@ export type JobPaymentActivityItem = {
   occurredAt: string;
 };
 
+/**
+ * Legacy Activity composer. Kept for tests/review harnesses.
+ * Live Job Card Activity is not fed from this composer (`skipPaymentEnrichment`).
+ * Stage 2E payment history lives on the Payments tab instead.
+ */
 export function composeJobPaymentActivityItems(input: {
   requests: readonly JobPaymentRequestRow[];
   transactions: readonly JobPaymentTransactionRow[];
