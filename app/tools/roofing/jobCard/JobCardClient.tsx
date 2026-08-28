@@ -663,6 +663,7 @@ export default function JobCardClient({
         sentFactsByProposalId: listedJobSentFacts,
         acceptedProposalIds: jobAcceptedProposalIds,
         signedProposalIds: jobSignedProposalIds,
+        activeProposalId: hydratedJobRecord?.active_proposal_id ?? null,
         hrefs: currentJobId
           ? {
               builderHref: (proposalId) =>
@@ -681,6 +682,7 @@ export default function JobCardClient({
       jobAcceptedProposalIds,
       jobSignedProposalIds,
       currentJobId,
+      hydratedJobRecord?.active_proposal_id,
     ]
   );
 
@@ -1101,6 +1103,7 @@ export default function JobCardClient({
                   headerAction={
                     <JobCardProposalsAddHeaderButton
                       onClick={prepare.openModal}
+                      quiet={jobCardProposalRows.length > 0}
                     />
                   }
                 >

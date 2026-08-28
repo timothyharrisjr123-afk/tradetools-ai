@@ -106,7 +106,7 @@ export default function ProposalBuilderPackageSelector({
             <button
               type="button"
               onClick={() => setShowAll(true)}
-              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-blue-200/80 bg-blue-50/70 px-3 text-[12.5px] font-semibold text-blue-800 transition hover:bg-blue-50"
+              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-[12.5px] font-semibold text-slate-700 transition hover:bg-slate-50"
               data-builder-change-package
               aria-expanded={false}
               aria-haspopup="dialog"

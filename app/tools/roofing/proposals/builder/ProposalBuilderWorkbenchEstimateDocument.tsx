@@ -12,7 +12,6 @@ import type { ProposalTemplateSection } from "@/app/lib/proposalTemplateTypes";
 import type { ProposalPageSettings } from "@/app/lib/proposalPageTypes";
 import type { ProposalPageRow } from "@/app/lib/proposalRecordStore";
 import { useCallback, useState } from "react";
-import { CircleAlert } from "lucide-react";
 import {
   BUILDER_CANVAS,
   WORKBENCH_BODY,
@@ -269,28 +268,23 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
 
         {estimateQtyNeeded > 0 || upgradeQtyNeeded > 0 ? (
           <div
-            className="space-y-2 border-b border-amber-200/70 bg-amber-50/50 px-0 py-3"
+            className="space-y-1 border-b border-slate-100 px-0 py-2"
             data-builder-estimate-next-step
             data-builder-needs-review-strip
           >
             {estimateQtyNeeded > 0 ? (
               <div
-                className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2"
+                className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1"
                 data-builder-estimate-quantity-review
               >
-                <div className="flex min-w-0 items-start gap-3">
-                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
-                    <CircleAlert className="h-3.5 w-3.5" aria-hidden />
-                  </span>
-                  <p className="text-[13.5px] font-semibold text-slate-900">
-                    {estimateQtyNeeded === 1
-                      ? "1 estimate quantity needs review"
-                      : `${estimateQtyNeeded} estimate quantities need review`}
-                  </p>
-                </div>
+                <p className="min-w-0 text-[12.5px] text-slate-500">
+                  {estimateQtyNeeded === 1
+                    ? "1 estimate quantity needs review"
+                    : `${estimateQtyNeeded} estimate quantities need review`}
+                </p>
                 <button
                   type="button"
-                  className="inline-flex min-h-[44px] shrink-0 items-center rounded-lg border border-slate-200 bg-white px-3 text-[12.5px] font-semibold text-blue-700 shadow-sm transition hover:bg-blue-50"
+                  className="inline-flex min-h-[44px] shrink-0 items-center rounded-md px-2 text-[12.5px] font-semibold text-slate-600 underline-offset-2 transition hover:text-slate-900 hover:underline"
                   onClick={focusFirstQuantityIssue}
                   data-builder-review-quantities
                 >
@@ -300,26 +294,17 @@ export default function ProposalBuilderWorkbenchEstimateDocument({
             ) : null}
             {upgradeQtyNeeded > 0 ? (
               <div
-                className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2"
+                className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1"
                 data-builder-upgrade-quantity-review
               >
-                <div className="flex min-w-0 items-start gap-3">
-                  {estimateQtyNeeded === 0 ? (
-                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
-                      <CircleAlert className="h-3.5 w-3.5" aria-hidden />
-                    </span>
-                  ) : (
-                    <span className="mt-0.5 h-7 w-7 shrink-0" aria-hidden />
-                  )}
-                  <p className="text-[13.5px] font-semibold text-slate-900">
-                    {upgradeQtyNeeded === 1
-                      ? "1 upgrade quantity needs review"
-                      : `${upgradeQtyNeeded} upgrade quantities need review`}
-                  </p>
-                </div>
+                <p className="min-w-0 text-[12.5px] text-slate-500">
+                  {upgradeQtyNeeded === 1
+                    ? "1 upgrade quantity needs review"
+                    : `${upgradeQtyNeeded} upgrade quantities need review`}
+                </p>
                 <button
                   type="button"
-                  className="inline-flex min-h-[44px] shrink-0 items-center rounded-lg border border-slate-200 bg-white px-3 text-[12.5px] font-semibold text-blue-700 shadow-sm transition hover:bg-blue-50"
+                  className="inline-flex min-h-[44px] shrink-0 items-center rounded-md px-2 text-[12.5px] font-semibold text-slate-600 underline-offset-2 transition hover:text-slate-900 hover:underline"
                   onClick={focusFirstUpgradeQuantityIssue}
                   data-builder-review-upgrades
                 >

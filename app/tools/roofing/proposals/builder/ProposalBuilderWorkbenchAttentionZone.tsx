@@ -1,6 +1,5 @@
 "use client";
 
-import { AlertTriangle } from "lucide-react";
 import type { WorkbenchNeedsAttentionZone } from "@/app/lib/proposalBuilderWorkbenchEstimatePresenter";
 import {
   WORKBENCH_ATTENTION_COUNT_BADGE,
@@ -8,7 +7,6 @@ import {
   WORKBENCH_ATTENTION_ZONE,
   WORKBENCH_ATTENTION_ZONE_HEADER,
   WORKBENCH_MODULE_DESC,
-  WORKBENCH_MODULE_KICKER,
   WORKBENCH_MODULE_TITLE,
 } from "./proposalBuilderConstants";
 import ProposalBuilderWorkbenchLineRow from "./ProposalBuilderWorkbenchLineRow";
@@ -24,21 +22,17 @@ function HardBlockersSection({ zone }: { zone: WorkbenchNeedsAttentionZone["hard
     <section className={WORKBENCH_ATTENTION_ZONE} aria-labelledby="workbench-hard-blockers-heading">
       <header className={WORKBENCH_ATTENTION_ZONE_HEADER}>
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex min-w-0 items-start gap-2.5">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" aria-hidden />
-            <div>
-              <p className={WORKBENCH_MODULE_KICKER} id="workbench-hard-blockers-heading">
-                {zone.title}
-              </p>
-              <p className={WORKBENCH_MODULE_TITLE}>Setup must be resolved</p>
-              <p className={`${WORKBENCH_MODULE_DESC} text-amber-900/70`}>{zone.description}</p>
-            </div>
+          <div className="min-w-0">
+            <p className={WORKBENCH_MODULE_TITLE} id="workbench-hard-blockers-heading">
+              {zone.title}
+            </p>
+            <p className={WORKBENCH_MODULE_DESC}>{zone.description}</p>
           </div>
           <span className={WORKBENCH_ATTENTION_COUNT_BADGE}>{zone.count}</span>
         </div>
       </header>
 
-      <div className="space-y-1 px-4 py-3 sm:px-5">
+      <div className="space-y-1 px-0 py-3">
         <ul className="divide-y divide-slate-100">
           {zone.lines.map((line) => (
             <li

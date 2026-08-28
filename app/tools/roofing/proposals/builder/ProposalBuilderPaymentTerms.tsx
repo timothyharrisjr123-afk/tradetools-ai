@@ -126,7 +126,7 @@ export default function ProposalBuilderPaymentTerms({
     >
       <h3
         id="builder-payment-terms-heading"
-        className="text-xs font-semibold uppercase tracking-wide text-slate-500"
+        className="text-[13px] font-semibold text-slate-800"
       >
         {PAYMENT_TERMS_SECTION_LABEL}
       </h3>

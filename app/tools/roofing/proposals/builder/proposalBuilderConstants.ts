@@ -695,13 +695,13 @@ export const WORKBENCH_ZONE_HEADER =
 export const WORKBENCH_ZONE_BODY = WORKBENCH_MODULE_INNER;
 
 export const WORKBENCH_ATTENTION_ZONE =
-  "overflow-hidden rounded-xl border border-amber-200/70 bg-gradient-to-br from-amber-50/70 to-white";
+  "overflow-hidden border-t border-slate-100 bg-white";
 
 export const WORKBENCH_ATTENTION_ZONE_HEADER =
-  "border-b border-amber-200/50 bg-amber-50/60 px-4 py-3.5 sm:px-5";
+  "px-0 py-3 sm:px-0";
 
 export const WORKBENCH_ATTENTION_COUNT_BADGE =
-  "inline-flex min-w-[1.75rem] items-center justify-center rounded-full bg-amber-600 px-2 py-0.5 text-[11px] font-bold tabular-nums text-white shadow-sm";
+  "inline-flex min-w-[1.75rem] items-center justify-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-slate-600";
 
 export const WORKBENCH_ATTENTION_ITEM =
   "rounded-lg border border-amber-200/70 bg-white/90 px-3 py-2.5 shadow-[0_1px_4px_rgba(245,158,11,0.06)]";

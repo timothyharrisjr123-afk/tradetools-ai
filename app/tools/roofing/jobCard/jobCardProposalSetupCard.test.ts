@@ -156,10 +156,12 @@ describe("Job Card Proposals tab (Block 2 + Block 3 modal)", () => {
 
   test("10. Job Card status/activity follow visible proposals (Block 2 follow-up)", () => {
     const client = read("app/tools/roofing/RoofingClient.tsx");
+    const jobCard = read("app/tools/roofing/jobCard/JobCardClient.tsx");
     const helpers = read("app/tools/roofing/jobCard/jobCardProposalsTabModel.ts");
     const readiness = read("app/lib/proposalBuilderReadiness.ts");
     assert.match(client, /formatJobCardContractorProposalStatusLabel/);
-    assert.match(client, /hasVisibleContractorProposal/);
+    assert.match(jobCard, /formatJobCardContractorProposalStatusLabel/);
+    assert.match(jobCard, /activeProposalId: hydratedJobRecord\?\.active_proposal_id/);
     assert.match(helpers, /Ready to create proposal/);
     assert.match(helpers, /Ready for proposal/);
     assert.match(helpers, /Proposal created/);
@@ -168,7 +170,7 @@ describe("Job Card Proposals tab (Block 2 + Block 3 modal)", () => {
     assert.doesNotMatch(helpers, /Proposal Draft/);
     assert.doesNotMatch(readiness, /Proposal Builder ready/);
     assert.match(readiness, /hasVisibleContractorProposal/);
-    assert.match(client, /formatJobCardProposalCreatedActivityNote/);
+    assert.match(helpers, /formatJobCardProposalCreatedActivityNote/);
     assert.match(client, /activeNav=\{entryMode === "job-card" \? "jobs" : "newJob"\}/);
   });
 

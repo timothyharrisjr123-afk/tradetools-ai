@@ -7926,6 +7926,7 @@ Thanks,`;
       sentFactsByProposalId: listedJobSentFacts,
       acceptedProposalIds: jobAcceptedProposalIds,
       signedProposalIds: jobSignedProposalIds,
+      activeProposalId: hydratedJobRecord?.active_proposal_id ?? null,
       hrefs: currentJobId
         ? {
             builderHref: (proposalId) =>
@@ -9095,6 +9096,7 @@ Thanks,`;
                 headerAction={
                   <JobCardProposalsAddHeaderButton
                     onClick={openCreateProposalModal}
+                    quiet={jobCardProposalRows.length > 0}
                   />
                 }
               >

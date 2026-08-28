@@ -1786,7 +1786,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       ) : null}
       {!draftGraphError && shellReady && showStaleBanner && staleBannerCopy ? (
         <div
-          className="flex flex-col gap-3 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between"
+          className="flex flex-col gap-2 border-b border-slate-200 px-4 py-2 text-[13px] text-slate-600 sm:flex-row sm:items-center sm:justify-between"
           data-builder-stale-banner
           data-builder-stale-reason={
             proposalPricingStale.stale && draftCatalogEconomicsStale.stale
@@ -1801,7 +1801,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
             type="button"
             onClick={handleRefreshDraftPricing}
             disabled={refreshInFlight || persistedGraph?.proposal.status !== "draft"}
-            className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-md border border-amber-400 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-0"
+            className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
             data-builder-refresh-draft-pricing
           >
             {refreshInFlight ? "Refreshing…" : "Refresh draft pricing"}

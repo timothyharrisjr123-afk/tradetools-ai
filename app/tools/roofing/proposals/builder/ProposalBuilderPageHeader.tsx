@@ -96,26 +96,23 @@ export default function ProposalBuilderPageHeader({
               ) : null}
               {contextReady && (packageLabel || totalLabel || savedLabel) ? (
                 <div
-                  className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[12.5px] text-slate-600"
+                  className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[12px] text-slate-400"
                   data-builder-handoff-meta
                   data-builder-package-status-line
                 >
                   {packageLabel ? (
-                    <span data-builder-command-package>
+                    <span className="sr-only" data-builder-command-package>
                       <span className="sr-only">Package </span>
-                      <strong className="font-semibold text-slate-800">{packageLabel}</strong>
+                      {packageLabel}
                     </span>
                   ) : null}
                   {totalLabel ? (
-                    <span
-                      className="tabular-nums font-semibold text-slate-900"
-                      data-builder-command-total
-                    >
+                    <span className="sr-only tabular-nums" data-builder-command-total>
                       {totalLabel}
                     </span>
                   ) : null}
                   {savedLabel ? (
-                    <span className="text-slate-400" data-builder-command-saved>
+                    <span data-builder-command-saved>
                       Saved {savedLabel}
                     </span>
                   ) : null}

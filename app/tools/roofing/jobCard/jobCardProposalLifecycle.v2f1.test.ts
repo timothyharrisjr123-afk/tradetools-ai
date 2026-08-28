@@ -236,8 +236,14 @@ describe("V2F1 Job Card six cases", () => {
   test("+ Proposal remains a separate add-lineage control", () => {
     assert.equal(JOB_CARD_PROPOSALS_ADD_LABEL, "+ Proposal");
     const tab = readFileSync(join(ROOT, "app/tools/roofing/jobCard/JobCardProposalsTab.tsx"), "utf8");
+    const client = readFileSync(join(ROOT, "app/tools/roofing/jobCard/JobCardClient.tsx"), "utf8");
     assert.match(tab, /data-jobcard-add-proposal/);
     assert.doesNotMatch(tab, /revise.*createNewProposalDraftEntry/i);
+    assert.match(tab, /data-jobcard-proposal-current/);
+    assert.match(tab, /data-jobcard-proposal-earlier/);
+    assert.match(tab, /JOB_CARD_PROPOSALS_EARLIER_LABEL/);
+    assert.match(client, /quiet=\{jobCardProposalRows\.length > 0\}/);
+    assert.match(client, /activeProposalId: hydratedJobRecord\?\.active_proposal_id/);
   });
 });
 

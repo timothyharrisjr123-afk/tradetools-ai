@@ -17,8 +17,11 @@ import type { ProposalRecordStatusSummary } from "@/app/lib/proposalRecordTypes"
 
 export const JOB_CARD_PROPOSALS_TAB_TITLE = "Proposals" as const;
 
-export const JOB_CARD_PROPOSALS_TAB_SUBTITLE =
-  "Create, review, and open proposals for this job." as const;
+export const JOB_CARD_PROPOSALS_TAB_SUBTITLE = "" as const;
+
+export const JOB_CARD_PROPOSALS_EARLIER_LABEL = "Earlier proposals" as const;
+
+export const JOB_CARD_PROPOSALS_WORKING_CURRENT_MARKER = "Current" as const;
 
 export const JOB_CARD_PROPOSALS_ADD_LABEL = "+ Proposal" as const;
 
@@ -144,13 +147,17 @@ export const JOB_CARD_PROPOSALS_ENTRY_PLACEHOLDER_HINT =
 
 /** FieldDive blue primary — matches Builder/Preview action styling. */
 export const JOB_CARD_PROPOSALS_PRIMARY_BUTTON_CLASS =
-  "inline-flex items-center justify-center rounded-md border border-blue-300 bg-blue-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400" as const;
+  "inline-flex min-h-[44px] items-center justify-center rounded-md border border-blue-300 bg-blue-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400" as const;
 
 export const JOB_CARD_PROPOSALS_ROW_PRIMARY_BUTTON_CLASS =
-  "shrink-0 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-100 disabled:bg-slate-50 disabled:text-slate-400" as const;
+  "inline-flex min-h-[44px] shrink-0 items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-100 disabled:bg-slate-50 disabled:text-slate-400" as const;
 
 export const JOB_CARD_PROPOSALS_SECONDARY_BUTTON_CLASS =
-  "shrink-0 text-[12px] font-semibold text-slate-600 hover:text-slate-900 disabled:cursor-not-allowed disabled:text-slate-400" as const;
+  "inline-flex min-h-[44px] shrink-0 items-center text-[12px] font-semibold text-slate-600 hover:text-slate-900 disabled:cursor-not-allowed disabled:text-slate-400" as const;
+
+/** Header + Proposal when a current proposal already exists — must not compete. */
+export const JOB_CARD_PROPOSALS_ADD_QUIET_BUTTON_CLASS =
+  "inline-flex min-h-[44px] items-center justify-center rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400" as const;
 
 export type JobCardProposalActionId =
   | "edit_proposal"
@@ -181,6 +188,8 @@ export type JobCardProposalRowView = {
   primaryAction: JobCardProposalActionView;
   secondaryActions: readonly JobCardProposalActionView[];
   sentHistory: readonly JobCardSentHistoryRowView[];
+  /** Canonical jobs.active_proposal_id when that id is in the visible list. */
+  isCurrent: boolean;
 };
 
 export type JobCardProposalSentFactsInput = {
@@ -442,18 +451,59 @@ export function formatJobCardContractorProposalStatusLabel(input: {
     return label;
   }
 
+  const activeId = (input.activeProposalId ?? "").trim();
+  const pointed =
+    activeId.length > 0
+      ? derivedRows.find((row) => row.summary.id === activeId) ?? null
+      : null;
   const latest = pickLatestVisibleProposal(visible);
   const latestDerived =
-    derivedRows.find((row) => row.summary.id === latest?.id) ?? derivedRows[0]!;
+    pointed ??
+    derivedRows.find((row) => row.summary.id === latest?.id) ??
+    derivedRows[0]!;
   const latestLabel =
     !acceptanceFactsReady && latestDerived.statusLabel === "Sent"
       ? JOB_CARD_PROPOSAL_STATUS_EXISTS
       : latestDerived.statusLabel;
   const pkgRaw =
-    (latest && input.packageLabelsByProposalId?.[latest.id])?.trim() || "";
+    (input.packageLabelsByProposalId?.[latestDerived.summary.id])?.trim() || "";
   const pkg = pkgRaw.replace(/\s+package$/i, "").trim();
+  if (pointed) {
+    if (pkg) return `${pkg} · ${latestLabel}`;
+    return latestLabel;
+  }
   if (pkg) return `Latest: ${pkg} · ${latestLabel}`;
   return `Latest: ${latestLabel}`;
+}
+
+/**
+ * Canonical current working proposal for Job Card list presentation.
+ * Prefer jobs.active_proposal_id when that id is visible. Do not invent
+ * current from timestamps among multiple rows.
+ */
+export function resolveJobCardCurrentProposalId(input: {
+  proposalIds: readonly string[];
+  activeProposalId?: string | null;
+}): string | null {
+  const ids = input.proposalIds.map((id) => id.trim()).filter(Boolean);
+  const active = (input.activeProposalId ?? "").trim();
+  if (active && ids.includes(active)) return active;
+  if (ids.length === 1) return ids[0]!;
+  return null;
+}
+
+export function partitionJobCardProposalRows(
+  rows: readonly JobCardProposalRowView[]
+): {
+  current: JobCardProposalRowView | null;
+  earlier: JobCardProposalRowView[];
+} {
+  if (rows.length === 1) {
+    return { current: rows[0]!, earlier: [] };
+  }
+  const current = rows.find((row) => row.isCurrent) ?? null;
+  const earlier = rows.filter((row) => !row.isCurrent);
+  return { current, earlier };
 }
 
 function pickLatestVisibleProposal(
@@ -560,6 +610,7 @@ export function buildJobCardProposalRowView(input: {
   hrefs?: JobCardProposalHrefBuilders;
   customerAccepted?: boolean;
   customerSigned?: boolean;
+  isCurrent?: boolean;
 }): JobCardProposalRowView {
   const packageLabel = (input.packageLabel ?? "").trim() || null;
   const title = formatJobCardProposalRowTitle({
@@ -623,6 +674,7 @@ export function buildJobCardProposalRowView(input: {
       lastSentAtLabel,
       packageAsBadge: Boolean(packageLabel),
     }),
+    isCurrent: input.isCurrent === true,
   };
 }
 
@@ -634,8 +686,14 @@ export function buildJobCardProposalRowViews(input: {
   hrefs?: JobCardProposalHrefBuilders;
   acceptedProposalIds?: Readonly<Record<string, boolean | undefined>>;
   signedProposalIds?: Readonly<Record<string, boolean | undefined>>;
+  /** Canonical jobs.active_proposal_id — current working proposal when visible. */
+  activeProposalId?: string | null;
 }): JobCardProposalRowView[] {
-  return input.summaries.map((summary) =>
+  const currentId = resolveJobCardCurrentProposalId({
+    proposalIds: input.summaries.map((summary) => summary.id),
+    activeProposalId: input.activeProposalId,
+  });
+  const rows = input.summaries.map((summary) =>
     buildJobCardProposalRowView({
       summary,
       packageLabel: input.packageLabelsByProposalId?.[summary.id] ?? null,
@@ -644,6 +702,11 @@ export function buildJobCardProposalRowViews(input: {
       hrefs: input.hrefs,
       customerAccepted: input.acceptedProposalIds?.[summary.id] === true,
       customerSigned: input.signedProposalIds?.[summary.id] === true,
+      isCurrent: currentId != null && summary.id === currentId,
     })
   );
+  if (!currentId) return rows;
+  const current = rows.filter((row) => row.isCurrent);
+  const earlier = rows.filter((row) => !row.isCurrent);
+  return [...current, ...earlier];
 }

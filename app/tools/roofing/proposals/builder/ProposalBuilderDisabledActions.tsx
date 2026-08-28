@@ -83,21 +83,19 @@ export default function ProposalBuilderDisabledActions({
               <MoreHorizontal className="h-4 w-4" aria-hidden />
               More
             </summary>
-            <div className="absolute right-0 z-20 mt-1 w-[15rem] rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg">
-              <details
-                className="px-2.5 py-1.5"
-                data-builder-saved-pricing-details
+            <div
+              className="absolute right-0 z-20 mt-1 w-[15rem] rounded-lg border border-slate-200 bg-white p-2.5 shadow-lg"
+              data-builder-saved-pricing-details
+            >
+              <p className="text-[11px] font-medium text-slate-500">
+                Saved pricing details
+              </p>
+              <p
+                className="mt-1 text-[11px] leading-snug text-slate-500"
+                data-builder-snapshot-frozen-helper
               >
-                <summary className="cursor-pointer list-none text-[11px] font-medium text-slate-500 hover:text-slate-700 [&::-webkit-details-marker]:hidden">
-                  Saved pricing details
-                </summary>
-                <p
-                  className="mt-1.5 text-[11px] leading-snug text-slate-500"
-                  data-builder-snapshot-frozen-helper
-                >
-                  {pricingNote}
-                </p>
-              </details>
+                {pricingNote}
+              </p>
             </div>
           </details>
         ) : null}

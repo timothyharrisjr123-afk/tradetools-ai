@@ -342,4 +342,42 @@ describe("jobCardProposalsTab helpers", () => {
       /Proposal Builder ready/i
     );
   });
+
+  test("canonical active pointer is current; timestamps do not invent current", () => {
+    const older = summary({
+      id: "a",
+      title: "Roof replacement",
+      status: "draft",
+      updated_at: "2026-07-20T10:00:00.000Z",
+    });
+    const newer = summary({
+      id: "b",
+      title: "Roof replacement",
+      status: "draft",
+      updated_at: "2026-07-20T16:00:00.000Z",
+    });
+    const rows = buildJobCardProposalRowViews({
+      summaries: [newer, older],
+      packageLabelsByProposalId: { a: "Standard", b: "Enhanced" },
+      activeProposalId: "a",
+    });
+    assert.equal(rows[0]?.proposalId, "a");
+    assert.equal(rows[0]?.isCurrent, true);
+    assert.equal(rows[1]?.proposalId, "b");
+    assert.equal(rows[1]?.isCurrent, false);
+    assert.equal(
+      formatJobCardContractorProposalStatusLabel({
+        visibleSummaries: [older, newer],
+        packageLabelsByProposalId: { a: "Standard", b: "Enhanced" },
+        activeProposalId: "a",
+      }),
+      "Standard · Draft"
+    );
+    const unsorted = buildJobCardProposalRowViews({
+      summaries: [newer, older],
+      packageLabelsByProposalId: { a: "Standard", b: "Enhanced" },
+    });
+    assert.equal(unsorted.every((row) => row.isCurrent === false), true);
+    assert.equal(unsorted[0]?.proposalId, "b");
+  });
 });
