@@ -21,6 +21,7 @@ import {
 } from "@/app/lib/jobPaymentTypes";
 import type {
   CompanyPaymentAccountRow,
+  JobPaymentRefundRow,
   JobPaymentRequestRow,
   JobPaymentTransactionRow,
 } from "@/app/lib/jobPaymentReadModel";
@@ -96,6 +97,21 @@ export type JobPaymentWorkspaceTimelineEvent = {
   occurredAtTimeLabel: string | null;
   settled: boolean;
   tone: JobPaymentHistoryTone;
+  capture?: {
+    canonicalTransactionId: string;
+    succeededRefundedCents: number;
+    inFlightRefundCents: number;
+    alreadyRefundedCents: number;
+    refundableCents: number;
+  } | null;
+  support?: string | null;
+  refundAction?: {
+    captureId: string;
+    originalPaymentCents: number;
+    alreadyRefundedCents: number;
+    inFlightCents: number;
+    refundableCents: number;
+  } | null;
   disclosure: {
     providerEventId: string | null;
     paymentIntentId: string | null;
@@ -149,8 +165,13 @@ export type JobPaymentWorkspaceSummaryRow = {
 };
 
 export type CanonicalCaptureContribution = {
+  canonicalTransactionId: string;
   identity: string;
   amountCents: number;
+  succeededRefundedCents: number;
+  inFlightRefundCents: number;
+  alreadyRefundedCents: number;
+  refundableCents: number;
   occurredAt: string;
   paymentRequestId: string;
   providerPaymentIntentId: string | null;
@@ -201,7 +222,8 @@ function sortByOccurredAt<T extends { occurredAt?: string; occurred_at?: string;
 }
 
 export function canonicalSucceededCaptures(
-  transactions: readonly JobPaymentWorkspaceTransaction[]
+  transactions: readonly JobPaymentWorkspaceTransaction[],
+  refunds: readonly JobPaymentRefundRow[] = []
 ): CanonicalCaptureContribution[] {
   const succeeded = sortByOccurredAt(
     transactions.filter((row) => row.kind === "capture" && row.status === "succeeded")
@@ -215,9 +237,32 @@ export function canonicalSucceededCaptures(
     });
     if (seen.has(identity)) continue;
     seen.add(identity);
+    const captureRefunds = refunds.filter(
+      (refund) => refund.canonical_capture_transaction_id === row.id
+    );
+    const succeededRefundedCents = captureRefunds
+      .filter((refund) => refund.status === "succeeded")
+      .reduce((sum, refund) => sum + Math.max(0, refund.amount_cents), 0);
+    const inFlightRefundCents = captureRefunds
+      .filter(
+        (refund) =>
+          refund.status === "initiating" ||
+          refund.status === "pending" ||
+          refund.status === "requires_action"
+      )
+      .reduce((sum, refund) => sum + Math.max(0, refund.amount_cents), 0);
+    const amountCents = Math.max(0, row.amount_cents);
     out.push({
+      canonicalTransactionId: row.id,
       identity,
-      amountCents: Math.max(0, row.amount_cents),
+      amountCents,
+      succeededRefundedCents,
+      inFlightRefundCents,
+      alreadyRefundedCents: succeededRefundedCents,
+      refundableCents: Math.max(
+        0,
+        amountCents - succeededRefundedCents - inFlightRefundCents
+      ),
       occurredAt: row.occurred_at,
       paymentRequestId: row.payment_request_id,
       providerPaymentIntentId: (row.provider_payment_intent_id ?? "").trim() || null,
@@ -236,46 +281,12 @@ export function jobPaymentWorkspaceGrossCents(
   );
 }
 
-type CanonicalRefundContribution = {
-  identity: string;
-  amountCents: number;
-  occurredAt: string;
-  paymentRequestId: string;
-  providerPaymentIntentId: string | null;
-  providerEventId: string | null;
-};
-
-function canonicalRefunds(
-  transactions: readonly JobPaymentWorkspaceTransaction[]
-): CanonicalRefundContribution[] {
-  const refunds = sortByOccurredAt(
-    transactions.filter((row) => row.kind === "refund" && row.status === "refunded")
-  );
-  const seen = new Set<string>();
-  const out: CanonicalRefundContribution[] = [];
-  for (const row of refunds) {
-    const pi = (row.provider_payment_intent_id ?? "").trim();
-    const identity = pi
-      ? `refund:pi:${JOB_PAYMENT_PROVIDER}:${pi}:${row.amount_cents}`
-      : `refund:evt:${JOB_PAYMENT_PROVIDER}:${(row.provider_event_id ?? "").trim()}`;
-    if (seen.has(identity)) continue;
-    seen.add(identity);
-    out.push({
-      identity,
-      amountCents: Math.max(0, row.amount_cents),
-      occurredAt: row.occurred_at,
-      paymentRequestId: row.payment_request_id,
-      providerPaymentIntentId: pi || null,
-      providerEventId: (row.provider_event_id ?? "").trim() || null,
-    });
-  }
-  return out;
-}
-
 export function jobPaymentWorkspaceRefundedCents(
-  transactions: readonly JobPaymentWorkspaceTransaction[]
+  refunds: readonly JobPaymentRefundRow[]
 ): number {
-  return canonicalRefunds(transactions).reduce((sum, row) => sum + row.amountCents, 0);
+  return refunds
+    .filter((row) => row.status === "succeeded")
+    .reduce((sum, row) => sum + Math.max(0, row.amount_cents), 0);
 }
 
 export function jobPaymentWorkspaceCashNetCents(input: {
@@ -299,15 +310,12 @@ export function jobPaymentWorkspaceSummaryRows(input: {
   collectibleRemainingCents: number;
   refundedCents: number;
 }): JobPaymentWorkspaceSummaryRow[] {
-  const rows: JobPaymentWorkspaceSummaryRow[] = [
+  return [
     { label: "Contract", cents: input.contractTotalCents },
     { label: "Received", cents: input.receivedGrossCents },
     { label: "Remaining", cents: input.collectibleRemainingCents },
+    { label: "Refunded", cents: input.refundedCents },
   ];
-  if (input.refundedCents > 0) {
-    rows.push({ label: "Refunded", cents: input.refundedCents });
-  }
-  return rows;
 }
 
 export function isJobPaymentCompleteStage(stage: string | null | undefined): boolean {
@@ -461,8 +469,13 @@ function canonicalFailures(
     if (seen.has(key)) continue;
     seen.add(key);
     out.push({
+      canonicalTransactionId: row.id,
       identity: key,
       amountCents: Math.max(0, row.amount_cents),
+      succeededRefundedCents: 0,
+      inFlightRefundCents: 0,
+      alreadyRefundedCents: 0,
+      refundableCents: 0,
       occurredAt: row.occurred_at,
       paymentRequestId: row.payment_request_id,
       providerPaymentIntentId: (row.provider_payment_intent_id ?? "").trim() || null,
@@ -475,9 +488,11 @@ function canonicalFailures(
 export function buildJobPaymentWorkspaceTimeline(input: {
   requests: readonly JobPaymentWorkspaceRequest[];
   transactions: readonly JobPaymentWorkspaceTransaction[];
+  refunds?: readonly JobPaymentRefundRow[];
 }): JobPaymentWorkspaceTimelineEvent[] {
   const events: JobPaymentWorkspaceTimelineEvent[] = [];
-  const captures = canonicalSucceededCaptures(input.transactions);
+  const refunds = input.refunds ?? [];
+  const captures = canonicalSucceededCaptures(input.transactions, refunds);
   const failures = canonicalFailures(input.transactions);
   const failedRequestIds = new Set(failures.map((row) => row.paymentRequestId));
 
@@ -547,6 +562,25 @@ export function buildJobPaymentWorkspaceTimeline(input: {
       ...stamped(capture.occurredAt),
       settled: true,
       tone: "settled",
+      capture: {
+        canonicalTransactionId: capture.canonicalTransactionId,
+        succeededRefundedCents: capture.succeededRefundedCents,
+        inFlightRefundCents: capture.inFlightRefundCents,
+        alreadyRefundedCents: capture.alreadyRefundedCents,
+        refundableCents: capture.refundableCents,
+      },
+      refundAction:
+        capture.refundableCents > 0 &&
+        capture.providerPaymentIntentId != null &&
+        /^pi_[A-Za-z0-9]+$/.test(capture.providerPaymentIntentId)
+          ? {
+              captureId: capture.canonicalTransactionId,
+              originalPaymentCents: capture.amountCents,
+              alreadyRefundedCents: capture.alreadyRefundedCents,
+              inFlightCents: capture.inFlightRefundCents,
+              refundableCents: capture.refundableCents,
+            }
+          : null,
       disclosure:
         capture.providerPaymentIntentId || capture.providerEventId
           ? {
@@ -579,24 +613,47 @@ export function buildJobPaymentWorkspaceTimeline(input: {
     });
   }
 
-  for (const refund of canonicalRefunds(input.transactions)) {
+  for (const refund of refunds) {
+    const processing =
+      refund.status === "initiating" ||
+      refund.status === "pending" ||
+      refund.status === "requires_action";
+    const title = processing
+      ? "Refund processing"
+      : refund.status === "succeeded"
+        ? "Refund sent"
+        : refund.status === "failed"
+          ? "Refund failed"
+          : "Refund canceled";
+    const support = processing
+      ? "Stripe is processing this refund."
+      : refund.status === "succeeded"
+        ? "Stripe accepted this refund. Banks typically post it within 5–10 business days."
+        : refund.status === "failed"
+          ? "The refund wasn’t completed. No money was deducted from collected totals."
+          : null;
+    const occurredAt =
+      (refund.status === "succeeded"
+        ? refund.succeeded_at
+        : refund.status === "failed"
+          ? refund.failed_at
+          : refund.status === "canceled"
+            ? refund.canceled_at
+            : refund.requires_action_at ?? refund.pending_at ?? refund.initiated_at) ??
+      refund.updated_at ??
+      refund.created_at;
     events.push({
-      id: `refund:${refund.identity}`,
+      id: `refund:${refund.id}`,
       type: "refund",
-      title: "Refund recorded",
+      title,
       subtitle: null,
-      amountCents: refund.amountCents,
+      support,
+      amountCents: Math.max(0, refund.amount_cents),
       methodLabel: null,
-      ...stamped(refund.occurredAt),
-      settled: false,
+      ...stamped(occurredAt),
+      settled: refund.status === "succeeded",
       tone: "muted",
-      disclosure:
-        refund.providerPaymentIntentId || refund.providerEventId
-          ? {
-              paymentIntentId: refund.providerPaymentIntentId,
-              providerEventId: refund.providerEventId,
-            }
-          : null,
+      disclosure: null,
     });
   }
 
@@ -786,6 +843,7 @@ export function buildJobPaymentWorkspace(input: {
   account: CompanyPaymentAccountRow | null;
   requests: readonly JobPaymentWorkspaceRequest[];
   transactions: readonly JobPaymentWorkspaceTransaction[];
+  refunds?: readonly JobPaymentRefundRow[];
   customerChosenTotalCents?: number | null;
   acceptedTotalCents?: number | null;
   terms?: ProposalPaymentTerms | null;
@@ -798,7 +856,8 @@ export function buildJobPaymentWorkspace(input: {
     acceptedTotalCents: input.acceptedTotalCents,
   });
   const receivedGrossCents = jobPaymentWorkspaceGrossCents(input.transactions);
-  const refundedCents = jobPaymentWorkspaceRefundedCents(input.transactions);
+  const refunds = input.refunds ?? [];
+  const refundedCents = jobPaymentWorkspaceRefundedCents(refunds);
   const cashNetCents = jobPaymentWorkspaceCashNetCents({
     receivedGrossCents,
     refundedCents,
@@ -875,6 +934,7 @@ export function buildJobPaymentWorkspace(input: {
     timeline: buildJobPaymentWorkspaceTimeline({
       requests: input.requests,
       transactions: input.transactions,
+      refunds,
     }),
     summaryRows: jobPaymentWorkspaceSummaryRows({
       contractTotalCents,

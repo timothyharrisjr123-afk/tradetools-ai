@@ -16,6 +16,7 @@ import {
   JOB_CARD_PAYMENTS_NOT_REQUESTED,
   JOB_CARD_PAYMENTS_PAID_IN_FULL,
   type JobPaymentKind,
+  type JobPaymentRefundStatus,
   type JobPaymentRequestStatus,
 } from "@/app/lib/jobPaymentTypes";
 
@@ -69,6 +70,26 @@ export type JobPaymentTransactionRow = {
   provider_payment_intent_id?: string | null;
 };
 
+/** Durable Refunds V1 read row. Identity is the refund UUID and its explicit
+ * canonical capture binding; provider/amount heuristics are never used. */
+export type JobPaymentRefundRow = {
+  id: string;
+  company_id: string;
+  job_id: string;
+  payment_request_id: string;
+  canonical_capture_transaction_id: string;
+  amount_cents: number;
+  status: JobPaymentRefundStatus;
+  initiated_at: string | null;
+  pending_at: string | null;
+  requires_action_at: string | null;
+  succeeded_at: string | null;
+  failed_at: string | null;
+  canceled_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type CompanyPaymentAccountRow = {
   charges_enabled: boolean;
   onboarding_status: string;
@@ -97,37 +118,26 @@ export type JobCardPaymentViewModel = {
 
 export function netPaidCents(
   requests: readonly JobPaymentRequestRow[],
-  transactions: readonly JobPaymentTransactionRow[]
+  _transactions: readonly JobPaymentTransactionRow[]
 ): number {
-  const paid = requests
+  void _transactions;
+  return requests
     .filter((row) => row.status === "paid")
     .reduce((sum, row) => sum + row.amount_cents, 0);
-  const refunded = transactions
-    .filter((row) => row.kind === "refund" && row.status === "refunded")
-    .reduce((sum, row) => sum + row.amount_cents, 0);
-  return Math.max(0, paid - refunded);
 }
 
 export function kindNetPaidCents(
   kind: JobPaymentKind,
   requests: readonly JobPaymentRequestRow[],
-  transactions: readonly JobPaymentTransactionRow[]
+  _transactions: readonly JobPaymentTransactionRow[]
 ): number {
+  void _transactions;
   const ids = new Set(
     requests.filter((row) => row.kind === kind && row.status === "paid").map((row) => row.id)
   );
-  const paid = requests
+  return requests
     .filter((row) => ids.has(row.id))
     .reduce((sum, row) => sum + row.amount_cents, 0);
-  const refunded = transactions
-    .filter(
-      (row) =>
-        row.kind === "refund" &&
-        row.status === "refunded" &&
-        ids.has(row.payment_request_id)
-    )
-    .reduce((sum, row) => sum + row.amount_cents, 0);
-  return Math.max(0, paid - refunded);
 }
 
 function activeRequest(
@@ -148,6 +158,7 @@ export function buildJobCardPaymentViewModel(input: {
   account: CompanyPaymentAccountRow | null;
   requests: readonly JobPaymentRequestRow[];
   transactions: readonly JobPaymentTransactionRow[];
+  refunds?: readonly JobPaymentRefundRow[];
   acceptedTotalCents: number | null;
 }): JobCardPaymentViewModel {
   const approved =
@@ -172,9 +183,7 @@ export function buildJobCardPaymentViewModel(input: {
     input.transactions
   );
   const current = activeRequest(input.requests);
-  const refunded = input.transactions.some(
-    (row) => row.kind === "refund" && row.status === "refunded"
-  );
+  const refunded = (input.refunds ?? []).some((row) => row.status === "succeeded");
 
   const canRequestDeposit = false;
 

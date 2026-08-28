@@ -23,6 +23,7 @@ import { createAdminClient } from "@/app/lib/supabase/admin";
 import { getPublicProposalVersionGraph } from "@/app/lib/proposalVersionGraphStore.server";
 import {
   buildPublicPaymentViewModel,
+  type JobPaymentRefundRow,
   type JobPaymentRequestRow,
   type JobPaymentTransactionRow,
 } from "@/app/lib/jobPaymentReadModel";
@@ -134,6 +135,7 @@ async function getPaymentForJob(input: {
 }): Promise<{
   requests: JobPaymentRequestRow[];
   transactions: JobPaymentTransactionRow[];
+  refunds: JobPaymentRefundRow[];
 }> {
   try {
     const supabase = createAdminClient();
@@ -145,22 +147,34 @@ async function getPaymentForJob(input: {
       .eq("company_id", input.companyId)
       .eq("job_id", input.jobId)
       .order("requested_at", { ascending: true });
-    if (error || !data) return { requests: [], transactions: [] };
+    if (error || !data) return { requests: [], transactions: [], refunds: [] };
     const requests = data as JobPaymentRequestRow[];
     const ids = requests.map((row) => row.id);
-    if (ids.length === 0) return { requests, transactions: [] };
-    const { data: txns } = await supabase
-      .from("job_payment_transactions")
-      .select(
-        "id,payment_request_id,kind,status,amount_cents,occurred_at,provider_event_id,provider_payment_intent_id"
-      )
-      .in("payment_request_id", ids);
+    const [{ data: txns }, { data: refunds }] = await Promise.all([
+      ids.length > 0
+        ? supabase
+            .from("job_payment_transactions")
+            .select(
+              "id,payment_request_id,kind,status,amount_cents,occurred_at,provider_event_id,provider_payment_intent_id"
+            )
+            .in("payment_request_id", ids)
+        : Promise.resolve({ data: [] }),
+      supabase
+        .from("job_payment_refunds")
+        .select(
+          "id,company_id,job_id,payment_request_id,canonical_capture_transaction_id,amount_cents,status,initiated_at,pending_at,requires_action_at,succeeded_at,failed_at,canceled_at,created_at,updated_at"
+        )
+        .eq("company_id", input.companyId)
+        .eq("job_id", input.jobId)
+        .order("created_at", { ascending: true }),
+    ]);
     return {
       requests,
       transactions: (txns ?? []) as JobPaymentTransactionRow[],
+      refunds: (refunds ?? []) as JobPaymentRefundRow[],
     };
   } catch {
-    return { requests: [], transactions: [] };
+    return { requests: [], transactions: [], refunds: [] };
   }
 }
 
@@ -243,11 +257,12 @@ export async function loadPublicProposalByToken(
           companyId: result.tracking.company_id,
           jobId,
         })
-      : { requests: [], transactions: [] };
+      : { requests: [], transactions: [], refunds: [] };
 
     const payment = buildPublicPaymentViewModel({
       requests: loaded.requests,
       transactions: loaded.transactions,
+      refunds: loaded.refunds,
       accepted: Boolean(acceptance),
       terms,
       contractTotalCents: selectedTotalCents,

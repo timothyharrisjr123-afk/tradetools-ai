@@ -15,6 +15,7 @@ import {
   type JobPaymentWorkspaceRequest,
   type JobPaymentWorkspaceTransaction,
 } from "./jobPaymentWorkspace";
+import type { JobPaymentRefundRow } from "./jobPaymentReadModel";
 import { DEFAULT_PROPOSAL_PAYMENT_TERMS } from "./proposalPaymentTerms";
 import {
   JOB_CARD_PAYMENTS_PAID_IN_FULL,
@@ -61,6 +62,29 @@ function txn(
     occurred_at: "2026-08-24T14:20:00.000Z",
     provider_event_id: "evt_pi",
     provider_payment_intent_id: "pi_shared",
+    ...overrides,
+  };
+}
+
+function canonicalRefund(
+  overrides: Partial<JobPaymentRefundRow> = {}
+): JobPaymentRefundRow {
+  return {
+    id: "33333333-3333-4333-8333-333333333333",
+    company_id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    job_id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+    payment_request_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    canonical_capture_transaction_id: "11111111-1111-4111-8111-111111111111",
+    amount_cents: 50000,
+    status: "succeeded",
+    initiated_at: "2026-08-30T15:18:00.000Z",
+    pending_at: null,
+    requires_action_at: null,
+    succeeded_at: "2026-08-30T15:20:00.000Z",
+    failed_at: null,
+    canceled_at: null,
+    created_at: "2026-08-30T15:18:00.000Z",
+    updated_at: "2026-08-30T15:20:00.000Z",
     ...overrides,
   };
 }
@@ -320,23 +344,15 @@ describe("Stage 2E — failed / cancelled / refund", () => {
       ],
       transactions: [
         txn({ amount_cents: 1850000, occurred_at: "2026-08-28T18:00:00.000Z" }),
-        txn({
-          id: "33333333-3333-4333-8333-333333333333",
-          kind: "refund",
-          status: "refunded",
-          amount_cents: 50000,
-          occurred_at: "2026-08-30T15:20:00.000Z",
-          provider_event_id: "evt_refund",
-          provider_payment_intent_id: "pi_shared",
-        }),
       ],
+      refunds: [canonicalRefund()],
     });
     assert.equal(workspace.collectibleRemainingCents, 0);
     assert.equal(workspace.refundedCents, 50000);
     assert.equal(workspace.state, "payments_complete");
     assert.equal(workspace.statusLabel, "Payments complete");
     const refund = workspace.timeline.find((row) => row.type === "refund");
-    assert.equal(refund?.title, "Refund recorded");
+    assert.equal(refund?.title, "Refund sent");
     assert.equal(refund?.amountCents, 50000);
   });
 });
@@ -389,16 +405,8 @@ describe("Stage 2F — contractor zero-collectible wording", () => {
       ],
       transactions: [
         txn({ amount_cents: 1850000 }),
-        txn({
-          id: "33333333-3333-4333-8333-333333333333",
-          kind: "refund",
-          status: "refunded",
-          amount_cents: 50000,
-          occurred_at: "2026-08-30T15:20:00.000Z",
-          provider_event_id: "evt_refund",
-          provider_payment_intent_id: "pi_shared",
-        }),
       ],
+      refunds: [canonicalRefund()],
     });
     assert.equal(workspace.collectibleRemainingCents, 0);
     assert.equal(workspace.refundedCents, 50000);
@@ -445,16 +453,8 @@ describe("Stage 2F — contractor zero-collectible wording", () => {
       ],
       transactions: [
         txn({ amount_cents: 1850000 }),
-        txn({
-          id: "33333333-3333-4333-8333-333333333333",
-          kind: "refund",
-          status: "refunded",
-          amount_cents: 50000,
-          occurred_at: "2026-08-30T15:20:00.000Z",
-          provider_event_id: "evt_refund",
-          provider_payment_intent_id: "pi_shared",
-        }),
       ],
+      refunds: [canonicalRefund()],
     });
     assert.equal(workspace.receivedGrossCents, 1850000);
     assert.equal(workspace.refundedCents, 50000);

@@ -8,6 +8,7 @@
 
 import type {
   JobPaymentRequestStatus,
+  JobPaymentRefundStatus,
   JobPaymentTransactionKind,
   JobPaymentTransactionStatus,
 } from "@/app/lib/jobPaymentTypes";
@@ -51,6 +52,31 @@ export type JobPaymentProviderEventCommand = {
     company_id: string | null;
   } | null;
   payment_method_label: string | null;
+  refund_event: JobPaymentRefundEventCommand | null;
+  reconcile_charge_refunds: {
+    provider_event_id: string;
+    raw_type: "charge.refunded";
+    provider_event_created_at: string;
+    provider_account_id: string | null;
+    provider_charge_id: string | null;
+    provider_payment_intent_id: string | null;
+  } | null;
+};
+
+export type JobPaymentRefundEventCommand = {
+  provider_event_id: string;
+  raw_type: string;
+  provider_event_created_at: string;
+  provider_account_id: string | null;
+  provider_refund_id: string | null;
+  metadata_refund_command_id: string | null;
+  provider_payment_intent_id: string | null;
+  provider_charge_id: string | null;
+  amount_cents: number | null;
+  status: Exclude<JobPaymentRefundStatus, "initiating"> | null;
+  provider_reason_code: string | null;
+  provider_reason_message: string | null;
+  provider_created_at: string | null;
 };
 
 const HANDLED_TYPES = new Set([
@@ -63,6 +89,8 @@ const HANDLED_TYPES = new Set([
   "payment_intent.payment_failed",
   "charge.refunded",
   "refund.created",
+  "refund.updated",
+  "refund.failed",
   "account.updated",
 ]);
 
@@ -114,6 +142,55 @@ function isoFromUnix(seconds: number | undefined): string {
   return new Date(ms).toISOString();
 }
 
+function expandedId(value: unknown): string | null {
+  if (typeof value === "string") return asString(value);
+  return asString(asRecord(value)?.id);
+}
+
+function refundStatus(value: unknown): Exclude<JobPaymentRefundStatus, "initiating"> | null {
+  const status = asString(value);
+  return status &&
+    ["pending", "requires_action", "succeeded", "failed", "canceled"].includes(status)
+    ? (status as Exclude<JobPaymentRefundStatus, "initiating">)
+    : null;
+}
+
+export function mapStripeRefundObjectToCommand(input: {
+  object: Record<string, unknown>;
+  providerEventId: string;
+  rawType: string;
+  eventCreated: number | undefined;
+  connectedAccountId: string | null;
+}): JobPaymentRefundEventCommand {
+  const object = input.object;
+  const status = refundStatus(object.status);
+  const failureReason = asString(object.failure_reason);
+  const pendingReason = asString(object.pending_reason);
+  return {
+    provider_event_id: input.providerEventId,
+    raw_type: input.rawType,
+    provider_event_created_at: isoFromUnix(input.eventCreated),
+    provider_account_id: input.connectedAccountId,
+    provider_refund_id: asString(object.id),
+    metadata_refund_command_id: metadataId(object, "fielddive_refund_id"),
+    provider_payment_intent_id: expandedId(object.payment_intent),
+    provider_charge_id: expandedId(object.charge),
+    amount_cents: asInt(object.amount),
+    status,
+    provider_reason_code: failureReason ?? pendingReason,
+    provider_reason_message:
+      status === "failed"
+        ? failureReason
+        : status === "pending" || status === "requires_action"
+          ? pendingReason
+          : null,
+    provider_created_at:
+      typeof object.created === "number"
+        ? isoFromUnix(object.created)
+        : null,
+  };
+}
+
 export function isIgnoredStripeConnectCommand(
   value: JobPaymentProviderEventCommand | { ignore: true; type: string }
 ): value is { ignore: true; type: string } {
@@ -158,6 +235,8 @@ export function mapStripeConnectEventToCommand(
     payment_method_label: formatStripePaymentMethodDisplay(
       stripePaymentMethodFromObject(object)
     ),
+    refund_event: null as JobPaymentRefundEventCommand | null,
+    reconcile_charge_refunds: null as JobPaymentProviderEventCommand["reconcile_charge_refunds"],
   };
 
   if (type === "account.updated") {
@@ -237,20 +316,31 @@ export function mapStripeConnectEventToCommand(
     return base;
   }
 
-  if (type === "charge.refunded" || type === "refund.created") {
-    base.provider_charge_id =
-      type === "charge.refunded" ? asString(object.id) : asString(object.charge);
-    base.transaction_kind = "refund";
-    base.transaction_status = "refunded";
-    base.amount_cents =
-      asInt(object.amount_refunded) ?? asInt(object.amount) ?? base.amount_cents;
-    if (!base.payment_request_id) {
-      const charge = asRecord(object);
-      const chargeMeta = asRecord(charge?.metadata);
-      base.payment_request_id = chargeMeta
-        ? asString(chargeMeta.payment_request_id)
-        : null;
-    }
+  if (type === "refund.created" || type === "refund.updated" || type === "refund.failed") {
+    base.amount_cents = null;
+    base.payment_method_label = null;
+    base.refund_event = mapStripeRefundObjectToCommand({
+      object,
+      providerEventId: event.id,
+      rawType: type,
+      eventCreated: event.created,
+      connectedAccountId: connectedAccount,
+    });
+    return base;
+  }
+
+  if (type === "charge.refunded") {
+    base.amount_cents = null;
+    base.payment_method_label = null;
+    base.provider_charge_id = asString(object.id);
+    base.reconcile_charge_refunds = {
+      provider_event_id: event.id,
+      raw_type: "charge.refunded",
+      provider_event_created_at: isoFromUnix(event.created),
+      provider_account_id: connectedAccount,
+      provider_charge_id: asString(object.id),
+      provider_payment_intent_id: expandedId(object.payment_intent),
+    };
     return base;
   }
 

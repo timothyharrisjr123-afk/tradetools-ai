@@ -104,6 +104,17 @@ export type CreateDirectCheckoutInput = {
   idempotencyKey: string;
 };
 
+export type CreateDirectPaymentRefundInput = {
+  connectedAccountId: string;
+  refundCommandId: string;
+  paymentIntentId: string;
+  amountCents: number;
+  companyId: string;
+  jobId: string;
+  paymentRequestId: string;
+  canonicalCaptureTransactionId: string;
+};
+
 function assertNoPlatformChargeParams(params: Stripe.Checkout.SessionCreateParams) {
   const fee = params.payment_intent_data?.application_fee_amount;
   const transfer = params.payment_intent_data?.transfer_data;
@@ -170,6 +181,76 @@ export async function createDirectCheckoutSession(
       requestOptions
     );
   }
+}
+
+export async function createDirectPaymentRefund(
+  input: CreateDirectPaymentRefundInput
+): Promise<Stripe.Refund> {
+  if (!Number.isSafeInteger(input.amountCents) || input.amountCents < 1) {
+    throw new Error("Refund amount must be a positive integer.");
+  }
+  const stripe = getStripeConnectClient();
+  const params: Stripe.RefundCreateParams = {
+    payment_intent: input.paymentIntentId,
+    amount: input.amountCents,
+    metadata: {
+      fielddive_refund_id: input.refundCommandId,
+      refund_command_id: input.refundCommandId,
+      company_id: input.companyId,
+      job_id: input.jobId,
+      payment_request_id: input.paymentRequestId,
+      canonical_capture_transaction_id: input.canonicalCaptureTransactionId,
+    },
+  };
+  return stripe.refunds.create(params, {
+    stripeAccount: input.connectedAccountId,
+    idempotencyKey: `job-refund:${input.refundCommandId}:v1`,
+  });
+}
+
+export async function retrieveDirectPaymentRefund(input: {
+  connectedAccountId: string;
+  refundId: string;
+}): Promise<Stripe.Refund> {
+  return getStripeConnectClient().refunds.retrieve(input.refundId, {
+    stripeAccount: input.connectedAccountId,
+  });
+}
+
+export async function listDirectChargeRefunds(input: {
+  connectedAccountId: string;
+  chargeId: string;
+}): Promise<Stripe.Refund[]> {
+  return getStripeConnectClient()
+    .refunds.list(
+      { charge: input.chargeId, limit: 100 },
+      { stripeAccount: input.connectedAccountId }
+    )
+    .autoPagingToArray({ limit: 1000 });
+}
+
+export function stripeRefundErrorIsDefinitive(error: unknown): boolean {
+  if (!(error instanceof Stripe.errors.StripeError)) return false;
+  if (error instanceof Stripe.errors.StripeConnectionError) return false;
+  const status = error.statusCode;
+  return !(typeof status === "number" && status >= 500);
+}
+
+export function safeStripeRefundError(error: unknown): {
+  code: string;
+  message: string;
+} {
+  if (!(error instanceof Stripe.errors.StripeError)) {
+    return { code: "stripe_request_error", message: "Stripe refund request failed." };
+  }
+  const code =
+    typeof error.code === "string" && error.code.trim()
+      ? error.code.trim().slice(0, 120)
+      : error.type.slice(0, 120);
+  return {
+    code,
+    message: (error.message || "Stripe refund request failed.").trim().slice(0, 1000),
+  };
 }
 
 export async function retrieveDirectCheckoutSession(input: {

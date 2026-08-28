@@ -26,6 +26,7 @@ import {
   type JobPaymentWorkspaceRequest,
   type JobPaymentWorkspaceTransaction,
 } from "./jobPaymentWorkspace";
+import type { JobPaymentRefundRow } from "./jobPaymentReadModel";
 import { DEFAULT_PROPOSAL_PAYMENT_TERMS } from "./proposalPaymentTerms";
 
 const ROOT = process.cwd();
@@ -71,6 +72,29 @@ function txn(
     occurred_at: "2026-08-26T13:00:00.000Z",
     provider_event_id: "evt_pi_succeeded",
     provider_payment_intent_id: "pi_shared",
+    ...overrides,
+  };
+}
+
+function canonicalRefund(
+  overrides: Partial<JobPaymentRefundRow> = {}
+): JobPaymentRefundRow {
+  return {
+    id: "33333333-3333-4333-8333-333333333333",
+    company_id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    job_id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+    payment_request_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    canonical_capture_transaction_id: "22222222-2222-4222-8222-222222222222",
+    amount_cents: 50000,
+    status: "succeeded",
+    initiated_at: "2026-08-27T14:59:00.000Z",
+    pending_at: null,
+    requires_action_at: null,
+    succeeded_at: "2026-08-27T15:00:00.000Z",
+    failed_at: null,
+    canceled_at: null,
+    created_at: "2026-08-27T14:59:00.000Z",
+    updated_at: "2026-08-27T15:00:00.000Z",
     ...overrides,
   };
 }
@@ -152,16 +176,8 @@ describe("collectible vs net", () => {
           provider_event_id: "evt_balance",
           provider_payment_intent_id: "pi_balance",
         }),
-        txn({
-          id: "33333333-3333-4333-8333-333333333333",
-          kind: "refund",
-          status: "refunded",
-          amount_cents: 50000,
-          occurred_at: "2026-08-27T15:00:00.000Z",
-          provider_event_id: "evt_refund",
-          provider_payment_intent_id: "pi_balance",
-        }),
       ],
+      refunds: [canonicalRefund()],
     });
     assert.equal(workspace.receivedGrossCents, 2000000);
     assert.equal(workspace.refundedCents, 50000);
@@ -187,6 +203,15 @@ describe("collectible vs net", () => {
     );
     assert.equal(
       rows.find((row) => row.label === "Remaining")?.cents,
+      0
+    );
+    assert.equal(
+      jobPaymentWorkspaceSummaryRows({
+        contractTotalCents: 2000000,
+        receivedGrossCents: 2000000,
+        collectibleRemainingCents: 0,
+        refundedCents: 0,
+      }).find((row) => row.label === "Refunded")?.cents,
       0
     );
   });

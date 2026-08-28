@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  recordJobPaymentRefundEventViaRpc,
   recordJobPaymentProviderEventViaRpc,
   upsertCompanyPaymentAccountFromProviderViaRpc,
 } from "@/app/lib/jobPaymentPersistence";
-import { verifyStripeConnectWebhook } from "@/app/lib/jobPaymentStripe.server";
+import {
+  listDirectChargeRefunds,
+  verifyStripeConnectWebhook,
+} from "@/app/lib/jobPaymentStripe.server";
 import {
   isIgnoredStripeConnectCommand,
+  mapStripeRefundObjectToCommand,
   mapStripeConnectEventToCommand,
 } from "@/app/lib/jobPaymentWebhookMapper";
 import { createAdminClient } from "@/app/lib/supabase/admin";
@@ -61,11 +66,53 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    if (mapped.refund_event) {
+      const recorded = await recordJobPaymentRefundEventViaRpc(admin, mapped.refund_event);
+      if (!recorded.ok) throw new Error(`refund_event_${recorded.code}`);
+    }
+
+    if (mapped.reconcile_charge_refunds) {
+      const signal = mapped.reconcile_charge_refunds;
+      const audit = await recordJobPaymentRefundEventViaRpc(admin, {
+        ...signal,
+        provider_refund_id: null,
+        metadata_refund_command_id: null,
+        amount_cents: null,
+        status: null,
+        provider_reason_code: null,
+        provider_reason_message: null,
+        provider_created_at: null,
+      });
+      if (!audit.ok) throw new Error(`refund_audit_${audit.code}`);
+
+      if (signal.provider_account_id && signal.provider_charge_id) {
+        const refunds = await listDirectChargeRefunds({
+          connectedAccountId: signal.provider_account_id,
+          chargeId: signal.provider_charge_id,
+        });
+        for (const refund of refunds) {
+          const recorded = await recordJobPaymentRefundEventViaRpc(
+            admin,
+            mapStripeRefundObjectToCommand({
+              object: refund as unknown as Record<string, unknown>,
+              providerEventId: `${signal.provider_event_id}:${refund.id}`,
+              rawType: "charge.refunded.refund",
+              eventCreated: event.created,
+              connectedAccountId: signal.provider_account_id,
+            })
+          );
+          if (!recorded.ok) throw new Error(`refund_reconcile_${recorded.code}`);
+        }
+      }
+    }
+
     if (
-      mapped.apply_request_status ||
-      mapped.transaction_kind ||
-      mapped.payment_request_id ||
-      mapped.provider_checkout_session_id
+      !mapped.refund_event &&
+      !mapped.reconcile_charge_refunds &&
+      (mapped.apply_request_status ||
+        mapped.transaction_kind ||
+        mapped.payment_request_id ||
+        mapped.provider_checkout_session_id)
     ) {
       await recordJobPaymentProviderEventViaRpc(admin, mapped);
     }

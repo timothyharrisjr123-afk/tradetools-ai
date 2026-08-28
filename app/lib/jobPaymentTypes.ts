@@ -23,6 +23,12 @@ export const UPSERT_COMPANY_PAYMENT_ACCOUNT_FROM_PROVIDER_RPC_V1 =
   "upsert_company_payment_account_from_provider_v1";
 export const SET_JOB_PAYMENT_SETTLED_METHOD_RPC_V1 =
   "set_job_payment_settled_method_v1";
+export const RESERVE_JOB_PAYMENT_REFUND_RPC_V1 =
+  "reserve_job_payment_refund_v1";
+export const RECONCILE_JOB_PAYMENT_REFUND_RESULT_RPC_V1 =
+  "reconcile_job_payment_refund_result_v1";
+export const RECORD_JOB_PAYMENT_REFUND_EVENT_RPC_V1 =
+  "record_job_payment_refund_event_v1";
 
 export const JOB_PAYMENT_PROVIDER = "stripe" as const;
 export const JOB_PAYMENT_CURRENCY = "usd" as const;
@@ -60,6 +66,47 @@ export const JOB_PAYMENT_TRANSACTION_STATUSES = [
 ] as const;
 export type JobPaymentTransactionStatus =
   (typeof JOB_PAYMENT_TRANSACTION_STATUSES)[number];
+
+export const JOB_PAYMENT_REFUND_STATUSES = [
+  "initiating",
+  "pending",
+  "requires_action",
+  "succeeded",
+  "failed",
+  "canceled",
+] as const;
+export type JobPaymentRefundStatus =
+  (typeof JOB_PAYMENT_REFUND_STATUSES)[number];
+
+export const JOB_PAYMENT_REFUND_ORIGINS = [
+  "fielddive",
+  "stripe_dashboard",
+] as const;
+export type JobPaymentRefundOrigin =
+  (typeof JOB_PAYMENT_REFUND_ORIGINS)[number];
+
+export const JOB_PAYMENT_REFUND_CORRELATION_METHODS = [
+  "provider_refund_id",
+  "metadata_command_id",
+  "payment_intent",
+  "charge",
+  "none",
+] as const;
+export type JobPaymentRefundCorrelationMethod =
+  (typeof JOB_PAYMENT_REFUND_CORRELATION_METHODS)[number];
+
+export const JOB_PAYMENT_REFUND_DISPOSITIONS = [
+  "applied",
+  "stale",
+  "unbound",
+  "identity_mismatch",
+  "overrefund_conflict",
+  "unsupported",
+] as const;
+export type JobPaymentRefundDisposition =
+  (typeof JOB_PAYMENT_REFUND_DISPOSITIONS)[number];
+
+export const JOB_PAYMENT_REFUND_MAX_REASON_LENGTH = 500;
 
 export const COMPANY_PAYMENT_DEPOSIT_MODES = [
   "none",

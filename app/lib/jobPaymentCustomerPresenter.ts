@@ -38,6 +38,7 @@ import {
 } from "@/app/lib/proposalCustomerPacketViewModel";
 import type {
   JobPaymentRequestRow,
+  JobPaymentRefundRow,
   JobPaymentTransactionRow,
 } from "@/app/lib/jobPaymentReadModel";
 import {
@@ -79,10 +80,13 @@ export type CustomerPaymentPayableState =
   (typeof CUSTOMER_PAYMENT_PAYABLE_STATES)[number];
 
 export type PublicPaymentHistoryItem = {
-  kind: JobPaymentKind;
+  id: string;
+  type: "payment" | "refund";
+  kind: JobPaymentKind | null;
   kindLabel: string;
   amountLabel: string;
   paidOnLabel: string | null;
+  detail: string | null;
 };
 
 export type PublicPaymentOriginalTerms = {
@@ -329,20 +333,64 @@ export function publicCheckoutShouldOpenCanonicalDeposit(input: {
 
 function receivedHistory(
   requests: readonly JobPaymentRequestRow[],
-  current: JobPaymentRequestRow | null
+  current: JobPaymentRequestRow | null,
+  refunds: readonly JobPaymentRefundRow[]
 ): PublicPaymentHistoryItem[] {
   const paid = [...requests]
     .filter((row) => row.status === "paid")
     .sort((a, b) => String(a.paid_at ?? a.requested_at).localeCompare(String(b.paid_at ?? b.requested_at)));
+  const visibleRefunds = refunds.filter(
+    (row) =>
+      row.status === "initiating" ||
+      row.status === "pending" ||
+      row.status === "requires_action" ||
+      row.status === "succeeded"
+  );
   const useful =
-    paid.length >= 2 || (paid.length >= 1 && current != null);
+    visibleRefunds.length > 0 || paid.length >= 2 || (paid.length >= 1 && current != null);
   if (!useful) return [];
-  return paid.map((row) => ({
+  const payments = paid.map((row) => ({
+    id: `payment:${row.id}`,
+    type: "payment" as const,
     kind: row.kind,
     kindLabel: `${publicPaymentKindLabel(row.kind)} received`,
     amountLabel: formatUsdFromCents(row.amount_cents),
     paidOnLabel: formatProposalCustomerAcceptedOnLabel(row.paid_at),
+    detail: null,
+    occurredAt: row.paid_at ?? row.requested_at,
   }));
+  const refundItems = visibleRefunds.map((row) => {
+    const processing = row.status !== "succeeded";
+    const amountLabel = formatUsdFromCents(row.amount_cents);
+    return {
+      id: `refund:${row.id}`,
+      type: "refund" as const,
+      kind: null,
+      kindLabel: processing ? "Refund processing" : "Refund sent",
+      amountLabel,
+      paidOnLabel: null,
+      detail: processing
+        ? `A refund of ${amountLabel} is being processed.`
+        : `A refund of ${amountLabel} was sent to your original payment method. Your bank may take 5–10 business days to post it.`,
+      occurredAt:
+        (processing
+          ? row.requires_action_at ?? row.pending_at ?? row.initiated_at
+          : row.succeeded_at) ??
+        row.updated_at ??
+        row.created_at,
+    };
+  });
+  return [...payments, ...refundItems]
+    .sort((a, b) => String(a.occurredAt).localeCompare(String(b.occurredAt)))
+    .map((item) => ({
+      id: item.id,
+      type: item.type,
+      kind: item.kind,
+      kindLabel: item.kindLabel,
+      amountLabel: item.amountLabel,
+      paidOnLabel: item.paidOnLabel,
+      detail: item.detail,
+    }));
 }
 
 function originalTermsFor(
@@ -414,6 +462,7 @@ export function buildProspectiveDepositPaymentViewModel(input: {
 export function buildPublicPaymentViewModel(input: {
   requests: readonly JobPaymentRequestRow[];
   transactions?: readonly JobPaymentTransactionRow[];
+  refunds?: readonly JobPaymentRefundRow[];
   returnHint?: "pending" | "cancelled" | null;
   accepted?: boolean;
   terms?: ProposalPaymentTerms | null;
@@ -422,11 +471,12 @@ export function buildPublicPaymentViewModel(input: {
   acceptanceId?: string | null;
 }): PublicPaymentViewModel | null {
   const transactions = input.transactions ?? [];
+  const refunds = input.refunds ?? [];
   const current = customerCurrentRequest(input.requests, input.proposalVersionId);
   const paid = latestPaidRequest(input.requests);
   const contractTotalCents = contractTotalFrom(input);
   const grossCents = jobPaymentWorkspaceGrossCents(transactions);
-  const refundedCents = jobPaymentWorkspaceRefundedCents(transactions);
+  const refundedCents = jobPaymentWorkspaceRefundedCents(refunds);
   const collectibleCents = jobPaymentCollectibleRemainingCents({
     contractTotalCents,
     receivedGrossCents: grossCents,
@@ -440,7 +490,7 @@ export function buildPublicPaymentViewModel(input: {
     current?.kind === "balance" ||
     current?.kind === "deposit";
   const termsVm = originalTermsFor(input.terms, hideBalanceLine);
-  const history = receivedHistory(input.requests, current);
+  const history = receivedHistory(input.requests, current, refunds);
 
   const overlayPending =
     input.returnHint === "pending" && current?.status === "open";

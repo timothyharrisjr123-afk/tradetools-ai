@@ -211,10 +211,15 @@ export default function ProposalPacketPurchase({
             <ul className="mt-2 space-y-1">
               {payment.history.map((item) => (
                 <li
-                  key={`${item.kind}-${item.amountLabel}-${item.paidOnLabel ?? ""}`}
+                  key={item.id}
                   className="text-[13.5px] text-[#334155]"
                 >
-                  {item.kindLabel} — {item.amountLabel}
+                  <span>{item.kindLabel} — {item.amountLabel}</span>
+                  {item.detail ? (
+                    <p className="mt-0.5 text-[13px] leading-relaxed text-[#64748b]">
+                      {item.detail}
+                    </p>
+                  ) : null}
                 </li>
               ))}
             </ul>

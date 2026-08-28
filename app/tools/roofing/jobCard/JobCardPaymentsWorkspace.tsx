@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import JobCardCollectPaymentSheet from "@/app/tools/roofing/jobCard/JobCardCollectPaymentSheet";
+import JobCardRefundPaymentSheet from "@/app/tools/roofing/jobCard/JobCardRefundPaymentSheet";
 import {
   formatJobPaymentWorkspaceAmount,
   groupJobPaymentHistory,
@@ -25,11 +26,19 @@ type JobCardPaymentsWorkspaceProps = {
   }) => Promise<{ ok: boolean; code?: string }>;
   onCancelCurrentRequest?: () => Promise<{ ok: boolean; code?: string }>;
   onCopyPaymentLink?: () => Promise<{ ok: boolean; url?: string; code?: string }>;
+  onIssueRefund?: (
+    captureId: string,
+    amountCents: number,
+    reason: string,
+    commandId: string
+  ) => Promise<{ ok: boolean; code?: string }>;
   collectBusy?: boolean;
   collectError?: string | null;
   cancelBusy?: boolean;
   copyBusy?: boolean;
   copyError?: string | null;
+  refundBusy?: boolean;
+  refundError?: string | null;
 };
 
 function currentStatusLabel(status: string): string {
@@ -57,7 +66,13 @@ function HistoryAmount({ event }: { event: JobPaymentWorkspaceTimelineEvent }) {
   );
 }
 
-function HistoryRow({ event }: { event: JobPaymentWorkspaceTimelineEvent }) {
+function HistoryRow({
+  event,
+  onRefund,
+}: {
+  event: JobPaymentWorkspaceTimelineEvent;
+  onRefund?: (event: JobPaymentWorkspaceTimelineEvent) => void;
+}) {
   const when = event.occurredAtTimeLabel ?? event.occurredAtLabel;
   return (
     <li
@@ -81,7 +96,22 @@ function HistoryRow({ event }: { event: JobPaymentWorkspaceTimelineEvent }) {
             {event.subtitle ? (
               <p className="mt-0.5 text-xs text-slate-500">{event.subtitle}</p>
             ) : null}
+            {event.support ? (
+              <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
+                {event.support}
+              </p>
+            ) : null}
             {when ? <p className="mt-0.5 text-xs text-slate-400">{when}</p> : null}
+            {event.refundAction && onRefund ? (
+              <button
+                type="button"
+              className="mt-2 inline-flex min-h-11 w-full items-center justify-center rounded-md border border-slate-200 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50 sm:min-h-9 sm:w-auto"
+                onClick={() => onRefund(event)}
+                data-jobcard-payment-refund
+              >
+                Refund
+              </button>
+            ) : null}
           </div>
           <p className="sm:text-right">
             <HistoryAmount event={event} />
@@ -97,13 +127,18 @@ export default function JobCardPaymentsWorkspace({
   onCollectPayment,
   onCancelCurrentRequest,
   onCopyPaymentLink,
+  onIssueRefund,
   collectBusy = false,
   collectError = null,
   cancelBusy = false,
   copyBusy = false,
   copyError = null,
+  refundBusy = false,
+  refundError = null,
 }: JobCardPaymentsWorkspaceProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [refundEvent, setRefundEvent] =
+    useState<JobPaymentWorkspaceTimelineEvent | null>(null);
   const historyGroups = useMemo(
     () => (workspace ? groupJobPaymentHistory(workspace.timeline) : []),
     [workspace]
@@ -285,7 +320,11 @@ export default function JobCardPaymentsWorkspace({
                 </h4>
                 <ol className="mt-1">
                   {group.events.map((event) => (
-                    <HistoryRow key={event.id} event={event} />
+                    <HistoryRow
+                      key={event.id}
+                      event={event}
+                      onRefund={onIssueRefund ? setRefundEvent : undefined}
+                    />
                   ))}
                 </ol>
               </section>
@@ -308,6 +347,30 @@ export default function JobCardPaymentsWorkspace({
           onSubmit={(input) => {
             void onCollectPayment(input).then((result) => {
               if (result.ok) setSheetOpen(false);
+            });
+          }}
+        />
+      ) : null}
+      {refundEvent?.refundAction && onIssueRefund ? (
+        <JobCardRefundPaymentSheet
+          open
+          originalPaymentCents={refundEvent.refundAction.originalPaymentCents}
+          alreadyRefundedCents={refundEvent.refundAction.alreadyRefundedCents}
+          refundableCents={refundEvent.refundAction.refundableCents}
+          submitting={refundBusy}
+          error={refundError}
+          onClose={() => {
+            if (!refundBusy) setRefundEvent(null);
+          }}
+          onSubmit={({ amountCents, reason, commandId }) => {
+            return onIssueRefund(
+              refundEvent.refundAction!.captureId,
+              amountCents,
+              reason,
+              commandId
+            ).then((result) => {
+              if (result.ok) setRefundEvent(null);
+              return result;
             });
           }}
         />

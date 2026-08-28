@@ -3,7 +3,11 @@
 import { useSearchParams } from "next/navigation";
 import ProposalPacket from "@/app/components/proposal-packet/ProposalPacket";
 import { buildPublicPaymentViewModel } from "@/app/lib/jobPaymentReadModel";
-import type { JobPaymentRequestRow, JobPaymentTransactionRow } from "@/app/lib/jobPaymentReadModel";
+import type {
+  JobPaymentRefundRow,
+  JobPaymentRequestRow,
+  JobPaymentTransactionRow,
+} from "@/app/lib/jobPaymentReadModel";
 import type { ProposalCustomerPacketViewModel } from "@/app/lib/proposalCustomerPacketViewModel";
 import type { ProposalPaymentTerms } from "@/app/lib/proposalPaymentTerms";
 
@@ -64,6 +68,26 @@ function capture(requestId: string, amount: number, pi = "pi_1"): JobPaymentTran
     occurred_at: "2026-08-27T19:00:00.000Z",
     provider_event_id: `evt-${pi}`,
     provider_payment_intent_id: pi,
+  };
+}
+
+function refund(status: "pending" | "succeeded"): JobPaymentRefundRow {
+  return {
+    id: `refund-${status}`,
+    company_id: "company-1",
+    job_id: "job-1",
+    payment_request_id: BALANCE.id,
+    canonical_capture_transaction_id: `txn-${BALANCE.id}`,
+    amount_cents: 50000,
+    status,
+    initiated_at: "2026-08-27T20:55:00.000Z",
+    pending_at: status === "pending" ? "2026-08-27T21:00:00.000Z" : null,
+    requires_action_at: null,
+    succeeded_at: status === "succeeded" ? "2026-08-27T21:00:00.000Z" : null,
+    failed_at: null,
+    canceled_at: null,
+    created_at: "2026-08-27T20:55:00.000Z",
+    updated_at: "2026-08-27T21:00:00.000Z",
   };
 }
 
@@ -214,19 +238,21 @@ const FIXTURES: Record<string, ProposalCustomerPacketViewModel> = {
         requests: [
           { ...BALANCE, status: "paid", amount_cents: CONTRACT, paid_at: "2026-08-27T19:00:00.000Z" },
         ],
-        transactions: [
-          capture(BALANCE.id, CONTRACT),
-          {
-            id: "refund-1",
-            payment_request_id: BALANCE.id,
-            kind: "refund",
-            status: "refunded",
-            amount_cents: 50000,
-            occurred_at: "2026-08-27T21:00:00.000Z",
-            provider_event_id: "evt-refund",
-            provider_payment_intent_id: "pi_1",
-          },
+        transactions: [capture(BALANCE.id, CONTRACT)],
+        refunds: [refund("succeeded")],
+      }
+    ),
+  },
+  "refund-processing": {
+    ...BASE,
+    payment: payment(
+      [{ ...BALANCE, status: "paid", amount_cents: CONTRACT, paid_at: "2026-08-27T19:00:00.000Z" }],
+      {
+        requests: [
+          { ...BALANCE, status: "paid", amount_cents: CONTRACT, paid_at: "2026-08-27T19:00:00.000Z" },
         ],
+        transactions: [capture(BALANCE.id, CONTRACT)],
+        refunds: [refund("pending")],
       }
     ),
   },

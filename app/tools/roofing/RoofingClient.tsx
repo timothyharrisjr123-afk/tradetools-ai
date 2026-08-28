@@ -9211,10 +9211,13 @@ Thanks,`;
                       ? jobPayments.copyPaymentLink
                       : undefined
                   }
+                  onIssueRefund={jobPayments.issueRefund}
                   collectBusy={jobPayments.collectBusy}
                   collectError={jobPayments.collectError}
                   cancelBusy={jobPayments.cancelBusy}
                   copyBusy={jobPayments.copyBusy}
+                  refundBusy={jobPayments.refundBusy}
+                  refundError={jobPayments.refundError}
                   copyError={jobPayments.copyError}
                 />
               </JobCardSectionPanel>

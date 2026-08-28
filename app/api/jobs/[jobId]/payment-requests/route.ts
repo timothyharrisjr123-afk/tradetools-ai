@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
 import {
   buildJobCardPaymentViewModel,
+  type JobPaymentRefundRow,
   type JobPaymentRequestRow,
   type JobPaymentTransactionRow,
 } from "@/app/lib/jobPaymentReadModel";
@@ -92,7 +93,7 @@ export async function GET(_req: Request, context: RouteContext) {
       typeof acceptance?.proposal_version_id === "string"
         ? acceptance.proposal_version_id
         : "";
-    const [{ data: transactions }, { data: termsRow }] = await Promise.all([
+    const [{ data: transactions }, { data: refunds }, { data: termsRow }] = await Promise.all([
       requestIds.length > 0
         ? supabase
             .from("job_payment_transactions")
@@ -101,6 +102,14 @@ export async function GET(_req: Request, context: RouteContext) {
             )
             .in("payment_request_id", requestIds)
         : Promise.resolve({ data: [] }),
+      supabase
+        .from("job_payment_refunds")
+        .select(
+          "id,company_id,job_id,payment_request_id,canonical_capture_transaction_id,amount_cents,status,initiated_at,pending_at,requires_action_at,succeeded_at,failed_at,canceled_at,created_at,updated_at"
+        )
+        .eq("company_id", companyId)
+        .eq("job_id", jobId)
+        .order("created_at", { ascending: true }),
       versionId && isUuidLike(versionId)
         ? supabase
             .from("proposal_version_payment_terms")
@@ -149,6 +158,7 @@ export async function GET(_req: Request, context: RouteContext) {
       account: accountRow,
       requests: requestRows,
       transactions: transactionRows,
+      refunds: (refunds ?? []) as JobPaymentRefundRow[],
       customerChosenTotalCents:
         typeof acceptance?.customer_chosen_total_cents === "number"
           ? acceptance.customer_chosen_total_cents
@@ -168,6 +178,7 @@ export async function GET(_req: Request, context: RouteContext) {
       account: accountRow,
       requests: requestRows,
       transactions: transactionRows,
+      refunds: (refunds ?? []) as JobPaymentRefundRow[],
       acceptedTotalCents: contractTotalCents,
     });
 

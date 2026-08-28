@@ -16,6 +16,7 @@ import {
   type JobPaymentWorkspaceRequest,
   type JobPaymentWorkspaceTransaction,
 } from "./jobPaymentWorkspace";
+import type { JobPaymentRefundRow } from "./jobPaymentReadModel";
 import { JOB_CARD_PAYMENTS_COLLECT_BALANCE_CTA } from "./jobPaymentTypes";
 
 const ROOT = process.cwd();
@@ -64,6 +65,7 @@ export const AFTER_048_MIGRATIONS = [
   "20260827_056_flexible_collect_payment.sql",
   "20260828_057_job_attachments.sql",
   "20260828_058_job_tasks.sql",
+  "20260828_059_job_payment_refunds.sql",
 ] as const;
 
 const ACCOUNT = {
@@ -342,14 +344,26 @@ describe("2B presenter CTA states", () => {
           provider_event_id: "evt_balance",
           provider_payment_intent_id: "pi_balance",
         }),
-        txn({
+      ],
+      refunds: [
+        {
           id: "33333333-3333-4333-8333-333333333333",
-          kind: "refund",
-          status: "refunded",
+          company_id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+          job_id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+          payment_request_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+          canonical_capture_transaction_id:
+            "22222222-2222-4222-8222-222222222222",
           amount_cents: 50000,
-          provider_event_id: "evt_refund",
-          provider_payment_intent_id: "pi_balance",
-        }),
+          status: "succeeded",
+          initiated_at: "2026-08-27T13:10:00.000Z",
+          pending_at: null,
+          requires_action_at: null,
+          succeeded_at: "2026-08-27T13:10:00.000Z",
+          failed_at: null,
+          canceled_at: null,
+          created_at: "2026-08-27T13:10:00.000Z",
+          updated_at: "2026-08-27T13:10:00.000Z",
+        } satisfies JobPaymentRefundRow,
       ],
     });
     assert.equal(workspace.receivedGrossCents, 2000000);

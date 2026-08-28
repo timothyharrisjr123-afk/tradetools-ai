@@ -13,7 +13,11 @@ import {
   customerCurrentRequest,
   publicCheckoutShouldOpenCanonicalDeposit,
 } from "./jobPaymentCustomerPresenter";
-import type { JobPaymentRequestRow, JobPaymentTransactionRow } from "./jobPaymentReadModel";
+import type {
+  JobPaymentRefundRow,
+  JobPaymentRequestRow,
+  JobPaymentTransactionRow,
+} from "./jobPaymentReadModel";
 import {
   PUBLIC_PAYMENT_PAY_DEPOSIT_CTA,
   PUBLIC_PAYMENT_PAY_NOW_CTA,
@@ -90,17 +94,25 @@ function capture(
 
 function refund(
   requestId: string,
-  amount: number
-): JobPaymentTransactionRow {
+  amount: number,
+  status: JobPaymentRefundRow["status"] = "succeeded"
+): JobPaymentRefundRow {
   return {
     id: `refund-${requestId}-${amount}`,
+    company_id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    job_id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
     payment_request_id: requestId,
-    kind: "refund",
-    status: "refunded",
+    canonical_capture_transaction_id: `txn-${requestId}-1850000`,
     amount_cents: amount,
-    occurred_at: "2026-08-27T20:00:00.000Z",
-    provider_event_id: "evt-refund",
-    provider_payment_intent_id: "pi_1",
+    status,
+    initiated_at: "2026-08-27T20:00:00.000Z",
+    pending_at: status === "pending" ? "2026-08-27T20:01:00.000Z" : null,
+    requires_action_at: null,
+    succeeded_at: status === "succeeded" ? "2026-08-27T20:02:00.000Z" : null,
+    failed_at: status === "failed" ? "2026-08-27T20:02:00.000Z" : null,
+    canceled_at: status === "canceled" ? "2026-08-27T20:02:00.000Z" : null,
+    created_at: "2026-08-27T20:00:00.000Z",
+    updated_at: "2026-08-27T20:02:00.000Z",
   };
 }
 
@@ -275,7 +287,8 @@ describe("Stage 2D — collected states", () => {
     });
     const view = vm([paid], {
       requests: [paid],
-      transactions: [capture(paid.id, 1850000), refund(paid.id, 50000)],
+      transactions: [capture(paid.id, 1850000)],
+      refunds: [refund(paid.id, 50000)],
     });
     assert.equal(view?.state, "payments_complete_with_refund");
     assert.equal(view?.heading, "Payments complete");
