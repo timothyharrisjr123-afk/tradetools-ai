@@ -16,6 +16,12 @@ import {
   type JobPaymentWorkspaceTransaction,
 } from "./jobPaymentWorkspace";
 import { DEFAULT_PROPOSAL_PAYMENT_TERMS } from "./proposalPaymentTerms";
+import {
+  JOB_CARD_PAYMENTS_PAID_IN_FULL,
+  JOB_CARD_PAYMENTS_PAYMENTS_COMPLETE,
+  PUBLIC_PAYMENT_PAID_IN_FULL_TITLE,
+  PUBLIC_PAYMENT_PAYMENTS_COMPLETE_TITLE,
+} from "./jobPaymentTypes";
 
 const ROOT = process.cwd();
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
@@ -327,9 +333,140 @@ describe("Stage 2E — failed / cancelled / refund", () => {
     });
     assert.equal(workspace.collectibleRemainingCents, 0);
     assert.equal(workspace.refundedCents, 50000);
+    assert.equal(workspace.state, "payments_complete");
+    assert.equal(workspace.statusLabel, "Payments complete");
     const refund = workspace.timeline.find((row) => row.type === "refund");
     assert.equal(refund?.title, "Refund recorded");
     assert.equal(refund?.amountCents, 50000);
+  });
+});
+
+describe("Stage 2F — contractor zero-collectible wording", () => {
+  test("contractor labels stay aligned with customer Paid in full / Payments complete", () => {
+    assert.equal(JOB_CARD_PAYMENTS_PAID_IN_FULL, PUBLIC_PAYMENT_PAID_IN_FULL_TITLE);
+    assert.equal(
+      JOB_CARD_PAYMENTS_PAYMENTS_COMPLETE,
+      PUBLIC_PAYMENT_PAYMENTS_COMPLETE_TITLE
+    );
+  });
+
+  test("collectible 0 / refunded 0 is Paid in full", () => {
+    const workspace = buildJobPaymentWorkspace({
+      jobStage: "complete",
+      accepted: true,
+      account: ACCOUNT,
+      terms: DEFAULT_PROPOSAL_PAYMENT_TERMS,
+      customerChosenTotalCents: 1850000,
+      requests: [
+        request({
+          status: "paid",
+          amount_cents: 1850000,
+          paid_at: "2026-08-28T18:00:00.000Z",
+        }),
+      ],
+      transactions: [txn({ amount_cents: 1850000 })],
+    });
+    assert.equal(workspace.collectibleRemainingCents, 0);
+    assert.equal(workspace.refundedCents, 0);
+    assert.equal(workspace.state, "paid_in_full");
+    assert.equal(workspace.statusLabel, "Paid in full");
+    assert.equal(workspace.overviewStatusLabel, "Paid in full");
+  });
+
+  test("collectible 0 / refunded >0 is Payments complete, not Paid in full", () => {
+    const workspace = buildJobPaymentWorkspace({
+      jobStage: "complete",
+      accepted: true,
+      account: ACCOUNT,
+      terms: DEFAULT_PROPOSAL_PAYMENT_TERMS,
+      customerChosenTotalCents: 1850000,
+      requests: [
+        request({
+          status: "paid",
+          amount_cents: 1850000,
+          paid_at: "2026-08-28T18:00:00.000Z",
+        }),
+      ],
+      transactions: [
+        txn({ amount_cents: 1850000 }),
+        txn({
+          id: "33333333-3333-4333-8333-333333333333",
+          kind: "refund",
+          status: "refunded",
+          amount_cents: 50000,
+          occurred_at: "2026-08-30T15:20:00.000Z",
+          provider_event_id: "evt_refund",
+          provider_payment_intent_id: "pi_shared",
+        }),
+      ],
+    });
+    assert.equal(workspace.collectibleRemainingCents, 0);
+    assert.equal(workspace.refundedCents, 50000);
+    assert.equal(workspace.state, "payments_complete");
+    assert.equal(workspace.statusLabel, "Payments complete");
+    assert.equal(workspace.overviewStatusLabel, "Payments complete");
+    assert.notEqual(workspace.statusLabel, "Paid in full");
+    assert.equal(
+      workspace.summaryRows.find((row) => row.label === "Remaining")?.cents,
+      0
+    );
+  });
+
+  test("collectible >0 is never Paid in full or Payments complete", () => {
+    const workspace = buildJobPaymentWorkspace({
+      jobStage: "production",
+      accepted: true,
+      account: ACCOUNT,
+      terms: DEFAULT_PROPOSAL_PAYMENT_TERMS,
+      customerChosenTotalCents: 1850000,
+      requests: [request({ status: "paid", paid_at: "2026-08-24T14:20:00.000Z" })],
+      transactions: [txn()],
+    });
+    assert.ok(workspace.collectibleRemainingCents > 0);
+    assert.notEqual(workspace.state, "paid_in_full");
+    assert.notEqual(workspace.state, "payments_complete");
+    assert.notEqual(workspace.statusLabel, "Paid in full");
+    assert.notEqual(workspace.statusLabel, "Payments complete");
+  });
+
+  test("refund does not reopen Remaining", () => {
+    const workspace = buildJobPaymentWorkspace({
+      jobStage: "complete",
+      accepted: true,
+      account: ACCOUNT,
+      terms: DEFAULT_PROPOSAL_PAYMENT_TERMS,
+      customerChosenTotalCents: 1850000,
+      requests: [
+        request({
+          status: "paid",
+          amount_cents: 1850000,
+          paid_at: "2026-08-28T18:00:00.000Z",
+        }),
+      ],
+      transactions: [
+        txn({ amount_cents: 1850000 }),
+        txn({
+          id: "33333333-3333-4333-8333-333333333333",
+          kind: "refund",
+          status: "refunded",
+          amount_cents: 50000,
+          occurred_at: "2026-08-30T15:20:00.000Z",
+          provider_event_id: "evt_refund",
+          provider_payment_intent_id: "pi_shared",
+        }),
+      ],
+    });
+    assert.equal(workspace.receivedGrossCents, 1850000);
+    assert.equal(workspace.refundedCents, 50000);
+    assert.equal(workspace.collectibleRemainingCents, 0);
+    assert.equal(workspace.canCollectPayment, false);
+    assert.equal(
+      jobPaymentCollectibleRemainingCents({
+        contractTotalCents: 1850000,
+        receivedGrossCents: 1850000,
+      }),
+      0
+    );
   });
 });
 
@@ -421,6 +558,10 @@ describe("Stage 2E — Activity stays payment-free", () => {
     assert.match(ui, /Payment history/);
     assert.doesNotMatch(ui, /Current request/);
     assert.match(ui, /groupJobPaymentHistory/);
+    assert.match(ui, /data-jobcard-payments-history-measure/);
+    assert.match(ui, /max-w-xl/);
+    assert.match(ui, /sm:grid-cols-\[minmax\(0,1fr\)_auto\]/);
+    assert.doesNotMatch(ui, /sm:justify-between/);
     assert.doesNotMatch(ui, /overflow-x-auto/);
     assert.doesNotMatch(ui, /<table/);
     assert.match(ui, /min-h-11/);

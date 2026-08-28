@@ -353,8 +353,9 @@ describe("2B presenter CTA states", () => {
     assert.equal(workspace.receivedGrossCents, 2000000);
     assert.equal(workspace.refundedCents, 50000);
     assert.equal(workspace.collectibleRemainingCents, 0);
-    assert.equal(workspace.state, "paid_in_full");
+    assert.equal(workspace.state, "payments_complete");
     assert.equal(workspace.canCollectRemainingBalance, false);
+    assert.equal(workspace.collectibleRemainingCents, 0);
   });
 
   test("later contract increase after paid deposit can collect the new remainder", () => {

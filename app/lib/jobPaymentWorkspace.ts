@@ -12,6 +12,8 @@
 import { formatUsdFromCents } from "@/app/lib/jobPaymentMoney";
 import {
   JOB_CARD_PAYMENTS_CONNECT_HREF,
+  JOB_CARD_PAYMENTS_PAID_IN_FULL,
+  JOB_CARD_PAYMENTS_PAYMENTS_COMPLETE,
   JOB_PAYMENT_MIN_AMOUNT_CENTS,
   JOB_PAYMENT_PROVIDER,
   type JobPaymentKind,
@@ -44,7 +46,8 @@ export type JobPaymentWorkspaceState =
   | "balance_processing"
   | "progress_requested"
   | "progress_processing"
-  | "paid_in_full";
+  | "paid_in_full"
+  | "payments_complete";
 
 export type JobPaymentWorkspaceTimelineType =
   | "requested"
@@ -618,7 +621,9 @@ function overviewStatusFor(state: JobPaymentWorkspaceState): string | null {
     case "progress_requested":
       return "Progress payment requested";
     case "paid_in_full":
-      return "Paid in full";
+      return JOB_CARD_PAYMENTS_PAID_IN_FULL;
+    case "payments_complete":
+      return JOB_CARD_PAYMENTS_PAYMENTS_COMPLETE;
     case "payment_failed":
       return "Payment failed";
     case "partially_paid":
@@ -657,7 +662,9 @@ function statusLabelFor(state: JobPaymentWorkspaceState): string {
     case "progress_processing":
       return "Progress payment processing";
     case "paid_in_full":
-      return "Paid in full";
+      return JOB_CARD_PAYMENTS_PAID_IN_FULL;
+    case "payments_complete":
+      return JOB_CARD_PAYMENTS_PAYMENTS_COMPLETE;
   }
 }
 
@@ -668,6 +675,7 @@ function nextStepFor(
   switch (state) {
     case "no_payment_required":
     case "paid_in_full":
+    case "payments_complete":
       return null;
     case "setup_required":
       return {
@@ -692,6 +700,12 @@ function nextStepFor(
   }
 }
 
+function zeroCollectibleStatus(
+  refundedCents: number
+): "paid_in_full" | "payments_complete" {
+  return refundedCents > 0 ? "payments_complete" : "paid_in_full";
+}
+
 function deriveWorkspaceState(input: {
   accepted: boolean;
   connected: boolean;
@@ -700,6 +714,7 @@ function deriveWorkspaceState(input: {
   jobComplete: boolean;
   collectibleRemainingCents: number;
   receivedGrossCents: number;
+  refundedCents: number;
   depositGrossCents: number;
   current: JobPaymentWorkspaceRequest | null;
   failed: JobPaymentWorkspaceRequest | null;
@@ -709,7 +724,7 @@ function deriveWorkspaceState(input: {
   if (!input.connected || !input.chargesEnabled) return "setup_required";
 
   const collectible = input.collectibleRemainingCents;
-  const paidInFull =
+  const fullyCollected =
     collectible < JOB_PAYMENT_MIN_AMOUNT_CENTS &&
     (input.receivedGrossCents > 0 ||
       (input.contractTotalCents != null &&
@@ -726,7 +741,7 @@ function deriveWorkspaceState(input: {
     if (input.current.kind === "progress") return "progress_requested";
   }
 
-  if (paidInFull) return "paid_in_full";
+  if (fullyCollected) return zeroCollectibleStatus(input.refundedCents);
 
   if (!input.current && input.failed) return "payment_failed";
 
@@ -759,7 +774,7 @@ function deriveWorkspaceState(input: {
   }
 
   if (input.receivedGrossCents > 0 && collectible < JOB_PAYMENT_MIN_AMOUNT_CENTS) {
-    return "paid_in_full";
+    return zeroCollectibleStatus(input.refundedCents);
   }
 
   return "no_payment_required";
@@ -813,6 +828,7 @@ export function buildJobPaymentWorkspace(input: {
     jobComplete,
     collectibleRemainingCents,
     receivedGrossCents,
+    refundedCents,
     depositGrossCents,
     current,
     failed,

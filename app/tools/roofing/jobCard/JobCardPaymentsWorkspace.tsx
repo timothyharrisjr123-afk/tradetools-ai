@@ -75,7 +75,7 @@ function HistoryRow({ event }: { event: JobPaymentWorkspaceTimelineEvent }) {
           }`}
           aria-hidden
         />
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-baseline sm:gap-x-6">
           <div className="min-w-0">
             <p className="text-sm font-medium text-slate-800">{event.title}</p>
             {event.subtitle ? (
@@ -254,7 +254,11 @@ export default function JobCardPaymentsWorkspace({
         </p>
       ) : null}
 
-      <section aria-labelledby="job-card-payments-history">
+      <section
+        aria-labelledby="job-card-payments-history"
+        className="w-full max-w-xl"
+        data-jobcard-payments-history-measure
+      >
         <h3
           id="job-card-payments-history"
           className="text-[11px] font-semibold uppercase tracking-wide text-slate-400"

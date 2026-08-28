@@ -167,7 +167,9 @@ describe("collectible vs net", () => {
     assert.equal(workspace.refundedCents, 50000);
     assert.equal(workspace.cashNetCents, 1950000);
     assert.equal(workspace.collectibleRemainingCents, 0);
-    assert.equal(workspace.state, "paid_in_full");
+    assert.equal(workspace.state, "payments_complete");
+    assert.equal(workspace.statusLabel, "Payments complete");
+    assert.notEqual(workspace.statusLabel, "Paid in full");
     assert.equal(workspace.nextStep, null);
     assert.ok(workspace.summaryRows.some((row) => row.label === "Refunded"));
   });

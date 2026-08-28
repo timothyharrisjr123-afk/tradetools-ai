@@ -89,6 +89,7 @@ export const JOB_CARD_PAYMENTS_LABEL = "Payments";
 export const JOB_CARD_PAYMENTS_NOT_CONNECTED = "Not connected";
 export const JOB_CARD_PAYMENTS_NOT_REQUESTED = "Not requested";
 export const JOB_CARD_PAYMENTS_PAID_IN_FULL = "Paid in full";
+export const JOB_CARD_PAYMENTS_PAYMENTS_COMPLETE = "Payments complete";
 export const JOB_CARD_PAYMENTS_CONNECT_CTA = "Connect payments";
 export const JOB_CARD_PAYMENTS_REQUEST_DEPOSIT_CTA = "Request deposit";
 export const JOB_CARD_PAYMENTS_REQUEST_BALANCE_CTA =
