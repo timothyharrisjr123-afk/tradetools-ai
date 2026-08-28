@@ -227,8 +227,10 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
                                 data-builder-edit-quantity
                                 aria-label={`Edit quantity for ${line.name}`}
                               >
-                                <span className="sm:hidden">Qty </span>
-                                {line.qtyLabel}
+                                <span className="sm:hidden">
+                                  Qty{"\u00A0"}
+                                </span>
+                                {needsQty ? "Not resolved" : line.qtyLabel}
                               </button>
                             ) : (
                               <span
@@ -236,8 +238,10 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
                                   needsQty ? "text-slate-400" : "font-semibold text-slate-800"
                                 }`}
                               >
-                                <span className="sm:hidden">Qty </span>
-                                {line.qtyLabel}
+                                <span className="sm:hidden">
+                                  Qty{"\u00A0"}
+                                </span>
+                                {needsQty ? "Not resolved" : line.qtyLabel}
                               </span>
                             )}
                           </div>

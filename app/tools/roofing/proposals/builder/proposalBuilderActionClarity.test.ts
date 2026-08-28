@@ -400,6 +400,10 @@ describe("Builder action clarity (Block 4D / 4E)", () => {
     assert.match(ready, /data-builder-edit-quantity/);
     assert.match(ready, /data-builder-qty-edit-trigger/);
     assert.doesNotMatch(ready, /group-hover\/estimate-row:opacity-100/);
+    // Mobile prefix must keep a non-collapsing space (Qty 27.5 SQ / Qty Not resolved).
+    assert.match(ready, /Qty\{"\\u00A0"\}/);
+    assert.match(ready, /needsQty \? "Not resolved" : line\.qtyLabel/);
+    assert.doesNotMatch(ready, /<span className="sm:hidden">Qty <\/span>/);
   });
 
   test("27. Finish estimate is not the canonical quantity editor", () => {

@@ -21,7 +21,17 @@ export const JOB_CARD_PROPOSALS_TAB_SUBTITLE = "" as const;
 
 export const JOB_CARD_PROPOSALS_EARLIER_LABEL = "Earlier proposals" as const;
 
+/** Disclosure control when earlier proposals are collapsed. */
+export const JOB_CARD_PROPOSALS_SHOW_EARLIER_LABEL =
+  "Show earlier proposals" as const;
+
 export const JOB_CARD_PROPOSALS_WORKING_CURRENT_MARKER = "Current" as const;
+
+/** Quiet history heading — count from actual earlier rows only. */
+export function formatJobCardEarlierProposalsHeading(count: number): string {
+  const n = Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
+  return `${JOB_CARD_PROPOSALS_EARLIER_LABEL} · ${n}`;
+}
 
 export const JOB_CARD_PROPOSALS_ADD_LABEL = "+ Proposal" as const;
 

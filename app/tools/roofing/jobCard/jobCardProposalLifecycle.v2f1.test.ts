@@ -241,7 +241,11 @@ describe("V2F1 Job Card six cases", () => {
     assert.doesNotMatch(tab, /revise.*createNewProposalDraftEntry/i);
     assert.match(tab, /data-jobcard-proposal-current/);
     assert.match(tab, /data-jobcard-proposal-earlier/);
-    assert.match(tab, /JOB_CARD_PROPOSALS_EARLIER_LABEL/);
+    assert.match(tab, /formatJobCardEarlierProposalsHeading/);
+    assert.match(tab, /JOB_CARD_PROPOSALS_SHOW_EARLIER_LABEL/);
+    assert.match(tab, /data-jobcard-proposal-earlier-toggle/);
+    assert.match(tab, /<details[\s\S]*data-jobcard-proposal-earlier/);
+    assert.doesNotMatch(tab, /data-jobcard-proposal-earlier[\s\S]*open=/);
     assert.match(client, /quiet=\{jobCardProposalRows\.length > 0\}/);
     assert.match(client, /activeProposalId: hydratedJobRecord\?\.active_proposal_id/);
   });

@@ -11,14 +11,15 @@ import {
   JOB_CARD_PROPOSALS_ADD_QUIET_BUTTON_CLASS,
   JOB_CARD_PROPOSALS_CREATE_LABEL,
   JOB_CARD_PROPOSALS_CURRENT_SENT_MARKER,
-  JOB_CARD_PROPOSALS_EARLIER_LABEL,
   JOB_CARD_PROPOSALS_EMPTY_BODY,
   JOB_CARD_PROPOSALS_EMPTY_TITLE,
   JOB_CARD_PROPOSALS_PRIMARY_BUTTON_CLASS,
   JOB_CARD_PROPOSALS_ROW_PRIMARY_BUTTON_CLASS,
   JOB_CARD_PROPOSALS_SECONDARY_BUTTON_CLASS,
   JOB_CARD_PROPOSALS_SENT_HISTORY_LABEL,
+  JOB_CARD_PROPOSALS_SHOW_EARLIER_LABEL,
   JOB_CARD_PROPOSALS_WORKING_CURRENT_MARKER,
+  formatJobCardEarlierProposalsHeading,
   formatJobCardProposalRowPackageBadge,
   partitionJobCardProposalRows,
 } from "./jobCardProposalsTabModel";
@@ -384,14 +385,29 @@ export default function JobCardProposalsTab({
             ))
           )}
           {current && earlier.length > 0 ? (
-            <div data-jobcard-proposal-earlier>
-              <p
-                className="mb-1 text-[12px] font-medium text-slate-400"
-                data-jobcard-proposal-earlier-heading
+            <details
+              className="group"
+              data-jobcard-proposal-earlier
+              data-jobcard-proposal-earlier-count={String(earlier.length)}
+            >
+              <summary
+                className="flex min-h-[44px] cursor-pointer list-none flex-col justify-center gap-0.5 py-1 text-left [&::-webkit-details-marker]:hidden"
+                data-jobcard-proposal-earlier-toggle
               >
-                {JOB_CARD_PROPOSALS_EARLIER_LABEL}
-              </p>
-              <div className="space-y-1">
+                <span
+                  className="text-[12px] font-medium text-slate-400"
+                  data-jobcard-proposal-earlier-heading
+                >
+                  {formatJobCardEarlierProposalsHeading(earlier.length)}
+                </span>
+                <span
+                  className="text-[12px] font-medium text-slate-500 group-open:hidden"
+                  data-jobcard-proposal-earlier-show
+                >
+                  {JOB_CARD_PROPOSALS_SHOW_EARLIER_LABEL}
+                </span>
+              </summary>
+              <div className="mt-1 space-y-1" data-jobcard-proposal-earlier-list>
                 {earlier.map((row) => (
                   <ProposalListRow
                     key={row.proposalId}
@@ -404,7 +420,7 @@ export default function JobCardProposalsTab({
                   />
                 ))}
               </div>
-            </div>
+            </details>
           ) : null}
         </div>
       ) : showUnavailable ? (

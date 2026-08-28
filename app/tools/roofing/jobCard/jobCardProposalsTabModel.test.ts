@@ -19,6 +19,7 @@ import {
   buildJobCardProposalRowMetaLine,
   buildJobCardProposalRowView,
   buildJobCardProposalRowViews,
+  formatJobCardEarlierProposalsHeading,
   formatJobCardContractorProposalStatusLabel,
   formatJobCardProposalCreatedActivityNote,
   formatJobCardProposalCustomerStateLabel,
@@ -26,6 +27,7 @@ import {
   formatJobCardProposalRowTitle,
   formatJobCardProposalStatusLabel,
   formatJobCardProposalUpdatedShort,
+  partitionJobCardProposalRows,
   JOB_CARD_PROPOSAL_ACTIVITY_CREATED_LABEL,
   JOB_CARD_PROPOSAL_ACTIVITY_CREATED_NOTE,
 } from "./jobCardProposalsTabModel";
@@ -379,5 +381,32 @@ describe("jobCardProposalsTab helpers", () => {
     });
     assert.equal(unsorted.every((row) => row.isCurrent === false), true);
     assert.equal(unsorted[0]?.proposalId, "b");
+  });
+
+  test("earlier proposals heading uses live count; partition keeps current out of history", () => {
+    assert.equal(formatJobCardEarlierProposalsHeading(7), "Earlier proposals · 7");
+    assert.equal(formatJobCardEarlierProposalsHeading(1), "Earlier proposals · 1");
+    assert.equal(formatJobCardEarlierProposalsHeading(0), "Earlier proposals · 0");
+    const rows = buildJobCardProposalRowViews({
+      summaries: [
+        summary({ id: "cur", title: "Roof replacement", updated_at: "2026-07-20T09:00:00.000Z" }),
+        summary({ id: "old-1", title: "Roof replacement", updated_at: "2026-07-20T16:00:00.000Z" }),
+        summary({ id: "old-2", title: "Roof replacement", updated_at: "2026-07-20T15:00:00.000Z" }),
+      ],
+      activeProposalId: "cur",
+    });
+    const { current, earlier } = partitionJobCardProposalRows(rows);
+    assert.equal(current?.proposalId, "cur");
+    assert.equal(current?.isCurrent, true);
+    assert.equal(earlier.length, 2);
+    assert.equal(
+      earlier.every((row) => row.isCurrent === false),
+      true
+    );
+    assert.equal(formatJobCardEarlierProposalsHeading(earlier.length), "Earlier proposals · 2");
+    assert.doesNotMatch(
+      earlier.map((row) => row.proposalId).join(","),
+      /cur/
+    );
   });
 });
