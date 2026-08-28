@@ -258,6 +258,10 @@ describe("056 — API / UI / copy-link contracts", () => {
     const sheet = read("app/tools/roofing/jobCard/JobCardCollectPaymentSheet.tsx");
     assert.match(sheet, /role="radiogroup"/);
     assert.match(sheet, /You have .* remaining to collect/);
+    const workspaceUi = read("app/tools/roofing/jobCard/JobCardPaymentsWorkspace.tsx");
+    assert.match(workspaceUi, /JOB_CARD_PAYMENTS_COLLECT_CTA/);
+    assert.doesNotMatch(workspaceUi, />Next step</);
+    assert.doesNotMatch(workspaceUi, /Collect remaining balance/);
   });
 
   test("Settings Default deposit is gone; Stripe copy remains", () => {
@@ -266,6 +270,16 @@ describe("056 — API / UI / copy-link contracts", () => {
     assert.match(settings, /Customers pay securely through Stripe Checkout/);
     const summary = read("app/lib/companySettingsSummary.ts");
     assert.doesNotMatch(summary, /default deposit/);
+    const twoA = read("app/tools/roofing/jobCard/payment-stage-2a-review/page.tsx");
+    const twoB = read("app/tools/roofing/jobCard/payment-stage-2b-review/page.tsx");
+    assert.match(twoA, /Historical payment-workspace fixture/);
+    assert.match(twoB, /Historical payment-workspace fixture/);
+    const twoC = read(
+      "app/tools/roofing/jobCard/payment-stage-2c-review/PaymentStage2CReviewHarness.tsx"
+    );
+    assert.match(twoC, /progress-processing/);
+    assert.match(twoC, /failed-collect/);
+    assert.match(twoC, /onCopyPaymentLink/);
   });
 
   test("public progress labels and checkout typing", () => {

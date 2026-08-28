@@ -575,23 +575,14 @@ function nextStepFor(
         connectHref: JOB_PAYMENT_WORKSPACE_CONNECT_HREF,
       };
     case "deposit_due":
-      return {
-        label: "The customer can pay the deposit from the proposal.",
-        detail: null,
-        connectHref: null,
-      };
     case "deposit_processing":
     case "balance_processing":
     case "progress_processing":
-      return { label: "Payment processing", detail: null, connectHref: null };
     case "payment_failed":
-      return { label: "Payment failed", detail: null, connectHref: null };
     case "deposit_received":
     case "balance_not_yet_due":
     case "partially_paid":
-      return null;
     case "balance_due":
-      return null;
     case "balance_requested":
     case "progress_requested":
       return null;

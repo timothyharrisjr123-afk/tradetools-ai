@@ -991,7 +991,7 @@ export default function JobCardClient({
                   tabId="payments"
                   activeTab={jobCardTab}
                   title="Payments"
-                  subtitle="Contract, received, and remaining"
+                  subtitle="Contract, collected, and remaining"
                 >
                   <JobCardPaymentsWorkspace
                     workspace={jobPayments.workspace}

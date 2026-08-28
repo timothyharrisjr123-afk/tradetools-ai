@@ -291,11 +291,8 @@ describe("payment-state presenter", () => {
     assert.equal(workspace.statusLabel, "Deposit due");
     assert.equal(workspace.overviewStatusLabel, "Payment pending");
     assert.equal(workspace.depositNotReceived, true);
-    assert.equal(
-      workspace.nextStep?.label,
-      "The customer can pay the deposit from the proposal."
-    );
-    assert.equal(workspace.nextStep?.connectHref, null);
+    assert.equal(workspace.nextStep, null);
+    assert.equal(workspace.currentRequest?.status, "open");
   });
 
   test("deposit processing", () => {
@@ -311,7 +308,8 @@ describe("payment-state presenter", () => {
     assert.equal(workspace.state, "deposit_processing");
     assert.equal(workspace.statusLabel, "Deposit processing");
     assert.equal(workspace.overviewStatusLabel, "Payment pending");
-    assert.equal(workspace.nextStep?.label, "Payment processing");
+    assert.equal(workspace.nextStep, null);
+    assert.equal(workspace.currentRequest?.status, "processing");
     assert.equal(
       workspace.timeline.some((row) => row.type === "processing"),
       true
@@ -365,7 +363,9 @@ describe("payment-state presenter", () => {
     assert.equal(workspace.state, "payment_failed");
     assert.equal(workspace.statusLabel, "Payment failed");
     assert.equal(workspace.overviewStatusLabel, "Payment failed");
-    assert.equal(workspace.nextStep?.label, "Payment failed");
+    assert.equal(workspace.nextStep, null);
+    assert.equal(workspace.currentRequest, null);
+    assert.equal(workspace.canCollectPayment, true);
   });
 
   test("balance due only on Complete", () => {
@@ -543,10 +543,12 @@ describe("Payments tab routing", () => {
     assert.doesNotMatch(harness, /Stage 2A/);
   });
 
-  test("Next step section is omitted when the presenter has no guidance", () => {
+  test("Payments surface has no Next step heading; Collect is the action", () => {
     const ui = read("app/tools/roofing/jobCard/JobCardPaymentsWorkspace.tsx");
-    assert.match(ui, /workspace\.nextStep && !current/);
-    assert.match(ui, /data-jobcard-payments-next/);
+    assert.doesNotMatch(ui, />Next step</);
+    assert.doesNotMatch(ui, /data-jobcard-payments-next/);
+    assert.match(ui, /JOB_CARD_PAYMENTS_COLLECT_CTA/);
+    assert.match(ui, /workspace\.nextStep\?\.connectHref/);
   });
 
   test("tab rail scrolls the active tab into view", () => {
