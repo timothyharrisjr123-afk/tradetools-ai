@@ -26,6 +26,7 @@ type JobCardNextActionPanelProps = {
   onConfirmAcceptance?: (item: JobAttentionSafeItem) => Promise<void>;
   onAcknowledgeAcceptance?: (item: JobAttentionSafeItem) => Promise<void>;
   onConnectPayments?: (item: JobAttentionSafeItem) => void;
+  onReviewPayment?: (item: JobAttentionSafeItem) => void;
   /** Canonical Job stage for lifecycle action eligibility (DB jobs only). */
   canonicalJobStage?: CanonicalJobStage | null;
   /** jobs.status disposition for lifecycle action eligibility. */
@@ -78,6 +79,7 @@ export default function JobCardNextActionPanel({
   onConfirmAcceptance,
   onAcknowledgeAcceptance,
   onConnectPayments,
+  onReviewPayment,
   canonicalJobStage = null,
   jobDisposition = null,
 }: JobCardNextActionPanelProps) {
@@ -256,9 +258,11 @@ export default function JobCardNextActionPanel({
               className={PRIMARY_BUTTON}
               data-attention-review-payment
               onClick={() => {
-                void settleReadWithoutBlocking(onMarkRead(selectedItem.id)).catch(
-                  () => undefined
-                );
+                void settleReadWithoutBlocking(onMarkRead(selectedItem.id))
+                  .then(() => {
+                    if (onReviewPayment) onReviewPayment(selectedItem);
+                  })
+                  .catch(() => undefined);
               }}
             >
               Review payment

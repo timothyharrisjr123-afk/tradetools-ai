@@ -55,7 +55,7 @@ export function deriveJobsBoardOverviewMetrics(
     const columnKey = getBoardColumnKeyForJob(job) ?? "estimate";
     const model = buildJobsBoardCardModel(job, batchStatuses, { columnKey });
 
-    if (model.reportStatus.tone === "report_missing") reportsMissing += 1;
+    if (model.reportStatus?.tone === "report_missing") reportsMissing += 1;
     if (model.proposalStatus.tone === "proposal_draft") proposalDrafts += 1;
 
     const updatedDays = daysSinceIso(getLastUpdatedIso(job));

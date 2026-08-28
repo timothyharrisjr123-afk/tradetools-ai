@@ -31,7 +31,7 @@ function statusParts(
   model: JobsBoardCardModel | null
 ): string {
   if (!model) return "—";
-  const parts = [model.reportStatus.label, model.proposalStatus.label].filter(Boolean);
+  const parts = [model.reportStatus?.label, model.proposalStatus.label].filter(Boolean);
   return parts.length > 0 ? parts.join(" · ") : "—";
 }
 

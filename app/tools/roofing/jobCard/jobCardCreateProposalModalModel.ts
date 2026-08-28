@@ -66,6 +66,7 @@ export const PREPARE_PROPOSAL_FOOTER =
   "Creates a job-specific copy. Your reusable setup stays unchanged." as const;
 
 export const PREPARE_PROPOSAL_MEASUREMENT_REQUIRED = "Measurement required" as const;
+export const PREPARE_PROPOSAL_ADD_MEASUREMENT_LABEL = "Add measurement" as const;
 
 export const PREPARE_PROPOSAL_MEASUREMENT_CHOOSE = "Choose a measurement." as const;
 export const PREPARE_PROPOSAL_SETUP_CHOOSE = "Choose a reusable setup." as const;

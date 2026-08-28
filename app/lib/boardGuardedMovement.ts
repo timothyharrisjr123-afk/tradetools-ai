@@ -164,6 +164,7 @@ export function buildBoardProposalCreateHref(jobId: string): string {
     job: jobId,
     from: "board",
     tab: "proposals",
+    prepare: "1",
   });
   return `/tools/roofing?${params.toString()}`;
 }

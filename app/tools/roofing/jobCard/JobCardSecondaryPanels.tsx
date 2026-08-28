@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import JobCardSectionPanel from "@/app/tools/roofing/jobCard/JobCardSectionPanel";
+import JobCardQuietEmptyState from "@/app/tools/roofing/jobCard/JobCardQuietEmptyState";
 import type { JobCardTabId } from "@/app/tools/roofing/jobCard/jobCardTypes";
 import { applyTemplateSetupFetchResult } from "@/app/lib/jobCardTemplateSetupState";
 import type { TemplateSetupReadStatus } from "@/app/lib/jobCardTemplateSetupState";
@@ -15,8 +16,8 @@ type JobCardSecondaryPanelsProps = {
 };
 
 /**
- * Secondary Job Card domains (measurements / catalog / templates).
- * Loaded only after PERF-1 schedule settlement via next/dynamic.
+ * Reserved Job Card domains that are not yet operational.
+ * Measurements are owned by JobCardMeasurementsWorkspace, not this file.
  */
 export default function JobCardSecondaryPanels({
   activeTab,
@@ -24,6 +25,8 @@ export default function JobCardSecondaryPanels({
   companyId,
   listedDraftProposalId,
 }: JobCardSecondaryPanelsProps) {
+  void jobId;
+  void listedDraftProposalId;
   const [templateStatus, setTemplateStatus] =
     useState<TemplateSetupReadStatus>("idle");
   const [templateError, setTemplateError] = useState<string | null>(null);
@@ -63,33 +66,14 @@ export default function JobCardSecondaryPanels({
     };
   }, [companyId]);
 
-  const placeholder = (tabId: JobCardTabId, title: string, body: string) => (
+  const quiet = (tabId: JobCardTabId, title: string, message: string, testId: string) => (
     <JobCardSectionPanel tabId={tabId} activeTab={activeTab} title={title}>
-      <p className="text-sm text-slate-600">{body}</p>
+      <JobCardQuietEmptyState message={message} testId={testId} />
     </JobCardSectionPanel>
   );
 
   return (
     <>
-      <JobCardSectionPanel
-        tabId="measurements"
-        activeTab={activeTab}
-        title="Measurements"
-        subtitle="Roof size and measurement record"
-      >
-        <p className="text-sm text-slate-600">
-          Measurement editing stays on this Job. Catalog and template setup are
-          secondary and do not block Job identity or schedule.
-        </p>
-        {jobId ? (
-          <p className="mt-2 text-xs text-slate-500">Job {jobId}</p>
-        ) : null}
-        {listedDraftProposalId ? (
-          <p className="mt-1 text-xs text-slate-500">
-            Current draft {listedDraftProposalId}
-          </p>
-        ) : null}
-      </JobCardSectionPanel>
       {templateStatus === "error" ? (
         <p
           className="mt-2 text-xs text-amber-700"
@@ -99,29 +83,13 @@ export default function JobCardSecondaryPanels({
           templates configured.”
         </p>
       ) : null}
-      {placeholder("tasks", "Tasks", "Task workflow is a future surface.")}
-      {placeholder(
-        "material_orders",
-        "Material Orders",
-        "Material orders are not created yet."
-      )}
-      {placeholder(
-        "work_orders",
-        "Work Orders",
-        "Work orders are not created yet. See Job schedule for planned work."
-      )}
-      {placeholder("invoices", "Invoices", "Invoices are a future surface.")}
-      {placeholder("job_costing", "Job Costing", "Job costing is a future surface.")}
-      {placeholder(
-        "attachments",
-        "Attachments",
-        "Attachments are not uploaded yet."
-      )}
-      {placeholder(
-        "instant_estimate",
-        "Instant Estimate",
-        "Instant Estimate is a future surface."
-      )}
+      {quiet("tasks", "Tasks", "No tasks yet.", "tasks")}
+      {quiet("material_orders", "Material Orders", "No material orders yet.", "material_orders")}
+      {quiet("work_orders", "Work Orders", "No work orders yet.", "work_orders")}
+      {quiet("invoices", "Invoices", "No invoices yet.", "invoices")}
+      {quiet("job_costing", "Job Costing", "No job costing yet.", "job_costing")}
+      {quiet("attachments", "Attachments", "No files yet.", "attachments")}
+      {quiet("instant_estimate", "Instant Estimate", "No instant estimate yet.", "instant_estimate")}
     </>
   );
 }

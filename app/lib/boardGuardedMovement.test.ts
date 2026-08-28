@@ -219,6 +219,7 @@ describe("proposal create href and approve attention", () => {
     );
     assert.match(href, /entry=job-card/);
     assert.match(href, /tab=proposals/);
+    assert.match(href, /prepare=1/);
     assert.match(href, /from=board/);
     assert.doesNotMatch(href, /stage=/);
   });

@@ -60,42 +60,42 @@ export const KNOWN_LIFECYCLE_FIXTURES: readonly LifecycleFixtureRecord[] = [
     name: PREFERRED_CANONICAL_VISUAL_FIXTURES.intake.name,
     class: "canonical",
     notes:
-      "Manual create → Intake + active. Prefer for normal Active Intake screenshots/E2E.",
+      "Manual create → Intake + active. Prefer for empty Intake / no-measurement Prepare proof.",
   },
   {
     id: PREFERRED_CANONICAL_VISUAL_FIXTURES.proposal.id,
     name: PREFERRED_CANONICAL_VISUAL_FIXTURES.proposal.name,
     class: "canonical",
     notes:
-      "persist_draft_proposal_create_v1 → Proposal + active draft; no accept/approve. Prefer for normal Active Proposal visuals.",
+      "persist_draft_proposal_create_v1 → Proposal + active draft; no accept/approve; no measurement_records row. Prefer for Proposal lifecycle visuals — not current Job Card Prepare measurement proof.",
   },
   {
     id: PREFERRED_CANONICAL_VISUAL_FIXTURES.approved.id,
     name: PREFERRED_CANONICAL_VISUAL_FIXTURES.approved.name,
     class: "canonical",
     notes:
-      "Full send/accept/confirm path → Approved + active; no schedule. Prefer for normal Active Approved visuals.",
+      "Lifecycle-canonical via send/accept/confirm RPC path; no measurement_records row. Prefer for Approved lifecycle visuals — not measurement→proposal proof.",
   },
   {
     id: PREFERRED_CANONICAL_VISUAL_FIXTURES.scheduled.id,
     name: PREFERRED_CANONICAL_VISUAL_FIXTURES.scheduled.name,
     class: "canonical",
     notes:
-      "Full proposal RPC path then schedule. Prefer for normal Scheduled screenshots.",
+      "Lifecycle-canonical via proposal RPC + schedule; no measurement_records row. Prefer for Scheduled lifecycle visuals — not measurement→proposal proof.",
   },
   {
     id: PREFERRED_CANONICAL_VISUAL_FIXTURES.production.id,
     name: PREFERRED_CANONICAL_VISUAL_FIXTURES.production.name,
     class: "canonical",
     notes:
-      "Full proposal → schedule → start_job_work_v1. Prefer for normal Active Production visuals (not the misnamed Complete job).",
+      "Lifecycle-canonical via proposal → schedule → start_job_work_v1; no measurement_records row. Prefer for Production lifecycle visuals — not measurement→proposal proof.",
   },
   {
     id: PREFERRED_CANONICAL_VISUAL_FIXTURES.complete.id,
     name: PREFERRED_CANONICAL_VISUAL_FIXTURES.complete.name,
     class: "canonical",
     notes:
-      "Name says Production but stage is Complete after R3H. Prefer for Complete screenshots only — never as Production proof.",
+      "Name says Production but stage is Complete after R3H. No measurement_records row. Prefer for Complete lifecycle screenshots only — never as Production or measurement→proposal proof.",
   },
   {
     id: "3338cd5c-6427-4546-9014-9ada70f595a1",

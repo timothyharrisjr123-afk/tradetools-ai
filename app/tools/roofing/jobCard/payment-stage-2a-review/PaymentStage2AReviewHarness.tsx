@@ -222,14 +222,8 @@ function PaymentStage2AReviewBody({
           subtitle="Job summary and status at a glance"
         >
           <JobCardOverviewSummary
-            display={DISPLAY}
-            phone="555-0100"
-            email="owner@example.com"
-            address="101 Oak Street"
-            hasAddress
-            measurementStatus="See Measurements"
-            catalogStatus="Catalog ready"
-            catalogReady
+            proposalLabel="Accepted"
+            measurementLabel="2,400 sq ft · 10% waste"
             paymentStatusLabel={workspace.overviewStatusLabel}
           />
         </JobCardSectionPanel>

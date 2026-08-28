@@ -357,6 +357,12 @@ export function formatJobCardContractorProposalStatusLabel(input: {
   customerSigned?: boolean;
   acceptedProposalIds?: Readonly<Record<string, boolean | undefined>>;
   signedProposalIds?: Readonly<Record<string, boolean | undefined>>;
+  /**
+   * When false, acceptance rows have not loaded yet. Do not treat a sent
+   * lifecycle as a settled "Sent proposal" — that lies on Approved+ jobs.
+   * Omit or default true for callers that already have acceptance facts.
+   */
+  acceptanceFactsReady?: boolean;
   /** Canonical jobs.active_proposal_id — presence truth when summaries empty. */
   activeProposalId?: string | null;
   /** Canonical jobs.latest_proposal_id — presence truth when summaries empty. */
@@ -423,9 +429,15 @@ export function formatJobCardContractorProposalStatusLabel(input: {
     };
   });
 
+  const acceptanceFactsReady = input.acceptanceFactsReady !== false;
+
   if (derivedRows.length === 1) {
     const label = derivedRows[0]!.statusLabel;
-    if (label === "Sent") return "Sent proposal";
+    if (label === "Sent") {
+      return acceptanceFactsReady
+        ? "Sent proposal"
+        : JOB_CARD_PROPOSAL_STATUS_EXISTS;
+    }
     if (label === "Draft") return "Draft proposal";
     return label;
   }
@@ -433,11 +445,15 @@ export function formatJobCardContractorProposalStatusLabel(input: {
   const latest = pickLatestVisibleProposal(visible);
   const latestDerived =
     derivedRows.find((row) => row.summary.id === latest?.id) ?? derivedRows[0]!;
+  const latestLabel =
+    !acceptanceFactsReady && latestDerived.statusLabel === "Sent"
+      ? JOB_CARD_PROPOSAL_STATUS_EXISTS
+      : latestDerived.statusLabel;
   const pkgRaw =
     (latest && input.packageLabelsByProposalId?.[latest.id])?.trim() || "";
   const pkg = pkgRaw.replace(/\s+package$/i, "").trim();
-  if (pkg) return `Latest: ${pkg} · ${latestDerived.statusLabel}`;
-  return `Latest: ${latestDerived.statusLabel}`;
+  if (pkg) return `Latest: ${pkg} · ${latestLabel}`;
+  return `Latest: ${latestLabel}`;
 }
 
 function pickLatestVisibleProposal(

@@ -342,7 +342,7 @@ describe("Job Card UI contract", () => {
     assert.match(control, /data-jobcard-disposition-action=\{action\.kind\}/);
     assert.match(header, /data-jobcard-disposition/);
     assert.match(header, /dispositionNote/);
-    assert.match(overview, /Disposition/);
+    assert.doesNotMatch(overview, /Disposition/);
   });
 });
 

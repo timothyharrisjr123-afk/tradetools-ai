@@ -3,10 +3,7 @@
 import { formatJobCompletedAt } from "@/app/lib/jobCompleteTypes";
 import { formatProductionStartedAt } from "@/app/lib/jobProductionTypes";
 import { formatScheduleWindowLabel } from "@/app/lib/jobScheduleMapper";
-import {
-  SCHEDULE_DEPOSIT_NOT_RECEIVED,
-  type JobSchedule,
-} from "@/app/lib/jobScheduleTypes";
+import type { JobSchedule } from "@/app/lib/jobScheduleTypes";
 import type { CanonicalJobStage } from "@/app/lib/jobLifecycleTypes";
 
 type JobCardScheduleSectionProps = {
@@ -54,6 +51,7 @@ export default function JobCardScheduleSection({
   onReschedule,
   onUnschedule,
 }: JobCardScheduleSectionProps) {
+  void depositNotReceived;
   const planned =
     schedule?.kind === "work" && schedule.status === "scheduled"
       ? schedule
@@ -160,7 +158,7 @@ export default function JobCardScheduleSection({
             <button
               type="button"
               onClick={onChangeSchedule}
-              className="text-sm font-semibold text-cyan-700 hover:text-cyan-900"
+              className="text-xs font-medium text-slate-500 hover:text-slate-800"
               data-jobcard-change-schedule
             >
               Change schedule
@@ -208,9 +206,6 @@ export default function JobCardScheduleSection({
         <p className="mt-2 text-xs text-amber-700" data-jobcard-schedule-refresh-error>
           Could not refresh schedule. Showing last known plan.
         </p>
-      ) : null}
-      {depositNotReceived && stage === "scheduled" ? (
-        <p className="mt-2 text-xs text-amber-700">{SCHEDULE_DEPOSIT_NOT_RECEIVED}</p>
       ) : null}
       {startError ? (
         <p className="mt-2 text-xs text-red-600" role="alert">

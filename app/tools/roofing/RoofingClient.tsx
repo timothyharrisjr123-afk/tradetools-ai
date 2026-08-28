@@ -8648,14 +8648,8 @@ Thanks,`;
               <main className="min-h-0 overflow-y-auto p-5 sm:p-6 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200/60">
               <JobCardSectionPanel tabId="overview" activeTab={jobCardTab} title="Overview" subtitle="Job summary and status at a glance">
                 <JobCardOverviewSummary
-                  display={jobCardDisplay}
-                  phone={headerPhone}
-                  email={headerEmail}
-                  address={addressLine}
-                  hasAddress={hasAddress}
-                  measurementStatus={measurementsHeaderStatus}
-                  catalogStatus={catalogReadinessLabel}
-                  catalogReady={catalogReadiness.state === "ready_for_templates"}
+                  proposalLabel={jobCardDisplay.proposalLabel}
+                  measurementLabel={measurementsHeaderStatus}
                   paymentStatusLabel={
                     jobPayments.workspace?.overviewStatusLabel ?? null
                   }

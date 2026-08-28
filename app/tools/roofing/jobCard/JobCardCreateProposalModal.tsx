@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  PREPARE_PROPOSAL_ADD_MEASUREMENT_LABEL,
   PREPARE_PROPOSAL_CANCEL_LABEL,
   PREPARE_PROPOSAL_CHANGE_LABEL,
   PREPARE_PROPOSAL_CREATE_LABEL,
@@ -74,6 +75,7 @@ export type JobCardCreateProposalModalProps = {
   creating: boolean;
   createError: string | null;
   onCreateProposal: () => void;
+  onAddMeasurement?: () => void;
 };
 
 const CANCEL_BUTTON_CLASS =
@@ -111,6 +113,7 @@ export function JobCardCreateProposalModal({
   creating,
   createError,
   onCreateProposal,
+  onAddMeasurement,
 }: JobCardCreateProposalModalProps) {
   const titleId = useId();
   const changeRefs = useRef<Partial<Record<PrepareProposalFieldId, HTMLButtonElement | null>>>(
@@ -247,6 +250,19 @@ export function JobCardCreateProposalModal({
               setContractorExpanded((current) =>
                 current === "measurement" ? null : "measurement"
               )
+            }
+            extraAction={
+              measurementField.state === "blocked" && onAddMeasurement ? (
+                <button
+                  type="button"
+                  className={CHANGE_BUTTON_CLASS}
+                  onClick={onAddMeasurement}
+                  disabled={creating}
+                  data-jobcard-prepare-add-measurement="true"
+                >
+                  {PREPARE_PROPOSAL_ADD_MEASUREMENT_LABEL}
+                </button>
+              ) : null
             }
           >
             {expandedField === "measurement" ? (
@@ -448,6 +464,7 @@ function PrepareFieldRow({
   last = false,
   changeRef,
   onToggleChange,
+  extraAction = null,
   children,
 }: {
   label: string;
@@ -457,6 +474,7 @@ function PrepareFieldRow({
   last?: boolean;
   changeRef: (node: HTMLButtonElement | null) => void;
   onToggleChange: () => void;
+  extraAction?: ReactNode;
   children?: ReactNode;
 }) {
   const blocked = field.state === "blocked";
@@ -508,6 +526,7 @@ function PrepareFieldRow({
             ) : null}
           </div>
         </div>
+        {extraAction}
         {field.showChange ? (
           <button
             ref={changeRef}

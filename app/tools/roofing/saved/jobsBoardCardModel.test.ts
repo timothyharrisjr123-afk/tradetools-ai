@@ -3,15 +3,15 @@ import assert from "node:assert/strict";
 import { buildJobsBoardCardModel } from "./jobsBoardUtils";
 import type { RoofingEstimate } from "@/app/lib/estimateStore";
 
-test("buildJobsBoardCardModel uses simple snapshot fields", () => {
+test("buildJobsBoardCardModel omits fake tasks and missing reports", () => {
   const model = buildJobsBoardCardModel(
     { id: "j1", status: "estimate", roofAreaSqFt: 0 } as unknown as RoofingEstimate,
     undefined,
     { columnKey: "estimate" }
   );
 
-  assert.equal(model.tasksLabel, "0/0");
-  assert.equal(model.reportStatus.label, "No report yet");
+  assert.equal(model.tasksLabel, "");
+  assert.equal(model.reportStatus, null);
   assert.equal(model.proposalStatus.label, "Proposal Draft");
   assert.equal(model.assigneeLabel, "Unassigned");
   assert.equal("valueLabel" in model, false);
@@ -19,7 +19,7 @@ test("buildJobsBoardCardModel uses simple snapshot fields", () => {
   assert.equal("headline" in model, false);
 });
 
-test("buildJobsBoardCardModel shows task ratio when linked_counts exist", () => {
+test("buildJobsBoardCardModel shows task ratio and measured when real", () => {
   const model = buildJobsBoardCardModel(
     {
       id: "j2",
@@ -32,5 +32,5 @@ test("buildJobsBoardCardModel shows task ratio when linked_counts exist", () => 
   );
 
   assert.equal(model.tasksLabel, "1/3");
-  assert.equal(model.reportStatus.label, "Report Complete");
+  assert.equal(model.reportStatus?.label, "Measured");
 });

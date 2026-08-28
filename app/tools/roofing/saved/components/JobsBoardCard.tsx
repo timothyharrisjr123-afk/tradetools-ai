@@ -323,16 +323,20 @@ export default function JobsBoardCard({
 
       <div className="flex flex-1 flex-col justify-center border-y border-slate-100/90 bg-slate-50/35 px-4 py-3">
         <div className="grid grid-cols-1 gap-x-5 gap-y-2.5 min-[280px]:grid-cols-2 min-[280px]:gap-y-3">
-          <IconStatusRow
-            icon={ListChecks}
-            label={`Tasks ${model.tasksLabel}`}
-            textClassName="text-slate-600"
-          />
-          <IconStatusRow
-            icon={FileText}
-            label={model.reportStatus.label}
-            textClassName={statusMetaTextClass(model.reportStatus.tone)}
-          />
+          {model.tasksLabel ? (
+            <IconStatusRow
+              icon={ListChecks}
+              label={`Tasks ${model.tasksLabel}`}
+              textClassName="text-slate-600"
+            />
+          ) : null}
+          {model.reportStatus ? (
+            <IconStatusRow
+              icon={FileText}
+              label={model.reportStatus.label}
+              textClassName={statusMetaTextClass(model.reportStatus.tone)}
+            />
+          ) : null}
           <IconStatusRow
             icon={FileSignature}
             label={model.proposalStatus.label}
