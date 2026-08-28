@@ -5,8 +5,6 @@ type ProposalPacketTopBarProps = {
   cover: ProposalCustomerPacketCoverViewModel;
 };
 
-const BRAND_TRUST_LINE = "Trusted. Local. Built to Protect.";
-
 function BrandMark({ cover }: { cover: ProposalCustomerPacketCoverViewModel }) {
   const monogram = (cover.company.logoMonogram ?? "FD").slice(0, 2).toUpperCase();
 
@@ -37,15 +35,12 @@ export default function ProposalPacketTopBar({ cover }: ProposalPacketTopBarProp
             <p className="truncate text-[15px] font-semibold tracking-[0.08em] text-white sm:text-[16px]">
               {companyName.toUpperCase()}
             </p>
-            <p className="mt-0.5 hidden text-[11px] font-medium tracking-[0.04em] text-white/55 sm:block">
+            <p className="mt-0.5 text-[11px] font-medium tracking-[0.04em] text-white/55">
               Roofing proposal
             </p>
           </div>
         ) : null}
       </div>
-      <p className="text-[11px] font-medium tracking-[0.06em] text-white/65 sm:text-right sm:text-[12px]">
-        {BRAND_TRUST_LINE}
-      </p>
     </div>
   );
 }

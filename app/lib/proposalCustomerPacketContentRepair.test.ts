@@ -9,6 +9,7 @@ import {
   LEGACY_PACKET_SCOPE_NOTES_BODY,
   LEGACY_PACKET_TERMS_BODY,
   LEGACY_PACKET_WARRANTY_BODY,
+  PRE_COHESION_C_PACKET_TERMS_BODY,
   PRE_V2E5_PACKET_OVERVIEW_BODY,
   resolveCustomerFacingPacketBodyMarkdown,
 } from "@/app/lib/proposalCustomerPacketDefaultContent";
@@ -204,6 +205,22 @@ describe("proposalCustomerPacketContentRepair", () => {
     assert.ok(plan!.sectionRepairs.some((row) => row.suffix === ".overview"));
     assert.ok(plan!.sectionRepairs.some((row) => row.suffix === ".scope_notes"));
     assert.equal(plan!.optionDescriptionRepairs.length, 0);
+  });
+
+  test("repairs FieldDive request-a-package starter terms without touching authored copy", () => {
+    const plan = buildDefaultPacketContentRepairPlan(
+      makeGraph({
+        overviewBody: DEFAULT_PACKET_OVERVIEW_BODY,
+        notesBody: DEFAULT_PACKET_SCOPE_NOTES_BODY,
+        warrantyBody: DEFAULT_PACKET_WARRANTY_BODY,
+        termsBody: PRE_COHESION_C_PACKET_TERMS_BODY,
+        optionDescription:
+          "Solid, complete roof replacement with quality materials, professional installation, cleanup, and permit handling.",
+      })
+    );
+    assert.ok(plan);
+    assert.equal(plan!.sectionRepairs.length, 1);
+    assert.equal(plan!.sectionRepairs[0]?.suffix, ".terms");
   });
 
   test("display-time legacy resolver does not rewrite already-new SoT bodies", () => {

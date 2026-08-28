@@ -14,6 +14,7 @@ import {
   LEGACY_PACKET_SCOPE_NOTES_BODY,
   LEGACY_PACKET_TERMS_BODY,
   LEGACY_PACKET_WARRANTY_BODY,
+  PRE_COHESION_C_PACKET_TERMS_BODY,
   PRE_V2E5_PACKET_OVERVIEW_BODY,
   resolveCustomerFacingPacketBodyMarkdown,
 } from "./proposalCustomerPacketDefaultContent";
@@ -47,6 +48,9 @@ describe("R3A0 default customer-facing packet content", () => {
     assert.match(DEFAULT_PACKET_TERMS_BODY, /What happens next/);
     assert.match(DEFAULT_PACKET_TERMS_BODY, /contact you about next steps/i);
     assert.match(DEFAULT_PACKET_TERMS_BODY, /does not change this proposal/i);
+    assert.match(DEFAULT_PACKET_TERMS_BODY, /Confirm the package and details/i);
+    assert.doesNotMatch(DEFAULT_PACKET_TERMS_BODY, /Request a package/i);
+    assert.doesNotMatch(DEFAULT_PACKET_TERMS_BODY, /package request/i);
     assert.doesNotMatch(DEFAULT_PACKET_TERMS_BODY, /Terms and conditions outline/i);
     assert.doesNotMatch(DEFAULT_PACKET_TERMS_BODY, /\*\*|##/);
 
@@ -99,6 +103,15 @@ describe("R3A0 default customer-facing packet content", () => {
   test("authored/custom body is not replaced", () => {
     const custom = "Custom warranty language for Anderson Roofing.";
     assert.equal(resolveCustomerFacingPacketBodyMarkdown("warranty", custom), custom);
+    const customTerms = "Please request a package in writing if you want to change scope.";
+    assert.equal(resolveCustomerFacingPacketBodyMarkdown("terms", customTerms), customTerms);
+  });
+
+  test("pre-Cohesion C request-a-package terms resolve to current default", () => {
+    assert.equal(
+      resolveCustomerFacingPacketBodyMarkdown("terms", PRE_COHESION_C_PACKET_TERMS_BODY),
+      DEFAULT_PACKET_TERMS_BODY
+    );
   });
 
   test("pre-V2E5 recommended-path overview resolves to current default", () => {

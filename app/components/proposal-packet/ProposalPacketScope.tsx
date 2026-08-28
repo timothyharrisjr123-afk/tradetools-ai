@@ -9,7 +9,6 @@ import {
 } from "@/app/lib/proposalCustomerPacketIncludedScope";
 import { scopeGroupIcon } from "./ProposalPacketIcons";
 import {
-  PROPOSAL_PACKET_DISCLOSURE,
   PROPOSAL_PACKET_SCOPE_COUNT,
   PROPOSAL_PACKET_SCOPE_ICON,
   PROPOSAL_PACKET_SCOPE_TILE,
@@ -32,9 +31,7 @@ function IncludedDetailsGroup({ group }: { group: ProposalCustomerPacketScopeGro
             className="flex items-start justify-between gap-3 text-[13px] text-[#475569]"
           >
             <span className="min-w-0 leading-snug">{line.name}</span>
-            {line.valueLabel ? (
-              <span className="shrink-0 tabular-nums text-[#0b1f33]">{line.valueLabel}</span>
-            ) : line.kind === "included" ? (
+            {line.kind === "included" || line.valueLabel === "Included" ? (
               <span className="shrink-0 text-[11px] font-medium text-emerald-700">Included</span>
             ) : null}
           </li>
@@ -91,19 +88,11 @@ export default function ProposalPacketScope({ estimate }: ProposalPacketScopePro
       ) : null}
 
       {estimate.includedDetails.length > 0 ? (
-        <details className="group mt-3">
-          <summary className={PROPOSAL_PACKET_DISCLOSURE}>
-            <span>View full scope of work</span>
-            <span className="text-[#94a3b8] transition-transform group-open:rotate-180" aria-hidden>
-              ˅
-            </span>
-          </summary>
-          <div className="mt-2.5 space-y-3.5 rounded-[14px] border border-[#e2e8f0] bg-[#f8fafc] px-3.5 py-3.5">
-            {estimate.includedDetails.map((group) => (
-              <IncludedDetailsGroup key={group.title} group={group} />
-            ))}
-          </div>
-        </details>
+        <div className="mt-3.5 space-y-3.5">
+          {estimate.includedDetails.map((group) => (
+            <IncludedDetailsGroup key={group.title} group={group} />
+          ))}
+        </div>
       ) : null}
     </div>
   );

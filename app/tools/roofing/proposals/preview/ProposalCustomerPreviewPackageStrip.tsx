@@ -1,12 +1,11 @@
 "use client";
 
-import { Check, Sparkles } from "lucide-react";
+import { Check } from "lucide-react";
 import type {
   CustomerPreviewEstimateTotalsPresentation,
   CustomerPreviewPackageHero,
 } from "@/app/lib/proposalCustomerEstimatePresenter";
 import {
-  PACKET_PACKAGE_BADGE,
   PACKET_PACKAGE_CHECK,
   PACKET_PACKAGE_DESCRIPTION,
   PACKET_PACKAGE_INCLUDE_ITEM,
@@ -57,10 +56,6 @@ export default function ProposalCustomerPreviewPackageStrip({
           <div className="min-w-0 pl-1">
             <div className="flex flex-wrap items-center gap-2.5">
               <p className={PACKET_PACKAGE_KICKER}>Selected package</p>
-              <span className={PACKET_PACKAGE_BADGE} data-preview-package-badge>
-                <Sparkles className="h-3 w-3" aria-hidden />
-                Selected
-              </span>
             </div>
             <p className={PACKET_PACKAGE_NAME}>{packageDisplayName}</p>
             {packageHero.description ? (

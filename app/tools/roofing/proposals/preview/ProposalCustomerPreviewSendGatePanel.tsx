@@ -10,7 +10,6 @@ import {
   Loader2,
   Mail,
   ShieldCheck,
-  UserRound,
 } from "lucide-react";
 import { deriveProposalSendFreezeReadiness } from "@/app/lib/proposalSendFreezeReadiness";
 import type { ProposalCustomerPreviewReadiness } from "@/app/lib/proposalCustomerPreviewViewModel";
@@ -400,7 +399,7 @@ export default function ProposalCustomerPreviewSendGatePanel({
     pricingStale,
     emailDeliveryConfigured,
   });
-  const sendBlocked = !readiness.canSend && !sendSuccess;
+  const sendBlocked = !readiness.canSend && !sendSuccess && readiness.phase !== "loading";
 
   return (
     <section
@@ -409,10 +408,10 @@ export default function ProposalCustomerPreviewSendGatePanel({
       data-preview-delivery-composer
       data-preview-send-gate-v2c2
     >
-      {readiness.phase === "loading" ? (
-        <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-sm text-slate-500">
+      {readiness.phase === "loading" && !readiness.messagePreview.subject ? (
+        <div className="flex items-center gap-2 text-sm text-slate-500">
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-          Preparing delivery details…
+          Preparing…
         </div>
       ) : null}
 
@@ -463,24 +462,17 @@ export default function ProposalCustomerPreviewSendGatePanel({
       ) : null}
 
       <div data-preview-delivery-recipient>
-        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
           Recipient
         </p>
-        <div className="flex items-center gap-3 rounded-xl border border-slate-200/80 bg-white px-3.5 py-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
-            <UserRound className="h-4 w-4" aria-hidden />
-          </span>
-          <div className="min-w-0">
-            <p className="truncate text-[14px] font-semibold text-slate-900">
-              {customerName ?? "Customer"}
-            </p>
-            <p className="mt-0.5 truncate text-[13px] text-slate-500">
-              {readiness.messagePreview.toMissing
-                ? "Recipient email needed"
-                : readiness.messagePreview.to}
-            </p>
-          </div>
-        </div>
+        <p className="truncate text-[14px] font-semibold text-slate-900">
+          {customerName ?? "Customer"}
+        </p>
+        <p className="mt-0.5 truncate text-[13px] text-slate-500">
+          {readiness.messagePreview.toMissing
+            ? "Recipient email needed"
+            : readiness.messagePreview.to}
+        </p>
       </div>
 
       <div data-preview-email-composer>

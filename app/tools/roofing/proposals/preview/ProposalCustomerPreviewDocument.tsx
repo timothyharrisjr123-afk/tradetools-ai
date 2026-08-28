@@ -14,7 +14,6 @@ import ProposalCustomerPreviewPackageComparison from "./ProposalCustomerPreviewP
 import ProposalCustomerPreviewPacket from "./ProposalCustomerPreviewPacket";
 import ProposalCustomerPreviewPacketCover from "./ProposalCustomerPreviewPacketCover";
 import ProposalCustomerPreviewPackageStrip from "./ProposalCustomerPreviewPackageStrip";
-import ProposalCustomerPreviewTrustBridge from "./ProposalCustomerPreviewTrustBridge";
 import ProposalCustomerPreviewEstimateTable from "./ProposalCustomerPreviewEstimateTable";
 import ProposalCustomerPreviewPacketSection from "./ProposalCustomerPreviewPacketSection";
 import { PACKET_FOOTER } from "./proposalCustomerPacketStyles";
@@ -136,10 +135,6 @@ export default function ProposalCustomerPreviewDocumentView({
           {publicPacketEstimate.comparison && publicPacketEstimate.comparison.options.length > 1 ? (
             <ProposalCustomerPreviewPackageComparison comparison={publicPacketEstimate.comparison} />
           ) : null}
-          <ProposalCustomerPreviewTrustBridge
-            packageLabel={estimatePresentation.packageHero.label}
-            companyName={companyName}
-          />
           <ProposalCustomerPreviewEstimateTable
             sections={[
               ...estimatePresentation.scopeSections,

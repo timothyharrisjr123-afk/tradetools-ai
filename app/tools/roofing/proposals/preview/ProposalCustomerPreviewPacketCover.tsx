@@ -108,7 +108,7 @@ export default function ProposalCustomerPreviewPacketCover({
               <div className={PACKET_INFO_CELL} data-preview-prepared-for>
                 <div className="flex items-center gap-2">
                   <Home className="h-3.5 w-3.5 text-blue-500" aria-hidden />
-                  <p className={PACKET_INFO_LABEL}>Customer</p>
+                  <p className={PACKET_INFO_LABEL}>Prepared for</p>
                 </div>
                 {customer.customerName ? (
                   <p className={PACKET_INFO_VALUE}>{customer.customerName}</p>

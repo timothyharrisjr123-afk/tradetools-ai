@@ -7,6 +7,7 @@ import {
   PROPOSAL_CUSTOMER_PACKET_CHOSEN_BADGE,
   PROPOSAL_CUSTOMER_PACKET_COMPARE_HEADING,
   PROPOSAL_CUSTOMER_PACKET_COMPARE_INTRO,
+  PROPOSAL_CUSTOMER_PACKET_CURRENT_BADGE,
   proposalCustomerPacketChooseCta,
 } from "@/app/lib/proposalCustomerPacketViewModel";
 import { IconCheck } from "./ProposalPacketIcons";
@@ -127,7 +128,9 @@ export default function ProposalPacketComparison({
                     </p>
                     {chosen ? (
                       <span className={PROPOSAL_PACKET_CHOICE_BADGE}>
-                        {PROPOSAL_CUSTOMER_PACKET_CHOSEN_BADGE}
+                        {choosable
+                          ? PROPOSAL_CUSTOMER_PACKET_CHOSEN_BADGE
+                          : PROPOSAL_CUSTOMER_PACKET_CURRENT_BADGE}
                       </span>
                     ) : null}
                   </div>
@@ -224,7 +227,9 @@ export default function ProposalPacketComparison({
                 </p>
                 {chosen ? (
                   <span className={PROPOSAL_PACKET_CHOICE_BADGE}>
-                    {PROPOSAL_CUSTOMER_PACKET_CHOSEN_BADGE}
+                    {choosable
+                      ? PROPOSAL_CUSTOMER_PACKET_CHOSEN_BADGE
+                      : PROPOSAL_CUSTOMER_PACKET_CURRENT_BADGE}
                   </span>
                 ) : null}
               </div>

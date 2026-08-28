@@ -44,14 +44,11 @@ export const PACKET_INFO_VALUE =
 
 export const PACKET_INFO_DETAIL = "mt-1 text-[13px] leading-relaxed text-slate-500";
 
-/* Selected package — premium recommendation */
+/* Selected package — document identity, not a recommendation */
 export const PACKET_PACKAGE_PANEL = "py-2";
 
 export const PACKET_PACKAGE_SURFACE =
-  "relative overflow-hidden rounded-2xl border border-blue-200/70 bg-[linear-gradient(135deg,#f4f8ff_0%,#ffffff_55%,#f6f9fe_100%)] px-6 py-6 shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_10px_28px_-18px_rgba(37,99,235,0.35)] sm:px-7 sm:py-6";
-
-export const PACKET_PACKAGE_BADGE =
-  "inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-white shadow-sm";
+  "relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white px-6 py-6 sm:px-7 sm:py-6";
 
 export const PACKET_PACKAGE_KICKER =
   "text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-600";
@@ -76,11 +73,6 @@ export const PACKET_TOTAL_LABEL =
 
 export const PACKET_TOTAL_VALUE =
   "mt-1 text-[1.5rem] font-semibold tabular-nums tracking-tight text-slate-950";
-
-/* Why this package */
-export const PACKET_TRUST_PANEL = "border-b border-slate-100 py-6";
-
-export const PACKET_TRUST_COPY = "mt-2 max-w-3xl text-[14.5px] leading-relaxed text-slate-600";
 
 /* Premium estimate — framed price sheet */
 export const PACKET_ESTIMATE_PANEL = "pb-2 pt-7";

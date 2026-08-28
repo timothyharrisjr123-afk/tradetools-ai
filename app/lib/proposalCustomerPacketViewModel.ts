@@ -216,7 +216,7 @@ export const PROPOSAL_CUSTOMER_PACKET_NEXT_STEPS_FOOTNOTE =
 export const PROPOSAL_CUSTOMER_PACKET_COMPARE_HEADING = "Compare packages";
 
 export const PROPOSAL_CUSTOMER_PACKET_COMPARE_INTRO =
-  "See what you get as protection increases."
+  "See what's included in each package.";
 
 export const PROPOSAL_CUSTOMER_PACKET_CURRENT_BADGE = "Selected";
 
@@ -227,7 +227,7 @@ export const PROPOSAL_CUSTOMER_PACKET_CURRENT_BADGE = "Selected";
 export const PROPOSAL_CUSTOMER_PACKET_CHOOSE_HEADING = "Choose your package";
 
 export const PROPOSAL_CUSTOMER_PACKET_CHOOSE_INTRO =
-  "Pick the option you want. You can change it before you pay.";
+  "Pick the package you want. You can change it before you pay.";
 
 export const PROPOSAL_CUSTOMER_PACKET_CHOSEN_BADGE = "Chosen";
 

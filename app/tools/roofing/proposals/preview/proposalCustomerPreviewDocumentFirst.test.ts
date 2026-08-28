@@ -27,7 +27,6 @@ const CUSTOMER_DOCUMENT_FILES = [
   "ProposalCustomerPreviewPacket.tsx",
   "ProposalCustomerPreviewPacketCover.tsx",
   "ProposalCustomerPreviewPackageStrip.tsx",
-  "ProposalCustomerPreviewTrustBridge.tsx",
   "ProposalCustomerPreviewEstimateTable.tsx",
   "ProposalCustomerPreviewPacketSection.tsx",
   "proposalCustomerPacketStyles.ts",
@@ -101,7 +100,7 @@ describe("Contractor-facing Proposal Preview workspace", () => {
     assert.match(cover, /data-preview-project-info/);
     assert.match(cover, /data-preview-project-scope/);
     assert.match(cover, /data-preview-project-package/);
-    assert.match(cover, />Customer</);
+    assert.match(cover, />Prepared for</);
     assert.match(cover, />Property</);
     assert.match(cover, />Project</);
     assert.match(cover, />Package</);
@@ -350,9 +349,9 @@ describe("Contractor-facing Proposal Preview workspace", () => {
     const document = readPreviewSource("ProposalCustomerPreviewDocument.tsx");
     assert.match(document, /ProposalCustomerPreviewPacketCover/);
     assert.match(document, /ProposalCustomerPreviewPackageStrip/);
-    assert.match(document, /ProposalCustomerPreviewTrustBridge/);
     assert.match(document, /ProposalCustomerPreviewEstimateTable/);
     assert.match(document, /ProposalCustomerPreviewPacketSection/);
+    assert.doesNotMatch(document, /ProposalCustomerPreviewTrustBridge/);
   });
 
   test("Preview customer document does not import Builder visual chrome", () => {

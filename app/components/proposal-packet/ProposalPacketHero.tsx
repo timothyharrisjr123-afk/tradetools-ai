@@ -7,7 +7,6 @@ import {
   PROPOSAL_PACKET_EYEBROW,
   PROPOSAL_PACKET_FIELD_LABEL,
   PROPOSAL_PACKET_HERO_GRID,
-  PROPOSAL_PACKET_HERO_LEAD,
   PROPOSAL_PACKET_HERO_LEFT,
   PROPOSAL_PACKET_HERO_TITLE,
 } from "./proposalPacketStyles";
@@ -16,9 +15,6 @@ type ProposalPacketHeroProps = {
   cover: ProposalCustomerPacketCoverViewModel;
   estimate?: ProposalCustomerPacketEstimateViewModel | null;
 };
-
-const HERO_INTRO =
-  "Thank you for the opportunity to protect your home. We've created a custom roofing solution built for lasting performance and peace of mind.";
 
 /**
  * Proposal cover — who this is for and what property it covers.
@@ -45,7 +41,6 @@ export default function ProposalPacketHero({ cover }: ProposalPacketHeroProps) {
         <div className={PROPOSAL_PACKET_HERO_LEFT}>
           <p className={PROPOSAL_PACKET_EYEBROW}>{cover.proposalLabel}</p>
           <h1 className={PROPOSAL_PACKET_HERO_TITLE}>{headline}</h1>
-          <p className={PROPOSAL_PACKET_HERO_LEAD}>{HERO_INTRO}</p>
         </div>
 
         {showContext ? (

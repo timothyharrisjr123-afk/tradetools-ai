@@ -58,6 +58,17 @@ Until then, treat this as your clear written proposal from {{company_name}}.
 
 If anything in the approved scope needs to change, we will review it with you in writing before the change is added.`;
 
+/** Pre-Cohesion C terms — treated requesting a package as the purchase path. */
+export const PRE_COHESION_C_PACKET_TERMS_BODY = `What happens next
+
+1. Review this proposal and ask any questions.
+2. Request a package or send a question when you are ready.
+3. The contractor will review your request and contact you about next steps.
+
+Sending a package request does not change this proposal or create a binding agreement.
+
+If the scope needs to change, the contractor will review it with you in writing before anything is added.`;
+
 /** Pre-V2E5 overview — FieldDive recommendation language, not customer truth. */
 export const PRE_V2E5_PACKET_OVERVIEW_BODY = `{{company_name}} prepared this roofing proposal for your home.
 
@@ -93,10 +104,10 @@ The contractor will review the final warranty details with you and answer any qu
 export const DEFAULT_PACKET_TERMS_BODY = `What happens next
 
 1. Review this proposal and ask any questions.
-2. Request a package or send a question when you are ready.
-3. The contractor will review your request and contact you about next steps.
+2. Confirm the package and details when you are ready.
+3. The contractor will contact you about next steps.
 
-Sending a package request does not change this proposal or create a binding agreement.
+Confirming a package does not change this proposal or create a binding agreement.
 
 If the scope needs to change, the contractor will review it with you in writing before anything is added.`;
 
@@ -156,6 +167,13 @@ export function resolveCustomerFacingPacketBodyMarkdown(
     normalized === normalizePacketBodyFingerprint(PRE_V2E5_PACKET_OVERVIEW_BODY)
   ) {
     return DEFAULT_PACKET_OVERVIEW_BODY;
+  }
+
+  if (
+    pageType === "terms" &&
+    normalized === normalizePacketBodyFingerprint(PRE_COHESION_C_PACKET_TERMS_BODY)
+  ) {
+    return DEFAULT_PACKET_TERMS_BODY;
   }
 
   // Older overview variant still seen in some fixtures / drafts.
