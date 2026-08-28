@@ -76,7 +76,7 @@
 
 **Last updated checkpoint:**
 
-- **Stage 2F payment live / visual lock checkpoint:** **`49cc476`** — `fix(payments): close final payment verification gaps`; docs this commit (**STAGE 2F PAYMENT LIVE / VISUAL LOCK COMPLETE**. Payment domain locked. One live Stripe test-mode progress Checkout + signed webhook settlement; sequential/failed/refund via live $100 + fixtures; accepted-version portal; Activity payment-free; Complete ≠ Paid. No migration 057. Proof `tmp/fielddive-ui-review/stage-2f/`. See **§6CT**). Exact next: **refunds as a product** (do not start until authorized).
+- **Stage 2F payment live / visual lock checkpoint:** **`f7e6a35`** — `fix(payments): refine final payment workspace states`; docs this commit (**STAGE 2F FINAL VISUAL CORRECTION COMPLETE**. Contractor refund wording + desktop Payment History readability. Payment domain locked. Prior live lock **`49cc476`** / **`3e3371d`**. No migration 057. Proof `tmp/fielddive-ui-review/stage-2f/stage-2f-final-*.png`. See **§6CT**). Exact next: **refunds as a product** (do not start until authorized).
 - **Stage 2E payment history checkpoint:** **`ded81a2`** — `feat(payments): add job payment history` (**STAGE 2E PAYMENT HISTORY COMPLETE**. Payments tab is the financial timeline. Activity has no payment events. Requested/received/failed/cancelled/refund history with canonical capture identity. No migration 057. Proof `tmp/fielddive-ui-review/stage-2e/`. See **§6CS**). Live/visual lock is **§6CT**.
 - **Stage 2D customer payment-request checkpoint:** **`e28381a`** — `feat(payments): refine customer payment experience` (**STAGE 2D CUSTOMER PAYMENT-REQUEST EXPERIENCE COMPLETE**. Canonical customer presenter on `/p/{token}`; kind-aware failed-deposit retry creates a new row; failed progress/balance have no Pay; Paid in full vs Payments complete; Due today removed; no migration 057. Proof `tmp/fielddive-ui-review/stage-2d/`. See **§6CR**). Exact next after 2D was **Stage 2E**, now **§6CS**.
 - **Stage 2C visual acceptance checkpoint:** **`f8cf063`** — `fix(payments): align flexible collect runtime surfaces` (**STAGE 2C FULL ACCEPTANCE**. Live Job Card Collect payment proven. Prior `2a-*` files were stale Stage 2A captures. Next step heading retired. Proof `tmp/fielddive-ui-review/stage-2c/`. See **§6CQ.7**).
@@ -18083,7 +18083,7 @@ Top to bottom:
 3. **Collect payment** when eligible and no current request (Stage 2C Remaining / Percentage / Fixed unchanged)
 4. **Payment history** — canonical financial chronology
 
-Quiet status (Paid in full, Remaining to collect, Payment failed) shows only when there is no current request. Historical failures do not keep a later paid-in-full job in a failed status.
+Quiet status (Paid in full, Payments complete, Remaining to collect, Payment failed) shows only when there is no current request. Historical failures do not keep a later paid-in-full job in a failed status. Collectible 0 / refunded 0 → **Paid in full**. Collectible 0 / refunded > 0 → **Payments complete** (contractor and customer). Refund does not reopen Remaining.
 
 ### §6CS.2 Payment History presenter
 
@@ -18115,7 +18115,7 @@ History stacks title / time / amount. Actions `min-h-11`. Semantic Payment histo
 
 ## §6CT — Stage 2F payment live / visual lock (COMPLETE)
 
-**Status:** COMPLETE / VERIFIED / LOCKED. Code **`49cc476`** `fix(payments): close final payment verification gaps`. Docs this commit. **NO PUSH. NO MIGRATION 057.**
+**Status:** COMPLETE / VERIFIED / LOCKED. Final visual correction **`f7e6a35`** `fix(payments): refine final payment workspace states`. Prior live lock **`49cc476`** / docs **`3e3371d`**. Docs this commit. **NO PUSH. NO MIGRATION 057.**
 
 Stage 2F is the final payment-domain verification gate over Stages 2A–2E. It does not add product features, schema, or writers.
 
@@ -18146,11 +18146,13 @@ Live $100 progress path plus:
 
 ### §6CT.3 Locked behaviors confirmed
 
-Client cannot create deposit, choose kind, or supply authoritative cents. One active `open|processing` per job. Failed deposit retry creates a **new** row; failed progress/balance do not self-retry. Processing is not cancellable. Cancelled cannot pay. Copy uses canonical latest acceptance; later drafts cannot hijack. Refund does not reopen collectible. Customer zero collectible + refund → **Payments complete**, not Paid in full. Payment never writes lifecycle. Activity has **no** payment events (`skipPaymentEnrichment` remains true). Settings Payments is Stripe infrastructure only. Proposal builder still owns customer-specific terms.
+Client cannot create deposit, choose kind, or supply authoritative cents. One active `open|processing` per job. Failed deposit retry creates a **new** row; failed progress/balance do not self-retry. Processing is not cancellable. Cancelled cannot pay. Copy uses canonical latest acceptance; later drafts cannot hijack. Refund does not reopen collectible (gross collected and Remaining unchanged). Customer **and contractor** zero collectible + no refund → **Paid in full**; zero collectible + refunded > 0 → **Payments complete**, not Paid in full. Payment never writes lifecycle. Activity has **no** payment events (`skipPaymentEnrichment` remains true). Settings Payments is Stripe infrastructure only. Proposal builder still owns customer-specific terms.
 
 ### §6CT.4 Desktop / 390 / a11y
 
 Proof: `tmp/fielddive-ui-review/stage-2f/`. True 390 (`390×844`): contractor summary / current Copy+Cancel / Collect sheet / live history / Complete balance-due; customer deposit/progress/balance sticky Pay, live received, processing. No horizontal overflow on measured 390 surfaces. Semantic Payment summary / Current payment / Collect / Payment history (`<ol>` lists). Status is text, not color-only. `min-h-11` CTAs. One accessible Pay control on public due states. Next.js “1 Issue” overlay is **dev chrome**, not product.
+
+Payment History desktop is a constrained `max-w-xl` column with title/time + amount on one grid row (`sm:grid-cols-[minmax(0,1fr)_auto]`); Summary / Current payment / Collect keep full Payments width. 390 stays stacked title / time / amount. Final visual proof: `stage-2f-final-sequential-history-desktop.png`, `stage-2f-final-refund-history-desktop.png`, `stage-2f-final-sequential-history-390.png`, `stage-2f-final-refund-history-390.png`.
 
 ### §6CT.5 Tests / TypeScript
 
@@ -18163,6 +18165,15 @@ Unused `PROPOSAL_CUSTOMER_PACKET_DUE_TODAY_LABEL`; unused `composeJobPaymentActi
 ### §6CT.7 Next
 
 **Refunds as a product** is the remaining payment P1. Do not start until authorized. Do not start Cohesion C. Do not start contractor Retry UI, email payment links, invoices, or schedules.
+
+### §6CT.8 Final visual correction (`f7e6a35`)
+
+Presenter/UI only. Collectible remains `contract − gross`. Refunded is displayed, not subtracted from Collected or Remaining.
+
+- Contractor collectible 0 / refunded 0 → **Paid in full**
+- Contractor collectible 0 / refunded > 0 → **Payments complete** (aligned with customer)
+- Payment History desktop: `max-w-xl` + title/amount grid; 390 stacked preserved
+- Focused tests **125/125**. No migration 057. **No push.**
 
 ---
 
@@ -19355,7 +19366,8 @@ Treat as **drift** if a session:
 
 ## Changelog (handoff doc only)
 
-- **2026-08-27:** **STAGE 2F PAYMENT LIVE / VISUAL LOCK COMPLETE** — code **`49cc476`** `fix(payments): close final payment verification gaps`; docs this commit (**§6CT**). Payment domain locked. One live Stripe test-mode $100 progress Checkout + signed webhook settlement (listen was not running). Sequential / failed / refund / paid-in-full via live $100 + 2D/2E fixtures. Accepted-version portal. Failed deposit retry = new row. Activity payment-free. Complete ≠ Paid. Settings Stripe-only; Proposal owns terms. Desktop + 390 proof `tmp/fielddive-ui-review/stage-2f/`. Focused **295/295**. **No migration 057.** **No push.** Exact next: **refunds as a product** (do not start until authorized).
+- **2026-08-27:** **STAGE 2F FINAL VISUAL CORRECTION COMPLETE** — code **`f7e6a35`** `fix(payments): refine final payment workspace states`; docs this commit (**§6CT.8**). Contractor refund wording is **Payments complete** when collectible 0 and refunded > 0 (**Paid in full** only when refunded 0). Payment History desktop constrained to `max-w-xl` with title/amount on one row; 390 stacked preserved. Accounting unchanged. Proof `tmp/fielddive-ui-review/stage-2f/stage-2f-final-*.png`. Focused **125/125**. **No migration 057.** **No push.** Exact next: **refunds as a product** (do not start until authorized).
+- **2026-08-27:** **STAGE 2F PAYMENT LIVE / VISUAL LOCK COMPLETE** — code **`49cc476`** `fix(payments): close final payment verification gaps`; docs **`3e3371d`** (**§6CT**). Payment domain locked. One live Stripe test-mode $100 progress Checkout + signed webhook settlement (listen was not running). Sequential / failed / refund / paid-in-full via live $100 + 2D/2E fixtures. Accepted-version portal. Failed deposit retry = new row. Activity payment-free. Complete ≠ Paid. Settings Stripe-only; Proposal owns terms. Desktop + 390 proof `tmp/fielddive-ui-review/stage-2f/`. Focused **295/295**. **No migration 057.** **No push.** Exact next: **refunds as a product** (do not start until authorized).
 - **2026-08-27:** **STAGE 2E PAYMENT HISTORY COMPLETE** — code **`ded81a2`** `feat(payments): add job payment history`; docs this commit (**§6CS**). Payments tab is the financial timeline (summary → current payment → Collect → history). Activity has no payment events. Requested/received/failed/cancelled/refund with canonical capture identity; newest-first day grouping; no processing history row. **No migration 057.** Focused 2E + related **82/82**. Proof `tmp/fielddive-ui-review/stage-2e/`. **No push.** Exact next: **Stage 2F — Payment live / visual lock**.
 - **2026-08-27:** **STAGE 2D CUSTOMER PAYMENT-REQUEST EXPERIENCE COMPLETE** — code **`e28381a`** `feat(payments): refine customer payment experience`; docs this commit (**§6CR**). Canonical public presenter; kind-aware failed-deposit retry (new row, never revive); failed progress/balance inactive; Paid in full vs refund-aware Payments complete; Due today removed; sequential same-portal requests; 390 sticky kind+amount. **No migration 057.** Focused 2D + related **182/182**. Proof `tmp/fielddive-ui-review/stage-2d/`. **No push.** Exact next: **Stage 2E — Payment activity / timeline**.
 - **2026-08-27:** **STAGE 2C FULL VISUAL / RUNTIME ACCEPTANCE** — code **`f8cf063`** `fix(payments): align flexible collect runtime surfaces`; docs this commit (**§6CQ.7**). Prior `2a-*` screenshots were stale Stage 2A captures. Live Collect payment proven. Next step heading retired. Proof `tmp/fielddive-ui-review/stage-2c/`. **No push.** Exact next: **Stage 2D — Customer payment-request experience**.
