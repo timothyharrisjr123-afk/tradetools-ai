@@ -412,7 +412,7 @@ const PROPOSAL_SELECT =
   "id, company_id, job_id, customer_id, template_id, status, current_draft_version_id, latest_sent_version_id, signed_version_id, selected_option_id, measurement_record_id, pricing_policy_id, proposal_number, title, created_by, updated_by, created_at, updated_at, draft_content_changed_at, archived_at, deleted_at";
 
 const PROPOSAL_SUMMARY_SELECT =
-  "id, job_id, status, title, proposal_number, template_id, selected_option_id, latest_sent_version_id, signed_version_id, created_at, updated_at, draft_content_changed_at";
+  "id, job_id, status, title, proposal_number, template_id, selected_option_id, latest_sent_version_id, signed_version_id, created_at, updated_at, draft_content_changed_at, measurement_record_id";
 
 const MARGIN_DB_MAX = 99.9999;
 
@@ -534,6 +534,7 @@ export function rowToProposalSummary(row: ProposalRow): ProposalRecordStatusSumm
     created_at: row.created_at ?? null,
     updated_at: row.updated_at,
     draft_content_changed_at: row.draft_content_changed_at,
+    measurement_record_id: row.measurement_record_id ?? null,
   };
 }
 

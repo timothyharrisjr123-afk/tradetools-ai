@@ -74,6 +74,8 @@ export type ProposalRecordStatusSummary = {
   updated_at: string;
   /** Dirty-revision owner. Generic recency display still uses updated_at. */
   draft_content_changed_at: string;
+  /** Bound measurement snapshot pointer. Optional on older call sites. */
+  measurement_record_id?: string | null;
 };
 
 // ---------------------------------------------------------------------------

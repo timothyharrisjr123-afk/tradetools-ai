@@ -64,60 +64,62 @@ export default function JobCardMeasurementCapture({
       }}
     >
       <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
-      <label className="block text-sm text-slate-600">
-        Roof area (sq ft)
-        <input
-          className={FIELD_CLASS}
-          inputMode="decimal"
-          value={fields.roof_area_sqft ? String(fields.roof_area_sqft) : ""}
-          onChange={(event) =>
-            setFields((prev) => ({
-              ...prev,
-              roof_area_sqft: Number(event.target.value) || 0,
-            }))
-          }
-          data-jobcard-measurement-area
-        />
-      </label>
-      <label className="block text-sm text-slate-600">
-        Waste (%)
-        <input
-          className={FIELD_CLASS}
-          inputMode="decimal"
-          value={String(fields.waste_percent)}
-          onChange={(event) =>
-            setFields((prev) => ({
-              ...prev,
-              waste_percent: Number(event.target.value),
-            }))
-          }
-          data-jobcard-measurement-waste
-        />
-      </label>
-      <label className="block text-sm text-slate-600">
-        Pitch
-        <input
-          className={FIELD_CLASS}
-          placeholder="6/12"
-          value={fields.pitch_label}
-          onChange={(event) =>
-            setFields((prev) => ({ ...prev, pitch_label: event.target.value }))
-          }
-          data-jobcard-measurement-pitch
-        />
-      </label>
-      <label className="block text-sm text-slate-600">
-        Stories
-        <input
-          className={FIELD_CLASS}
-          placeholder="1"
-          value={fields.stories}
-          onChange={(event) =>
-            setFields((prev) => ({ ...prev, stories: event.target.value }))
-          }
-          data-jobcard-measurement-stories
-        />
-      </label>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <label className="block text-sm text-slate-600">
+          Roof area (sq ft)
+          <input
+            className={FIELD_CLASS}
+            inputMode="decimal"
+            value={fields.roof_area_sqft ? String(fields.roof_area_sqft) : ""}
+            onChange={(event) =>
+              setFields((prev) => ({
+                ...prev,
+                roof_area_sqft: Number(event.target.value) || 0,
+              }))
+            }
+            data-jobcard-measurement-area
+          />
+        </label>
+        <label className="block text-sm text-slate-600">
+          Waste (%)
+          <input
+            className={FIELD_CLASS}
+            inputMode="decimal"
+            value={String(fields.waste_percent)}
+            onChange={(event) =>
+              setFields((prev) => ({
+                ...prev,
+                waste_percent: Number(event.target.value),
+              }))
+            }
+            data-jobcard-measurement-waste
+          />
+        </label>
+        <label className="block text-sm text-slate-600">
+          Pitch
+          <input
+            className={FIELD_CLASS}
+            placeholder="6/12"
+            value={fields.pitch_label}
+            onChange={(event) =>
+              setFields((prev) => ({ ...prev, pitch_label: event.target.value }))
+            }
+            data-jobcard-measurement-pitch
+          />
+        </label>
+        <label className="block text-sm text-slate-600">
+          Stories
+          <input
+            className={FIELD_CLASS}
+            placeholder="1"
+            value={fields.stories}
+            onChange={(event) =>
+              setFields((prev) => ({ ...prev, stories: event.target.value }))
+            }
+            data-jobcard-measurement-stories
+          />
+        </label>
+      </div>
       {error ? (
         <p className="text-sm text-red-700" role="alert">
           {error}

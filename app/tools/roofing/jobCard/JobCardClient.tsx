@@ -12,6 +12,10 @@ import {
   resolveJobCardOverviewForwardAction,
 } from "@/app/lib/jobCardForwardLifecycleAction";
 import { formatMeasurementQuantityLine } from "@/app/lib/jobCardMeasurementPresentation";
+import {
+  pickMeasurementProposalRefs,
+  resolveMeasurementProposalBinding,
+} from "@/app/lib/jobCardMeasurementReportModel";
 import { productSpineRouteHintsFromSearchParams } from "@/app/lib/productSpine";
 import {
   resolveCanonicalJobStage,
@@ -680,6 +684,38 @@ export default function JobCardClient({
     ]
   );
 
+  const measurementProposalRefs = useMemo(
+    () =>
+      pickMeasurementProposalRefs({
+        summaries: listedJobDraftSummaries,
+        draftProposalId: listedJobDraftProposalId,
+      }),
+    [listedJobDraftSummaries, listedJobDraftProposalId]
+  );
+
+  const measurementProposalBinding = useMemo(
+    () =>
+      resolveMeasurementProposalBinding({
+        currentMeasurementId: prepare.selectedId,
+        currentMeasurementUpdatedAt: prepare.selected?.updated_at ?? null,
+        draft: measurementProposalRefs.draft,
+        sent: measurementProposalRefs.sent,
+        reviewHref:
+          currentJobId && measurementProposalRefs.draft?.proposalId
+            ? buildProposalBuilderHref(
+                currentJobId,
+                measurementProposalRefs.draft.proposalId
+              )
+            : null,
+      }),
+    [
+      prepare.selectedId,
+      prepare.selected?.updated_at,
+      measurementProposalRefs,
+      currentJobId,
+    ]
+  );
+
   const display: JobCardDisplayModel = {
     customerName: identity.displayName,
     address: identity.addressLine,
@@ -1127,13 +1163,18 @@ export default function JobCardClient({
                       prepare.captureOpen && prepare.captureOrigin === "tab"
                     }
                     captureInitial={prepare.captureInitial}
+                    captureTitle={prepare.captureTitle}
                     saving={prepare.saving}
                     saveError={prepare.saveError}
                     selectBusy={prepare.selectBusy}
-                    onAddMeasurement={() => prepare.openCapture("tab")}
+                    binding={measurementProposalBinding}
+                    draftProposal={measurementProposalRefs.draft}
+                    onAddMeasurement={() => prepare.openCapture("tab", "add")}
+                    onEditMeasurement={() => prepare.openCapture("tab", "edit")}
                     onCancelCapture={prepare.closeCapture}
                     onSaveMeasurement={prepare.saveMeasurement}
-                    onSelectMeasurement={prepare.selectMeasurement}
+                    onMakeCurrent={prepare.selectMeasurement}
+                    onReviewProposal={(href) => router.push(href)}
                   />
                 </JobCardSectionPanel>
 
@@ -1203,7 +1244,7 @@ export default function JobCardClient({
           creating={prepare.creating}
           createError={prepare.createError}
           onCreateProposal={prepare.createProposal}
-          onAddMeasurement={() => prepare.openCapture("prepare")}
+          onAddMeasurement={() => prepare.openCapture("prepare", "add")}
         />
       ) : null}
       {prepare.captureOpen && prepare.captureOrigin === "prepare" ? (

@@ -24,7 +24,16 @@ export function formatMeasurementCapturedOn(
   if (!raw) return null;
   const parsed = Date.parse(raw);
   if (!Number.isFinite(parsed)) return null;
-  return new Date(parsed).toLocaleDateString();
+  try {
+    // Same contractor-readable pattern as FieldDive payment/workspace dates (Aug 28, 2026).
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(new Date(parsed));
+  } catch {
+    return null;
+  }
 }
 
 export function formatMeasurementDisplayName(

@@ -13,6 +13,11 @@ import {
   formatMeasurementDisplayName,
   resolveCanonicalJobMeasurement,
 } from "@/app/lib/jobCardMeasurementPresentation";
+import {
+  canMakeMeasurementCurrent,
+  resolveManualMeasurementEditMode,
+  resolveManualMeasurementSaveMode,
+} from "@/app/lib/jobCardMeasurementReportModel";
 import { updateJob } from "@/app/lib/jobStore";
 import type { JobRecord } from "@/app/lib/jobTypes";
 import { deriveEstimateReadiness, formatSourceTypeLabel, hasRoofSize } from "@/app/lib/measurementReadiness";
@@ -56,6 +61,7 @@ import {
 import { findStarterProposalTemplate } from "@/app/tools/roofing/templates/templatesSetupUtils";
 
 type CaptureOrigin = "tab" | "prepare" | null;
+type CaptureKind = "add" | "edit" | null;
 
 type UseJobCardPrepareProposalInput = {
   companyId?: string | null;
@@ -98,6 +104,7 @@ export function useJobCardPrepareProposal({
   >(null);
   const [captureOpen, setCaptureOpen] = useState(false);
   const [captureOrigin, setCaptureOrigin] = useState<CaptureOrigin>(null);
+  const [captureKind, setCaptureKind] = useState<CaptureKind>(null);
   const [editingMeasurementId, setEditingMeasurementId] = useState<string | null>(
     null
   );
@@ -216,14 +223,17 @@ export function useJobCardPrepareProposal({
   }, [prepareRequested, openModal, onPrepareConsumed]);
 
   const openCapture = useCallback(
-    (origin: Exclude<CaptureOrigin, null>) => {
+    (origin: Exclude<CaptureOrigin, null>, kind: Exclude<CaptureKind, null> = "add") => {
       const current = selected;
-      const editExisting =
-        current != null &&
-        current.source_type === "manual" &&
-        !deriveEstimateReadiness(current).ready;
+      if (kind === "edit") {
+        const mode = resolveManualMeasurementEditMode(current);
+        if (mode === "none") return;
+        setEditingMeasurementId(mode === "inplace" ? current?.id ?? null : null);
+      } else {
+        setEditingMeasurementId(null);
+      }
+      setCaptureKind(kind);
       setCaptureOrigin(origin);
-      setEditingMeasurementId(editExisting ? current.id : null);
       setSaveError(null);
       setCaptureOpen(true);
     },
@@ -234,6 +244,7 @@ export function useJobCardPrepareProposal({
     if (saving) return;
     setCaptureOpen(false);
     setCaptureOrigin(null);
+    setCaptureKind(null);
     setEditingMeasurementId(null);
     setSaveError(null);
   }, [saving]);
@@ -264,7 +275,11 @@ export function useJobCardPrepareProposal({
           fields,
         });
         let record: MeasurementRecord | null = null;
-        if (editingMeasurementId) {
+        const saveMode = resolveManualMeasurementSaveMode({
+          editingMeasurementId,
+          current: selected,
+        });
+        if (saveMode === "update-incomplete" && editingMeasurementId) {
           const { is_selected: _ignored, ...patch } = draft;
           record = await updateMeasurementRecord(editingMeasurementId, patch);
         } else {
@@ -279,6 +294,7 @@ export function useJobCardPrepareProposal({
         setCaptureOpen(false);
         setEditingMeasurementId(null);
         setCaptureOrigin(null);
+        setCaptureKind(null);
       } catch (err) {
         setSaveError(
           err instanceof Error ? err.message : "Could not save measurement. Try again."
@@ -288,13 +304,14 @@ export function useJobCardPrepareProposal({
         setSaving(false);
       }
     },
-    [cid, jid, editingMeasurementId, persistSelected, reloadMeasurements]
+    [cid, jid, editingMeasurementId, selected, persistSelected, reloadMeasurements]
   );
 
   const selectMeasurement = useCallback(
     async (measurementId: string) => {
       const next = records.find((row) => row.id === measurementId);
       if (!next || selectBusy) return;
+      if (!canMakeMeasurementCurrent(next, selected?.id ?? null)) return;
       setSelectBusy(true);
       try {
         await persistSelected(next);
@@ -305,7 +322,7 @@ export function useJobCardPrepareProposal({
         setSelectBusy(false);
       }
     },
-    [persistSelected, records, selectBusy]
+    [persistSelected, records, selectBusy, selected?.id]
   );
 
   const eligibleChoices: CreateProposalMeasurementChoice[] = useMemo(
@@ -496,7 +513,7 @@ export function useJobCardPrepareProposal({
   ]);
 
   const captureInitial: Partial<JobCardManualMeasurementFields> | null =
-    editingMeasurementId && selected?.id === editingMeasurementId
+    captureOpen && captureKind === "edit" && selected
       ? {
           roof_area_sqft: selected.roof_area_sqft ?? 0,
           waste_percent: selected.waste_percent ?? 10,
@@ -504,6 +521,9 @@ export function useJobCardPrepareProposal({
           stories: selected.stories ?? "",
         }
       : null;
+
+  const captureTitle =
+    captureKind === "edit" ? "Edit measurement" : "Add measurement";
 
   return {
     records,
@@ -534,7 +554,9 @@ export function useJobCardPrepareProposal({
     createProposal,
     captureOpen,
     captureOrigin,
+    captureKind,
     captureInitial,
+    captureTitle,
     openCapture,
     closeCapture,
     saveMeasurement,
