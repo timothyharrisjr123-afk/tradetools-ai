@@ -85,7 +85,7 @@ describe("Company Settings summary-first model", () => {
         defaultDepositPercentBps: 3000,
         defaultDepositFixedCents: null,
       }),
-      "Stripe connected · 30% default deposit"
+      "Stripe connected"
     );
     assert.equal(summarizePayments(null), "Not set up");
 
@@ -162,7 +162,7 @@ describe("Company Settings save model", () => {
   test("closing a dirty editor prompts before discarding", () => {
     assert.match(FOCUSED_EDITOR, /FOCUSED_EDITOR_DIRTY_PROMPT/);
     assert.match(FOCUSED_EDITOR, /if \(dirty && !window\.confirm/);
-    for (const editor of EDITORS) assert.match(editor, /dirty=\{touched\}/);
+    for (const editor of EDITORS) assert.match(editor, /dirty=\{(?:touched|false)\}/);
   });
 
   test("editors mount fresh so drafts always seed from saved truth", () => {
@@ -366,11 +366,9 @@ describe("Pricing visual normalization", () => {
 
   test("payments copy is integrated and provider-neutral", () => {
     assert.match(PAYMENTS_EDITOR, /Customers pay securely through Stripe Checkout/);
-    assert.match(
-      PAYMENTS_EDITOR,
-      /Used as the starting payment terms for new proposals/
-    );
+    assert.doesNotMatch(PAYMENTS_EDITOR, /Used as the starting payment terms for new proposals/);
     assert.doesNotMatch(PAYMENTS_EDITOR, /Prefills payment terms on new proposals/);
+    assert.doesNotMatch(PAYMENTS_EDITOR, /Default deposit/);
   });
 
   test("focused editor close control is restrained", () => {

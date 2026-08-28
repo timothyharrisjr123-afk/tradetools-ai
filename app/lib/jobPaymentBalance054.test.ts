@@ -61,6 +61,7 @@ export const AFTER_048_MIGRATIONS = [
   "20260827_053_canonical_stripe_settlement_and_contract_total.sql",
   "20260827_054_job_payment_balance_request_lifecycle.sql",
   "20260827_055_payment_domain_invariants.sql",
+  "20260827_056_flexible_collect_payment.sql",
 ] as const;
 
 const ACCOUNT = {
@@ -167,7 +168,7 @@ describe("054 — balance request contract", () => {
     const persist = read("app/lib/jobPaymentPersistence.ts");
     const collectFn = persist.slice(
       persist.indexOf("collectJobRemainingBalanceViaRpc"),
-      persist.indexOf("export async function cancelJobPaymentRequestViaRpc")
+      persist.indexOf("export async function collectJobPaymentViaRpc")
     );
     assert.doesNotMatch(collectFn, /amountCents|amount_cents/);
   });
@@ -379,8 +380,8 @@ describe("2B presenter CTA states", () => {
     assert.doesNotMatch(board, /Collect remaining balance/);
     assert.doesNotMatch(board, /canCollectRemainingBalance/);
     const ui = read("app/tools/roofing/jobCard/JobCardPaymentsWorkspace.tsx");
-    assert.match(ui, /JOB_CARD_PAYMENTS_COLLECT_BALANCE_CTA/);
-    assert.match(ui, /canCollectRemainingBalance/);
+    assert.match(ui, /JOB_CARD_PAYMENTS_COLLECT_CTA/);
+    assert.match(ui, /canCollectPayment/);
     assert.doesNotMatch(ui, /Send payment link/);
   });
 });

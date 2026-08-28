@@ -109,6 +109,7 @@ describe("proposal packet customer CTA targets — premium purchase flow", () =>
     const acceptIdx = postBody.indexOf("recordProposalAcceptance");
     const depositIdx = postBody.indexOf("openCanonicalDepositFromAcceptedProposal");
     const resolveIdx = postBody.indexOf("resolvePublicJobPaymentCheckoutViaRpc");
-    assert.ok(acceptIdx >= 0 && depositIdx > acceptIdx && resolveIdx > depositIdx);
+    assert.ok(acceptIdx >= 0 && resolveIdx > acceptIdx && depositIdx > resolveIdx);
+    assert.match(postBody, /not_found/);
   });
 });

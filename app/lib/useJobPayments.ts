@@ -3,32 +3,30 @@
 import { useCallback, useEffect, useState } from "react";
 import type { JobCardPaymentViewModel } from "@/app/lib/jobPaymentReadModel";
 import type { JobPaymentWorkspaceView } from "@/app/lib/jobPaymentWorkspace";
+import type { CollectAmountMode } from "@/app/lib/jobPaymentTypes";
 import { isUuidLike } from "@/app/lib/uuid";
-import { prefillDepositCents } from "@/app/lib/jobPaymentMoney";
-import type { CompanyPaymentDepositMode, JobPaymentKind } from "@/app/lib/jobPaymentTypes";
 
 export type JobPaymentsState = {
   view: JobCardPaymentViewModel | null;
   workspace: JobPaymentWorkspaceView | null;
-  prefillDepositCents: number | null;
   reload: () => Promise<void>;
-  requestPayment: (
-    kind: JobPaymentKind,
-    amountCents: number
-  ) => Promise<{ ok: boolean; code?: string }>;
-  collectRemainingBalance: () => Promise<{
-    ok: boolean;
-    code?: string;
-    idempotentReplay?: boolean;
-  }>;
+  collectPayment: (input: {
+    amountMode: CollectAmountMode;
+    percentageBps?: number;
+    fixedAmount?: string;
+  }) => Promise<{ ok: boolean; code?: string }>;
+  cancelCurrentRequest: () => Promise<{ ok: boolean; code?: string }>;
+  copyPaymentLink: () => Promise<{ ok: boolean; url?: string; code?: string }>;
   collectBusy: boolean;
   collectError: string | null;
+  cancelBusy: boolean;
+  copyBusy: boolean;
+  copyError: string | null;
 };
 
 async function fetchJobPayments(jobId: string): Promise<{
   view: JobCardPaymentViewModel;
   workspace: JobPaymentWorkspaceView | null;
-  prefill: number | null;
 } | null> {
   const paymentRes = await fetch(`/api/jobs/${jobId}/payment-requests`);
   const payment = (await paymentRes.json()) as {
@@ -37,52 +35,20 @@ async function fetchJobPayments(jobId: string): Promise<{
     workspace?: JobPaymentWorkspaceView;
   };
   if (!paymentRes.ok || !payment.view) return null;
-
-  let defaultDepositMode: CompanyPaymentDepositMode = "none";
-  let percentBps: number | null = null;
-  let fixedCents: number | null = null;
-  try {
-    const settingsRes = await fetch("/api/company/payments/status", {
-      signal: AbortSignal.timeout(4000),
-    });
-    const settings = (await settingsRes.json()) as {
-      ok?: boolean;
-      settings?: {
-        defaultDepositMode?: CompanyPaymentDepositMode;
-        defaultDepositPercentBps?: number | null;
-        defaultDepositFixedCents?: number | null;
-      };
-    };
-    defaultDepositMode = settings.settings?.defaultDepositMode ?? "none";
-    percentBps = settings.settings?.defaultDepositPercentBps ?? null;
-    fixedCents = settings.settings?.defaultDepositFixedCents ?? null;
-  } catch {
-    // Prefill is optional. Job Card payment truth must not wait on Stripe refresh.
-  }
-
   return {
     view: payment.view,
     workspace: payment.workspace ?? null,
-    prefill: prefillDepositCents({
-      mode: defaultDepositMode,
-      percentBps,
-      fixedCents,
-      acceptedTotalCents:
-        payment.workspace?.contractTotalCents ??
-        payment.view.acceptedTotalCents ??
-        0,
-      remainingCents:
-        payment.workspace?.collectibleRemainingCents ?? payment.view.remainingCents,
-    }),
   };
 }
 
 export function useJobPayments(jobId: string | null | undefined): JobPaymentsState {
   const [view, setView] = useState<JobCardPaymentViewModel | null>(null);
   const [workspace, setWorkspace] = useState<JobPaymentWorkspaceView | null>(null);
-  const [prefill, setPrefill] = useState<number | null>(null);
   const [collectBusy, setCollectBusy] = useState(false);
   const [collectError, setCollectError] = useState<string | null>(null);
+  const [cancelBusy, setCancelBusy] = useState(false);
+  const [copyBusy, setCopyBusy] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
   const id = (jobId ?? "").trim();
 
   const apply = useCallback(
@@ -90,18 +56,15 @@ export function useJobPayments(jobId: string | null | undefined): JobPaymentsSta
       result: {
         view: JobCardPaymentViewModel;
         workspace: JobPaymentWorkspaceView | null;
-        prefill: number | null;
       } | null
     ) => {
       if (!result) {
         setView(null);
         setWorkspace(null);
-        setPrefill(null);
         return;
       }
       setView(result.view);
       setWorkspace(result.workspace);
-      setPrefill(result.prefill);
     },
     []
   );
@@ -126,66 +89,111 @@ export function useJobPayments(jobId: string | null | undefined): JobPaymentsSta
     };
   }, [apply, id]);
 
-  const requestPayment = useCallback(
-    async (kind: JobPaymentKind, amountCents: number) => {
+  const collectPayment = useCallback(
+    async (input: {
+      amountMode: CollectAmountMode;
+      percentageBps?: number;
+      fixedAmount?: string;
+    }) => {
       if (!isUuidLike(id)) return { ok: false, code: "invalid_payload" };
-      const response = await fetch("/api/jobs/payment-requests", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobId: id, kind, amountCents }),
-      });
-      const payload = (await response.json()) as { ok?: boolean; code?: string };
-      if (payload.ok) apply(await fetchJobPayments(id));
-      return { ok: payload.ok === true, code: payload.code };
+      setCollectBusy(true);
+      setCollectError(null);
+      try {
+        const body: Record<string, unknown> = { amountMode: input.amountMode };
+        if (input.amountMode === "percentage") body.percentageBps = input.percentageBps;
+        if (input.amountMode === "fixed") body.fixedAmount = input.fixedAmount;
+        const response = await fetch(`/api/jobs/${id}/payment-requests/collect`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const payload = (await response.json()) as { ok?: boolean; code?: string };
+        if (payload.ok) {
+          apply(await fetchJobPayments(id));
+          return { ok: true };
+        }
+        const code = payload.code ?? "invalid_payload";
+        setCollectError(collectErrorCopy(code));
+        apply(await fetchJobPayments(id));
+        return { ok: false, code };
+      } catch {
+        setCollectError("Could not create the payment request.");
+        return { ok: false, code: "internal_error" };
+      } finally {
+        setCollectBusy(false);
+      }
     },
     [apply, id]
   );
 
-  const collectRemainingBalance = useCallback(async () => {
-    if (!isUuidLike(id)) return { ok: false, code: "invalid_payload" };
-    setCollectBusy(true);
-    setCollectError(null);
+  const cancelCurrentRequest = useCallback(async () => {
+    const requestId = workspace?.currentRequest?.id;
+    if (!isUuidLike(id) || !requestId) return { ok: false, code: "invalid_payload" };
+    setCancelBusy(true);
     try {
-      const response = await fetch(`/api/jobs/${id}/payment-requests/balance`, {
+      const response = await fetch(`/api/jobs/payment-requests/${requestId}/cancel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const payload = (await response.json()) as { ok?: boolean; code?: string };
+      apply(await fetchJobPayments(id));
+      if (payload.ok) return { ok: true };
+      return { ok: false, code: payload.code ?? "invalid_payload" };
+    } catch {
+      return { ok: false, code: "internal_error" };
+    } finally {
+      setCancelBusy(false);
+    }
+  }, [apply, id, workspace?.currentRequest?.id]);
+
+  const copyPaymentLink = useCallback(async () => {
+    if (!isUuidLike(id)) return { ok: false, code: "invalid_payload" };
+    setCopyBusy(true);
+    setCopyError(null);
+    try {
+      const response = await fetch(`/api/jobs/${id}/payment-link`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
       const payload = (await response.json()) as {
         ok?: boolean;
+        publicUrl?: string;
         code?: string;
-        idempotentReplay?: boolean;
       };
-      if (payload.ok) {
-        apply(await fetchJobPayments(id));
-        return { ok: true, idempotentReplay: payload.idempotentReplay === true };
+      if (!payload.ok || !payload.publicUrl) {
+        setCopyError("Could not copy the payment link.");
+        return { ok: false, code: payload.code ?? "invalid_payload" };
       }
-      const code = payload.code ?? "invalid_payload";
-      setCollectError(collectBalanceErrorCopy(code));
-      return { ok: false, code };
+      await navigator.clipboard.writeText(payload.publicUrl);
+      return { ok: true, url: payload.publicUrl };
     } catch {
-      setCollectError("Could not collect the remaining balance.");
+      setCopyError("Could not copy the payment link.");
       return { ok: false, code: "internal_error" };
     } finally {
-      setCollectBusy(false);
+      setCopyBusy(false);
     }
-  }, [apply, id]);
+  }, [id]);
 
   return {
     view,
     workspace,
-    prefillDepositCents: prefill,
     reload,
-    requestPayment,
-    collectRemainingBalance,
+    collectPayment,
+    cancelCurrentRequest,
+    copyPaymentLink,
     collectBusy,
     collectError,
+    cancelBusy,
+    copyBusy,
+    copyError,
   };
 }
 
-function collectBalanceErrorCopy(code: string): string {
-  if (code === "not_complete") {
-    return "Balance can be collected after the job is complete.";
+function collectErrorCopy(code: string): string {
+  if (code === "amount_exceeds_collectible") {
+    return "You have less remaining than that amount.";
   }
   if (code === "nothing_due") {
     return "Nothing remaining to collect.";
@@ -199,5 +207,8 @@ function collectBalanceErrorCopy(code: string): string {
   if (code === "conflicting_request") {
     return "A payment request is already in progress.";
   }
-  return "Could not collect the remaining balance.";
+  if (code === "invalid_amount" || code === "invalid_percentage") {
+    return "Enter a valid amount.";
+  }
+  return "Could not create the payment request.";
 }

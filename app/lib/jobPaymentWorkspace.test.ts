@@ -270,8 +270,8 @@ describe("payment-state presenter", () => {
       transactions: [],
     });
     assert.equal(workspace.state, "balance_not_yet_due");
-    assert.equal(workspace.statusLabel, "Balance due on completion");
-    assert.equal(workspace.overviewStatusLabel, "Balance due on completion");
+    assert.equal(workspace.statusLabel, "Remaining to collect");
+    assert.equal(workspace.overviewStatusLabel, "Remaining to collect");
     assert.equal(workspace.collectibleRemainingCents, 1500000);
     assert.doesNotMatch(workspace.overviewStatusLabel ?? "", /\$/);
   });
@@ -341,7 +341,7 @@ describe("payment-state presenter", () => {
     assert.equal(workspace.state, "deposit_received");
     assert.equal(workspace.statusLabel, "Deposit received");
     assert.equal(workspace.overviewStatusLabel, "Deposit received");
-    assert.equal(workspace.nextStep?.label, "Balance due on completion");
+    assert.equal(workspace.nextStep, null);
     assert.equal(workspace.depositNotReceived, false);
   });
 
@@ -545,7 +545,7 @@ describe("Payments tab routing", () => {
 
   test("Next step section is omitted when the presenter has no guidance", () => {
     const ui = read("app/tools/roofing/jobCard/JobCardPaymentsWorkspace.tsx");
-    assert.match(ui, /workspace\.nextStep \?/);
+    assert.match(ui, /workspace\.nextStep && !current/);
     assert.match(ui, /data-jobcard-payments-next/);
   });
 

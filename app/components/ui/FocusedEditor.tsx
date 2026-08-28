@@ -10,13 +10,13 @@ import { X } from "lucide-react";
  */
 
 export const FOCUSED_EDITOR_SAVE =
-  "inline-flex min-h-[40px] items-center justify-center rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 sm:min-h-[44px]";
+  "inline-flex min-h-[44px] items-center justify-center rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2";
 
 export const FOCUSED_EDITOR_SAVE_SUBDUED =
-  "inline-flex min-h-[40px] items-center justify-center rounded-lg bg-slate-200 px-4 text-sm font-semibold text-slate-500 transition disabled:cursor-not-allowed sm:min-h-[44px]";
+  "inline-flex min-h-[44px] items-center justify-center rounded-lg bg-slate-200 px-4 text-sm font-semibold text-slate-500 transition disabled:cursor-not-allowed";
 
 export const FOCUSED_EDITOR_CANCEL =
-  "inline-flex min-h-[40px] items-center justify-center rounded-lg px-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 sm:min-h-[44px]";
+  "inline-flex min-h-[44px] items-center justify-center rounded-lg px-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2";
 
 /** Quiet close: 44px invisible hit, small grey icon, ring hugs the icon on keyboard focus only. */
 export const FOCUSED_EDITOR_CLOSE =
@@ -42,6 +42,7 @@ type FocusedEditorProps = {
   saving?: boolean;
   saveDisabled?: boolean;
   saveLabel?: string;
+  savingLabel?: string;
   message?: string | null;
   error?: string | null;
   onClose: () => void;
@@ -57,6 +58,7 @@ export default function FocusedEditor({
   saving = false,
   saveDisabled = false,
   saveLabel = "Save",
+  savingLabel = "Saving…",
   message = null,
   error = null,
   onClose,
@@ -196,7 +198,7 @@ export default function FocusedEditor({
               disabled={saveLooksDisabled}
               data-focused-editor-save
             >
-              {saving ? "Saving…" : saveLabel}
+              {saving ? savingLabel : saveLabel}
             </button>
           </div>
         </div>

@@ -1,22 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import FocusedEditor, {
   FOCUSED_EDITOR_CANCEL,
-  FOCUSED_EDITOR_HINT,
-  FOCUSED_EDITOR_INPUT,
-  FOCUSED_EDITOR_LABEL,
 } from "@/app/components/ui/FocusedEditor";
-import { formatContractorMoneyFromCents } from "@/app/lib/companySettingsVisualFixture";
-import { parseUsdInputToCents } from "@/app/lib/jobPaymentMoney";
-import type { CompanyPaymentDepositMode } from "@/app/lib/jobPaymentTypes";
 import type { CompanyPaymentsStatus } from "@/app/tools/settings/companySettingsData";
 
 export const PAYMENTS_CONNECTION_COPY =
   "Customers pay securely through Stripe Checkout. Available payment methods are shown by Stripe at checkout.";
-
-export const PAYMENTS_DEPOSIT_COPY =
-  "Used as the starting payment terms for new proposals. Each proposal can be changed before it is sent.";
 
 export function stripeConnectionLabel(status: CompanyPaymentsStatus | null): string {
   if (!status?.connected) return "Not connected";
@@ -25,49 +15,21 @@ export function stripeConnectionLabel(status: CompanyPaymentsStatus | null): str
   return "Setup in progress";
 }
 
-/** Mounted only while open, so the draft seeds from saved truth on open. */
 type CompanySettingsPaymentsEditorProps = {
   status: CompanyPaymentsStatus | null;
-  saving: boolean;
   error: string | null;
   onClose: () => void;
-  onSave: (input: {
-    defaultDepositMode: CompanyPaymentDepositMode;
-    defaultDepositPercentBps: number | null;
-    defaultDepositFixedCents: number | null;
-  }) => void;
   onConnect: () => void;
   connecting: boolean;
 };
 
 export default function CompanySettingsPaymentsEditor({
   status,
-  saving,
   error,
   onClose,
-  onSave,
   onConnect,
   connecting,
 }: CompanySettingsPaymentsEditorProps) {
-  const [mode, setMode] = useState<CompanyPaymentDepositMode>(
-    status?.defaultDepositMode ?? "none"
-  );
-  const [percent, setPercent] = useState(() =>
-    status?.defaultDepositPercentBps
-      ? String(status.defaultDepositPercentBps / 100)
-      : "20"
-  );
-  const [fixed, setFixed] = useState(() =>
-    status?.defaultDepositFixedCents ? String(status.defaultDepositFixedCents / 100) : "500"
-  );
-  const [touched, setTouched] = useState(false);
-
-  const fixedCents = parseUsdInputToCents(fixed);
-  const percentValid = /^\d+(\.\d{1,2})?$/.test(percent.trim()) && Number(percent) > 0;
-  const saveDisabled =
-    (mode === "percent" && !percentValid) ||
-    (mode === "fixed" && (fixedCents == null || fixedCents < 100));
-
   const ready = status?.chargesEnabled === true;
   const connection = stripeConnectionLabel(status);
   const connectLabel = connecting
@@ -80,21 +42,14 @@ export default function CompanySettingsPaymentsEditor({
     <FocusedEditor
       open
       title="Payments"
-      description="How you collect deposits and balances from customers."
-      dirty={touched}
-      saving={saving}
-      saveDisabled={saveDisabled}
-      saveLabel="Save"
+      description="How customers pay you."
+      dirty={false}
+      saving={false}
+      saveDisabled
+      saveLabel="Done"
       error={error}
       onClose={onClose}
-      onSave={() =>
-        onSave({
-          defaultDepositMode: mode,
-          defaultDepositPercentBps:
-            mode === "percent" ? Math.round(Number(percent) * 100) : null,
-          defaultDepositFixedCents: mode === "fixed" ? fixedCents : null,
-        })
-      }
+      onSave={onClose}
     >
       <div data-company-settings-editor="payments" className="space-y-1">
         <div className="flex items-baseline justify-between gap-3">
@@ -118,73 +73,6 @@ export default function CompanySettingsPaymentsEditor({
           </button>
         )}
       </div>
-
-      <div className="border-t border-slate-100 pt-4">
-        <label className={FOCUSED_EDITOR_LABEL}>
-          Default deposit
-          <select
-            className={FOCUSED_EDITOR_INPUT}
-            value={mode}
-            onChange={(event) => {
-              setMode(event.target.value as CompanyPaymentDepositMode);
-              setTouched(true);
-            }}
-          >
-            <option value="none">No deposit</option>
-            <option value="percent">Percentage of the total</option>
-            <option value="fixed">Fixed amount</option>
-          </select>
-        </label>
-        <p className={FOCUSED_EDITOR_HINT}>{PAYMENTS_DEPOSIT_COPY}</p>
-      </div>
-
-      {mode === "percent" ? (
-        <div>
-          <label className={FOCUSED_EDITOR_LABEL}>
-            Percent
-            <input
-              className={FOCUSED_EDITOR_INPUT}
-              value={percent}
-              inputMode="decimal"
-              onChange={(event) => {
-                setPercent(event.target.value);
-                setTouched(true);
-              }}
-            />
-          </label>
-          <p className={percentValid ? FOCUSED_EDITOR_HINT : "mt-1 text-xs text-rose-600"}>
-            {percentValid ? "Example: 30 for a 30% deposit." : "Enter a percent above 0."}
-          </p>
-        </div>
-      ) : null}
-
-      {mode === "fixed" ? (
-        <div>
-          <label className={FOCUSED_EDITOR_LABEL}>
-            Amount
-            <input
-              className={FOCUSED_EDITOR_INPUT}
-              value={fixed}
-              inputMode="decimal"
-              onChange={(event) => {
-                setFixed(event.target.value);
-                setTouched(true);
-              }}
-            />
-          </label>
-          <p
-            className={
-              fixedCents != null && fixedCents >= 100
-                ? FOCUSED_EDITOR_HINT
-                : "mt-1 text-xs text-rose-600"
-            }
-          >
-            {fixedCents != null && fixedCents >= 100
-              ? formatContractorMoneyFromCents(fixedCents)
-              : "Enter dollars, minimum $1.00."}
-          </p>
-        </div>
-      ) : null}
     </FocusedEditor>
   );
 }

@@ -246,8 +246,8 @@ function PaymentStage2BReviewBody({
         >
           <JobCardPaymentsWorkspace
             workspace={workspace}
-            onCollectRemainingBalance={
-              workspace.canCollectRemainingBalance ? () => undefined : undefined
+            onCollectPayment={
+              workspace.canCollectPayment ? async () => ({ ok: true }) : undefined
             }
           />
         </JobCardSectionPanel>

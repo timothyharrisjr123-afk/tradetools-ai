@@ -7,6 +7,7 @@ import { isUuidLike } from "@/app/lib/uuid";
 import {
   BIND_JOB_PAYMENT_CHECKOUT_SESSION_RPC_V1,
   CANCEL_JOB_PAYMENT_REQUEST_RPC_V1,
+  COLLECT_JOB_PAYMENT_RPC_V1,
   CREATE_JOB_PAYMENT_REQUEST_RPC_V1,
   ENSURE_COMPANY_PAYMENT_SETTINGS_RPC_V1,
   RECORD_JOB_PAYMENT_PROVIDER_EVENT_RPC_V1,
@@ -14,6 +15,7 @@ import {
   SET_JOB_PAYMENT_SETTLED_METHOD_RPC_V1,
   UPSERT_COMPANY_PAYMENT_ACCOUNT_FROM_PROVIDER_RPC_V1,
   UPSERT_COMPANY_PAYMENT_SETTINGS_RPC_V1,
+  type CollectAmountMode,
   type CompanyPaymentDepositMode,
   type JobPaymentKind,
 } from "@/app/lib/jobPaymentTypes";
@@ -117,6 +119,43 @@ export async function collectJobRemainingBalanceViaRpc(
     jobId: input.jobId,
     kind: "balance",
   });
+}
+
+export async function collectJobPaymentViaRpc(
+  supabase: SupabaseClient,
+  input: {
+    companyId: string;
+    jobId: string;
+    amountMode: CollectAmountMode;
+    percentageBps?: number | null;
+    amountCents?: number | null;
+  }
+): Promise<JobPaymentCreateSuccess | JobPaymentRpcFailure> {
+  if (!isUuidLike(input.companyId) || !isUuidLike(input.jobId)) {
+    return { ok: false, code: "invalid_payload" };
+  }
+  const payload: Record<string, unknown> = {
+    company_id: input.companyId,
+    job_id: input.jobId,
+    amount_mode: input.amountMode,
+  };
+  if (input.amountMode === "percentage") {
+    payload.percentage_bps = input.percentageBps;
+  }
+  if (input.amountMode === "fixed") {
+    payload.amount_cents = input.amountCents;
+  }
+  const record = await rpcJson(supabase, COLLECT_JOB_PAYMENT_RPC_V1, {
+    p_payload: payload,
+  });
+  if (record.ok !== true) {
+    return {
+      ok: false,
+      code: asString(record.code) ?? "invalid_payload",
+      attention_id: asString(record.attention_id),
+    };
+  }
+  return record as unknown as JobPaymentCreateSuccess;
 }
 
 export async function cancelJobPaymentRequestViaRpc(

@@ -10,7 +10,6 @@ import {
   normalizeCompanyBrandingProfile,
   type CompanyBrandingProfile,
 } from "@/app/lib/companyBrandingProfile";
-import { formatContractorMoneyFromCents } from "@/app/lib/companySettingsVisualFixture";
 
 export type CompanySettingsSectionId =
   | "business"
@@ -109,17 +108,7 @@ export function summarizePayments(
       ? "Stripe connected"
       : "Stripe setup incomplete";
 
-  let deposit = "No default deposit";
-  if (input.defaultDepositMode === "percent" && input.defaultDepositPercentBps != null) {
-    deposit = `${input.defaultDepositPercentBps / 100}% default deposit`;
-  } else if (
-    input.defaultDepositMode === "fixed" &&
-    input.defaultDepositFixedCents != null
-  ) {
-    deposit = `${formatContractorMoneyFromCents(input.defaultDepositFixedCents)} default deposit`;
-  }
-
-  return `${connection} · ${deposit}`;
+  return connection;
 }
 
 export type CompanyPricingSummaryInput = {

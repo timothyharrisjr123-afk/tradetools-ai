@@ -65,11 +65,15 @@ export function useProposalPurchaseAction({
   const settled =
     paymentState === "received" || paymentState === "pending" || paymentState === "refunded";
 
+  const payableNow =
+    (paymentState === "due" || paymentState === "failed") &&
+    Boolean(payment?.ctaLabel);
+
   const kind: ProposalPurchaseActionKind = !publicAccessToken
     ? "none"
     : settled
       ? "none"
-      : requiresDeposit
+      : payableNow || requiresDeposit
         ? "pay"
         : accepted
           ? "none"

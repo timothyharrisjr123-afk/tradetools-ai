@@ -466,8 +466,8 @@ describe("legacy isolation and no stage write", () => {
     assert.doesNotMatch(status, /retrieveConnectedAccount/);
     assert.match(status, /Does not block the UI on a live Stripe retrieve/);
     const hook = readFileSync(join(ROOT, "app/lib/useJobPayments.ts"), "utf8");
-    assert.match(hook, /AbortSignal\.timeout\(4000\)/);
-    assert.match(hook, /must not wait on Stripe refresh/);
+    assert.doesNotMatch(hook, /AbortSignal\.timeout\(4000\)/);
+    assert.doesNotMatch(hook, /\/api\/company\/payments\/status/);
   });
 
   test("public checkout rejects amount tamper", () => {

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
 import { createJobPaymentRequestViaRpc } from "@/app/lib/jobPaymentPersistence";
-import { JOB_PAYMENT_KINDS } from "@/app/lib/jobPaymentTypes";
 import { isUuidLike } from "@/app/lib/uuid";
 import { createClient } from "@/app/lib/supabase/server";
 
@@ -39,11 +38,11 @@ export async function POST(req: NextRequest) {
         ? body.proposalSignatureId.trim()
         : null;
 
-    if (!isUuidLike(jobId) || !(JOB_PAYMENT_KINDS as readonly string[]).includes(kind)) {
+    if (!isUuidLike(jobId) || kind !== "balance") {
+      if (kind === "deposit") {
+        return NextResponse.json({ ok: false, code: "deposit_not_generic" }, { status: 400 });
+      }
       return NextResponse.json({ ok: false, code: "invalid_payload" }, { status: 400 });
-    }
-    if (kind === "deposit") {
-      return NextResponse.json({ ok: false, code: "deposit_not_generic" }, { status: 400 });
     }
     if (body?.amountCents != null && body.amount !== undefined) {
       return NextResponse.json({ ok: false, code: "invalid_payload" }, { status: 400 });

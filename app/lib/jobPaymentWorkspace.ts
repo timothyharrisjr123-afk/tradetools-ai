@@ -42,6 +42,8 @@ export type JobPaymentWorkspaceState =
   | "balance_due"
   | "balance_requested"
   | "balance_processing"
+  | "progress_requested"
+  | "progress_processing"
   | "paid_in_full";
 
 export type JobPaymentWorkspaceTimelineType =
@@ -91,6 +93,7 @@ export type JobPaymentWorkspaceTimelineEvent = {
 };
 
 export type JobPaymentWorkspaceCurrentRequest = {
+  id: string;
   kind: JobPaymentKind;
   status: JobPaymentRequestStatus;
   amountCents: number;
@@ -120,6 +123,7 @@ export type JobPaymentWorkspaceView = {
   depositNotReceived: boolean;
   currentRequest: JobPaymentWorkspaceCurrentRequest | null;
   canCollectRemainingBalance: boolean;
+  canCollectPayment: boolean;
   timeline: JobPaymentWorkspaceTimelineEvent[];
   summaryRows: JobPaymentWorkspaceSummaryRow[];
 };
@@ -303,14 +307,19 @@ function meaningfulRequests(
   );
 }
 
-function activeRequest(
+function currentActiveRequest(
   requests: readonly JobPaymentWorkspaceRequest[]
 ): JobPaymentWorkspaceRequest | null {
   return (
     requests.find((row) => row.status === "open" || row.status === "processing") ??
-    requests.find((row) => row.status === "failed") ??
     null
   );
+}
+
+function latestFailedRequest(
+  requests: readonly JobPaymentWorkspaceRequest[]
+): JobPaymentWorkspaceRequest | null {
+  return requests.find((row) => row.status === "failed") ?? null;
 }
 
 function requestById(
@@ -339,7 +348,9 @@ export function formatJobPaymentWorkspaceDate(
 }
 
 function kindNoun(kind: JobPaymentKind): string {
-  return kind === "deposit" ? "Deposit" : "Balance";
+  if (kind === "deposit") return "Deposit";
+  if (kind === "progress") return "Progress";
+  return "Balance";
 }
 
 function canonicalFailures(
@@ -491,15 +502,18 @@ function overviewStatusFor(state: JobPaymentWorkspaceState): string | null {
     case "deposit_due":
     case "deposit_processing":
     case "balance_processing":
+    case "progress_processing":
       return "Payment pending";
     case "deposit_received":
       return "Deposit received";
     case "balance_not_yet_due":
-      return "Balance due on completion";
+      return "Remaining to collect";
     case "balance_due":
       return "Balance due";
     case "balance_requested":
       return "Balance requested";
+    case "progress_requested":
+      return "Progress payment requested";
     case "paid_in_full":
       return "Paid in full";
     case "payment_failed":
@@ -528,13 +542,17 @@ function statusLabelFor(state: JobPaymentWorkspaceState): string {
     case "partially_paid":
       return "Partially paid";
     case "balance_not_yet_due":
-      return "Balance due on completion";
+      return "Remaining to collect";
     case "balance_due":
       return "Balance due";
     case "balance_requested":
       return "Balance requested";
     case "balance_processing":
       return "Balance processing";
+    case "progress_requested":
+      return "Progress payment requested";
+    case "progress_processing":
+      return "Progress payment processing";
     case "paid_in_full":
       return "Paid in full";
   }
@@ -564,20 +582,18 @@ function nextStepFor(
       };
     case "deposit_processing":
     case "balance_processing":
+    case "progress_processing":
       return { label: "Payment processing", detail: null, connectHref: null };
     case "payment_failed":
       return { label: "Payment failed", detail: null, connectHref: null };
     case "deposit_received":
     case "balance_not_yet_due":
     case "partially_paid":
-      return {
-        label: "Balance due on completion",
-        detail: null,
-        connectHref: null,
-      };
+      return null;
     case "balance_due":
-      return { label: "Balance due", detail: null, connectHref: null };
+      return null;
     case "balance_requested":
+    case "progress_requested":
       return null;
   }
 }
@@ -592,6 +608,7 @@ function deriveWorkspaceState(input: {
   receivedGrossCents: number;
   depositGrossCents: number;
   current: JobPaymentWorkspaceRequest | null;
+  failed: JobPaymentWorkspaceRequest | null;
   contractTotalCents: number | null;
 }): JobPaymentWorkspaceState {
   if (!input.accepted) return "no_payment_required";
@@ -604,12 +621,18 @@ function deriveWorkspaceState(input: {
       (input.contractTotalCents != null &&
         input.contractTotalCents < JOB_PAYMENT_MIN_AMOUNT_CENTS));
 
-  if (input.current?.status === "failed") return "payment_failed";
   if (input.current?.status === "processing") {
-    return input.current.kind === "balance"
-      ? "balance_processing"
-      : "deposit_processing";
+    if (input.current.kind === "balance") return "balance_processing";
+    if (input.current.kind === "progress") return "progress_processing";
+    return "deposit_processing";
   }
+
+  if (input.current?.status === "open") {
+    if (input.current.kind === "balance") return "balance_requested";
+    if (input.current.kind === "progress") return "progress_requested";
+  }
+
+  if (!input.current && input.failed) return "payment_failed";
 
   if (paidInFull) return "paid_in_full";
 
@@ -657,6 +680,7 @@ export function buildJobPaymentWorkspace(input: {
   customerChosenTotalCents?: number | null;
   acceptedTotalCents?: number | null;
   terms?: ProposalPaymentTerms | null;
+  jobPaymentActive?: boolean;
 }): JobPaymentWorkspaceView {
   const connected = Boolean(input.account);
   const chargesEnabled = input.account?.charges_enabled === true;
@@ -685,7 +709,8 @@ export function buildJobPaymentWorkspace(input: {
   const depositGrossCents = canonicalSucceededCaptures(input.transactions)
     .filter((row) => depositRequestIds.has(row.paymentRequestId))
     .reduce((sum, row) => sum + row.amountCents, 0);
-  const current = activeRequest(input.requests);
+  const current = currentActiveRequest(input.requests);
+  const failed = latestFailedRequest(input.requests);
   const state = deriveWorkspaceState({
     accepted: input.accepted,
     connected,
@@ -696,9 +721,17 @@ export function buildJobPaymentWorkspace(input: {
     receivedGrossCents,
     depositGrossCents,
     current,
+    failed,
     contractTotalCents,
   });
   const nextStep = nextStepFor(state, connected);
+  const jobPaymentActive = input.jobPaymentActive !== false;
+  const canCollectPayment =
+    input.accepted &&
+    chargesEnabled &&
+    collectibleRemainingCents >= JOB_PAYMENT_MIN_AMOUNT_CENTS &&
+    current == null &&
+    jobPaymentActive;
 
   return {
     contractTotalCents,
@@ -718,15 +751,17 @@ export function buildJobPaymentWorkspace(input: {
     depositNotReceived:
       state === "deposit_due" ||
       state === "deposit_processing" ||
-      (state === "payment_failed" && current?.kind === "deposit"),
+      (state === "payment_failed" && failed?.kind === "deposit"),
     currentRequest: current
       ? {
+          id: current.id,
           kind: current.kind,
           status: current.status,
           amountCents: current.amount_cents,
         }
       : null,
     canCollectRemainingBalance: state === "balance_due",
+    canCollectPayment,
     timeline: buildJobPaymentWorkspaceTimeline({
       requests: input.requests,
       transactions: input.transactions,
@@ -745,4 +780,10 @@ export function formatJobPaymentWorkspaceAmount(
 ): string {
   if (cents == null) return "—";
   return formatUsdFromCents(cents);
+}
+
+export function jobPaymentCurrentRequestKindLabel(kind: JobPaymentKind): string {
+  if (kind === "deposit") return "Deposit";
+  if (kind === "progress") return "Progress payment";
+  return "Remaining balance";
 }

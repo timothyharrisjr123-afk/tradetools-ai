@@ -190,13 +190,18 @@ export default function ProposalPacketPurchase({
         <>
           <div className={PROPOSAL_PACKET_PURCHASE_DIVIDER} />
           {showDueLine ? (
-            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <div className="mb-3">
+              {payment?.kindLabel ? (
+                <p className="mb-1 text-[14px] font-medium text-[#0b1f33]">{payment.kindLabel}</p>
+              ) : null}
+              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
               <p className="text-[14px] font-medium text-[#475569]">
                 {PROPOSAL_CUSTOMER_PACKET_DUE_TODAY_LABEL}
               </p>
               <p className={PROPOSAL_PACKET_PURCHASE_DUE_AMOUNT} data-proposal-due-today>
                 {dueLabel}
               </p>
+              </div>
             </div>
           ) : null}
 

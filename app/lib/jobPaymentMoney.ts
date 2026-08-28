@@ -81,7 +81,39 @@ export function prefillDepositCents(input: {
 }
 
 export function checkoutLineLabel(kind: JobPaymentKind): string {
-  return kind === "deposit" ? "Deposit" : "Remaining balance";
+  if (kind === "deposit") return "Deposit";
+  if (kind === "progress") return "Progress payment";
+  return "Remaining balance";
+}
+
+export function parseCollectFixedAmountToCents(raw: string): number | null {
+  return parseUsdInputToCents(raw);
+}
+
+export function collectPercentageAmountCents(input: {
+  contractTotalCents: number;
+  percentageBps: number;
+}): number | null {
+  if (
+    !Number.isInteger(input.contractTotalCents) ||
+    input.contractTotalCents < 0 ||
+    !Number.isInteger(input.percentageBps) ||
+    input.percentageBps < 1 ||
+    input.percentageBps > 10000
+  ) {
+    return null;
+  }
+  return Math.floor((input.contractTotalCents * input.percentageBps) / 10000);
+}
+
+export function deriveCollectRequestKind(input: {
+  jobComplete: boolean;
+  amountCents: number;
+  collectibleCents: number;
+}): Exclude<JobPaymentKind, "deposit"> {
+  if (!input.jobComplete) return "progress";
+  if (input.amountCents === input.collectibleCents) return "balance";
+  return "progress";
 }
 
 export function isValidPaymentAmountCents(

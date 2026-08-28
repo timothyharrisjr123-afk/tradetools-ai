@@ -261,10 +261,8 @@ import {
   type CompanyTimezoneLoadStatus,
 } from "@/app/lib/jobScheduleMapper";
 import { parseJobScheduleList } from "@/app/lib/jobSchedulePersistence";
-import JobCardRequestPaymentModal from "@/app/tools/roofing/jobCard/JobCardRequestPaymentModal";
 import JobCardPaymentsWorkspace from "@/app/tools/roofing/jobCard/JobCardPaymentsWorkspace";
 import { useJobPayments } from "@/app/lib/useJobPayments";
-import type { JobPaymentKind } from "@/app/lib/jobPaymentTypes";
 import { resolveJobCardIdentityFromRecord } from "@/app/tools/roofing/jobCard/jobCardIdentityUtils";
 import { loadCompanyVoiceProfile, saveCompanyVoiceProfile, type VoiceTone } from "@/app/lib/companyVoiceProfile";
 
@@ -1216,11 +1214,6 @@ export default function RoofingClient({
   const jobPayments = useJobPayments(
     entryMode === "job-card" ? currentJobId : null
   );
-  const [paymentModalKind, setPaymentModalKind] = useState<JobPaymentKind | null>(
-    null
-  );
-  const [paymentModalBusy, setPaymentModalBusy] = useState(false);
-  const [paymentModalError, setPaymentModalError] = useState<string | null>(null);
   const [isCreatingJob, setIsCreatingJob] = useState(false);
   const [jobCreationError, setJobCreationError] = useState<string | null>(null);
   const [persistedSelectedMeasurement, setPersistedSelectedMeasurement] =
@@ -9209,13 +9202,26 @@ Thanks,`;
               >
                 <JobCardPaymentsWorkspace
                   workspace={jobPayments.workspace}
-                  onCollectRemainingBalance={
-                    jobPayments.workspace?.canCollectRemainingBalance
-                      ? jobPayments.collectRemainingBalance
+                  onCollectPayment={
+                    jobPayments.workspace?.canCollectPayment
+                      ? jobPayments.collectPayment
+                      : undefined
+                  }
+                  onCancelCurrentRequest={
+                    jobPayments.workspace?.currentRequest?.status === "open"
+                      ? jobPayments.cancelCurrentRequest
+                      : undefined
+                  }
+                  onCopyPaymentLink={
+                    jobPayments.workspace?.currentRequest
+                      ? jobPayments.copyPaymentLink
                       : undefined
                   }
                   collectBusy={jobPayments.collectBusy}
                   collectError={jobPayments.collectError}
+                  cancelBusy={jobPayments.cancelBusy}
+                  copyBusy={jobPayments.copyBusy}
+                  copyError={jobPayments.copyError}
                 />
               </JobCardSectionPanel>
 
@@ -9480,44 +9486,6 @@ Thanks,`;
           </div>
         </div>
       </div>
-      <JobCardRequestPaymentModal
-        open={paymentModalKind != null}
-        kind={paymentModalKind ?? "deposit"}
-        prefillCents={
-          paymentModalKind === "balance"
-            ? jobPayments.view?.remainingCents ?? null
-            : jobPayments.prefillDepositCents
-        }
-        remainingCents={jobPayments.view?.remainingCents ?? 0}
-        acceptedTotalCents={jobPayments.view?.acceptedTotalCents ?? 0}
-        unsigned={jobPayments.view?.unsignedApprovedEligible === true}
-        submitting={paymentModalBusy}
-        error={paymentModalError}
-        onClose={() => {
-          if (paymentModalBusy) return;
-          setPaymentModalKind(null);
-          setPaymentModalError(null);
-        }}
-        onSubmit={(amountCents) => {
-          if (!paymentModalKind) return;
-          setPaymentModalBusy(true);
-          setPaymentModalError(null);
-          void jobPayments
-            .requestPayment(paymentModalKind, amountCents)
-            .then((result) => {
-              if (result.ok) {
-                setPaymentModalKind(null);
-                return;
-              }
-              setPaymentModalError(
-                result.code === "not_connected"
-                  ? "Connect payments before requesting a deposit."
-                  : "Could not create this payment request."
-              );
-            })
-            .finally(() => setPaymentModalBusy(false));
-        }}
-      />
       <ScheduleJobModal
         open={
           scheduleModal != null &&

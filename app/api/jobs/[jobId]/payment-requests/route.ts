@@ -114,6 +114,8 @@ export async function GET(_req: Request, context: RouteContext) {
     ]);
 
     const canonical = resolveCanonicalJobStage(job as never);
+    const jobStatus = String((job as { status?: string }).status ?? "active");
+    const jobArchived = Boolean((job as { archived?: boolean }).archived);
     const accountRow = account
       ? {
           charges_enabled: Boolean(
@@ -156,6 +158,7 @@ export async function GET(_req: Request, context: RouteContext) {
           ? acceptance.accepted_total_cents
           : null,
       terms: parseProposalPaymentTermsRow(termsRow),
+      jobPaymentActive: !jobArchived && jobStatus === "active",
     });
     const view = buildJobCardPaymentViewModel({
       jobStage: canonical,

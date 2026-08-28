@@ -7,6 +7,7 @@
  */
 
 export const CREATE_JOB_PAYMENT_REQUEST_RPC_V1 = "create_job_payment_request_v1";
+export const COLLECT_JOB_PAYMENT_RPC_V1 = "collect_job_payment_v1";
 export const CANCEL_JOB_PAYMENT_REQUEST_RPC_V1 = "cancel_job_payment_request_v1";
 export const BIND_JOB_PAYMENT_CHECKOUT_SESSION_RPC_V1 =
   "bind_job_payment_checkout_session_v1";
@@ -27,8 +28,11 @@ export const JOB_PAYMENT_PROVIDER = "stripe" as const;
 export const JOB_PAYMENT_CURRENCY = "usd" as const;
 export const JOB_PAYMENT_MIN_AMOUNT_CENTS = 100;
 
-export const JOB_PAYMENT_KINDS = ["deposit", "balance"] as const;
+export const JOB_PAYMENT_KINDS = ["deposit", "progress", "balance"] as const;
 export type JobPaymentKind = (typeof JOB_PAYMENT_KINDS)[number];
+
+export const COLLECT_AMOUNT_MODES = ["remaining", "percentage", "fixed"] as const;
+export type CollectAmountMode = (typeof COLLECT_AMOUNT_MODES)[number];
 
 export const JOB_PAYMENT_REQUEST_STATUSES = [
   "open",
@@ -91,12 +95,17 @@ export const JOB_CARD_PAYMENTS_REQUEST_BALANCE_CTA =
   "Request remaining balance";
 export const JOB_CARD_PAYMENTS_COLLECT_BALANCE_CTA =
   "Collect remaining balance";
+export const JOB_CARD_PAYMENTS_COLLECT_CTA = "Collect payment";
+export const JOB_CARD_PAYMENTS_CREATE_REQUEST_CTA = "Create payment request";
+export const JOB_CARD_PAYMENTS_COPY_LINK_CTA = "Copy payment link";
+export const JOB_CARD_PAYMENTS_CANCEL_REQUEST_CTA = "Cancel request";
 
 export const PUBLIC_PAYMENT_DUE_TITLE = "Payment due";
 export const PUBLIC_PAYMENT_PENDING_TITLE = "Payment pending";
 export const PUBLIC_PAYMENT_RECEIVED_TITLE = "Payment received";
 export const PUBLIC_PAYMENT_REFUNDED_TITLE = "Payment refunded";
 export const PUBLIC_PAYMENT_DEPOSIT_LABEL = "Deposit";
+export const PUBLIC_PAYMENT_PROGRESS_LABEL = "Progress payment";
 export const PUBLIC_PAYMENT_BALANCE_LABEL = "Remaining balance";
 export const PUBLIC_PAYMENT_PAY_DEPOSIT_CTA = "Pay deposit";
 export const PUBLIC_PAYMENT_PAY_CTA = "Pay";
@@ -127,6 +136,11 @@ export const JOB_PAYMENT_CREATE_ERROR_CODES = [
   "not_complete",
   "nothing_due",
   "invalid_amount",
+  "invalid_amount_mode",
+  "invalid_percentage",
+  "amount_exceeds_collectible",
+  "deposit_not_generic",
+  "processing_not_cancellable",
   "signature_mismatch",
   "already_paid",
   "not_payable",

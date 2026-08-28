@@ -25,7 +25,6 @@ import {
   loadCompanyPaymentsStatus,
   loadCompanyPricingSummary,
   loadCompanyTimezone,
-  saveCompanyPaymentDefaults,
   saveCompanyTimezone,
   startCompanyStripeOnboarding,
   type CompanyPaymentsStatus,
@@ -287,27 +286,6 @@ export default function CompanySettingsClient({
     }
   };
 
-  const savePaymentDefaults = async (input: {
-    defaultDepositMode: CompanyPaymentsStatus["defaultDepositMode"];
-    defaultDepositPercentBps: number | null;
-    defaultDepositFixedCents: number | null;
-  }) => {
-    setSaving(true);
-    setEditorError(null);
-    try {
-      const ok = await saveCompanyPaymentDefaults(input);
-      if (!ok) {
-        setEditorError("Could not save your payment settings.");
-        return;
-      }
-      await refreshPayments();
-      closeEditor();
-      showToast("Payment settings saved.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const saveTimezone = async (next: string) => {
     setSaving(true);
     setEditorError(null);
@@ -451,11 +429,9 @@ export default function CompanySettingsClient({
       {editor === "payments" ? (
         <CompanySettingsPaymentsEditor
           status={payments}
-          saving={saving}
           error={editorError}
           connecting={connecting}
           onClose={closeEditor}
-          onSave={(input) => void savePaymentDefaults(input)}
           onConnect={() => void connectStripe()}
         />
       ) : null}

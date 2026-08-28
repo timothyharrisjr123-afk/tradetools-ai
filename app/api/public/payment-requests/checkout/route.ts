@@ -24,8 +24,9 @@ const TOKEN_FAILURE_CODES = new Set([
 ]);
 
 /**
- * Public Checkout for an existing payment request bound to the proposal token.
- * Creates canonical acceptance idempotently when needed, opens deposit, then Checkout.
+ * Public Checkout for a payment request bound to the proposal token.
+ * Existing open|processing requests (progress/balance/deposit) resolve first.
+ * Deposit mint happens only when no current payable request exists.
  * Amount, account, and binding are server-owned.
  *
  * `optionKey` carries the customer's chosen frozen package. It is a stable
@@ -72,22 +73,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const deposit = await openCanonicalDepositFromAcceptedProposal({
-      companyId: acceptance.company_id,
-      acceptanceId: acceptance.acceptance_id,
-    });
-    if (!deposit.ok) {
-      return NextResponse.json(
-        { ok: false, message: SAFE_ERROR, code: deposit.code },
-        { status: deposit.code === "conflicting_request" ? 409 : 400 }
-      );
-    }
-
     const hash = hashProposalPublicAccessToken(token);
-    const resolved = await resolvePublicJobPaymentCheckoutViaRpc(
+    let resolved = await resolvePublicJobPaymentCheckoutViaRpc(
       createAdminClient(),
       hash
     );
+    if (resolved.ok !== true && String(resolved.code ?? "") === "not_found") {
+      const deposit = await openCanonicalDepositFromAcceptedProposal({
+        companyId: acceptance.company_id,
+        acceptanceId: acceptance.acceptance_id,
+      });
+      if (!deposit.ok) {
+        return NextResponse.json(
+          { ok: false, message: SAFE_ERROR, code: deposit.code },
+          { status: deposit.code === "conflicting_request" ? 409 : 400 }
+        );
+      }
+      resolved = await resolvePublicJobPaymentCheckoutViaRpc(
+        createAdminClient(),
+        hash
+      );
+    }
     if (resolved.ok !== true) {
       const code = String(resolved.code ?? "not_found");
       const status = code === "already_paid" ? 409 : code === "invalid_hash" ? 404 : 400;
@@ -104,7 +110,7 @@ export async function POST(req: NextRequest) {
         id: String(resolved.id),
         company_id: String(resolved.company_id),
         job_id: String(resolved.job_id),
-        kind: resolved.kind as "deposit" | "balance",
+        kind: resolved.kind as "deposit" | "progress" | "balance",
         status: String(resolved.status),
         amount_cents: Number(resolved.amount_cents),
         currency: String(resolved.currency),

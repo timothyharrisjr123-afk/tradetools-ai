@@ -1,23 +1,40 @@
 "use client";
 
+import { useState } from "react";
 import {
   AlertTriangle,
   Clock3,
   DollarSign,
   Minus,
 } from "lucide-react";
+import JobCardCollectPaymentSheet from "@/app/tools/roofing/jobCard/JobCardCollectPaymentSheet";
 import {
   formatJobPaymentWorkspaceAmount,
+  jobPaymentCurrentRequestKindLabel,
   type JobPaymentWorkspaceTimelineEvent,
   type JobPaymentWorkspaceView,
 } from "@/app/lib/jobPaymentWorkspace";
-import { JOB_CARD_PAYMENTS_COLLECT_BALANCE_CTA } from "@/app/lib/jobPaymentTypes";
+import {
+  JOB_CARD_PAYMENTS_CANCEL_REQUEST_CTA,
+  JOB_CARD_PAYMENTS_COLLECT_CTA,
+  JOB_CARD_PAYMENTS_COPY_LINK_CTA,
+  type CollectAmountMode,
+} from "@/app/lib/jobPaymentTypes";
 
 type JobCardPaymentsWorkspaceProps = {
   workspace: JobPaymentWorkspaceView | null;
-  onCollectRemainingBalance?: () => Promise<unknown> | void;
+  onCollectPayment?: (input: {
+    amountMode: CollectAmountMode;
+    percentageBps?: number;
+    fixedAmount?: string;
+  }) => Promise<{ ok: boolean; code?: string }>;
+  onCancelCurrentRequest?: () => Promise<{ ok: boolean; code?: string }>;
+  onCopyPaymentLink?: () => Promise<{ ok: boolean; url?: string; code?: string }>;
   collectBusy?: boolean;
   collectError?: string | null;
+  cancelBusy?: boolean;
+  copyBusy?: boolean;
+  copyError?: string | null;
 };
 
 function TimelineIcon({ event }: { event: JobPaymentWorkspaceTimelineEvent }) {
@@ -59,12 +76,24 @@ function TimelineAmount({ event }: { event: JobPaymentWorkspaceTimelineEvent }) 
   );
 }
 
+function currentStatusLabel(status: string): string {
+  if (status === "processing") return "Processing";
+  return "Open";
+}
+
 export default function JobCardPaymentsWorkspace({
   workspace,
-  onCollectRemainingBalance,
+  onCollectPayment,
+  onCancelCurrentRequest,
+  onCopyPaymentLink,
   collectBusy = false,
   collectError = null,
+  cancelBusy = false,
+  copyBusy = false,
+  copyError = null,
 }: JobCardPaymentsWorkspaceProps) {
+  const [sheetOpen, setSheetOpen] = useState(false);
+
   if (!workspace) {
     return (
       <p className="text-sm text-slate-600" data-jobcard-payments-empty>
@@ -72,6 +101,10 @@ export default function JobCardPaymentsWorkspace({
       </p>
     );
   }
+
+  const current = workspace.currentRequest;
+  const showCollect =
+    workspace.canCollectPayment && onCollectPayment && current == null;
 
   return (
     <div className="flex flex-col gap-6" data-jobcard-payments-workspace>
@@ -89,7 +122,13 @@ export default function JobCardPaymentsWorkspace({
               key={row.label}
               className="flex items-baseline justify-between gap-4 py-2.5"
             >
-              <dt className="text-sm text-slate-500">{row.label}</dt>
+              <dt className="text-sm text-slate-500">
+                {row.label === "Received"
+                  ? "Collected"
+                  : row.label === "Contract"
+                    ? "Contract total"
+                    : row.label}
+              </dt>
               <dd
                 className="text-sm font-medium tabular-nums text-slate-900"
                 data-jobcard-payments-summary={row.label.toLowerCase()}
@@ -101,26 +140,75 @@ export default function JobCardPaymentsWorkspace({
         </dl>
       </section>
 
-      {workspace.canCollectRemainingBalance && onCollectRemainingBalance ? (
+      {current ? (
+        <section aria-labelledby="job-card-payments-current" data-jobcard-payments-current>
+          <h3
+            id="job-card-payments-current"
+            className="text-xs font-semibold uppercase tracking-wide text-slate-500"
+          >
+            Current request
+          </h3>
+          <p className="mt-1.5 text-sm font-medium text-slate-900">
+            {jobPaymentCurrentRequestKindLabel(current.kind)}
+          </p>
+          <p className="mt-0.5 text-sm tabular-nums text-slate-700">
+            {formatJobPaymentWorkspaceAmount(current.amountCents)}
+          </p>
+          <p className="mt-0.5 text-sm text-slate-500">{currentStatusLabel(current.status)}</p>
+          <div className="mt-3 flex flex-col gap-2">
+            {onCopyPaymentLink ? (
+              <button
+                type="button"
+                disabled={copyBusy}
+                onClick={() => {
+                  void onCopyPaymentLink();
+                }}
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-slate-200 px-4 text-sm font-semibold text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                data-jobcard-payments-copy-link
+              >
+                {copyBusy ? "Copying…" : JOB_CARD_PAYMENTS_COPY_LINK_CTA}
+              </button>
+            ) : null}
+            {current.status === "open" && onCancelCurrentRequest ? (
+              <button
+                type="button"
+                disabled={cancelBusy}
+                onClick={() => {
+                  void onCancelCurrentRequest();
+                }}
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-md px-4 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                data-jobcard-payments-cancel
+              >
+                {cancelBusy ? "Cancelling…" : JOB_CARD_PAYMENTS_CANCEL_REQUEST_CTA}
+              </button>
+            ) : null}
+            {copyError ? (
+              <p className="text-sm text-slate-600" data-jobcard-payments-copy-error>
+                {copyError}
+              </p>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
+      {showCollect ? (
         <div className="flex flex-col gap-2">
           <button
             type="button"
             disabled={collectBusy}
-            onClick={() => {
-              void onCollectRemainingBalance();
-            }}
+            onClick={() => setSheetOpen(true)}
             className="inline-flex min-h-11 w-full items-center justify-center rounded-md bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             data-jobcard-payments-collect
           >
-            {collectBusy ? "Collecting…" : JOB_CARD_PAYMENTS_COLLECT_BALANCE_CTA}
+            {JOB_CARD_PAYMENTS_COLLECT_CTA}
           </button>
-          {collectError ? (
+          {collectError && !sheetOpen ? (
             <p className="text-sm text-slate-600" data-jobcard-payments-collect-error>
               {collectError}
             </p>
           ) : null}
         </div>
-      ) : workspace.nextStep ? (
+      ) : workspace.nextStep && !current ? (
         <section aria-labelledby="job-card-payments-next">
           <h3
             id="job-card-payments-next"
@@ -180,27 +268,31 @@ export default function JobCardPaymentsWorkspace({
                       .filter(Boolean)
                       .join(" · ")}
                   </p>
-                  {event.disclosure ? (
-                    <details className="mt-1">
-                      <summary className="inline-flex min-h-11 cursor-pointer items-center text-xs font-medium text-slate-500 hover:text-slate-700">
-                        Payment details
-                      </summary>
-                      <div className="mt-1 space-y-0.5 text-xs text-slate-500">
-                        {event.disclosure.paymentIntentId ? (
-                          <p>Provider payment {event.disclosure.paymentIntentId}</p>
-                        ) : null}
-                        {event.disclosure.providerEventId ? (
-                          <p>Provider event {event.disclosure.providerEventId}</p>
-                        ) : null}
-                      </div>
-                    </details>
-                  ) : null}
                 </div>
               </li>
             ))}
           </ol>
         )}
       </section>
+
+      {sheetOpen && onCollectPayment ? (
+        <JobCardCollectPaymentSheet
+          open
+          collectibleCents={workspace.collectibleRemainingCents}
+          contractTotalCents={workspace.contractTotalCents}
+          submitting={collectBusy}
+          error={collectError}
+          onClose={() => {
+            if (collectBusy) return;
+            setSheetOpen(false);
+          }}
+          onSubmit={(input) => {
+            void onCollectPayment(input).then((result) => {
+              if (result.ok) setSheetOpen(false);
+            });
+          }}
+        />
+      ) : null}
     </div>
   );
 }

@@ -91,7 +91,7 @@ describe("055 — historical migrations immutable", () => {
     assert.equal(sha(SQL_054), SHA_054);
   });
 
-  test("055 exists as the only migration after 054", () => {
+  test("055 exists; 056 is the next migration after 055", () => {
     assert.equal(existsSync(SQL_055), true);
     const names = readdirSync(MIGRATIONS).filter((n) => n.endsWith(".sql"));
     const above048 = names.filter((n) => /_0(49|5\d)_/.test(n)).sort();
@@ -351,11 +351,12 @@ describe("055 — app coordination", () => {
     assert.match(hook, /"\/api\/proposals\/accept"/);
   });
 
-  test("Settings Default deposit UI remains visible; no Flexible Collect", () => {
+  test("Settings Default deposit UI is removed; Flexible Collect exists", () => {
     const settings = read("app/tools/settings/CompanySettingsPaymentsEditor.tsx");
-    assert.match(settings, /default_deposit|Default deposit|depositMode/i);
+    assert.doesNotMatch(settings, /Default deposit/);
+    assert.doesNotMatch(settings, /starting payment terms for new proposals/);
     const workspace = read("app/tools/roofing/jobCard/JobCardPaymentsWorkspace.tsx");
-    assert.doesNotMatch(workspace, /progress/);
-    assert.doesNotMatch(workspace, /Collect remaining \/ percentage \/ fixed/i);
+    assert.match(workspace, /JOB_CARD_PAYMENTS_COLLECT_CTA/);
+    assert.match(workspace, /JobCardCollectPaymentSheet/);
   });
 });

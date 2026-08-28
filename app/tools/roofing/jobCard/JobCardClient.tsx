@@ -42,7 +42,6 @@ import {
   type JobAttentionSafeItem,
 } from "@/app/lib/jobAttentionReadModel";
 import { useJobPayments } from "@/app/lib/useJobPayments";
-import type { JobPaymentKind } from "@/app/lib/jobPaymentTypes";
 import {
   companyTimezoneForScheduling,
   parseCompanyTimezoneGetResult,
@@ -98,7 +97,6 @@ import JobCardSectionPanel from "@/app/tools/roofing/jobCard/JobCardSectionPanel
 import JobCardOverviewSummary from "@/app/tools/roofing/jobCard/JobCardOverviewSummary";
 import JobCardScheduleSection from "@/app/tools/roofing/jobCard/JobCardScheduleSection";
 import JobCardScheduleWorkspacePanel from "@/app/tools/roofing/jobCard/JobCardScheduleWorkspacePanel";
-import JobCardRequestPaymentModal from "@/app/tools/roofing/jobCard/JobCardRequestPaymentModal";
 import JobCardPaymentsWorkspace from "@/app/tools/roofing/jobCard/JobCardPaymentsWorkspace";
 import JobCardProposalsTab, {
   JobCardProposalsAddHeaderButton,
@@ -169,11 +167,6 @@ export default function JobCardClient({
     enabled: true,
   });
   const jobPayments = useJobPayments(currentJobId);
-  const [paymentModalKind, setPaymentModalKind] = useState<JobPaymentKind | null>(
-    null
-  );
-  const [paymentModalBusy, setPaymentModalBusy] = useState(false);
-  const [paymentModalError, setPaymentModalError] = useState<string | null>(null);
   const [pendingAttentionId, setPendingAttentionId] = useState<string | null>(
     null
   );
@@ -1002,13 +995,26 @@ export default function JobCardClient({
                 >
                   <JobCardPaymentsWorkspace
                     workspace={jobPayments.workspace}
-                    onCollectRemainingBalance={
-                      jobPayments.workspace?.canCollectRemainingBalance
-                        ? jobPayments.collectRemainingBalance
+                    onCollectPayment={
+                      jobPayments.workspace?.canCollectPayment
+                        ? jobPayments.collectPayment
+                        : undefined
+                    }
+                    onCancelCurrentRequest={
+                      jobPayments.workspace?.currentRequest?.status === "open"
+                        ? jobPayments.cancelCurrentRequest
+                        : undefined
+                    }
+                    onCopyPaymentLink={
+                      jobPayments.workspace?.currentRequest
+                        ? jobPayments.copyPaymentLink
                         : undefined
                     }
                     collectBusy={jobPayments.collectBusy}
                     collectError={jobPayments.collectError}
+                    cancelBusy={jobPayments.cancelBusy}
+                    copyBusy={jobPayments.copyBusy}
+                    copyError={jobPayments.copyError}
                   />
                 </JobCardSectionPanel>
 
@@ -1049,40 +1055,6 @@ export default function JobCardClient({
           </div>
         </div>
       </div>
-      {paymentModalKind && currentJobId ? (
-        <JobCardRequestPaymentModal
-          open
-          kind={paymentModalKind}
-          prefillCents={
-            paymentModalKind === "balance"
-              ? jobPayments.view?.remainingCents ?? null
-              : jobPayments.prefillDepositCents
-          }
-          remainingCents={jobPayments.view?.remainingCents ?? 0}
-          acceptedTotalCents={jobPayments.view?.acceptedTotalCents ?? 0}
-          unsigned={jobPayments.view?.unsignedApprovedEligible === true}
-          submitting={paymentModalBusy}
-          error={paymentModalError}
-          onClose={() => {
-            if (paymentModalBusy) return;
-            setPaymentModalKind(null);
-          }}
-          onSubmit={async (amountCents) => {
-            setPaymentModalBusy(true);
-            setPaymentModalError(null);
-            const result = await jobPayments.requestPayment(
-              paymentModalKind,
-              amountCents
-            );
-            setPaymentModalBusy(false);
-            if (!result.ok) {
-              setPaymentModalError("Payment request failed.");
-              return;
-            }
-            setPaymentModalKind(null);
-          }}
-        />
-      ) : null}
     </FieldDiveAppShell>
   );
 }

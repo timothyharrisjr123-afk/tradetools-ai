@@ -17,11 +17,13 @@ import {
   JOB_CARD_PAYMENTS_PAID_IN_FULL,
   PUBLIC_PAYMENT_BALANCE_LABEL,
   PUBLIC_PAYMENT_DEPOSIT_LABEL,
+  PUBLIC_PAYMENT_PROGRESS_LABEL,
   PUBLIC_PAYMENT_DUE_TITLE,
   PUBLIC_PAYMENT_PARTIAL_REFUND_EXPLANATION,
   PUBLIC_PAYMENT_PENDING_EXPLANATION,
   PUBLIC_PAYMENT_PENDING_TITLE,
   PUBLIC_PAYMENT_PAY_DEPOSIT_CTA,
+  PUBLIC_PAYMENT_PAY_CTA,
   PUBLIC_PAYMENT_RECEIVED_TITLE,
   PUBLIC_PAYMENT_REFUNDED_EXPLANATION,
   PUBLIC_PAYMENT_REFUNDED_TITLE,
@@ -355,8 +357,16 @@ export function buildJobCardPaymentViewModel(input: {
   };
 }
 
+function publicPaymentKindLabel(kind: JobPaymentKind): string {
+  if (kind === "deposit") return PUBLIC_PAYMENT_DEPOSIT_LABEL;
+  if (kind === "progress") return PUBLIC_PAYMENT_PROGRESS_LABEL;
+  return PUBLIC_PAYMENT_BALANCE_LABEL;
+}
+
 function obligationCta(kind: JobPaymentKind): string {
-  return kind === "deposit" ? PUBLIC_PAYMENT_PAY_DEPOSIT_CTA : PUBLIC_PAY_REMAINING_BALANCE_CTA;
+  if (kind === "deposit") return PUBLIC_PAYMENT_PAY_DEPOSIT_CTA;
+  if (kind === "progress") return PUBLIC_PAYMENT_PAY_CTA;
+  return PUBLIC_PAY_REMAINING_BALANCE_CTA;
 }
 
 export function buildPublicPaymentViewModel(input: {
@@ -379,9 +389,7 @@ export function buildPublicPaymentViewModel(input: {
       kind: current.kind,
       amountLabel: formatUsdFromCents(current.amount_cents),
       kindLabel:
-        current.kind === "deposit"
-          ? PUBLIC_PAYMENT_DEPOSIT_LABEL
-          : PUBLIC_PAYMENT_BALANCE_LABEL,
+        publicPaymentKindLabel(current.kind),
       paidOnLabel: null,
       explanation: "This payment did not complete. You can try again.",
       ctaLabel: obligationCta(current.kind),
@@ -397,9 +405,7 @@ export function buildPublicPaymentViewModel(input: {
       kind: current.kind,
       amountLabel: formatUsdFromCents(current.amount_cents),
       kindLabel:
-        current.kind === "deposit"
-          ? PUBLIC_PAYMENT_DEPOSIT_LABEL
-          : PUBLIC_PAYMENT_BALANCE_LABEL,
+        publicPaymentKindLabel(current.kind),
       paidOnLabel: null,
       explanation: pending ? PUBLIC_PAYMENT_PENDING_EXPLANATION : null,
       ctaLabel: pending ? null : obligationCta(current.kind),
@@ -413,9 +419,7 @@ export function buildPublicPaymentViewModel(input: {
       kind: paid.kind,
       amountLabel: formatUsdFromCents(paid.amount_cents),
       kindLabel:
-        paid.kind === "deposit"
-          ? PUBLIC_PAYMENT_DEPOSIT_LABEL
-          : PUBLIC_PAYMENT_BALANCE_LABEL,
+        publicPaymentKindLabel(paid.kind),
       paidOnLabel: formatProposalCustomerAcceptedOnLabel(paid.paid_at),
       explanation: null,
       ctaLabel: null,
@@ -434,9 +438,7 @@ export function buildPublicPaymentViewModel(input: {
       kind: paid.kind,
       amountLabel: formatUsdFromCents(full ? paid.amount_cents : refundedCents),
       kindLabel:
-        paid.kind === "deposit"
-          ? PUBLIC_PAYMENT_DEPOSIT_LABEL
-          : PUBLIC_PAYMENT_BALANCE_LABEL,
+        publicPaymentKindLabel(paid.kind),
       paidOnLabel: null,
       explanation: full
         ? PUBLIC_PAYMENT_REFUNDED_EXPLANATION
@@ -517,7 +519,9 @@ export function composeJobPaymentActivityItems(input: {
       note:
         request.kind === "deposit"
           ? `Deposit · ${formatUsdFromCents(request.amount_cents)}`
-          : `Balance · ${formatUsdFromCents(request.amount_cents)}`,
+          : request.kind === "progress"
+            ? `Progress · ${formatUsdFromCents(request.amount_cents)}`
+            : `Balance · ${formatUsdFromCents(request.amount_cents)}`,
       identity: `payment_request:${request.id}`,
       occurredAt: request.requested_at,
     });
