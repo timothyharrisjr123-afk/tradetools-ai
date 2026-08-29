@@ -73,7 +73,8 @@ describe("Template Flow V1 — presentation truth + quiet infrastructure", () =>
     const zone = read("TemplatesOnboardingZone.tsx");
     assert.ok(zone.includes("data-templates-setup-diagnostics"));
     assert.ok(zone.includes("<details"));
-    assert.ok(zone.includes("Setup diagnostics"));
+    assert.ok(zone.includes("Setup"));
+    assert.equal(zone.includes("Setup diagnostics"), false);
     assert.ok(!/Setup complete · Catalog ready · Starter installed/.test(zone));
     assert.ok(zone.includes("data-templates-setup-recheck"));
   });

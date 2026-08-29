@@ -116,7 +116,9 @@ describe("Templates Page — Reusable proposal setup landing", () => {
       workspace.includes("data-templates-advanced-tabs") ||
         workspace.includes("data-templates-edit-tabs")
     );
-    assert.ok(workspace.includes("Back to proposal setup"));
+    assert.ok(workspace.includes("TEMPLATES_BACK_TO_SETUP_ACTION"));
+    assert.ok(workspace.includes("Back to template") || workspace.includes("TEMPLATES_BACK_TO_SETUP_ACTION"));
+    assert.equal(workspace.includes("Back to proposal setup"), false);
     assert.doesNotMatch(workspace, /Content, warranty & terms/);
     assert.doesNotMatch(workspace, /TemplatesContentEditorShell/);
     assert.doesNotMatch(workspace, /editTab === "content"/);
@@ -129,7 +131,8 @@ describe("Templates Page — Reusable proposal setup landing", () => {
     const zone = read("TemplatesOnboardingZone.tsx");
     const setup = read("TemplatesSetupClient.tsx");
     assert.ok(zone.includes("data-templates-setup-diagnostics"));
-    assert.ok(zone.includes("Setup diagnostics"));
+    assert.ok(zone.includes("Setup"));
+    assert.equal(zone.includes("Setup diagnostics"), false);
     assert.ok(!zone.includes("Setup complete · Catalog ready · Starter installed"));
     assert.ok(zone.includes("data-templates-setup-recheck"));
     assert.ok(setup.includes("setupComplete="));
@@ -151,7 +154,7 @@ describe("Templates Page — Reusable proposal setup landing", () => {
   test("packages and content follow hero before next use; no trust footnote hero", () => {
     const review = read("TemplatesQuoteSetupReview.tsx");
     assert.ok(!review.includes("data-templates-trust-note"));
-    assert.equal(TEMPLATES_REUSABLE_SETUP_EYEBROW, "Selected setup");
+    assert.equal(TEMPLATES_REUSABLE_SETUP_EYEBROW, "Template");
     const heroIdx = review.indexOf("data-templates-quote-hero");
     const pkgIdx = review.indexOf("data-templates-package-selector");
     const contentIdx = review.indexOf("data-templates-proposal-content");

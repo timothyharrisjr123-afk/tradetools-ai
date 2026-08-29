@@ -58,8 +58,8 @@ export const TEMPLATES_USE_OUTCOME_SUMMARY =
 export const TEMPLATES_QUOTE_SETUP_OUTCOME =
   "Review what this template prepares for future proposals." as const;
 
-export const TEMPLATES_LIBRARY_HEADING = "Reusable setups" as const;
-export const TEMPLATES_LIBRARY_HINT = "Choose a setup to review." as const;
+export const TEMPLATES_LIBRARY_HEADING = "Your templates" as const;
+export const TEMPLATES_LIBRARY_HINT = "Select one to review." as const;
 
 /**
  * R2A — Template library lifecycle (archive/restore).
@@ -92,12 +92,12 @@ export const TEMPLATES_PREFERRED_HELPER_COPY =
   "Used first when starting a proposal from a Job Card." as const;
 export const TEMPLATES_PREFERRED_FOR_ROOFING_COPY =
   "Preferred for new roofing proposals" as const;
-export const TEMPLATES_REUSABLE_SETUP_EYEBROW = "Selected setup" as const;
+export const TEMPLATES_REUSABLE_SETUP_EYEBROW = "Template" as const;
 export const TEMPLATES_REUSABLE_SETUP_SUBCOPY =
-  "Review what this template prepares for future proposals." as const;
+  "Review what this prepares for future proposals." as const;
 export const TEMPLATES_PACKAGES_SECTION_HEADING = "Packages" as const;
 export const TEMPLATES_PACKAGES_SECTION_HINT =
-  "Switch packages to review what each one includes. Package selection happens later from a Job Card." as const;
+  "Select a package to review included work." as const;
 /** R1 package-option default — distinct from R2B Preferred setup. */
 export const TEMPLATES_PACKAGE_STARTING_LABEL = "Starting package" as const;
 
@@ -108,9 +108,9 @@ export const TEMPLATES_PACKAGE_STARTING_LABEL = "Starting package" as const;
  */
 export function formatActivePackageSetupSummary(count: number): string {
   const n = Math.max(0, Math.floor(count));
-  if (n <= 0) return "No active package options.";
-  if (n === 1) return "This setup has 1 package option.";
-  return `This setup has ${n} package options.`;
+  if (n <= 0) return "No packages yet.";
+  if (n === 1) return "1 package";
+  return `${n} packages`;
 }
 
 /** Job Card / chooser guide — count-aware package-option choice language. */
@@ -149,7 +149,7 @@ export const TEMPLATES_ADD_OPTIONAL_UPGRADE_ACTION = "Add optional upgrade" as c
 export const TEMPLATES_ADJUST_OPTIONAL_UPGRADES_ACTION = "Adjust optional upgrades" as const;
 export const TEMPLATES_PROPOSAL_CONTENT_HEADING = "Proposal packet" as const;
 export const TEMPLATES_PROPOSAL_CONTENT_HINT =
-  "Prepared customer-facing sections for this setup." as const;
+  "Customer-facing pages for new proposals from this template." as const;
 export const TEMPLATES_PROPOSAL_CONTENT_ADVANCED_ACTION =
   "Edit customer wording" as const;
 export const TEMPLATES_ESTIMATE_DISPLAY_ADVANCED_ACTION =
@@ -160,7 +160,7 @@ export const TEMPLATES_NEXT_USE_COPY =
 export const TEMPLATES_OPEN_JOBS_ACTION = "Open Jobs" as const;
 export const TEMPLATES_ADJUST_INCLUDED_ACTION = "Adjust included work" as const;
 export const TEMPLATES_ADVANCED_EDITING_ACTION = "Advanced" as const;
-export const TEMPLATES_BACK_TO_SETUP_ACTION = "Back to proposal setup" as const;
+export const TEMPLATES_BACK_TO_SETUP_ACTION = "Back to template" as const;
 export const TEMPLATES_SIMPLE_ESTIMATE_LABEL = "Simple estimate" as const;
 export const TEMPLATES_SIMPLE_ESTIMATE_DETAIL =
   "One prepared estimate — no package choices for the customer." as const;

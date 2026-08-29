@@ -9,16 +9,16 @@ export const TEMPLATES_HERO_CARD =
 export const TEMPLATES_PREREQ_BANNER =
   "rounded-lg border border-amber-200/90 bg-amber-50/70 px-4 py-4";
 
-/** Lightweight setup picker — quieter than a nested admin card stack. */
+/** Lightweight template list — quieter than a nested admin card stack. */
 export const TEMPLATES_LIBRARY_SHELL =
-  "rounded-xl border border-slate-200/70 bg-white/90 px-4 py-4";
+  "rounded-xl border border-slate-200/60 bg-white/80 px-3.5 py-3.5 sm:px-4 sm:py-4";
 
-/** Selectable setup row — selection via chrome, not badge soup. */
+/** Selectable template row — selection via chrome, not badge soup. */
 export const TEMPLATES_LIBRARY_ROW =
-  "rounded-xl border border-transparent bg-transparent px-3 py-2.5 transition hover:border-slate-200/80 hover:bg-white";
+  "rounded-xl border border-transparent bg-transparent px-3 py-3 transition hover:border-slate-200/80 hover:bg-white";
 
 export const TEMPLATES_LIBRARY_ROW_SELECTED =
-  "rounded-xl border border-blue-300/80 bg-white px-3 py-2.5 shadow-sm ring-1 ring-blue-100";
+  "rounded-xl border border-blue-300/80 bg-white px-3 py-3 shadow-sm ring-1 ring-blue-100";
 
 export const TEMPLATES_WORKSPACE_ZONE =
   "rounded-lg border border-slate-200/90 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.05)]";

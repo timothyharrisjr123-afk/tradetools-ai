@@ -36,7 +36,8 @@ describe("R1 package structure authorship", () => {
     assert.ok(editors.includes("Create package shell"));
     assert.doesNotMatch(editors, /clone graph|cascade|template_option/i);
 
-    assert.ok(editors.includes("Rename, reorder, add, or remove package options in this setup."));
+    assert.ok(editors.includes("Rename, reorder, or add packages."));
+    assert.ok(editors.includes("Reorder or remove"));
     assert.ok(editors.includes("data-templates-packages-adjust-done"));
     assert.ok(review.includes("onOpenChange={setPackagesAdjustOpen}"));
     assert.ok(review.includes("packagesAdjustOpen"));

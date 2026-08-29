@@ -259,7 +259,7 @@ export default function TemplatesQuoteSetupReview({
                   type="button"
                   onClick={onMakePreferred}
                   disabled={busy || preferenceBusy}
-                  className="rounded-lg border border-slate-200/90 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  className="inline-flex min-h-[44px] items-center rounded-lg border border-slate-200/90 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                   data-templates-make-preferred
                 >
                   {preferenceBusy ? "Saving…" : TEMPLATES_MAKE_PREFERRED_ACTION_LABEL}
@@ -341,17 +341,12 @@ export default function TemplatesQuoteSetupReview({
                 data-templates-package-summary
               >
                 {packagePresentation.mode === "multi"
-                  ? `${formatActivePackageSetupSummary(packageSummaries.length)} ${TEMPLATES_PACKAGES_SECTION_HINT}`
+                  ? formatActivePackageSetupSummary(packageSummaries.length)
                   : packagePresentation.summaryLine}
               </p>
-              {packagePresentation.mode === "multi" &&
-              selectedSummary &&
-              !packagesAdjustOpen ? (
-                <p
-                  className="mt-1 text-[11px] font-medium text-blue-800"
-                  data-templates-reviewing-package
-                >
-                  Reviewing {selectedSummary.optionLabel} below
+              {packagePresentation.mode === "multi" && !packagesAdjustOpen ? (
+                <p className="mt-0.5 text-[11px] text-slate-500">
+                  {TEMPLATES_PACKAGES_SECTION_HINT}
                 </p>
               ) : null}
             </div>
@@ -425,10 +420,10 @@ export default function TemplatesQuoteSetupReview({
                         onSelectPackage(row.optionId);
                       }
                     }}
-                    className={`min-w-0 rounded-xl border px-3.5 py-3.5 text-left transition ${
+                    className={`min-w-0 rounded-xl border px-3.5 py-3 text-left transition ${
                       selected
                         ? "border-blue-400 bg-white shadow-sm ring-2 ring-blue-100"
-                        : "border-slate-200/90 bg-white/80 hover:border-slate-300 hover:bg-white"
+                        : "border-slate-200/80 bg-white/70 hover:border-slate-300 hover:bg-white"
                     }`}
                     data-templates-package-option={row.optionId}
                   >
@@ -442,21 +437,17 @@ export default function TemplatesQuoteSetupReview({
                           Starting
                         </span>
                       ) : null}
-                      {selected ? (
-                        <span className="text-[10px] font-medium text-blue-700">
-                          Reviewing
-                        </span>
-                      ) : null}
                     </div>
                     <p
-                      className={`mt-1.5 text-xs font-medium ${
-                        selected ? "text-slate-700" : "text-slate-500"
+                      className={`mt-1 text-xs ${
+                        selected ? "font-medium text-slate-700" : "text-slate-500"
                       }`}
                     >
                       {formatPackageScopeCountLine(row)}
                     </p>
-                    {packageDescription ? (
-                      <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                    {packageDescription &&
+                    (packageSummaries.length < 4 || selected) ? (
+                      <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-slate-500">
                         {packageDescription}
                       </p>
                     ) : null}

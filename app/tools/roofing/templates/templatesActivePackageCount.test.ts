@@ -27,9 +27,9 @@ function read(rel: string): string {
 
 describe("R1 active package count truth", () => {
   test("count helpers stay truthful for 1–5 packages", () => {
-    assert.equal(formatActivePackageSetupSummary(1), "This setup has 1 package option.");
-    assert.equal(formatActivePackageSetupSummary(3), "This setup has 3 package options.");
-    assert.equal(formatActivePackageSetupSummary(4), "This setup has 4 package options.");
+    assert.equal(formatActivePackageSetupSummary(1), "1 package");
+    assert.equal(formatActivePackageSetupSummary(3), "3 packages");
+    assert.equal(formatActivePackageSetupSummary(4), "4 packages");
     assert.equal(formatActivePackageChoiceGuide(4), "Choose from 4 package options.");
     assert.equal(
       formatTemplateScopeCountLine({
@@ -74,14 +74,14 @@ describe("R1 active package count truth", () => {
       })),
     });
     assert.equal(multi.mode, "multi");
-    assert.match(multi.summaryLine, /4 package options/i);
+    assert.match(multi.summaryLine, /4 packages/i);
     assert.doesNotMatch(multi.summaryLine, /three packages|3 packages|separate template/i);
   });
 
   test("Job Card guide uses live count for 4 packages", () => {
     assert.match(
       resolveCreateProposalPackageStepEyebrow("multi", 4),
-      /4 package options/i
+      /4 packages/i
     );
     assert.match(
       resolveCreateProposalPackageStepGuide("multi", 4),

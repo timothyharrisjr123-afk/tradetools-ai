@@ -629,7 +629,7 @@ describe("Prepare proposal V2A write boundary and wiring", () => {
     );
     assert.match(
       resolveCreateProposalPackageStepEyebrow("multi", 4),
-      /4 package options/i
+      /4 packages/i
     );
     assert.match(
       resolveCreateProposalPackageStepGuide("multi", 4),

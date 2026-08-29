@@ -142,7 +142,7 @@ export default function TemplatesTemplateLibraryRow({
           {!compact && shortDescription ? (
             <p className="mt-0.5 text-xs leading-snug text-slate-500">{shortDescription}</p>
           ) : null}
-          {selected && summaryLine ? (
+          {summaryLine ? (
             <p
               className="mt-1 text-xs text-slate-500"
               data-templates-library-summary

@@ -25,7 +25,7 @@ describe("fieldDiveNavConfig", () => {
     assert.equal(catalog.href, "/tools/roofing/catalog");
   });
 
-  test("keeps Jobs and Proposal templates reachable", () => {
+  test("keeps Jobs and Templates reachable", () => {
     assert.equal(hasNavHref("/tools/roofing/saved"), true);
     assert.equal(hasNavHref("/tools/roofing/templates"), true);
     assert.equal(hasNavHref("/tools/roofing/catalog"), true);
@@ -33,6 +33,9 @@ describe("fieldDiveNavConfig", () => {
     assert.equal(hasNavHref("/tools/settings/pricing"), true);
     assert.equal(hasNavHref("/tools/settings/payments"), false);
     assert.equal(hasNavHref("/tools/roofing/calendar"), true);
+    const templates = getPrimaryWorkflowNavItems().find((item) => item.key === "templates");
+    assert.ok(templates);
+    assert.equal(templates.label, "Templates");
   });
 
   test("uses Jobs label for Job Board route", () => {

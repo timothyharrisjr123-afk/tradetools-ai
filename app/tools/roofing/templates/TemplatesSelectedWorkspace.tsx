@@ -18,6 +18,7 @@ import type {
 } from "./TemplatesSetupAuthorshipEditors";
 import type { PacketWordingSavePlan } from "./templatesSetupPacketWording";
 import {
+  TEMPLATES_BACK_TO_SETUP_ACTION,
   TEMPLATES_EDIT_TABS,
   type PackageOptionSummary,
   type TemplateCreatesSummary,
@@ -202,18 +203,17 @@ export default function TemplatesSelectedWorkspace({
             {graph.template.name}
           </h2>
           <p className="mt-0.5 text-xs text-slate-500">
-            Sections and customer display. Everyday included-work and wording changes stay on the
-            proposal setup.
+            Rare section and display settings. Everyday setup stays on the template.
           </p>
         </div>
         <button
           type="button"
           onClick={onBackToReview}
-          className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          className="inline-flex min-h-[44px] items-center justify-center rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
           data-templates-back-to-summary
           data-templates-back-to-review
         >
-          Back to proposal setup
+          {TEMPLATES_BACK_TO_SETUP_ACTION}
         </button>
       </div>
 

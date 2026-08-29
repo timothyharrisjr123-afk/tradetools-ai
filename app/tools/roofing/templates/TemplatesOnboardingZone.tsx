@@ -34,7 +34,7 @@ export default function TemplatesOnboardingZone({
           className="cursor-pointer list-none text-[11px] font-medium text-slate-400 underline-offset-2 hover:text-slate-600 hover:underline [&::-webkit-details-marker]:hidden"
           data-templates-setup-diagnostics-summary
         >
-          Setup diagnostics
+          Setup
         </summary>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
           <p className="text-xs text-slate-500" data-templates-setup-strip>
@@ -71,8 +71,8 @@ export default function TemplatesOnboardingZone({
         </h2>
         <p className="mt-0.5 text-xs text-slate-500">
           {workspaceActive
-            ? "Finish Catalog and starter template setup to unlock quote review."
-            : "Complete Catalog setup and install your first proposal template."}
+            ? "Finish Catalog and your starter template."
+            : "Finish Catalog setup, then install a starter template."}
         </p>
       </div>
 

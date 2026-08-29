@@ -25,7 +25,7 @@ describe("Template Flow V1 — reusable setup landing", () => {
   test("landing uses Reusable proposal setup framing", () => {
     const review = read("TemplatesQuoteSetupReview.tsx");
     const library = read("TemplatesLibrarySection.tsx");
-    assert.equal(TEMPLATES_REUSABLE_SETUP_EYEBROW, "Selected setup");
+    assert.equal(TEMPLATES_REUSABLE_SETUP_EYEBROW, "Template");
     assert.ok(review.includes("TEMPLATES_REUSABLE_SETUP_EYEBROW"));
     assert.ok(review.includes("TEMPLATES_REUSABLE_SETUP_SUBCOPY"));
     assert.ok(library.includes("TEMPLATES_LIBRARY_HEADING"));

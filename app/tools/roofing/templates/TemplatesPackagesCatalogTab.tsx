@@ -148,15 +148,11 @@ export default function TemplatesPackagesCatalogTab({
                     </span>
                   </span>
                   <span className="flex flex-wrap items-center gap-2">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${
-                        summary?.status === "needs_attention"
-                          ? "bg-amber-50 text-amber-800 ring-amber-200"
-                          : "bg-emerald-50 text-emerald-800 ring-emerald-200"
-                      }`}
-                    >
-                      {summary?.status === "needs_attention" ? "Needs attention" : "Ready"}
-                    </span>
+                    {summary?.status === "needs_attention" ? (
+                      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-800 ring-1 ring-amber-200">
+                        Needs attention
+                      </span>
+                    ) : null}
                     <span className="text-xs font-semibold text-slate-500">
                       {expanded ? "Hide" : "Open"}
                     </span>
@@ -192,7 +188,7 @@ export default function TemplatesPackagesCatalogTab({
                                     {proposalTemplateSectionKindLabel(section.kind)}
                                     {section.itemCount > 0
                                       ? ` · ${section.itemCount} included item${section.itemCount === 1 ? "" : "s"}`
-                                      : " · no Catalog items yet"}
+                                      : ""}
                                   </p>
                                 </div>
                                 <button

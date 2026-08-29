@@ -269,7 +269,7 @@ describe("templatesWorkspaceFlow", () => {
       }),
       "4 packages · 52 included · 3 optional upgrades"
     );
-    assert.equal(formatActivePackageSetupSummary(4), "This setup has 4 package options.");
+    assert.equal(formatActivePackageSetupSummary(4), "4 packages");
     assert.equal(formatActivePackageChoiceGuide(4), "Choose from 4 package options.");
     assert.equal(formatActivePackageChoiceGuide(3), "Choose from 3 package options.");
     assert.equal(formatActivePackageChoiceGuide(2), "Choose between 2 package options.");

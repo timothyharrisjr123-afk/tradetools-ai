@@ -114,7 +114,7 @@ export const FIELD_DIVE_NAV_SECTIONS: FieldDiveNavSectionConfig[] = [
       },
       {
         key: "templates",
-        label: "Proposal templates",
+        label: "Templates",
         href: "/tools/roofing/templates",
         kind: "link",
         icon: "layoutTemplate",
