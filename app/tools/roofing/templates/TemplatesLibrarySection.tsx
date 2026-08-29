@@ -94,8 +94,8 @@ export default function TemplatesLibrarySection({
       : filteredTemplates;
   const setupCountLabel =
     primaryTemplates.length === 1
-      ? "1 setup"
-      : `${primaryTemplates.length} setups`;
+      ? "1 template"
+      : `${primaryTemplates.length} templates`;
   const confirmArchiveTemplate = confirmArchiveId
     ? ordered.find((row) => row.id === confirmArchiveId) ?? null
     : null;

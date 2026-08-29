@@ -88,6 +88,11 @@ describe("Template Flow V1 — presentation truth + quiet infrastructure", () =>
     assert.ok(library.includes("archivedTemplates"));
     assert.ok(library.includes("TEMPLATES_LIBRARY_HEADING"));
     assert.ok(library.includes("data-templates-setup-selector"));
+    assert.ok(library.includes("templates"));
+    assert.ok(library.includes('"1 template"') || library.includes("1 template"));
+    assert.ok(library.includes("templates`"));
+    assert.equal(library.includes("1 setup"), false);
+    assert.equal(library.includes("setups`"), false);
     assert.ok(row.includes('data-templates-library-archived'));
     assert.ok(row.includes("opacity-90"));
     assert.ok(row.includes("countCatalogLinkedAvailableUpgradeItems"));
@@ -129,5 +134,14 @@ describe("Template Flow V1 — presentation truth + quiet infrastructure", () =>
     assert.ok(!upgrades.includes("TEMPLATES_AVAILABLE_UPGRADES_EMPTY"));
     assert.ok(review.includes("ring-2 ring-blue-100"));
     assert.ok(review.includes("data-templates-proposal-content"));
+  });
+
+  test("Advanced package status is quiet when healthy; issue state remains", () => {
+    const packages = read("TemplatesPackagesCatalogTab.tsx");
+    assert.ok(packages.includes('summary?.status === "needs_attention"'));
+    assert.ok(packages.includes("Needs attention"));
+    assert.ok(packages.includes("{expanded ? \"Hide\" : \"Open\"}"));
+    assert.equal(/["'`]Ready["'`]|>Ready</.test(packages), false);
+    assert.equal(packages.includes("bg-emerald-50 text-emerald-800"), false);
   });
 });
