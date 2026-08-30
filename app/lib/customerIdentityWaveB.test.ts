@@ -16,9 +16,11 @@ import {
   personNameTokens,
 } from "./customerIdentityNormalize";
 import {
+  CUSTOMER_SEARCH_INITIAL_VISIBLE,
   CUSTOMER_SEARCH_RESULT_LIMIT,
   buildCustomerSearchRpcQuery,
   customerSearchQueryIsActive,
+  partitionCustomerCandidates,
   rankCustomerSearchCandidates,
 } from "./customerMatch";
 import { isGooglePlacesConfigured } from "./placesConfig";
@@ -111,6 +113,31 @@ describe("Wave B — candidate ranking (no auto-merge)", () => {
     assert.equal(ranked.length, CUSTOMER_SEARCH_RESULT_LIMIT);
   });
 
+  test("initial visible list is 3; Show more reveals remaining ranked candidates", () => {
+    const many = Array.from({ length: 8 }, (_, i) => ({
+      id: `aaaaaaaa-aaaa-4aaa-8aaa-${String(i).padStart(12, "0")}`,
+      name: `Bob Candidate ${i}`,
+      email: `bob${i}@example.com`,
+      phone: null,
+    }));
+    const ranked = rankCustomerSearchCandidates(many, { name: "Bob" });
+    const compact = partitionCustomerCandidates(ranked, false);
+    assert.equal(CUSTOMER_SEARCH_INITIAL_VISIBLE, 3);
+    assert.equal(compact.visible.length, 3);
+    assert.equal(compact.hiddenCount, ranked.length - 3);
+    const expanded = partitionCustomerCandidates(ranked, true);
+    assert.equal(expanded.visible.length, ranked.length);
+    assert.equal(expanded.hiddenCount, 0);
+    assert.deepEqual(expanded.visible.map((c) => c.id), ranked.map((c) => c.id));
+  });
+
+  test("name-only ranking never auto-merges", () => {
+    const ranked = rankCustomerSearchCandidates(rows, { name: "Smith" });
+    assert.ok(ranked.length >= 2);
+    assert.ok(ranked.every((c) => c.signals.includes("name")));
+    assert.ok(!ranked.some((c) => c.signals.includes("exact_email")));
+  });
+
   test("query activity gates short input", () => {
     assert.equal(customerSearchQueryIsActive({ name: "B" }), false);
     assert.equal(customerSearchQueryIsActive({ name: "Bo" }), true);
@@ -136,6 +163,25 @@ describe("Wave B — writers + intake contracts", () => {
     assert.match(source, /forceNewCustomer|Continue as new/);
     assert.match(source, /exact-email findOrCreate cannot silently merge/);
     assert.match(source, /JobPacketCustomerCandidates/);
+  });
+
+  test("intake chrome stays quiet: no healthy badges, no readiness score, no empty Property preview", () => {
+    const source = read("app/tools/roofing/RoofingClient.tsx");
+    const packet = read("app/tools/roofing/JobPacketCustomerCandidates.tsx");
+    assert.doesNotMatch(source, /emerald-800">\s*Active/);
+    assert.doesNotMatch(source, /emerald-800">\s*Ready/);
+    assert.doesNotMatch(source, /amber-800">\s*Needed/);
+    assert.doesNotMatch(source, /core details captured/);
+    assert.doesNotMatch(source, /Before you estimate/);
+    assert.doesNotMatch(source, /Packet status/);
+    assert.doesNotMatch(source, /Property preview/);
+    assert.doesNotMatch(source, /Map preview when address is confirmed/);
+    assert.match(source, /Add customer and property details to continue/);
+    assert.match(source, /job_address1_field/);
+    assert.match(packet, /Show more/);
+    assert.match(packet, /Continue as new customer/);
+    assert.match(packet, /Using existing customer/);
+    assert.doesNotMatch(packet, /Duplicate detected/);
   });
 
   test("Job Card contact remains snapshot; live Customer not dual-written from packet edits", () => {

@@ -10,6 +10,7 @@ import {
 } from "./customerIdentityNormalize";
 
 export const CUSTOMER_SEARCH_RESULT_LIMIT = 8;
+export const CUSTOMER_SEARCH_INITIAL_VISIBLE = 3;
 export const CUSTOMER_SEARCH_MIN_QUERY_LENGTH = 2;
 export const CUSTOMER_SEARCH_DEBOUNCE_MS = 280;
 
@@ -127,6 +128,23 @@ export function rankCustomerSearchCandidates(
   }
   out.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
   return out.slice(0, CUSTOMER_SEARCH_RESULT_LIMIT).map(({ score: _s, ...rest }) => rest);
+}
+
+/** Initial compact list vs remaining ranked candidates. Ranking is unchanged. */
+export function partitionCustomerCandidates(
+  candidates: CustomerSearchCandidate[],
+  expanded: boolean
+): {
+  visible: CustomerSearchCandidate[];
+  hiddenCount: number;
+} {
+  if (expanded || candidates.length <= CUSTOMER_SEARCH_INITIAL_VISIBLE) {
+    return { visible: candidates, hiddenCount: 0 };
+  }
+  return {
+    visible: candidates.slice(0, CUSTOMER_SEARCH_INITIAL_VISIBLE),
+    hiddenCount: candidates.length - CUSTOMER_SEARCH_INITIAL_VISIBLE,
+  };
 }
 
 export function parseCustomerSearchApiPayload(json: unknown): CustomerSearchCandidate[] {

@@ -14,7 +14,6 @@ import {
   TrendingUp,
   Sparkles,
   Info,
-  MapPin,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -5769,25 +5768,7 @@ Thanks,`;
     standaloneEntryMode: "packet" | "instant" = "packet"
   ) {
     const isStandalone = variant === "standalone";
-    const packetReadinessRows = getPacketReadinessRows(packetFieldSnapshot);
-    const packetReadyCount = packetReadinessRows.filter((row) => row.ready).length;
-    const packetTotalCount = packetReadinessRows.length;
-    const packetProgressPct = Math.round((packetReadyCount / packetTotalCount) * 100);
     const packetFactsComplete = packetMinimumComplete;
-    const addressLine = [
-      (jobAddress1 || "").trim(),
-      [(jobCity || "").trim(), (jobState || "").trim()].filter(Boolean).join(", "),
-      (jobZip || "").trim(),
-    ]
-      .filter(Boolean)
-      .join(", ");
-    const propertyPreview = addressLine || "Add property address";
-    const beforeEstimateItems = [
-      { id: "contact", label: "Contact", ready: Boolean((customerName || customerEmail || customerPhone).trim()) },
-      { id: "street", label: "Address", ready: !!(jobAddress1 || "").trim() },
-      { id: "zip", label: "ZIP", ready: (jobZip || "").trim().length === 5 },
-      { id: "citystate", label: "City-State", ready: !!(jobCity || "").trim() && !!(jobState || "").trim() },
-    ];
     const standaloneRaisedPanel =
       "rounded-2xl bg-white p-4 shadow-sm shadow-slate-200/45 ring-1 ring-slate-200/50 sm:p-5";
 
@@ -5814,37 +5795,11 @@ Thanks,`;
                 Estimate path: {standaloneEntryMode === "instant" ? "Instant — coming soon" : "Not selected"}
               </span>
             </div>
-            <div className="mt-4 rounded-xl bg-white/80 px-4 py-3.5 shadow-[inset_0_1px_2px_rgba(15,23,42,0.04),0_1px_0_rgba(255,255,255,0.9)] ring-1 ring-slate-200/45">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-600">
-                  Before you estimate
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {beforeEstimateItems.map((item) => (
-                    <span
-                      key={item.id}
-                      className={
-                        "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-medium shadow-sm " +
-                        (item.ready
-                          ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100/80"
-                          : "bg-slate-100/90 text-slate-600 ring-1 ring-slate-200/40")
-                      }
-                    >
-                      <span aria-hidden>{item.ready ? "✓" : "○"}</span>
-                      {item.label}
-                    </span>
-                  ))}
-                </div>
-                <span className="text-[11px] font-medium text-slate-500 sm:ml-auto">
-                  {packetReadyCount} of {packetTotalCount} core details captured
-                </span>
-              </div>
-              {!packetFactsComplete ? (
-                <p className="mt-2 text-[11px] leading-snug text-slate-600">
-                  Complete customer and property details, then continue to Job Card.
-                </p>
-              ) : null}
-            </div>
+            {!packetFactsComplete ? (
+              <p className="mt-3 text-[12px] leading-snug text-slate-500">
+                Add customer and property details to continue.
+              </p>
+            ) : null}
           </div>
         ) : null}
 
@@ -5917,20 +5872,9 @@ Thanks,`;
           <div className={isStandalone ? "space-y-5" : "divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/30"}>
             {/* Customer */}
             <section className={isStandalone ? standaloneRaisedPanel : "bg-white px-3.5 py-3.5 sm:px-4"}>
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                              <User className="h-3.5 w-3.5 text-slate-500" aria-hidden />
-                              Customer
-                            </div>
-                            {(customerName || customerEmail || customerPhone).trim() ? (
-                              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-[1px] text-[9px] font-semibold uppercase tracking-[0.11em] text-emerald-800">
-                                Active
-                              </span>
-                            ) : (
-                              <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-[1px] text-[9px] font-semibold uppercase tracking-[0.11em] text-amber-800">
-                                Needed
-                              </span>
-                            )}
+                          <div className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                            <User className="h-3.5 w-3.5 text-slate-500" aria-hidden />
+                            Customer
                           </div>
                           <p className="mt-1 text-[10.5px] leading-snug text-slate-500">Who receives the proposal and follow-ups.</p>
                           <div className="mt-2 grid gap-2">
@@ -5998,21 +5942,9 @@ Thanks,`;
 
             {/* Property */}
             <section className={isStandalone ? standaloneRaisedPanel : "bg-white px-3.5 py-3.5 sm:px-4"}>
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                              <Home className="h-3.5 w-3.5 text-slate-500" aria-hidden />
-                              Property
-                            </div>
-                            {(jobAddress1 || "").trim() && (jobZip || "").trim().length === 5 ? (
-                              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-[1px] text-[9px] font-semibold uppercase tracking-[0.11em] text-emerald-800">
-                                <ShieldCheck className="h-2.5 w-2.5" aria-hidden />
-                                Ready
-                              </span>
-                            ) : (
-                              <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-[1px] text-[9px] font-semibold uppercase tracking-[0.11em] text-amber-800">
-                                Needed
-                              </span>
-                            )}
+                          <div className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                            <Home className="h-3.5 w-3.5 text-slate-500" aria-hidden />
+                            Property
                           </div>
                           <p className="mt-1 text-[10.5px] leading-snug text-slate-500">Where the job is happening.</p>
                           <div className="mt-2 grid gap-2">
@@ -6217,28 +6149,6 @@ Thanks,`;
           {isStandalone ? (
           <div className="space-y-5 xl:sticky xl:top-4 xl:self-start">
             <section className={standaloneRaisedPanel}>
-              <div className="mb-3 flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                <MapPin className="h-3.5 w-3.5 text-slate-500" aria-hidden />
-                Property preview
-              </div>
-              <div className="flex aspect-[16/10] flex-col items-center justify-center rounded-xl bg-slate-50/45 px-4 text-center ring-1 ring-dashed ring-slate-200/55">
-                  {addressLine ? (
-                    <>
-                      <MapPin className="mb-2 h-6 w-6 text-slate-400" aria-hidden />
-                      <p className="text-sm font-medium text-slate-700">{propertyPreview}</p>
-                      <p className="mt-1 text-xs text-slate-500">Map preview when address is confirmed</p>
-                    </>
-                  ) : (
-                    <>
-                      <Home className="mb-2 h-6 w-6 text-slate-300" aria-hidden />
-                      <p className="text-sm font-medium text-slate-500">Add property address</p>
-                      <p className="mt-1 text-xs text-slate-400">Site context appears here</p>
-                    </>
-                  )}
-                </div>
-            </section>
-
-            <section className={standaloneRaisedPanel}>
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                   <Camera className="h-3.5 w-3.5 text-slate-500" aria-hidden />
@@ -6278,56 +6188,13 @@ Thanks,`;
               <p className="mt-2 text-xs text-slate-500">Scheduling will connect here when site visits are wired.</p>
             </section>
           </div>
-          ) : (
-          <aside
-            className={
-              isStandalone
-                ? "h-fit pt-1 lg:sticky lg:top-4 lg:border-l lg:border-slate-200/70 lg:pl-6"
-                : "h-fit rounded-lg border border-slate-200/80 bg-slate-50/40 p-3 lg:sticky lg:top-4"
-            }
-          >
-            <div className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">Packet status</div>
-            <p className="mt-2 text-[11px] leading-snug text-slate-600">
-              {packetReadyCount} of {packetTotalCount} core details captured
+          ) : !packetFactsComplete ? (
+          <aside className="h-fit rounded-lg border border-slate-200/80 bg-slate-50/40 p-3 lg:sticky lg:top-4">
+            <p className="text-[11px] leading-snug text-slate-600">
+              Add customer and property details to continue.
             </p>
-            <div className="mt-2 h-1 overflow-hidden rounded-full bg-slate-200/70">
-              <div
-                className="h-full rounded-full bg-emerald-500/90 transition-[width] duration-300"
-                style={{ width: `${packetProgressPct}%` }}
-                role="progressbar"
-                aria-valuenow={packetProgressPct}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-label="Packet status progress"
-              />
-            </div>
-            <ul className="mt-3 space-y-1.5">
-              {packetReadinessRows.map((row) => (
-                <li key={row.id} className="flex items-start gap-2 text-[11px] leading-snug">
-                  <span
-                    className={
-                      "mt-0.5 shrink-0 " + (row.ready ? "font-semibold text-emerald-700" : "text-slate-400")
-                    }
-                    aria-hidden
-                  >
-                    {row.ready ? "✓" : "○"}
-                  </span>
-                  <span className={row.ready ? "text-slate-700" : "text-slate-500"}>{row.label}</span>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-4 space-y-2 border-t border-slate-200/70 pt-3">
-              <p className="text-[11px] leading-relaxed text-slate-700">
-                {packetFactsComplete
-                  ? "Customer and property are captured. Continue to Job Card to confirm measurements and start a proposal."
-                  : "Complete customer and property details, then continue to Job Card."}
-              </p>
-              <p className="text-[10.5px] leading-relaxed text-slate-500">
-                Instant Estimate will require photos + property address.
-              </p>
-            </div>
           </aside>
-          )}
+          ) : null}
         </div>
 
         {/* Footer actions */}
