@@ -82,7 +82,7 @@
 
 **Last updated checkpoint:**
 
-- **Wave B identity + intake docs checkpoint:** this docs commit — `docs: checkpoint wave b identity and intake` (**WAVE B IDENTITY + INTAKE COMPLETE**; Places **NOT CONNECTED**, see **§6DE.13**). Code **`c71560e`** — `feat(jobs): add reusable customer intake identity`. Migration **063 LIVE**. Proof `tmp/fielddive-ui-review/wave-b-identity-intake/`. **NO PUSH.** **Exact next:** **Wave C — Property + typed search + light Customer/Property workspaces** — do **not** start until authorized. Optional follow-up: add server `GOOGLE_PLACES_API_KEY` to enable Places autocomplete verification.
+- **Wave B final closeout docs checkpoint:** this docs commit — `docs: finalize wave b identity and intake` (**WAVE B IDENTITY PASS / PLACES CONFIG BLOCKED**, see **§6DE.13.1**). Code **`d11cc9a`** — `fix(jobs): quiet customer intake identity flow`. Identity reuse + quiet intake visual PASS. Places still **NOT LIVE** (no server `GOOGLE_PLACES_API_KEY`). Proof `tmp/fielddive-ui-review/wave-b-final-closeout/`. **NO PUSH.** **Wave C remains unauthorized.** Optional: add server Places key and verify suggestion→fill before claiming full Wave B closed.
 - **Wave A final visual closeout docs checkpoint:** **`897ec36`** — `docs: finalize wave a command-surface review` (**WAVE A FULLY CLOSED**, see **§6DE.12**). Code **`dd1ba45`** — `fix(jobs): quiet healthy board chrome`. Healthy `Company setup complete` card removed from Jobs Board; action-required setup intervention preserved. Desktop Sign out = sticky sidebar footer only; mobile Sign out = header only. Proof `tmp/fielddive-ui-review/wave-a-final-closeout/`. Legacy billing P0 already closed (**§6DE.11**).
 - **Legacy billing tenant isolation docs checkpoint:** **`bf3ba93`** — `docs: checkpoint legacy billing tenant isolation` (**LEGACY BILLING RLS P0 CLOSED**, see **§6DE.11**). Code **`38d3c85`**. Migration **062 LIVE** on **`rhquhnujjnzjhweypavd`**.
 - **Jobs Board command-surface integrity docs checkpoint:** **`8f3c0bb`** — `docs: checkpoint jobs board command-surface integrity` (**WAVE A COMPLETE**, see **§6DE.10**). Code **`44a9637`** — `fix(jobs): make jobs board the honest command surface`. Jobs Board (`/tools/roofing/saved`, `statusFilter === "all"`) is the canonical daily home. Stage-1 company job search **LIVE** (**061 LIVE**). Desktop + 390 proof `tmp/fielddive-ui-review/wave-a-command-surface/`. Visual closeout (healthy setup card + Sign out dupe) deferred behind **§6DE.11**.
@@ -19439,7 +19439,7 @@ SHA256 **`1C21262F40BD3D9807302E04FCEA747E65E0A21D3FA6E374D2194D664A5301D6`** on
 
 **Status:** **IDENTITY + INTAKE COMPLETE / ACCEPTED.** Places provider **NOT CONNECTED** (no `GOOGLE_PLACES_API_KEY` / `GOOGLE_MAPS_API_KEY` in `.env.local`). Manual address intake verified. Do **not** claim Places live until a key is configured and selection is visually verified.
 
-**Code commit:** `feat(jobs): add reusable customer intake identity`  
+**Code commit:** **`c71560e`** — `feat(jobs): add reusable customer intake identity`  
 **Docs checkpoint:** this docs commit — `docs: checkpoint wave b identity and intake`. **NO PUSH.**
 
 **Architecture (Wave B):**
@@ -19475,6 +19475,35 @@ SHA256 **`1C21262F40BD3D9807302E04FCEA747E65E0A21D3FA6E374D2194D664A5301D6`** on
 **Visual proof:** `tmp/fielddive-ui-review/wave-b-identity-intake/` (desktop empty / candidates / selected / new+manual; 390 empty / candidates / selected+manual). Post-review fix: multi-signal customer search so typed email does not hide name/phone matches.
 
 **Exact next:** **Wave C — Property + typed search + light Customer/Property workspaces**. Do **not** start until authorized. Optional: configure Places key and verify suggestion→fill before claiming Places connected.
+
+### §6DE.13.1 Wave B final closeout — IDENTITY PASS / PLACES CONFIG BLOCKED
+
+**Status:** Identity + quiet intake **PASS**. Places **CONFIG BLOCKED** (`.env.local` still has no `GOOGLE_PLACES_API_KEY` / `GOOGLE_MAPS_API_KEY`). **WAVE B NOT FULLY CLOSED.** Do **not** start Wave C until authorized. Do **not** claim Places live.
+
+**Code commit:** **`d11cc9a`** — `fix(jobs): quiet customer intake identity flow`  
+**Docs checkpoint:** this docs commit — `docs: finalize wave b identity and intake`. **NO PUSH.**
+
+**Candidate UX:** Ranked set still max 8. Initial visible **3**; quiet **Show more** reveals remainder. **Continue as new customer** always remains when candidates exist. No auto-select. No modal. No “duplicate detected”.
+
+**Quiet-state correction:**
+- Removed persistent Customer **ACTIVE** / **NEEDED** badges.
+- Removed persistent Property **READY** / **NEEDED** badges.
+- Removed **BEFORE YOU ESTIMATE** pills and `N of 4 core details captured` score/progress.
+- Compact missing-only line: `Add customer and property details to continue.` Healthy complete state stays quiet.
+
+**Property Preview:** Empty map-placeholder panel removed. No map, no Property entity, no fake site context. Photos & evidence rail left unchanged (placeholder domain).
+
+**Selected customer:** Compact `Using existing customer: …` + `Continue as new instead`. Not a profile card.
+
+**Places:** Server-only routes unchanged. Live `/api/places/autocomplete?q=123+Main` → `{ available: false, suggestions: [] }`. Manual street/city/state/ZIP still enables Continue. No client key exposure.
+
+**Authority unchanged:** `customers` live identity; `jobs.customer_id` pointer; job contact snapshot; frozen proposal/payment truth not rewritten.
+
+**Tests / build:** focused Wave B + 060 + persist **53/53**. `npm run build` **PASS**. No migration. No package changes.
+
+**Visual proof:** `tmp/fielddive-ui-review/wave-b-final-closeout/` (desktop empty / compact candidates / selected / new+manual; 390 compact candidates / selected+manual).
+
+**Exact next:** Places key + live suggestion→fill verification if full Wave B close is required. **Wave C unauthorized.**
 
 ---
 
