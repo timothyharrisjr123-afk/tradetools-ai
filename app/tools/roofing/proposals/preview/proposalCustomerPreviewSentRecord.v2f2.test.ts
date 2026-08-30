@@ -17,14 +17,19 @@ function read(rel: string): string {
 describe("V2F2 sent-record Preview wiring", () => {
   test("sent mode loads the explicit frozen version and never getDraftGraph in that branch", () => {
     const client = read("ProposalCustomerPreviewClient.tsx");
-    const sentBranch = client.slice(
-      client.indexOf('if (sentRequest.mode === "sent_record")'),
-      client.indexOf("const [jobRecord, graph, catalog]")
+    const sentStart = client.indexOf('if (sentRequest.mode === "sent_record")');
+    assert.ok(sentStart >= 0);
+    const draftAfterSent = client.indexOf(
+      "const graph = await getDraftGraph(companyId, proposalId);",
+      sentStart
     );
+    assert.ok(draftAfterSent > sentStart);
+    const sentBranch = client.slice(sentStart, draftAfterSent);
     assert.match(sentBranch, /getProposalVersionGraph/);
     assert.match(sentBranch, /requireSentVersion:\s*true/);
     assert.match(sentBranch, /validateProposalSentRecordGraph/);
     assert.match(sentBranch, /asCustomerPreviewGraphFromSentRecord/);
+    assert.match(sentBranch, /return;/);
     assert.doesNotMatch(sentBranch, /getDraftGraph/);
     assert.doesNotMatch(sentBranch, /getLatestSentProposalVersionGraph/);
   });
@@ -32,11 +37,13 @@ describe("V2F2 sent-record Preview wiring", () => {
   test("invalid sent mode does not load draft", () => {
     const client = read("ProposalCustomerPreviewClient.tsx");
     assert.match(client, /sent_record_invalid/);
-    const invalidBranch = client.slice(
-      client.indexOf('if (sentRequest.mode === "sent_record_invalid")'),
-      client.indexOf("try {")
-    );
-    assert.match(invalidBranch, /setLoadError\(sentRequest\.reason\)/);
+    const invalidStart = client.indexOf('if (sentRequest.mode === "sent_record_invalid")');
+    assert.ok(invalidStart >= 0);
+    const afterInvalid = client.indexOf("void getJobById(jobId)", invalidStart);
+    assert.ok(afterInvalid > invalidStart);
+    const invalidBranch = client.slice(invalidStart, afterInvalid);
+    assert.match(invalidBranch, /setRouteError\(sentRequest\.reason\)/);
+    assert.match(invalidBranch, /return;/);
     assert.doesNotMatch(invalidBranch, /getDraftGraph/);
   });
 
@@ -49,6 +56,8 @@ describe("V2F2 sent-record Preview wiring", () => {
     assert.match(header, /PREVIEW_SENT_RECORD_BACK_LABEL/);
     assert.match(header, /data-preview-sent-record/);
     assert.match(header, /sentRecordChrome\?\.statusLabel/);
+    assert.match(header, /ProposalPreviewPdfActions/);
+    assert.match(client, /pdfDownload=/);
     assert.doesNotMatch(
       header,
       />[^<]*(snapshot|proposal_version_id|version_kind|superseded)[^<]*</i

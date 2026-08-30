@@ -555,6 +555,15 @@ export default function ProposalCustomerPreviewClient({
               sentRecordChrome={sentRecordChrome}
               onSendSharing={() => openSendSharing()}
               showSendSharing={!isSentRecord}
+              pdfDownload={
+                isSentRecord && sentRequest.mode === "sent_record"
+                  ? {
+                      companyId,
+                      proposalId: normalizedProposalId,
+                      versionId: sentRequest.versionId,
+                    }
+                  : null
+              }
             />
             {isSentRecord ? null : (
               <>

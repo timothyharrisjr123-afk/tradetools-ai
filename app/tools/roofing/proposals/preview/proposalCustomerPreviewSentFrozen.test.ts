@@ -21,7 +21,7 @@ function readPreviewSource(rel: string): string {
 describe("V2C4 Preview sent/frozen chrome", () => {
   test("default Preview still loads draft graph; sent-record is an explicit branch", () => {
     const client = readPreviewSource("ProposalCustomerPreviewClient.tsx");
-    assert.match(client, /getDraftGraph\(companyId, normalizedProposalId\)/);
+    assert.match(client, /getDraftGraph\(companyId, proposalId\)/);
     assert.match(client, /buildProposalCustomerPreviewDocument\(persistedGraph/);
     assert.match(client, /getLatestSentProposalVersionGraph/);
     assert.match(client, /sentRequest\.mode === "sent_record"/);

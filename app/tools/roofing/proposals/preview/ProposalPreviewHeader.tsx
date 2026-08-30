@@ -12,6 +12,7 @@ import {
   PREVIEW_SENT_RECORD_BACK_LABEL,
 } from "@/app/lib/proposalPreviewSentRecord";
 import ProposalPreviewActionGroup from "./ProposalPreviewActionGroup";
+import ProposalPreviewPdfActions from "./ProposalPreviewPdfActions";
 import { PREVIEW_HEADER, PREVIEW_HEADER_INNER } from "./proposalPreviewWorkspaceStyles";
 
 type ProposalPreviewHeaderProps = {
@@ -25,6 +26,12 @@ type ProposalPreviewHeaderProps = {
   showSendSharing: boolean;
   backHref?: string;
   sentRecordChrome?: ProposalPreviewSentRecordChrome | null;
+  /** Exact frozen version for sent-record PDF download. */
+  pdfDownload?: {
+    companyId: string;
+    proposalId: string;
+    versionId: string;
+  } | null;
 };
 
 function compactPackageLabel(label: string | null): string | null {
@@ -50,10 +57,17 @@ export default function ProposalPreviewHeader({
   showSendSharing,
   backHref,
   sentRecordChrome = null,
+  pdfDownload = null,
 }: ProposalPreviewHeaderProps) {
   const packageLabel = compactPackageLabel(selectedPackageLabel);
   const isSentRecord = Boolean(sentRecordChrome);
   const statusLabel = sentRecordChrome?.statusLabel ?? sentFrozenChrome.statusLabel;
+  const showPdfActions =
+    isSentRecord &&
+    pdfDownload != null &&
+    Boolean(pdfDownload.companyId) &&
+    Boolean(pdfDownload.proposalId) &&
+    Boolean(pdfDownload.versionId);
 
   return (
     <header
@@ -153,6 +167,13 @@ export default function ProposalPreviewHeader({
           <ProposalPreviewActionGroup
             onSendSharing={onSendSharing}
             showSendSharing={showSendSharing}
+          />
+        ) : null}
+        {showPdfActions && pdfDownload ? (
+          <ProposalPreviewPdfActions
+            companyId={pdfDownload.companyId}
+            proposalId={pdfDownload.proposalId}
+            versionId={pdfDownload.versionId}
           />
         ) : null}
       </div>

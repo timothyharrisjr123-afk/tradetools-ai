@@ -12,8 +12,8 @@ const SEND_ACTION =
   "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-[13px] font-semibold text-white shadow-sm transition hover:bg-blue-700 sm:min-h-10";
 
 /**
- * V2C1 — Preview primary action only.
- * Sign / PDF remain deferred and must not clutter the review shell.
+ * V2C1 — Preview primary action only (draft Send).
+ * PDF download lives on sent-record Preview only — never here.
  */
 export default function ProposalPreviewActionGroup({
   onSendSharing,
