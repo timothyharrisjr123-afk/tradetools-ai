@@ -247,7 +247,7 @@ export default function TemplatesQuoteSetupReview({
               <div className="mt-2">
                 <TemplatesIdentityEditor
                   name={template.name}
-                  description={template.description}
+                  description={template.description ?? null}
                   busy={busy}
                   onSave={onSaveIdentity}
                 />

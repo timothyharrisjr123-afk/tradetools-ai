@@ -56,8 +56,9 @@ export function normalizeCatalogOptionalColumnVisibility(
   const raw = candidate as Record<string, unknown>;
   const out = { ...defaults };
   for (const col of CATALOG_OPTIONAL_COLUMNS) {
-    if (typeof raw[col.id] === "boolean") {
-      out[col.id] = raw[col.id];
+    const value = raw[col.id];
+    if (typeof value === "boolean") {
+      out[col.id] = value;
     }
   }
   return out;

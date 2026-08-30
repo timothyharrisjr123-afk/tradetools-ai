@@ -243,6 +243,7 @@ export function formatCreateProposalPackageCountLine(input: {
     issueCount: Math.max(0, input.issueCount ?? 0),
     availableUpgradeCount: Math.max(0, input.availableUpgradeCount),
     availableUpgradeIssueCount: 0,
+    isDefault: false,
     status: "ready",
   });
 }

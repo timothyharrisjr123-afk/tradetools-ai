@@ -597,7 +597,7 @@ export function listCatalogTargetSectionsForOption(
     .filter((row) => row.option_id === optionId && sectionAcceptsCatalogItems(row.kind))
     .filter((row) => (preferredKind ? row.kind === preferredKind : true))
     .slice()
-    .sort((a, b) => a.sort_order - b.sort_order);
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
 
   return sections.map((section) => ({
     sectionId: section.id,

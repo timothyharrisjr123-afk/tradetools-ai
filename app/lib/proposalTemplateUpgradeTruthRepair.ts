@@ -20,9 +20,7 @@ import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
 
 /** Do not rewrite immutable proposal history when repairing templates. */
 export const SENT_SNAPSHOT_MUTATION_FORBIDDEN =
-  "Sent, signed, and superseded proposal snapshots must not be mutated. " +
-  "Template repair may only affect reusable template graphs; commercial correction " +
-  "of already-sent proposals requires a revised draft/send." as const;
+  "Sent, signed, and superseded proposal snapshots must not be mutated. Template repair may only affect reusable template graphs; commercial correction of already-sent proposals requires a revised draft/send." as const;
 
 export type CatalogCollisionSeverity = "unapproved" | "approved_incremental";
 

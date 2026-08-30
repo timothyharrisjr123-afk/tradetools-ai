@@ -913,6 +913,7 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
         packageLabels: [] as string[],
         linkedCatalogCount: 0,
         issueCount: 0,
+        availableUpgradeCount: 0,
         customerFacingAreas: [] as string[],
         customerDisplayLine: "",
         editableProseCount: 0,
@@ -1061,14 +1062,18 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
 
   const handleSaveTemplateIdentity = useCallback(
     async (draft: TemplateIdentityDraft) => {
-      if (!selectedTemplateId || structureBusy || savingSectionId) return;
+      if (!companyId || !selectedTemplateId || structureBusy || savingSectionId) return;
       setStructureBusy({ kind: "settings-template" });
       setStructureError(null);
       try {
-        const updated = await updateProposalTemplate(selectedTemplateId, {
-          name: draft.name,
-          description: draft.description.trim() ? draft.description.trim() : null,
-        });
+        const updated = await updateProposalTemplate(
+          selectedTemplateId,
+          {
+            name: draft.name,
+            description: draft.description.trim() ? draft.description.trim() : null,
+          },
+          { companyId }
+        );
         if (!updated) {
           setStructureError("Could not save template name and purpose.");
           return;
@@ -1085,7 +1090,7 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
         setStructureBusy(null);
       }
     },
-    [reloadSelectedGraph, savingSectionId, selectedTemplateId, structureBusy]
+    [companyId, reloadSelectedGraph, savingSectionId, selectedTemplateId, structureBusy]
   );
 
   const handleSavePackageAuthorship = useCallback(

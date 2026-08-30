@@ -448,9 +448,10 @@ export default function RoofingClientV2({
   };
 
   const intakeMissingFields: string[] = [];
-  const _auditName = (intakeEditable ? customerName : viewModel?.customer.name) ?? "";
-  const _auditEmail = (intakeEditable ? customerEmail : viewModel?.customer.email) ?? "";
-  const _auditZip = (intakeEditable ? jobZip : viewModel?.job.zip) ?? "";
+  // intakeEditable === (viewModel != null); the non-editable branch never has a live viewModel.
+  const _auditName = intakeEditable ? (customerName ?? "") : "";
+  const _auditEmail = intakeEditable ? (customerEmail ?? "") : "";
+  const _auditZip = intakeEditable ? (jobZip ?? "") : "";
   if (!_auditName.trim()) intakeMissingFields.push("name");
   if (!_auditEmail.trim()) intakeMissingFields.push("email");
   if (!_auditZip.trim()) intakeMissingFields.push("ZIP");
@@ -8704,16 +8705,11 @@ export default function RoofingClientV2({
         { label: "Project type", value: "Full roof replacement" },
       ];
 
-  const intakeReady =
-    intakeEditable
-      ? Boolean((customerName ?? "").trim()) &&
-        Boolean((customerEmail ?? "").trim()) &&
-        Boolean((jobZip ?? "").trim())
-      : hasLive
-        ? Boolean((viewModel!.customer.name ?? "").trim()) &&
-          Boolean((viewModel!.customer.email ?? "").trim()) &&
-          Boolean((viewModel!.job.zip ?? "").trim())
-        : true;
+  const intakeReady = intakeEditable
+    ? Boolean((customerName ?? "").trim()) &&
+      Boolean((customerEmail ?? "").trim()) &&
+      Boolean((jobZip ?? "").trim())
+    : true;
 
   const canUseSaveEstimate =
     typeof onSaveEstimate === "function" && canSaveEstimate === true && !isSavingEstimate;
