@@ -82,8 +82,16 @@ import {
   dispositionBlockedWorkCopy,
   visibleDispositionLabel,
 } from "@/app/lib/jobDispositionManagement";
-import { findOrCreateCustomer } from "@/app/lib/customerStore";
+import { createCustomer, findOrCreateCustomer } from "@/app/lib/customerStore";
 import { ensureJobCustomerPersisted } from "@/app/lib/jobCardCustomerPersist";
+import type { CustomerSearchCandidate } from "@/app/lib/customerMatch";
+import { JobPacketCustomerCandidates } from "@/app/tools/roofing/JobPacketCustomerCandidates";
+import { JobPacketAddressSuggestions } from "@/app/tools/roofing/JobPacketAddressSuggestions";
+import { useCompanyCustomerSearch } from "@/app/tools/roofing/useCompanyCustomerSearch";
+import {
+  usePlacesAddressAssist,
+  type PlacesSuggestion,
+} from "@/app/tools/roofing/usePlacesAddressAssist";
 import { LAST_DB_JOB_ID_STORAGE_KEY } from "@/app/lib/jobBoardAdapter";
 import {
   isCleanDbJobCardDeepLink,
@@ -1798,19 +1806,27 @@ export default function RoofingClient({
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [selectedCustomerLabel, setSelectedCustomerLabel] = useState<string | null>(null);
+  const [forceNewCustomer, setForceNewCustomer] = useState(false);
   const [jobAddress1, setJobAddress1] = useState("");
   const [jobCity, setJobCity] = useState("");
   const [jobState, setJobState] = useState("");
   const [jobZip, setJobZip] = useState("");
+  const [suppressAddressSuggestions, setSuppressAddressSuggestions] = useState(false);
 
   const resetPacketIntakeFields = useCallback(() => {
     setCustomerName("");
     setCustomerEmail("");
     setCustomerPhone("");
+    setSelectedCustomerId(null);
+    setSelectedCustomerLabel(null);
+    setForceNewCustomer(false);
     setJobAddress1("");
     setJobCity("");
     setJobState("");
     setJobZip("");
+    setSuppressAddressSuggestions(false);
     setJobCreationError(null);
     setAutofillFromZip(false);
     setZipNoPresetMessage(false);
@@ -5527,56 +5543,120 @@ Thanks,`;
     [packetFieldSnapshot]
   );
 
-  const buildJobDraftFromPacketState = useCallback((): JobDraft | null => {
-    const cid = (companyId ?? "").trim();
-    if (!cid) return null;
+  const packetCustomerSearchEnabled =
+    (entryMode === "packet" || entryMode === "instant") && !forceNewCustomer && !selectedCustomerId;
+  const { results: customerCandidates } = useCompanyCustomerSearch(
+    {
+      name: customerName,
+      email: customerEmail,
+      phone: customerPhone,
+    },
+    packetCustomerSearchEnabled
+  );
+  const visibleCustomerCandidates = customerCandidates;
 
-    const line1 = (jobAddress1 || "").trim() || null;
-    const city = (jobCity || "").trim() || null;
-    const stateVal = (jobState || "").trim() || null;
-    const zip = (jobZip || "").trim() || null;
-    const address: JobAddress = {
-      line1,
-      city,
-      state: stateVal,
-      zip,
-      country: "US",
-      formatted: buildFormattedAddress({ line1, city, state: stateVal, zip, country: "US" }),
-    };
-
-    const name = (customerName || "").trim() || null;
-    const jobName = name
-      ? `${name} — roofing`
-      : line1
-        ? line1
-        : "Roofing job";
-
-    return {
-      company_id: cid,
-      job_name: jobName,
-      stage: "intake",
-      status: "active",
-      source: "intake",
-      priority: "normal",
-      contact: {
-        customer_name: name,
-        customer_email: (customerEmail || "").trim() || null,
-        customer_phone: (customerPhone || "").trim() || null,
-      },
-      address,
-      source_metadata: { source: "job_packet" },
-      archived: false,
-    };
-  }, [
-    companyId,
-    customerName,
-    customerEmail,
-    customerPhone,
+  const placesAssistEnabled =
+    (entryMode === "packet" || entryMode === "instant") && !suppressAddressSuggestions;
+  const { suggestions: addressSuggestions, resolvePlace } = usePlacesAddressAssist(
     jobAddress1,
-    jobCity,
-    jobState,
-    jobZip,
-  ]);
+    placesAssistEnabled
+  );
+
+  const selectExistingCustomer = useCallback((candidate: CustomerSearchCandidate) => {
+    setSelectedCustomerId(candidate.id);
+    setSelectedCustomerLabel(candidate.name || "Customer");
+    setForceNewCustomer(false);
+    setCustomerName(candidate.name || "");
+    setCustomerEmail(candidate.email || "");
+    setCustomerPhone(candidate.phone || "");
+  }, []);
+
+  const continueAsNewCustomer = useCallback(() => {
+    setSelectedCustomerId(null);
+    setSelectedCustomerLabel(null);
+    setForceNewCustomer(true);
+  }, []);
+
+  const applyPlacesSuggestion = useCallback(
+    async (suggestion: PlacesSuggestion) => {
+      setSuppressAddressSuggestions(true);
+      const resolved = await resolvePlace(suggestion.placeId);
+      if (resolved) {
+        setJobAddress1(resolved.line1 || suggestion.primaryText);
+        if (resolved.city) setJobCity(resolved.city);
+        if (resolved.state) setJobState(resolved.state);
+        if (resolved.zip) {
+          const zip = sanitizeZipInput(resolved.zip);
+          setJobZip(zip);
+          if (zip.length === 5) tryApplyZipPreset(zip);
+        }
+        return;
+      }
+      // Quiet fallback: use prediction text as street; contractor finishes city/state/ZIP.
+      setJobAddress1(suggestion.primaryText || suggestion.fullText);
+    },
+    [resolvePlace, tryApplyZipPreset]
+  );
+
+  const buildJobDraftFromPacketState = useCallback(
+    (linkedCustomerId?: string | null): JobDraft | null => {
+      const cid = (companyId ?? "").trim();
+      if (!cid) return null;
+
+      const line1 = (jobAddress1 || "").trim() || null;
+      const city = (jobCity || "").trim() || null;
+      const stateVal = (jobState || "").trim() || null;
+      const zip = (jobZip || "").trim() || null;
+      const address: JobAddress = {
+        line1,
+        city,
+        state: stateVal,
+        zip,
+        country: "US",
+        formatted: buildFormattedAddress({ line1, city, state: stateVal, zip, country: "US" }),
+      };
+
+      const name = (customerName || "").trim() || null;
+      const email = (customerEmail || "").trim() || null;
+      const phone = (customerPhone || "").trim() || null;
+      const customerId =
+        linkedCustomerId && isUuidLike(linkedCustomerId) ? linkedCustomerId : null;
+      const jobName = name
+        ? `${name} — roofing`
+        : line1
+          ? line1
+          : "Roofing job";
+
+      return {
+        company_id: cid,
+        customer_id: customerId,
+        job_name: jobName,
+        stage: "intake",
+        status: "active",
+        source: "intake",
+        priority: "normal",
+        contact: {
+          customer_id: customerId,
+          customer_name: name,
+          customer_email: email,
+          customer_phone: phone,
+        },
+        address,
+        source_metadata: { source: "job_packet" },
+        archived: false,
+      };
+    },
+    [
+      companyId,
+      customerName,
+      customerEmail,
+      customerPhone,
+      jobAddress1,
+      jobCity,
+      jobState,
+      jobZip,
+    ]
+  );
 
   const handleContinueToJobCard = useCallback(async () => {
     setJobCreationError(null);
@@ -5600,14 +5680,47 @@ Thanks,`;
       return;
     }
 
-    const draft = buildJobDraftFromPacketState();
-    if (!draft) {
-      setJobCreationError("Company context is missing. Refresh and try again.");
-      return;
-    }
-
     setIsCreatingJob(true);
     try {
+      const supabase = getSupabaseClient();
+      if (!supabase) {
+        setJobCreationError("Could not create job. Check your connection and try again.");
+        return;
+      }
+
+      const addressLine = [
+        (jobAddress1 || "").trim(),
+        [(jobCity || "").trim(), (jobState || "").trim()].filter(Boolean).join(", "),
+        (jobZip || "").trim(),
+      ]
+        .filter(Boolean)
+        .join(", ");
+
+      // Wave B: selected existing → reuse id. Otherwise always createCustomer
+      // so exact-email findOrCreate cannot silently merge wrong humans.
+      let linkedCustomerId =
+        selectedCustomerId && isUuidLike(selectedCustomerId) ? selectedCustomerId : null;
+      if (!linkedCustomerId) {
+        linkedCustomerId = await createCustomer({
+          supabase,
+          companyId: cid,
+          name: (customerName || "").trim(),
+          email: (customerEmail || "").trim() || null,
+          phone: (customerPhone || "").trim() || null,
+          address: addressLine || null,
+        });
+        if (!linkedCustomerId) {
+          setJobCreationError("Could not save customer. Check your connection and try again.");
+          return;
+        }
+      }
+
+      const draft = buildJobDraftFromPacketState(linkedCustomerId);
+      if (!draft) {
+        setJobCreationError("Company context is missing. Refresh and try again.");
+        return;
+      }
+
       const record = await createJob(draft);
       if (!record?.id) {
         setJobCreationError("Could not create job. Check your connection and try again.");
@@ -5623,7 +5736,7 @@ Thanks,`;
         const debugName =
           (record.contact?.customer_name ?? customerName ?? "").trim() || "(none)";
         console.debug(
-          `[FieldDive job create] id=${record.id} company=${cid} name=${debugName}`
+          `[FieldDive job create] id=${record.id} company=${cid} customer=${linkedCustomerId} name=${debugName}`
         );
       }
       setToast("Job saved. You can reopen it from the Job Board.");
@@ -5642,6 +5755,13 @@ Thanks,`;
     persistAndRefreshJobCardCustomer,
     router,
     customerName,
+    customerEmail,
+    customerPhone,
+    jobAddress1,
+    jobCity,
+    jobState,
+    jobZip,
+    selectedCustomerId,
   ]);
 
   function renderJobPacketWorkbench(
@@ -5861,6 +5981,18 @@ Thanks,`;
                               spellCheck={false}
                               className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12.5px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
                             />
+                            {(entryMode === "packet" || entryMode === "instant") && (
+                              <JobPacketCustomerCandidates
+                                candidates={visibleCustomerCandidates}
+                                selectedCustomerId={selectedCustomerId}
+                                selectedCustomerLabel={selectedCustomerLabel}
+                                onSelect={selectExistingCustomer}
+                                onContinueAsNew={continueAsNewCustomer}
+                                showContinueAsNew={
+                                  !forceNewCustomer && visibleCustomerCandidates.length > 0
+                                }
+                              />
+                            )}
                           </div>
             </section>
 
@@ -5884,23 +6016,36 @@ Thanks,`;
                           </div>
                           <p className="mt-1 text-[10.5px] leading-snug text-slate-500">Where the job is happening.</p>
                           <div className="mt-2 grid gap-2">
-                            <input
-                              id="job-address"
-                              name="job_address1_field"
-                              type="text"
-                              value={jobAddress1}
-                              onChange={(e) => setJobAddress1(e.target.value)}
-                              onBlur={(e) => {
-                                const cleaned = e.target.value.replace(/\s+/g, " ").trim();
-                                if (cleaned !== jobAddress1) setJobAddress1(cleaned);
-                              }}
-                              placeholder="Street address"
-                              autoComplete="new-password"
-                              autoCorrect="off"
-                              autoCapitalize="off"
-                              spellCheck={false}
-                              className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12.5px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
-                            />
+                            <div>
+                              <input
+                                id="job-address"
+                                name="job_address1_field"
+                                type="text"
+                                value={jobAddress1}
+                                onChange={(e) => {
+                                  setSuppressAddressSuggestions(false);
+                                  setJobAddress1(e.target.value);
+                                }}
+                                onBlur={(e) => {
+                                  const cleaned = e.target.value.replace(/\s+/g, " ").trim();
+                                  if (cleaned !== jobAddress1) setJobAddress1(cleaned);
+                                }}
+                                placeholder="Street address"
+                                autoComplete="new-password"
+                                autoCorrect="off"
+                                autoCapitalize="off"
+                                spellCheck={false}
+                                className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12.5px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+                              />
+                              {(entryMode === "packet" || entryMode === "instant") && (
+                                <JobPacketAddressSuggestions
+                                  suggestions={addressSuggestions}
+                                  onSelect={(s) => {
+                                    void applyPlacesSuggestion(s);
+                                  }}
+                                />
+                              )}
+                            </div>
                             <div className="grid grid-cols-[minmax(0,1fr)_5rem_5.75rem] gap-2">
                               <input
                                 id="job-city"

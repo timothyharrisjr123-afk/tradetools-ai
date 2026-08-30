@@ -89,11 +89,12 @@ describe("060 — security contract", () => {
 });
 
 describe("060 — accepted client paths stay company-scoped", () => {
-  test("findOrCreateCustomer still keys lookup by company_id + email", () => {
+  test("findOrCreateCustomer still keys lookup by company_id + normalized email", () => {
     const source = read("app/lib/customerStore.ts");
     assert.match(source, /\.from\("customers"\)/);
     assert.match(source, /\.eq\("company_id", companyId\)/);
-    assert.match(source, /\.eq\("email", emailTrimmed\)/);
+    assert.match(source, /normalizeCustomerEmail/);
+    assert.match(source, /\.ilike\("email", emailNorm\)/);
   });
 
   test("proposal context and admin remain company-scoped reads/writes", () => {
