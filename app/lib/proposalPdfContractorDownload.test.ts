@@ -414,13 +414,14 @@ describe("contractor PDF UI locks", () => {
     assert.doesNotMatch(route, /RoofingClient/);
   });
 
-  test("no public Save PDF activation in Group 2", () => {
+  test("Group 3 activates public Download PDF (was Save PDF coming soon)", () => {
     const packetHeader = readFileSync(
       "app/components/proposal-packet/ProposalPacketHeader.tsx",
       "utf8"
     );
+    assert.match(packetHeader, /downloadPublicProposalPdf/);
+    assert.match(packetHeader, /PROPOSAL_CUSTOMER_PACKET_HEADER_DOWNLOAD_PDF_LABEL/);
     assert.match(packetHeader, /Coming soon/);
-    assert.match(packetHeader, /PROPOSAL_CUSTOMER_PACKET_HEADER_SAVE_PDF_LABEL/);
-    assert.doesNotMatch(packetHeader, /downloadContractorProposalPdf/);
+    assert.match(packetHeader, /PROPOSAL_CUSTOMER_PACKET_HEADER_SHARE_LABEL/);
   });
 });

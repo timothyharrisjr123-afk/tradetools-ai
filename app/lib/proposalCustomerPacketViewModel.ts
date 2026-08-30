@@ -197,7 +197,9 @@ export const PROPOSAL_CUSTOMER_PACKET_ABOUT_PACKAGES_PRICING_FALLBACK =
 export const PROPOSAL_CUSTOMER_PACKET_HEADER_TAGLINE =
   "Trusted. Local. Built to Protect.";
 
-export const PROPOSAL_CUSTOMER_PACKET_HEADER_SAVE_PDF_LABEL = "Save PDF";
+/** Historical alias — Save PDF stub replaced by Download PDF (Group 3). */
+export const PROPOSAL_CUSTOMER_PACKET_HEADER_SAVE_PDF_LABEL = "Download PDF";
+export const PROPOSAL_CUSTOMER_PACKET_HEADER_DOWNLOAD_PDF_LABEL = "Download PDF";
 
 export const PROPOSAL_CUSTOMER_PACKET_HEADER_SHARE_LABEL = "Share proposal";
 

@@ -1,15 +1,25 @@
+"use client";
+
+import { useState } from "react";
 import type { ProposalCustomerPacketCoverViewModel } from "@/app/lib/proposalCustomerPacketViewModel";
 import {
-  PROPOSAL_CUSTOMER_PACKET_HEADER_SAVE_PDF_LABEL,
+  PROPOSAL_CUSTOMER_PACKET_HEADER_DOWNLOAD_PDF_LABEL,
   PROPOSAL_CUSTOMER_PACKET_HEADER_SHARE_LABEL,
   PROPOSAL_CUSTOMER_PACKET_HEADER_TAGLINE,
 } from "@/app/lib/proposalCustomerPacketViewModel";
+import {
+  CUSTOMER_PDF_PREPARING_LABEL,
+  CUSTOMER_PDF_UNAVAILABLE_MESSAGE,
+} from "@/app/lib/proposalPdfPublicDownload";
+import { downloadPublicProposalPdf } from "@/app/lib/proposalPdfPublicDownloadClient";
 import ProposalPacketCompanyMark from "./ProposalPacketCompanyMark";
 import { IconDownload, IconShare } from "./ProposalPacketIcons";
 import { PROPOSAL_PACKET_HEADER, PROPOSAL_PACKET_HEADER_ACTION } from "./proposalPacketStyles";
 
 type ProposalPacketHeaderProps = {
   cover: ProposalCustomerPacketCoverViewModel;
+  /** Raw public access token — enables Download PDF when present. */
+  publicAccessToken?: string | null;
 };
 
 function FutureActionChip({
@@ -31,7 +41,28 @@ function FutureActionChip({
   );
 }
 
-export default function ProposalPacketHeader({ cover }: ProposalPacketHeaderProps) {
+export default function ProposalPacketHeader({
+  cover,
+  publicAccessToken = null,
+}: ProposalPacketHeaderProps) {
+  const token = (publicAccessToken ?? "").trim();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onDownload() {
+    if (!token || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await downloadPublicProposalPdf({ rawToken: token });
+      if (!result.ok) {
+        setError(result.message || CUSTOMER_PDF_UNAVAILABLE_MESSAGE);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className={PROPOSAL_PACKET_HEADER} aria-label="Proposal header">
       <div className="flex min-w-0 items-center gap-4">
@@ -48,9 +79,32 @@ export default function ProposalPacketHeader({ cover }: ProposalPacketHeaderProp
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 sm:justify-end">
-        <FutureActionChip icon={IconDownload} label={PROPOSAL_CUSTOMER_PACKET_HEADER_SAVE_PDF_LABEL} />
-        <FutureActionChip icon={IconShare} label={PROPOSAL_CUSTOMER_PACKET_HEADER_SHARE_LABEL} />
+      <div className="flex flex-col items-stretch gap-1 sm:items-end">
+        <div className="flex flex-wrap gap-2 sm:justify-end">
+          {token ? (
+            <button
+              type="button"
+              onClick={() => void onDownload()}
+              disabled={busy}
+              aria-busy={busy}
+              className={`${PROPOSAL_PACKET_HEADER_ACTION} min-h-[44px] disabled:opacity-60`}
+            >
+              <IconDownload className="h-4 w-4" />
+              {busy
+                ? CUSTOMER_PDF_PREPARING_LABEL
+                : PROPOSAL_CUSTOMER_PACKET_HEADER_DOWNLOAD_PDF_LABEL}
+            </button>
+          ) : null}
+          <FutureActionChip
+            icon={IconShare}
+            label={PROPOSAL_CUSTOMER_PACKET_HEADER_SHARE_LABEL}
+          />
+        </div>
+        {error ? (
+          <p className="text-[12px] text-[#64748b]" role="status">
+            {error}
+          </p>
+        ) : null}
       </div>
     </div>
   );

@@ -1,8 +1,24 @@
+"use client";
+
+import { useState } from "react";
 import type { ProposalCustomerPacketCoverViewModel } from "@/app/lib/proposalCustomerPacketViewModel";
-import { PROPOSAL_PACKET_TOP_BAR, PROPOSAL_PACKET_TOP_BAR_MARK } from "./proposalPacketStyles";
+import { PROPOSAL_CUSTOMER_PACKET_HEADER_DOWNLOAD_PDF_LABEL } from "@/app/lib/proposalCustomerPacketViewModel";
+import {
+  CUSTOMER_PDF_PREPARING_LABEL,
+  CUSTOMER_PDF_UNAVAILABLE_MESSAGE,
+} from "@/app/lib/proposalPdfPublicDownload";
+import { downloadPublicProposalPdf } from "@/app/lib/proposalPdfPublicDownloadClient";
+import { IconDownload } from "./ProposalPacketIcons";
+import {
+  PROPOSAL_PACKET_TOP_BAR,
+  PROPOSAL_PACKET_TOP_BAR_ACTION,
+  PROPOSAL_PACKET_TOP_BAR_MARK,
+} from "./proposalPacketStyles";
 
 type ProposalPacketTopBarProps = {
   cover: ProposalCustomerPacketCoverViewModel;
+  /** Raw public access token — enables quiet Download PDF when present. */
+  publicAccessToken?: string | null;
 };
 
 function BrandMark({ cover }: { cover: ProposalCustomerPacketCoverViewModel }) {
@@ -23,8 +39,28 @@ function BrandMark({ cover }: { cover: ProposalCustomerPacketCoverViewModel }) {
 }
 
 /** Dark navy contractor brand bar — approved target. */
-export default function ProposalPacketTopBar({ cover }: ProposalPacketTopBarProps) {
+export default function ProposalPacketTopBar({
+  cover,
+  publicAccessToken = null,
+}: ProposalPacketTopBarProps) {
   const companyName = (cover.company.companyName ?? "").trim();
+  const token = (publicAccessToken ?? "").trim();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onDownload() {
+    if (!token || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await downloadPublicProposalPdf({ rawToken: token });
+      if (!result.ok) {
+        setError(result.message || CUSTOMER_PDF_UNAVAILABLE_MESSAGE);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <div className={PROPOSAL_PACKET_TOP_BAR} aria-label="Company brand">
@@ -41,6 +77,35 @@ export default function ProposalPacketTopBar({ cover }: ProposalPacketTopBarProp
           </div>
         ) : null}
       </div>
+
+      {token ? (
+        <div className="flex min-w-0 flex-col items-start gap-1 sm:items-end">
+          <button
+            type="button"
+            onClick={() => void onDownload()}
+            disabled={busy}
+            aria-busy={busy}
+            aria-label={
+              busy
+                ? CUSTOMER_PDF_PREPARING_LABEL
+                : PROPOSAL_CUSTOMER_PACKET_HEADER_DOWNLOAD_PDF_LABEL
+            }
+            className={`${PROPOSAL_PACKET_TOP_BAR_ACTION} min-h-[44px] rounded-md px-2 py-2 transition-colors hover:text-white disabled:cursor-wait disabled:opacity-70`}
+          >
+            <IconDownload className="h-4 w-4 shrink-0 opacity-80" />
+            <span className="whitespace-nowrap">
+              {busy
+                ? CUSTOMER_PDF_PREPARING_LABEL
+                : PROPOSAL_CUSTOMER_PACKET_HEADER_DOWNLOAD_PDF_LABEL}
+            </span>
+          </button>
+          {error ? (
+            <p className="max-w-[16rem] text-[11px] font-medium text-white/55" role="status">
+              {error}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

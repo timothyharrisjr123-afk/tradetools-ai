@@ -179,7 +179,10 @@ export default function ProposalPacket({
       data-proposal-packet-mode={mode}
     >
       <article className={PROPOSAL_PACKET_SHELL} aria-label="Customer proposal">
-        <ProposalPacketTopBar cover={packet.cover} />
+        <ProposalPacketTopBar
+          cover={packet.cover}
+          publicAccessToken={mode === "public" ? publicAccessToken : null}
+        />
         <ProposalPacketHero cover={packet.cover} estimate={packet.estimate} />
 
         {showChoice ? (
