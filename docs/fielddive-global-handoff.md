@@ -82,7 +82,8 @@
 
 **Last updated checkpoint:**
 
-- **Wave B final closeout docs checkpoint:** this docs commit — `docs: finalize wave b identity and intake` (**WAVE B IDENTITY PASS / PLACES CONFIG BLOCKED**, see **§6DE.13.1**). Code **`d11cc9a`** — `fix(jobs): quiet customer intake identity flow`. Identity reuse + quiet intake visual PASS. Places still **NOT LIVE** (no server `GOOGLE_PLACES_API_KEY`). Proof `tmp/fielddive-ui-review/wave-b-final-closeout/`. **NO PUSH.** **Wave C remains unauthorized.** Optional: add server Places key and verify suggestion→fill before claiming full Wave B closed.
+- **Wave B Places live verification attempt:** this docs commit — `docs: record wave b places live verification block` (**PLACES KEY PRESENT / LIVE BLOCKED BY GCP API ENABLEMENT**, see **§6DE.13.2**). Code **`38f381b`** — `fix(jobs): finalize places intake integration` (session token + placeId normalize). Server `GOOGLE_PLACES_API_KEY` **PRESENT**; no `NEXT_PUBLIC_` Places key. Live Places API (New) returns **403** until Places API (New) is enabled on the Google Cloud project. Manual fallback **PASS**. Identity architecture unchanged. **WAVE B NOT FULLY CLOSED.** **Wave C unauthorized.** **NO PUSH.**
+- **Wave B final closeout docs checkpoint:** **`be2519f`** — `docs: finalize wave b identity and intake` (**WAVE B IDENTITY PASS / PLACES CONFIG BLOCKED**, see **§6DE.13.1**). Code **`d11cc9a`** — `fix(jobs): quiet customer intake identity flow`. Identity reuse + quiet intake visual PASS. Proof `tmp/fielddive-ui-review/wave-b-final-closeout/`.
 - **Wave A final visual closeout docs checkpoint:** **`897ec36`** — `docs: finalize wave a command-surface review` (**WAVE A FULLY CLOSED**, see **§6DE.12**). Code **`dd1ba45`** — `fix(jobs): quiet healthy board chrome`. Healthy `Company setup complete` card removed from Jobs Board; action-required setup intervention preserved. Desktop Sign out = sticky sidebar footer only; mobile Sign out = header only. Proof `tmp/fielddive-ui-review/wave-a-final-closeout/`. Legacy billing P0 already closed (**§6DE.11**).
 - **Legacy billing tenant isolation docs checkpoint:** **`bf3ba93`** — `docs: checkpoint legacy billing tenant isolation` (**LEGACY BILLING RLS P0 CLOSED**, see **§6DE.11**). Code **`38d3c85`**. Migration **062 LIVE** on **`rhquhnujjnzjhweypavd`**.
 - **Jobs Board command-surface integrity docs checkpoint:** **`8f3c0bb`** — `docs: checkpoint jobs board command-surface integrity` (**WAVE A COMPLETE**, see **§6DE.10**). Code **`44a9637`** — `fix(jobs): make jobs board the honest command surface`. Jobs Board (`/tools/roofing/saved`, `statusFilter === "all"`) is the canonical daily home. Stage-1 company job search **LIVE** (**061 LIVE**). Desktop + 390 proof `tmp/fielddive-ui-review/wave-a-command-surface/`. Visual closeout (healthy setup card + Sign out dupe) deferred behind **§6DE.11**.
@@ -19504,6 +19505,33 @@ SHA256 **`1C21262F40BD3D9807302E04FCEA747E65E0A21D3FA6E374D2194D664A5301D6`** on
 **Visual proof:** `tmp/fielddive-ui-review/wave-b-final-closeout/` (desktop empty / compact candidates / selected / new+manual; 390 compact candidates / selected+manual).
 
 **Exact next:** Places key + live suggestion→fill verification if full Wave B close is required. **Wave C unauthorized.**
+
+### §6DE.13.2 Wave B Places live verification — KEY PRESENT / API ENABLEMENT BLOCKED
+
+**Status:** Server credential **PRESENT**. Live Places **FAIL** — Google Places API (New) **403** (`places.googleapis.com` not enabled for the API key’s GCP project). **WAVE B NOT FULLY CLOSED.** Do **not** claim Places live. Do **not** start Wave C.
+
+**Code commit (narrow Places correctness):** `fix(jobs): finalize places intake integration`  
+- Autocomplete + Details use Places API (New) (`places.googleapis.com/v1`).
+- Autocomplete→Details **sessionToken** pairing (client UUID; cleared after details).
+- Field masks limited to prediction text / `formattedAddress` + `addressComponents` (no map/geometry expansion).
+- `places/` resource-name placeId normalization for Details URL.
+- Key remains server-only (`GOOGLE_PLACES_API_KEY`); routes never return the key.
+
+**Live proof (authenticated FieldDive routes + direct Places New call with same env):**
+- `/api/places/autocomplete?q=123+Main` → `{ ok: true, available: true, suggestions: [] }` (configured; provider empty due to 403).
+- Direct Places New Autocomplete → **403** message: Places API (New) has not been used / is disabled; enable at Google Cloud Console `places.googleapis.com` for the key’s project, then retry.
+- No client key leak in JSON responses.
+- Manual street/city/state/ZIP intake still enables Continue (desktop + 390). No red Places failure banner.
+
+**Not verified (blocked):** real suggestion list; Place Details fill of line1/city/state/ZIP/formatted; contractor override after provider fill.
+
+**Unchanged:** Customer identity architecture; Property not created; no map product; Wave C not started.
+
+**Tests / build:** focused Wave B + 060 + persist **54/54**. `npm run build` **PASS**.
+
+**Visual proof:** `tmp/fielddive-ui-review/wave-b-places-live/` (manual fallback desktop + 390; no fake suggestion captures).
+
+**Exact next to close Wave B:** Enable **Places API (New)** on the GCP project for the existing server key → re-run live autocomplete → select → details fill → override → then docs close. **Wave C remains unauthorized.**
 
 ---
 
