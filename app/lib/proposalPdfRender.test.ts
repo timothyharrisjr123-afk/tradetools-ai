@@ -322,9 +322,10 @@ function sentGraph(overrides: {
         company_logo_url: null,
         customer_name: "Babby D",
         customer_email: "babby@example.com",
-        address_formatted: "123 Main St",
-        job_name: "Babby D roof",
+        address_formatted: "4558 Babby RD, Tulsa, OK, 74110",
+        job_name: "4558 Babby RD",
         proposal_number: "P-1042",
+        template_name: "Roof replacement",
       },
       policy_echo: { configured: true },
       created_by: null,
@@ -580,8 +581,59 @@ describe("proposalPdfRender", () => {
     assert.ok(textIndexLacks(result.textIndex, VERSION_V1));
     assert.ok(textIndexLacks(result.textIndex, "/p/"));
     assert.ok(textIndexLacks(result.textIndex, "Signed by"));
+    // Customer money: package total yes; included-work line prices no.
+    assert.ok(textIndexHas(result.textIndex, /\$?[\d,]+/));
+    assert.ok(textIndexHas(result.textIndex, "Roof replacement"));
+    assert.ok(textIndexHas(result.textIndex, "4558 Babby RD, Tulsa, OK, 74110"));
+    assert.ok(textIndexLacks(result.textIndex, "$500"));
+    assert.ok(textIndexLacks(result.textIndex, "$5.00"));
+    // Selected upgrade may keep customer-visible price under displayPolicy.
+    assert.ok(textIndexHas(result.textIndex, "$450") || textIndexHas(result.textIndex, "450"));
     const loaded = await PDFDocument.load(result.bytes);
     assert.ok(loaded.getPageCount() >= 1);
+  });
+
+  test("customer PDF omits included-work line prices and uses proposal project identity", async () => {
+    const input = buildProposalPdfRenderInput({
+      graph: sentGraph({
+        versionNumber: 11,
+        frozenAt: "2026-08-30T15:00:00.000Z",
+      }),
+      proposalVersionId: VERSION_V1,
+      companyId: COMPANY_ID,
+      artifactType: PROPOSAL_PDF_ARTIFACT_SENT,
+      paymentTerms: PAYMENT_TERMS,
+    });
+    assert.equal(input.packet.cover.project.jobName, "Roof replacement");
+    assert.equal(
+      input.packet.cover.project.propertyAddress,
+      "4558 Babby RD, Tulsa, OK, 74110"
+    );
+    for (const group of input.packet.estimate?.includedDetails ?? []) {
+      for (const line of group.lines) {
+        assert.equal(line.valueLabel, null);
+      }
+    }
+    assert.equal(input.versionNumber, 11);
+    assert.equal(input.frozenAt, "2026-08-30T15:00:00.000Z");
+
+    const result = await renderProposalPdf(input, {
+      fetchLogo: async () => ({ ok: false, reason: "skip" }),
+      includeTextIndex: true,
+    });
+    assert.equal(
+      result.filename,
+      "Harris-Roofing_Babby-D_Proposal_2026-08-30_v11.pdf"
+    );
+    assert.ok(textIndexHas(result.textIndex, "Project"));
+    assert.ok(textIndexHas(result.textIndex, "Roof replacement"));
+    assert.ok(textIndexHas(result.textIndex, "Property"));
+    assert.ok(textIndexHas(result.textIndex, "4558 Babby RD, Tulsa, OK, 74110"));
+    assert.ok(textIndexLacks(result.textIndex, "$500"));
+    // Address-like job_name must not appear as the Project value.
+    assert.ok(
+      !(result.textIndex ?? []).some((t) => /Project:\s*4558 Babby RD\b/i.test(t))
+    );
   });
 
   test("signed_final includes acceptance overlay; sent does not", async () => {

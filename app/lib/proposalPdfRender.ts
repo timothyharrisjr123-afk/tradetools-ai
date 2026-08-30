@@ -484,6 +484,8 @@ export async function renderProposalPdf(
 
     if (packet.cover.project.hasAnyField) {
       drawHeading(ctx, "Project");
+      // jobName here is the customer project label after PDF presentation align
+      // (proposal title identity — never property/address).
       if (packet.cover.project.jobName) {
         drawLabelValue(ctx, "Project", packet.cover.project.jobName);
       }

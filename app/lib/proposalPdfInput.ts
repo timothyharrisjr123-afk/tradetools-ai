@@ -7,6 +7,7 @@
  */
 
 import { buildCustomerPacketFromPublicDto } from "@/app/lib/proposalCustomerPacketPresenter";
+import { resolveCustomerProposalProjectLabel } from "@/app/lib/proposalCustomerProposalProjectLabel";
 import {
   formatProposalCustomerAcceptedOnLabel,
   type ProposalCustomerPacketViewModel,
@@ -127,6 +128,75 @@ function resolveSelectedTotalCents(
   return cents != null && Number.isInteger(cents) ? cents : null;
 }
 
+function readContextEchoString(
+  contextEcho: Record<string, unknown> | null | undefined,
+  key: string
+): string | null {
+  if (!contextEcho || typeof contextEcho !== "object") return null;
+  const value = contextEcho[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+/**
+ * Align PDF packet with Cohesion C customer presentation:
+ * - included-work lines never disclose individual prices (Public Scope omits them)
+ * - optional upgrade prices keep presenter/displayPolicy truth
+ * - project label uses proposal title identity, never property/address
+ */
+export function applyCustomerProposalPdfPacketPresentation(
+  packet: ProposalCustomerPacketViewModel,
+  identity: {
+    proposalTitle?: string | null;
+    contextEcho?: Record<string, unknown> | null;
+  }
+): ProposalCustomerPacketViewModel {
+  const next: ProposalCustomerPacketViewModel = {
+    ...packet,
+    cover: { ...packet.cover, project: { ...packet.cover.project } },
+    estimate: packet.estimate
+      ? {
+          ...packet.estimate,
+          includedDetails: packet.estimate.includedDetails.map((group) => ({
+            ...group,
+            lines: group.lines.map((line) => ({
+              ...line,
+              // Match Public ProposalPacketScope: names only for included work —
+              // never surface priced valueLabels that compete with package total.
+              valueLabel: null,
+            })),
+          })),
+        }
+      : null,
+    upgrades: packet.upgrades
+      ? {
+          items: packet.upgrades.items.map((item) => ({ ...item })),
+        }
+      : null,
+  };
+
+  const proposalTitle =
+    (identity.proposalTitle ?? "").trim() ||
+    readContextEchoString(identity.contextEcho ?? null, "proposal_title") ||
+    readContextEchoString(identity.contextEcho ?? null, "template_name");
+
+  const projectLabel = resolveCustomerProposalProjectLabel({
+    proposalTitle,
+    headline: next.cover.headline,
+    jobName: next.cover.project.jobName,
+    propertyAddress: next.cover.project.propertyAddress,
+  });
+
+  next.cover.project = {
+    ...next.cover.project,
+    jobName: projectLabel,
+    hasAnyField: Boolean(
+      projectLabel || (next.cover.project.propertyAddress ?? "").trim()
+    ),
+  };
+
+  return next;
+}
+
 function normalizeSignatureOverlay(
   overlay: ProposalPdfSignatureOverlay | null | undefined
 ): ProposalPdfSignatureOverlay | null {
@@ -216,7 +286,14 @@ export function buildProposalPdfRenderInput(
     );
   }
 
-  const packet = buildCustomerPacketFromPublicDto(dto);
+  let packet = buildCustomerPacketFromPublicDto(dto);
+  packet = applyCustomerProposalPdfPacketPresentation(packet, {
+    proposalTitle: args.graph.proposal.title,
+    contextEcho: (args.graph.version.context_echo ?? null) as Record<
+      string,
+      unknown
+    > | null,
+  });
   const selectedTotalCents = resolveSelectedTotalCents(dto, packet);
   packet.paymentTerms = args.paymentTerms;
   packet.selectedTotalCents = selectedTotalCents;
