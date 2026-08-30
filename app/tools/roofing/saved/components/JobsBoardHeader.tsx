@@ -50,15 +50,17 @@ export default function JobsBoardHeader({
             <input
               value={query}
               onChange={(e) => onQueryChange(e.target.value)}
-              placeholder="Search customers, addresses..."
-              className="h-10 w-full rounded-lg border border-slate-200 bg-white py-0 pl-3 pr-8 text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:border-slate-300 focus:ring-2 focus:ring-slate-100"
+              placeholder="Search name, phone, address…"
+              aria-label="Search jobs"
+              enterKeyHint="search"
+              className="h-11 w-full rounded-lg border border-slate-200 bg-white py-0 pl-3 pr-10 text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:border-slate-300 focus:ring-2 focus:ring-slate-100 sm:h-10"
             />
             {query.trim().length > 0 ? (
               <button
                 type="button"
                 onClick={() => onQueryChange("")}
                 aria-label="Clear search"
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-slate-400 hover:text-slate-600"
+                className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded text-lg text-slate-400 hover:text-slate-600"
               >
                 ×
               </button>

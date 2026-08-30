@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  ChevronDown,
   Sparkles,
   PhoneCall,
   CreditCard,
@@ -24,6 +23,8 @@ import JobsBoardPipelineGuidance from "./components/JobsBoardPipelineGuidance";
 import JobsBoardEmptyState from "./components/JobsBoardEmptyState";
 import JobsBoardErrorState from "./components/JobsBoardErrorState";
 import JobsBoardLegacySection from "./components/JobsBoardLegacySection";
+import JobsBoardSearchResults from "./components/JobsBoardSearchResults";
+import { useCompanyJobSearch } from "./useCompanyJobSearch";
 import { restoreCanonicalBoardFromReturnStatus } from "@/app/lib/boardCanonicalSurface";
 import { useCompanySetupReadiness } from "./useCompanySetupReadiness";
 import { useBoardCanonicalJobs } from "./useBoardCanonicalJobs";
@@ -1498,392 +1499,6 @@ function PipelineBar({
             />
           );
         })}
-      </div>
-    </div>
-  );
-}
-
-type TimeWindow = "all" | "month" | "30d";
-
-function RevenueSummary({
-  estimates,
-  onMetrics,
-}: {
-  estimates: any[];
-  onMetrics?: (m: {
-    pipelineTotal: number;
-    collected: number;
-    closeRate: number;
-    costTotal: number;
-    profitTotal: number;
-    avgMargin: number; // decimal (0..1)
-  }) => void;
-}) {
-  const [window, setWindow] = useState<TimeWindow>("all");
-
-  const now = useMemo(() => new Date(), []);
-
-  const startDate = useMemo(() => {
-    if (window === "all") return null;
-
-    if (window === "month") {
-      return new Date(now.getFullYear(), now.getMonth(), 1);
-    }
-
-    // window === "30d"
-    const d = new Date(now);
-    d.setDate(d.getDate() - 30);
-    return d;
-  }, [window, now]);
-
-  const inWindow = (e: any) => {
-    if (!startDate) return true;
-
-    const raw =
-      e.createdAt ??
-      e.savedAt ??
-      e.updatedAt ??
-      e.sentAt ??
-      e.scheduledAt ??
-      e.paidAt;
-
-    if (!raw) return true; // if no timestamp, keep it (prevents "missing data" blanks)
-
-    const dt = new Date(raw);
-    if (Number.isNaN(dt.getTime())) return true;
-
-    return dt >= startDate;
-  };
-
-  const scoped = useMemo(() => estimates.filter(inWindow), [estimates, startDate]);
-
-  const getValue = (e: any) =>
-    typeof e.totalContractPrice === "number"
-      ? e.totalContractPrice
-      : typeof e.suggestedPrice === "number"
-      ? e.suggestedPrice
-      : 0;
-
-  const valueOf = (e: any) => {
-    const v = Number(getValue(e));
-    return Number.isFinite(v) && v > 0 ? v : 0;
-  };
-
-  const costOf = (e: any) => {
-    const m = typeof e.materialsCost === "number" ? e.materialsCost : 0;
-    const l = typeof e.laborCost === "number" ? e.laborCost : 0;
-    const d = typeof e.disposalCost === "number" ? e.disposalCost : 0;
-    const sum = m + l + d;
-    return Number.isFinite(sum) && sum > 0 ? sum : 0;
-  };
-
-  const sum = (status: string) =>
-    scoped
-      .filter((e) => (e.status ?? "estimate") === status)
-      .reduce((acc, e) => acc + valueOf(e), 0);
-
-  const approved = sum("approved");
-  const scheduled = sum("scheduled");
-  const paid = sum("paid");
-
-  // Pipeline (CRM-correct) = all work value in window (includes paid)
-  const pipelineTotal = scoped.reduce((acc, e) => acc + valueOf(e), 0);
-
-  // Collected = paid value in window
-  const collected = paid;
-
-  // Open pipeline = how much is still out there
-  const openPipeline = Math.max(0, pipelineTotal - collected);
-
-  const costTotal = scoped.reduce((acc, e) => acc + costOf(e), 0);
-  const profitTotal = pipelineTotal - costTotal;
-  const avgMargin = pipelineTotal > 0 ? profitTotal / pipelineTotal : 0;
-
-  // % collected
-  const pct =
-    pipelineTotal > 0 ? Math.min(1, Math.max(0, collected / pipelineTotal)) : 0;
-  const pctLabel = `${Math.round(pct * 100)}%`;
-
-  // Close Rate (jobs: paid / total, only count jobs with value > 0)
-  const statusOf = (e: any) =>
-    ((e?.status ?? "estimate") as
-      | "estimate"
-      | "sent"
-      | "approved"
-      | "scheduled"
-      | "paid");
-  const jobs = scoped.filter((e) => valueOf(e) > 0);
-  const totalJobs = jobs.length;
-  const paidJobs = jobs.filter((e) => statusOf(e) === "paid").length;
-  const closeRate = totalJobs > 0 ? paidJobs / totalJobs : 0;
-  const closeRateLabel = `${Math.round(closeRate * 100)}%`;
-
-  useEffect(() => {
-    onMetrics?.({ pipelineTotal, collected, closeRate, costTotal, profitTotal, avgMargin });
-  }, [onMetrics, pipelineTotal, collected, closeRate, costTotal, profitTotal, avgMargin]);
-
-  const averageJobValue =
-    totalJobs > 0 ? pipelineTotal / totalJobs : 0;
-
-  // MoM (Month over Month) comparisons
-  const dateOf = (e: any): Date | null => {
-    const raw =
-      e?.updatedAt ??
-      e?.savedAt ??
-      e?.createdAt ??
-      e?.timestamp ??
-      e?.withTimestamps?.updatedAt ??
-      e?.withTimestamps?.createdAt;
-
-    if (!raw) return null;
-
-    const d = raw instanceof Date ? raw : new Date(raw);
-    return Number.isFinite(d.getTime()) ? d : null;
-  };
-
-  const startOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1);
-  const addMonths = (d: Date, months: number) =>
-    new Date(d.getFullYear(), d.getMonth() + months, 1);
-
-  const inRange = (d: Date, start: Date, end: Date) =>
-    d.getTime() >= start.getTime() && d.getTime() < end.getTime();
-
-  const nowMoM = new Date();
-  const thisMonthStart = startOfMonth(nowMoM);
-  const nextMonthStart = addMonths(thisMonthStart, 1);
-  const lastMonthStart = addMonths(thisMonthStart, -1);
-  const lastMonthEnd = thisMonthStart;
-
-  const jobsThisMonth = jobs.filter((e) => {
-    const d = dateOf(e);
-    return d ? inRange(d, thisMonthStart, nextMonthStart) : false;
-  });
-  const jobsLastMonth = jobs.filter((e) => {
-    const d = dateOf(e);
-    return d ? inRange(d, lastMonthStart, lastMonthEnd) : false;
-  });
-
-  const sumValue = (arr: any[]) => arr.reduce((acc, e) => acc + valueOf(e), 0);
-  const sumPaid = (arr: any[]) =>
-    arr.reduce((acc, e) => acc + (statusOf(e) === "paid" ? valueOf(e) : 0), 0);
-
-  const pipelineThisMonth = sumValue(jobsThisMonth);
-  const pipelineLastMonth = sumValue(jobsLastMonth);
-
-  const collectedThisMonth = sumPaid(jobsThisMonth);
-  const collectedLastMonth = sumPaid(jobsLastMonth);
-
-  const collectedRateThisMonth =
-    pipelineThisMonth > 0 ? collectedThisMonth / pipelineThisMonth : 0;
-  const collectedRateLastMonth =
-    pipelineLastMonth > 0 ? collectedLastMonth / pipelineLastMonth : 0;
-
-  const paidJobsThisMonth = jobsThisMonth.filter(
-    (e) => statusOf(e) === "paid"
-  ).length;
-  const paidJobsLastMonth = jobsLastMonth.filter(
-    (e) => statusOf(e) === "paid"
-  ).length;
-
-  const totalJobsThisMonth = jobsThisMonth.length;
-  const totalJobsLastMonth = jobsLastMonth.length;
-
-  const closeRateThisMonth =
-    totalJobsThisMonth > 0 ? paidJobsThisMonth / totalJobsThisMonth : 0;
-  const closeRateLastMonth =
-    totalJobsLastMonth > 0 ? paidJobsLastMonth / totalJobsLastMonth : 0;
-
-  const toPp = (x: number) => Math.round(x * 100);
-  const collectedMoMPp = toPp(collectedRateThisMonth - collectedRateLastMonth);
-  const closeMoMPp = toPp(closeRateThisMonth - closeRateLastMonth);
-
-  const ppLabel = (pp: number) =>
-    pp > 0 ? `+${pp}pp` : pp < 0 ? `${pp}pp` : `0pp`;
-
-  const fmt = (n: number) =>
-    n.toLocaleString(undefined, {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 2,
-    });
-
-  const fmt0 = (n: number) =>
-    n.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
-  const fmtMoney = (n: number) => fmt0(Math.round(Number(n || 0)));
-
-  const Row = ({
-    label,
-    value,
-    tone,
-  }: {
-    label: string;
-    value: number;
-    tone?: "default" | "good";
-  }) => (
-    <div className="flex items-center justify-between py-3">
-      <div className="text-sm font-semibold text-white/70">{label}</div>
-      <div
-        className={[
-          "text-sm font-semibold tabular-nums",
-          tone === "good" ? "text-emerald-200" : "text-white",
-        ].join(" ")}
-      >
-        {fmtMoney(value)}
-      </div>
-    </div>
-  );
-
-  const ToggleBtn = ({
-    id,
-    label,
-  }: {
-    id: TimeWindow;
-    label: string;
-  }) => {
-    const active = window === id;
-    return (
-      <button
-        type="button"
-        onClick={() => setWindow(id)}
-        className={[
-          "inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-xs font-semibold transition whitespace-nowrap leading-none min-w-[92px]",
-          active
-            ? "bg-white/[0.10] border-white/20 text-white"
-            : "bg-white/[0.03] border-white/10 text-white/80 hover:bg-white/[0.06] hover:border-white/20",
-        ].join(" ")}
-      >
-        {label}
-      </button>
-    );
-  };
-
-  const getMarginColor = (margin: number) => {
-    const pct = margin * 100;
-    if (pct >= 20) return "text-green-400";
-    if (pct >= 10) return "text-yellow-400";
-    return "text-red-400";
-  };
-
-  return (
-    <div className="mb-8 rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <div className="text-sm font-semibold text-white">Business Snapshot</div>
-          <div className="mt-1 text-xs text-white/45">
-            {window === "all"
-              ? "All-time totals from your saved pipeline"
-              : window === "month"
-              ? "This month's totals"
-              : "Last 30 days totals"}
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <ToggleBtn id="all" label="All Time" />
-          <ToggleBtn id="month" label="This Month" />
-          <ToggleBtn id="30d" label="Last 30 Days" />
-        </div>
-      </div>
-
-      <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4">
-          <div className="text-[10px] uppercase tracking-[0.22em] text-emerald-200/70">
-            Total Pipeline
-          </div>
-          <div className="mt-2 text-2xl font-semibold text-emerald-200 tabular-nums">
-            {fmt(pipelineTotal)}
-          </div>
-          <div className="mt-3 h-2 w-full overflow-hidden rounded-full border border-white/10 bg-black/20">
-            <div
-              className="h-full rounded-full bg-emerald-400/70"
-              style={{
-                width:
-                  pipelineTotal > 0
-                    ? `${pct === 0 ? 0 : Math.max(6, pct * 100)}%`
-                    : "0%",
-              }}
-            />
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-          <div className="text-[10px] uppercase tracking-[0.22em] text-white/50">
-            Collected
-          </div>
-          <div
-            className="mt-2 text-2xl font-semibold tabular-nums text-emerald-200"
-            title={fmt(collected)}
-          >
-            {fmt(collected)}
-          </div>
-          <div className="mt-1 text-xs text-white/45">Paid work collected in this window</div>
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-          <div className="text-[10px] uppercase tracking-[0.22em] text-white/50">
-            Remaining Balance
-          </div>
-          <div
-            className="mt-2 text-2xl font-semibold tabular-nums text-amber-200"
-            title={fmt(openPipeline)}
-          >
-            {fmt(openPipeline)}
-          </div>
-          <div className="mt-1 text-xs text-white/45">Open pipeline still to collect</div>
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-          <div className="text-[10px] uppercase tracking-[0.22em] text-white/50">
-            Average Job Value
-          </div>
-          <div
-            className="mt-2 text-2xl font-semibold tabular-nums text-white/90"
-            title={fmt(averageJobValue)}
-          >
-            {fmt(averageJobValue)}
-          </div>
-          <div className="mt-1 text-xs text-white/45">
-            {paidJobs} / {totalJobs} jobs completed
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_260px]">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4">
-          <Row label="Approved" value={approved} />
-          <div className="h-px bg-white/10" />
-          <Row label="Scheduled" value={scheduled} />
-          <div className="h-px bg-white/10" />
-          <Row label="Completed" value={paid} tone="good" />
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-white/[0.05] p-4">
-          <div className="text-[10px] uppercase tracking-[0.22em] text-white/60">
-            Profit
-          </div>
-          <div className="mt-3 space-y-2 text-sm text-white/70">
-            <div className="flex items-center justify-between">
-              <span>Sold</span>
-              <span className="tabular-nums text-white/90">{fmt(pipelineTotal)}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Cost</span>
-              <span className="tabular-nums text-white/90">{fmt(costTotal)}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Profit</span>
-              <span className={`tabular-nums font-semibold ${profitTotal >= 0 ? "text-green-400" : "text-red-400"}`}>
-                {fmt(profitTotal)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Margin</span>
-              <span className={`tabular-nums font-semibold ${getMarginColor(avgMargin)}`}>
-                {Math.round(avgMargin * 100)}%
-              </span>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -3986,17 +3601,17 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     [estimates, dbJobs]
   );
 
-  const dbBoardSearchFiltered = useMemo(
-    () => searchBoardEntries(dbBoardEntries, query),
-    [dbBoardEntries, query]
+  const dbBoardSearchFiltered = dbBoardEntries;
+  const boardReady = hydrated && dbJobsStatus === "ready";
+  const companyJobSearch = useCompanyJobSearch(
+    query,
+    statusFilter === "all" && hydrated
   );
 
   const legacySearchFiltered = useMemo(
     () => searchBoardEntries(legacyBoardEntries, query),
     [legacyBoardEntries, query]
   );
-
-  const boardReady = hydrated && dbJobsStatus === "ready";
   const boardReadError = hydrated && dbJobsStatus === "error";
   const canonicalLifecycleActionsEnabled = dbJobsStatus === "ready";
   const hasBoardJobs = dbBoardEntries.length > 0;
@@ -4500,8 +4115,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
 
   const boardFilterZeroMatch =
     boardFilteredJobs.length === 0 &&
-    (query.trim().length > 0 ||
-      !!updatedOnOrAfter ||
+    (!!updatedOnOrAfter ||
       dispositionFilter !== BOARD_DEFAULT_DISPOSITION_FILTER ||
       (dbBoardSearchFiltered?.length ?? 0) < dbBoardEntries.length);
 
@@ -4792,12 +4406,6 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
             data-jobs-board-read-status={dbJobsStatus}
             data-focused-canonical-column={focusedCanonicalColumn ?? ""}
           >
-            {statusFilter === "all" && (
-              <div className="sr-only" aria-hidden>
-                <RevenueSummary estimates={searchFiltered} onMetrics={setRevenueMetrics} />
-              </div>
-            )}
-
             {statusFilter === "all" && !boardReady && !boardReadError && (
               <div className="py-12 text-center text-sm text-slate-500">Loading jobs…</div>
             )}
@@ -4839,7 +4447,17 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                   />
                 ) : null}
 
-                {focusedCanonicalColumn ? (
+                {companyJobSearch.active ? (
+                  <JobsBoardSearchResults
+                    query={query}
+                    status={companyJobSearch.status}
+                    results={companyJobSearch.results}
+                    onOpenJob={(href) => {
+                      setCurrentLoadedSavedId(null);
+                      router.push(href);
+                    }}
+                  />
+                ) : focusedCanonicalColumn ? (
                   <div className="flex flex-wrap items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
                     <span>
                       Focusing {getBoardColumnByKey(focusedCanonicalColumn).label} on the Jobs Board
@@ -4855,13 +4473,13 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                   </div>
                 ) : null}
 
-                {!hasBoardJobs ? (
+                {!companyJobSearch.active && !hasBoardJobs ? (
                   <JobsBoardEmptyState
                     setupIncomplete={companySetupReadiness.showBanner}
                     setupPrimaryHref={companySetupReadiness.primaryHref}
-                    searchActive={query.trim().length > 0 || boardFiltersActive}
+                    searchActive={boardFiltersActive}
                   />
-                ) : (
+                ) : !companyJobSearch.active ? (
                   <>
                 {boardFilterZeroMatch ? (
                   <p className="rounded-md border border-slate-200/80 bg-slate-50 px-3 py-2 text-sm text-slate-600">
@@ -4991,9 +4609,9 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                   </div>
                 )}
                   </>
-                )}
+                ) : null}
 
-                {hasLegacyEstimates ? (
+                {!companyJobSearch.active && hasLegacyEstimates ? (
                   <JobsBoardLegacySection
                     count={legacyBoardEntries.length}
                     jobs={legacySearchFiltered}
@@ -5152,26 +4770,8 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
               <>
                 <div className="h-8 w-px bg-white/[0.08]" />
                 <div className="min-w-0">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-300/60">Secured revenue</div>
-                  <div className="mt-0.5 text-sm font-semibold text-emerald-100">
-                    ${scheduledRevenueSafe.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
-                </div>
-                <div className="h-8 w-px bg-white/[0.08]" />
-                <div className="min-w-0">
                   <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300/60">This week</div>
                   <div className="mt-0.5 text-sm font-semibold text-amber-100">{jobsThisWeek.length} jobs</div>
-                </div>
-              </>
-            )}
-            {statusFilter === "deposit_paid" && (
-              <>
-                <div className="h-8 w-px bg-white/[0.08]" />
-                <div className="min-w-0">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-300/60">Secured revenue</div>
-                  <div className="mt-0.5 text-sm font-semibold text-emerald-100">
-                    ${waitingToScheduleRevenueSafe.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
                 </div>
               </>
             )}
@@ -5340,9 +4940,9 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                 </div>
               </div>
 
-              <div className="relative grid grid-cols-1 gap-6 p-4 sm:p-5 lg:grid-cols-12 lg:gap-7 lg:p-6">
+              <div className="relative grid grid-cols-1 gap-6 p-4 sm:p-5 lg:p-6">
                 {/* ── Prepared Work Queue (mock-accurate horizontal lanes) ── */}
-                <div className="lg:col-span-8">
+                <div>
                   <div className="space-y-2.5">
                     {lanes.map((lane) => {
                       const Icon = lane.icon;
@@ -5437,191 +5037,10 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                   </div>
                 </div>
 
-                {/* ── AI Job Conductor (assistant rail) ── */}
-                <aside className="lg:col-span-4">
-                  <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-indigo-400/12 bg-gradient-to-b from-[#0a1228] via-[#0a1325] to-[#070c1a] shadow-[0_16px_40px_rgba(0,0,0,0.38)] ring-1 ring-inset ring-white/[0.035]">
-                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(99,102,241,0.12)_0%,_transparent_55%)]" aria-hidden />
-                    <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-300/30 to-transparent" aria-hidden />
-
-                    {/* assistant header — feels like AI is thinking */}
-                    <div className="relative flex items-start gap-3 px-5 pt-5">
-                      <div className="relative flex h-11 w-11 shrink-0 items-center justify-center" aria-hidden>
-                        <span className="absolute inset-0 rounded-full bg-indigo-400/20 blur-md" />
-                        <span className="absolute inset-0.5 rounded-full border border-indigo-300/30" />
-                        <span className="absolute inset-1 rounded-full bg-gradient-to-br from-indigo-300/60 via-indigo-500/40 to-slate-950/80 shadow-[inset_0_0_20px_rgba(165,180,252,0.40)]" />
-                        <span className="relative text-[10px] font-extrabold uppercase tracking-widest text-indigo-50">AI</span>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-indigo-300/75">
-                          <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" aria-hidden />
-                          Legacy lane insights
-                        </div>
-                        <div className="mt-1 text-[15px] font-semibold text-white">
-                          Saved-estimate follow-ups in this stage
-                        </div>
-                        <div className="mt-0.5 text-[12px] leading-snug text-white/50">
-                          Legacy metrics only — not the primary Job Board or future Proposals hub.
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* AI insights — reasoning style, not metric stack */}
-                    <div className="relative mt-4 flex-1 px-5">
-                      <div className="text-[9px] font-semibold uppercase tracking-[0.22em] text-white/30">AI insights</div>
-                      <div className="mt-2 space-y-2">
-                        {/* Revenue check */}
-                        <div className="flex items-start gap-3 rounded-xl border border-emerald-400/15 bg-gradient-to-r from-emerald-500/[0.10] to-transparent p-3">
-                          <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-emerald-400/25 bg-emerald-500/15 text-emerald-200">
-                            <span className="text-[10px]">✓</span>
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="text-[11px] font-semibold uppercase tracking-wider text-emerald-200/80">
-                              {statusFilter === "scheduled" ? "Scheduled revenue" : "Secured revenue"}
-                            </div>
-                            <div className="mt-0.5 text-base font-bold text-emerald-50">
-                              ${(statusFilter === "scheduled" ? scheduledRevenueSafe : waitingToScheduleRevenueSafe).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </div>
-                            <div className="mt-0.5 text-[11px] leading-snug text-emerald-200/55">
-                              {statusFilter === "scheduled"
-                                ? "Tracking from scheduled jobs in this view."
-                                : "Deposit collected — ready for schedule confirmation."}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Approvals check */}
-                        <div className="flex items-start gap-3 rounded-xl border border-amber-400/15 bg-gradient-to-r from-amber-500/[0.10] to-transparent p-3">
-                          <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-amber-400/25 bg-amber-500/15 text-amber-200">
-                            <span className="text-[10px]">!</span>
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="text-[11px] font-semibold uppercase tracking-wider text-amber-200/80">
-                              {statusFilter === "scheduled" ? "Upcoming jobs" : "Needs contractor approval"}
-                            </div>
-                            <div className="mt-0.5 text-base font-bold text-amber-50">
-                              {statusFilter === "scheduled" ? upcomingScheduledJobs.length : waitingToScheduleCount}
-                            </div>
-                            <div className="mt-0.5 text-[11px] leading-snug text-amber-200/55">
-                              {statusFilter === "scheduled"
-                                ? "On your upcoming schedule."
-                                : "Approved or deposit-paid — not locked to a date yet."}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Bottleneck / production check */}
-                        {statusFilter === "scheduled" ? (
-                          <div className="flex items-start gap-3 rounded-xl border border-cyan-400/15 bg-gradient-to-r from-cyan-500/[0.10] to-transparent p-3">
-                            <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-cyan-400/25 bg-cyan-500/15 text-cyan-200">
-                              <span className="text-[10px]">▣</span>
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="text-[11px] font-semibold uppercase tracking-wider text-cyan-200/80">Production this week</div>
-                              <div className="mt-0.5 text-base font-bold text-cyan-50">{jobsThisWeek.length}</div>
-                              <div className="mt-0.5 text-[11px] leading-snug text-cyan-200/55">
-                                Scheduled in the next 7 days.
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
-                            <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-white/15 bg-white/[0.04] text-white/65">
-                              <span className="text-[10px]">⚠</span>
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="text-[11px] font-semibold uppercase tracking-wider text-white/55">Pipeline bottleneck</div>
-                              <div className="mt-0.5 text-sm font-semibold text-white">{weakestLabel}</div>
-                              {weakestDenom > 0 && (
-                                <>
-                                  <div className="mt-0.5 text-[12px] text-amber-200/85">{weakestPct}% conversion</div>
-                                  <div className="text-[11px] text-white/40">{weakestNumer} of {weakestDenom} jobs</div>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Recommended next action — premium CTA strip */}
-                    <div className="relative mt-4 border-t border-white/[0.06] px-5 py-4">
-                      <div className="overflow-hidden rounded-xl border border-cyan-300/20 bg-gradient-to-r from-cyan-500/[0.12] via-indigo-500/[0.08] to-transparent">
-                        <div className="flex items-start gap-3 px-3.5 py-3">
-                          <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-cyan-300/30 bg-cyan-400/15 text-cyan-100 shadow-[0_0_14px_rgba(34,211,238,0.30)]">
-                            <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-300/80">Recommended next action</div>
-                            <div className="mt-0.5 text-[13px] leading-snug text-white/85">{nextActionText}</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </aside>
               </div>
             </section>
           );
         })()}
-
-        {/* ── Business Snapshot — slim financial pulse strip — filtered lanes only ── */}
-        {hydrated && (
-          <section className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-gradient-to-r from-[#070e1a] via-[#0a1426] to-[#070e1a] shadow-[0_12px_30px_rgba(0,0,0,0.32)] ring-1 ring-inset ring-white/[0.04]">
-            <div className="pointer-events-none absolute inset-y-0 left-0 w-[3px] bg-gradient-to-b from-emerald-400/60 via-cyan-400/30 to-transparent" aria-hidden />
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-300/15 to-transparent" aria-hidden />
-            <button
-              type="button"
-              onClick={() => setBusinessSnapshotOpen((v) => !v)}
-              className="relative flex w-full flex-col gap-3 px-5 py-3.5 text-left transition hover:bg-white/[0.02] sm:flex-row sm:items-center sm:gap-5 sm:px-6"
-              aria-expanded={businessSnapshotOpen}
-            >
-              <div className="flex items-center gap-3 sm:min-w-[180px]">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-emerald-400/25 bg-emerald-500/10 text-emerald-200">
-                  <span className="text-[11px] font-bold">$</span>
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[9px] font-semibold uppercase tracking-[0.22em] text-emerald-300/65">Business Snapshot</div>
-                  <div className="mt-0.5 text-[12px] font-semibold text-white/75">Financial pulse</div>
-                </div>
-              </div>
-
-              {/* inline pulse metrics */}
-              <div className="flex flex-1 flex-wrap items-center gap-x-5 gap-y-2 text-[11px] sm:gap-x-6">
-                {[
-                  { label: "Pipeline", value: revenueMetrics ? formatMoney(revenueMetrics.pipelineTotal ?? 0) : "—", tone: "text-white/85" },
-                  { label: "Collected", value: revenueMetrics ? formatMoney(revenueMetrics.collected ?? 0) : "—", tone: "text-emerald-200" },
-                  { label: "Balance", value: revenueMetrics ? formatMoney(Math.max(0, (revenueMetrics.pipelineTotal ?? 0) - (revenueMetrics.collected ?? 0))) : "—", tone: "text-amber-200" },
-                  { label: "Profit", value: revenueMetrics ? formatMoney(revenueMetrics.profitTotal ?? 0) : "—", tone: "text-cyan-200" },
-                ].map((m, i) => (
-                  <div key={m.label} className="flex items-center gap-2">
-                    {i > 0 && <span className="hidden h-3 w-px bg-white/[0.08] sm:inline-block" aria-hidden />}
-                    <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-white/35">{m.label}</span>
-                    <span className={`text-sm font-bold tabular-nums ${m.tone}`}>{m.value}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex shrink-0 items-center gap-2">
-                <span className="rounded-full border border-white/[0.10] bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/55">
-                  {businessSnapshotOpen ? "Collapse" : "Expand"}
-                </span>
-                <ChevronDown
-                  className={`h-4 w-4 text-white/45 transition-transform ${businessSnapshotOpen ? "rotate-180" : ""}`}
-                  aria-hidden
-                />
-              </div>
-            </button>
-
-            {businessSnapshotOpen && (
-              <div className="border-t border-white/[0.06] px-4 pb-5 pt-5 sm:px-6">
-                <RevenueSummary
-                  estimates={searchFiltered}
-                  onMetrics={setRevenueMetrics}
-                />
-              </div>
-            )}
-          </section>
-        )}
 
         <div className="space-y-5 lg:space-y-6">
           {/* Scheduled UX v2 enabled */}

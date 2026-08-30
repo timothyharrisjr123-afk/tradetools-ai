@@ -63,9 +63,9 @@ function formatTimeInStageFooter(label: string | null): string | null {
   return `${label} in stage`;
 }
 
-function assigneeDisplay(label: string | null | undefined): string {
-  if (!label?.trim()) return "Unassigned";
-  return label;
+function assigneeDisplay(label: string | null | undefined): string | null {
+  const trimmed = label?.trim();
+  return trimmed ? trimmed : null;
 }
 
 export default function JobsBoardCard({
@@ -342,7 +342,9 @@ export default function JobsBoardCard({
             label={model.proposalStatus.label}
             textClassName={statusMetaTextClass(model.proposalStatus.tone)}
           />
-          <IconStatusRow icon={UserCircle} label={assignee} textClassName="text-slate-500" />
+          {assignee ? (
+            <IconStatusRow icon={UserCircle} label={assignee} textClassName="text-slate-500" />
+          ) : null}
         </div>
       </div>
 

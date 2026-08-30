@@ -10,7 +10,7 @@ const tools = [
       "Start a roofing job, prepare the scope, manage proposals, and track the work from one operating flow.",
     cta: "Start new job",
     secondaryHref: "/tools/roofing/saved",
-    secondaryLabel: "Open Command Center",
+    secondaryLabel: "Open Jobs Board",
   },
 ];
 

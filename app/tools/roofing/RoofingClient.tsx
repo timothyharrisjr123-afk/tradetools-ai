@@ -6274,7 +6274,7 @@ Thanks,`;
                         Job Workspace
                       </span>
                       <span className="inline-flex items-center rounded-full border border-cyan-300/18 bg-cyan-500/[0.09] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-100/75">
-                        Loaded from Command Center
+                        Loaded from Jobs Board
                       </span>
                       <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.16em] ${
                         isLocked
@@ -6315,7 +6315,7 @@ Thanks,`;
                     ? ["Job loaded", "Customer path", "Scope restored", "Proposal state", "Next action"]
                     : ["Address checked", "Photos analyzed", "Scope estimated", "Proposal draft", "Waiting on contractor"];
                   const timelineSubLabels = isLoadedWorkspace
-                    ? ["Command Center", "Contact", "Scope", "Proposal", "Contractor"]
+                    ? ["Jobs Board", "Contact", "Scope", "Proposal", "Contractor"]
                     : ["", "", "", "", "Roofing system"];
                   const status = item.ready ? "Complete" : item.notReadyStatus === "Needs input" ? "Needs input" : "Waiting";
                   const isFirst = idx === 0;

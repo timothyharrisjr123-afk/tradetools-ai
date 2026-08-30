@@ -490,8 +490,7 @@ export function deriveJobsBoardTaskDisplay(est: RoofingEstimate): JobsBoardTaskD
   }
 
   const taskCount = counts?.tasks;
-  if (typeof taskCount === "number" && Number.isFinite(taskCount)) {
-    if (taskCount === 0) return { available: true, label: "0 tasks" };
+  if (typeof taskCount === "number" && Number.isFinite(taskCount) && taskCount > 0) {
     return { available: true, label: `${taskCount} open task${taskCount !== 1 ? "s" : ""}` };
   }
 
@@ -619,7 +618,7 @@ function deriveAssigneeLabel(est: RoofingEstimate): string | null {
   const assigned =
     (est as { assigned_to?: string | null }).assigned_to ??
     (est as { assignedTo?: string | null }).assignedTo;
-  if (!assigned?.trim()) return "Unassigned";
+  if (!assigned?.trim()) return null;
   return "Assigned";
 }
 
@@ -633,15 +632,18 @@ function deriveTasksLabel(est: RoofingEstimate): string {
     }
   ).linked_counts;
 
-  const open = counts?.tasks;
-  const completed = counts?.completed_tasks;
+  if (!counts) return "";
+
+  const open = counts.tasks;
+  const completed = counts.completed_tasks;
 
   if (typeof open === "number" && typeof completed === "number" && Number.isFinite(open) && Number.isFinite(completed)) {
     const total = open + completed;
+    if (total <= 0) return "";
     return `${completed}/${total}`;
   }
   if (typeof open === "number" && Number.isFinite(open) && open > 0) {
-    return `0/${open}`;
+    return `${open} open`;
   }
   return "";
 }

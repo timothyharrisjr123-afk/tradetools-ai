@@ -15,7 +15,6 @@ import {
   buildJobCardRecoveryHref,
 } from "@/app/lib/jobBoardAdapter";
 import {
-  Bell,
   Menu,
   X,
   ChevronDown,
@@ -458,15 +457,7 @@ export default function FieldDiveAppShell({ activeNav, activeSubId, children }: 
           </Link>
           <nav className="flex-1 space-y-4 px-2 py-3">{navSections}</nav>
           <div className="mt-auto border-t border-slate-100 p-3">
-            <div className="flex items-center gap-2.5 rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-2">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-200 to-orange-300 text-[10px] font-bold text-white">
-                MA
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-xs font-semibold text-slate-800">Mike Anderson</div>
-                <div className="truncate text-[10px] text-slate-500">Anderson Roofing</div>
-              </div>
-            </div>
+            <SignOutButton className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50" />
           </div>
         </aside>
 
@@ -486,23 +477,7 @@ export default function FieldDiveAppShell({ activeNav, activeSubId, children }: 
             </button>
             <div className="hidden flex-1 lg:block" />
             <div className="flex items-center gap-2 sm:gap-3">
-              <button
-                type="button"
-                className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50"
-                aria-label="Notifications"
-              >
-                <Bell className="h-4 w-4" aria-hidden />
-                <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-blue-500" />
-              </button>
-              <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white py-1 pl-1 pr-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-amber-200 to-orange-300 text-[10px] font-bold text-white">
-                  MA
-                </div>
-                <span className="hidden text-xs font-semibold text-slate-700 sm:inline">Mike Anderson</span>
-                <div className="hidden sm:block">
-                  <SignOutButton />
-                </div>
-              </div>
+              <SignOutButton className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50" />
             </div>
           </header>
 
