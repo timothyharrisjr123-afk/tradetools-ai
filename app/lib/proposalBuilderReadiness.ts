@@ -145,7 +145,7 @@ export function formatProposalBuilderGateTitle(gate: ProposalBuilderGate): strin
     case "catalog_not_ready":
       return "Catalog setup incomplete";
     case "template_not_ready":
-      return "Proposal templates not ready";
+      return "Templates not ready";
     default:
       return "Proposal Builder unavailable";
   }

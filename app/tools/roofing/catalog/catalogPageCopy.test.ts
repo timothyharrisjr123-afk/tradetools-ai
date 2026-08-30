@@ -279,12 +279,12 @@ describe("Catalog P0B–P0D page shell", () => {
     assert.equal(/supplier sync is active|material ordering is live/i.test(modal + setup), false);
   });
 
-  test("All items shows Open Proposal templates next action when catalog ready", () => {
+  test("All items shows Open Templates next action when catalog ready", () => {
     const workspace = readCatalogFile("CatalogItemsWorkspace.tsx");
     const setup = readCatalogFile("CatalogSetupClient.tsx");
     assert.ok(workspace.includes("data-catalog-next-templates"));
     assert.ok(workspace.includes("data-catalog-open-templates"));
-    assert.ok(workspace.includes("Open Proposal templates"));
+    assert.ok(workspace.includes("Open Templates"));
     assert.ok(workspace.includes("Create proposals from a Job Card"));
     assert.ok(setup.includes("catalogReadyForTemplates"));
     assert.ok(setup.includes('readiness.state === "ready_for_templates"'));
@@ -292,13 +292,13 @@ describe("Catalog P0B–P0D page shell", () => {
     assert.equal(/href=.*Create proposal|Create proposal button/i.test(workspace), false);
   });
 
-  test("Settings panel links to Pricing rules and Proposal templates without tax forms", () => {
+  test("Settings panel links to Pricing rules and Templates without tax forms", () => {
     const source = readCatalogFile("CatalogSettingsPanel.tsx");
     assert.ok(source.includes("Catalog settings"));
     assert.ok(source.includes("/tools/settings/pricing"));
     assert.ok(source.includes("/tools/roofing/templates"));
     assert.ok(source.includes("Open Pricing rules"));
-    assert.ok(source.includes("Open Proposal templates"));
+    assert.ok(source.includes("Open Templates"));
     assert.ok(source.includes("CATALOG_SETTINGS_PLANNED_TOOLS"));
     assert.ok(source.includes("Future Catalog tools"));
     assert.ok(source.includes("Coming soon") || source.includes("CATALOG_COMING_SOON_LABEL"));

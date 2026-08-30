@@ -37,12 +37,12 @@ export default function CatalogSettingsPanel() {
           href="/tools/roofing/templates"
           className="rounded-xl border border-slate-200/90 bg-white px-5 py-4 shadow-sm transition hover:border-slate-300 hover:bg-slate-50/80"
         >
-          <p className="text-sm font-semibold text-slate-900">Proposal templates</p>
+          <p className="text-sm font-semibold text-slate-900">Templates</p>
           <p className="mt-1 text-xs leading-relaxed text-slate-500">
             Reusable proposal structure and package defaults.
           </p>
           <span className="mt-3 inline-flex text-sm font-semibold text-slate-800">
-            Open Proposal templates →
+            Open Templates →
           </span>
         </Link>
       </div>

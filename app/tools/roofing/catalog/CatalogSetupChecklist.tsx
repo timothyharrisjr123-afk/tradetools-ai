@@ -90,7 +90,7 @@ export default function CatalogSetupChecklist({
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-semibold text-slate-900">Proposal templates</span>
+              <span className="text-xs font-semibold text-slate-900">Templates</span>
               <span className={stepBadgeClass(templateReadinessReady, !templateReadinessReady && pricingDone)}>
                 {loading ? "…" : templateReadinessReady ? "Ready" : catalogLabel}
               </span>
@@ -100,7 +100,7 @@ export default function CatalogSetupChecklist({
                 href="/tools/roofing/templates"
                 className="mt-1.5 inline-block text-[11px] font-semibold text-cyan-800 underline underline-offset-2 hover:text-cyan-900"
               >
-                Open proposal templates
+                Open Templates
               </Link>
             ) : (
               !loading && (

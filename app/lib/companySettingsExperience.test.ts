@@ -271,7 +271,7 @@ describe("Mobile navigation", () => {
       "Company settings",
       "Pricing rules",
       "Catalog",
-      "Proposal templates",
+      "Templates",
     ]) {
       assert.ok(labels.includes(label), `missing nav item: ${label}`);
     }

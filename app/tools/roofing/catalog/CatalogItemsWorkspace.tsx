@@ -270,7 +270,7 @@ export default function CatalogItemsWorkspace({
           <div className="min-w-0">
             <p className="text-sm font-semibold text-slate-900">Catalog ready for templates</p>
             <p className="mt-0.5 text-xs leading-relaxed text-slate-600">
-              Next: link these items in Proposal templates. Create proposals from a Job Card after
+              Next: link these items in Templates. Create proposals from a Job Card after
               the template is ready — not from Catalog.
             </p>
           </div>
@@ -279,7 +279,7 @@ export default function CatalogItemsWorkspace({
             className={`${PRIMARY_BUTTON} shrink-0`}
             data-catalog-open-templates
           >
-            Open Proposal templates
+            Open Templates
           </Link>
         </div>
       ) : null}

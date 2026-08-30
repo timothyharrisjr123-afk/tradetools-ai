@@ -43,7 +43,7 @@ export const COMPANY_SETUP_STEP_DEFINITIONS: readonly CompanySetupStepDefinition
   { id: "company_profile", label: "Company profile", href: "/tools/settings" },
   { id: "pricing_rules", label: "Pricing rules", href: "/tools/settings/pricing" },
   { id: "price_book", label: "Catalog", href: "/tools/roofing/catalog" },
-  { id: "proposal_templates", label: "Proposal templates", href: "/tools/roofing/templates" },
+  { id: "proposal_templates", label: "Templates", href: "/tools/roofing/templates" },
 ] as const;
 
 function stepStatus(value: boolean | null): CompanySetupStepStatus {

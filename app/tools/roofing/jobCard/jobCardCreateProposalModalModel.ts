@@ -74,9 +74,9 @@ export const PREPARE_PROPOSAL_PACKAGE_CHOOSE = "Choose a starting package." as c
 export const PREPARE_PROPOSAL_PACKAGE_NEEDS_SETUP =
   "Choose a reusable setup first." as const;
 export const PREPARE_PROPOSAL_PACKAGE_NONE =
-  "This setup has no valid package. Add a package under Proposal templates." as const;
+  "This setup has no valid package. Add a package under Templates." as const;
 export const PREPARE_PROPOSAL_SETUP_NONE =
-  "Create or finish a proposal template before creating a proposal." as const;
+  "Create or finish a template before creating a proposal." as const;
 export const PREPARE_PROPOSAL_CREATING_LABEL = "Creating…" as const;
 
 /** @deprecated V2A uses PREPARE_PROPOSAL_TITLE. Kept for residual copy checks. */
@@ -120,7 +120,7 @@ export const CREATE_PROPOSAL_PACKAGE_BUILDER_NOTE =
   "You can adjust quantities and optional upgrades later in Builder." as const;
 
 export const CREATE_PROPOSAL_TEMPLATE_SELECTED_UNUSABLE =
-  "This template needs a bit more setup. Choose another ready template, or finish it under Proposal templates." as const;
+  "This template needs a bit more setup. Choose another ready template, or finish it under Templates." as const;
 
 /**
  * Orange / amber template-step message. Only when there are no templates, or the
