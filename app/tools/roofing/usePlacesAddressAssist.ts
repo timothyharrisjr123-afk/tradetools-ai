@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type PlacesSuggestion = {
   placeId: string;
@@ -20,14 +20,23 @@ export type PlacesResolvedAddress = {
 
 const DEBOUNCE_MS = 280;
 
+function newPlacesSessionToken(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `places-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 /**
  * Quiet Places assist. When unavailable, stays idle — manual address continues.
+ * One sessionToken covers autocomplete typing → Place Details selection (Places New billing).
  */
 export function usePlacesAddressAssist(streetQuery: string, enabled: boolean) {
   const [debounced, setDebounced] = useState(streetQuery);
   const [available, setAvailable] = useState<boolean | null>(null);
   const [suggestions, setSuggestions] = useState<PlacesSuggestion[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const sessionTokenRef = useRef<string | null>(null);
 
   useEffect(() => {
     const handle = window.setTimeout(() => setDebounced(streetQuery), DEBOUNCE_MS);
@@ -43,10 +52,18 @@ export function usePlacesAddressAssist(streetQuery: string, enabled: boolean) {
       return;
     }
 
+    if (!sessionTokenRef.current) {
+      sessionTokenRef.current = newPlacesSessionToken();
+    }
+
     const controller = new AbortController();
     setStatus("loading");
 
-    void fetch(`/api/places/autocomplete?q=${encodeURIComponent(debounced.trim())}`, {
+    const token = sessionTokenRef.current;
+    const params = new URLSearchParams({ q: debounced.trim() });
+    if (token) params.set("sessionToken", token);
+
+    void fetch(`/api/places/autocomplete?${params.toString()}`, {
       cache: "no-store",
       signal: controller.signal,
     })
@@ -74,13 +91,19 @@ export function usePlacesAddressAssist(streetQuery: string, enabled: boolean) {
 
   async function resolvePlace(placeId: string): Promise<PlacesResolvedAddress | null> {
     try {
-      const res = await fetch(`/api/places/details?placeId=${encodeURIComponent(placeId)}`, {
+      const params = new URLSearchParams({ placeId });
+      const token = sessionTokenRef.current;
+      if (token) params.set("sessionToken", token);
+      const res = await fetch(`/api/places/details?${params.toString()}`, {
         cache: "no-store",
       });
       const json = await res.json().catch(() => null);
+      // End session after details (success or fail) so the next typing starts fresh.
+      sessionTokenRef.current = null;
       if (!res.ok || !json?.ok || !json.address) return null;
       return json.address as PlacesResolvedAddress;
     } catch {
+      sessionTokenRef.current = null;
       return null;
     }
   }

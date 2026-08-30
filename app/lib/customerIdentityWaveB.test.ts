@@ -240,12 +240,39 @@ describe("Wave B — Places boundary", () => {
     assert.doesNotMatch(config, /AIza[0-9A-Za-z_-]{20,}/);
     const client = read("app/lib/placesClient.ts");
     assert.match(client, /places\.googleapis\.com\/v1/);
-    const route = read("app/api/places/autocomplete/route.ts");
-    assert.match(route, /available: false/);
+    assert.match(client, /sessionToken/);
+    assert.match(client, /formattedAddress,addressComponents/);
+    assert.match(client, /normalizePlacesPlaceId/);
+    assert.doesNotMatch(client, /NEXT_PUBLIC_/);
+    const auto = read("app/api/places/autocomplete/route.ts");
+    const details = read("app/api/places/details/route.ts");
+    assert.match(auto, /available: false/);
+    assert.match(auto, /sessionToken/);
+    assert.match(details, /sessionToken/);
+    assert.doesNotMatch(auto, /NEXT_PUBLIC_/);
+    assert.doesNotMatch(details, /NEXT_PUBLIC_/);
+    const hook = read("app/tools/roofing/usePlacesAddressAssist.ts");
+    assert.match(hook, /sessionToken/);
+    assert.match(hook, /randomUUID|newPlacesSessionToken/);
     const roofing = read("app/tools/roofing/RoofingClient.tsx");
     assert.match(roofing, /JobPacketAddressSuggestions/);
     assert.match(roofing, /job_address1_field/);
-    // Without env, helper reports not configured (test env has no Places key).
-    assert.equal(isGooglePlacesConfigured(), Boolean(process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY));
+    assert.equal(
+      isGooglePlacesConfigured(),
+      Boolean(process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY)
+    );
+  });
+
+  test("placeId resource names normalize; unavailable path does not block intake", async () => {
+    const { normalizePlacesPlaceId, fetchPlacesAutocomplete } = await import("./placesClient");
+    assert.equal(normalizePlacesPlaceId("places/ChIJ_test"), "ChIJ_test");
+    assert.equal(normalizePlacesPlaceId("ChIJ_test"), "ChIJ_test");
+    assert.equal(normalizePlacesPlaceId("  "), "");
+    // When key absent in process, available=false and empty suggestions (manual intake continues).
+    if (!process.env.GOOGLE_PLACES_API_KEY && !process.env.GOOGLE_MAPS_API_KEY) {
+      const result = await fetchPlacesAutocomplete("123 Main");
+      assert.equal(result.available, false);
+      assert.deepEqual(result.suggestions, []);
+    }
   });
 });

@@ -29,7 +29,8 @@ export async function GET(req: NextRequest) {
   }
 
   const q = (req.nextUrl.searchParams.get("q") ?? "").trim();
-  const result = await fetchPlacesAutocomplete(q);
+  const sessionToken = (req.nextUrl.searchParams.get("sessionToken") ?? "").trim() || null;
+  const result = await fetchPlacesAutocomplete(q, sessionToken);
   return NextResponse.json({
     ok: true,
     available: result.available,

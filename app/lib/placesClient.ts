@@ -1,6 +1,9 @@
 /**
  * Wave B — Google Places (New) server helpers.
  * Autocomplete + place details only. No maps, routes, or property enrichment.
+ *
+ * Session token: one UUID per autocomplete→details selection session so Google
+ * bills the pair as a session (required cost/correctness behavior for Places New).
  */
 
 import { getGooglePlacesApiKey } from "@/app/lib/placesConfig";
@@ -23,6 +26,13 @@ export type PlacesResolvedAddress = {
 
 const AUTOCOMPLETE_URL = "https://places.googleapis.com/v1/places:autocomplete";
 
+/** Normalize Place ID / resource name to the id segment used by Places Details. */
+export function normalizePlacesPlaceId(placeId: string): string {
+  const raw = String(placeId ?? "").trim();
+  if (!raw) return "";
+  return raw.startsWith("places/") ? raw.slice("places/".length) : raw;
+}
+
 function placesHeaders(apiKey: string, fieldMask: string): HeadersInit {
   return {
     "Content-Type": "application/json",
@@ -32,7 +42,8 @@ function placesHeaders(apiKey: string, fieldMask: string): HeadersInit {
 }
 
 export async function fetchPlacesAutocomplete(
-  input: string
+  input: string,
+  sessionToken?: string | null
 ): Promise<{ available: boolean; suggestions: PlacesAutocompleteSuggestion[]; error?: string }> {
   const apiKey = getGooglePlacesApiKey();
   if (!apiKey) {
@@ -45,23 +56,27 @@ export async function fetchPlacesAutocomplete(
   }
 
   try {
+    const body: Record<string, unknown> = {
+      input: q,
+      includedRegionCodes: ["us"],
+      languageCode: "en",
+    };
+    const token = String(sessionToken ?? "").trim();
+    if (token) body.sessionToken = token;
+
     const res = await fetch(AUTOCOMPLETE_URL, {
       method: "POST",
       headers: placesHeaders(
         apiKey,
         "suggestions.placePrediction.placeId,suggestions.placePrediction.text,suggestions.placePrediction.structuredFormat"
       ),
-      body: JSON.stringify({
-        input: q,
-        includedRegionCodes: ["us"],
-        languageCode: "en",
-      }),
+      body: JSON.stringify(body),
       cache: "no-store",
     });
 
     if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      console.error("[places] autocomplete failed", res.status, body.slice(0, 300));
+      const errBody = await res.text().catch(() => "");
+      console.error("[places] autocomplete failed", res.status, errBody.slice(0, 300));
       return { available: true, suggestions: [], error: "provider_error" };
     }
 
@@ -81,11 +96,13 @@ export async function fetchPlacesAutocomplete(
     const suggestions: PlacesAutocompleteSuggestion[] = [];
     for (const item of json.suggestions ?? []) {
       const pred = item.placePrediction;
-      const placeId = String(pred?.placeId ?? "").trim();
+      const placeId = normalizePlacesPlaceId(String(pred?.placeId ?? ""));
       if (!placeId) continue;
       const primaryText = String(pred?.structuredFormat?.mainText?.text ?? "").trim();
       const secondaryText = String(pred?.structuredFormat?.secondaryText?.text ?? "").trim();
-      const fullText = String(pred?.text?.text ?? "").trim() || [primaryText, secondaryText].filter(Boolean).join(", ");
+      const fullText =
+        String(pred?.text?.text ?? "").trim() ||
+        [primaryText, secondaryText].filter(Boolean).join(", ");
       suggestions.push({
         placeId,
         primaryText: primaryText || fullText,
@@ -113,32 +130,34 @@ function component(
 }
 
 export async function fetchPlacesDetails(
-  placeId: string
+  placeId: string,
+  sessionToken?: string | null
 ): Promise<{ available: boolean; address: PlacesResolvedAddress | null; error?: string }> {
   const apiKey = getGooglePlacesApiKey();
   if (!apiKey) {
     return { available: false, address: null };
   }
 
-  const id = placeId.trim();
+  const id = normalizePlacesPlaceId(placeId);
   if (!id) {
     return { available: true, address: null };
   }
 
   try {
-    const url = `https://places.googleapis.com/v1/places/${encodeURIComponent(id)}`;
+    const params = new URLSearchParams();
+    const token = String(sessionToken ?? "").trim();
+    if (token) params.set("sessionToken", token);
+    const qs = params.toString();
+    const url = `https://places.googleapis.com/v1/places/${encodeURIComponent(id)}${qs ? `?${qs}` : ""}`;
     const res = await fetch(url, {
       method: "GET",
-      headers: placesHeaders(
-        apiKey,
-        "formattedAddress,addressComponents"
-      ),
+      headers: placesHeaders(apiKey, "formattedAddress,addressComponents"),
       cache: "no-store",
     });
 
     if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      console.error("[places] details failed", res.status, body.slice(0, 300));
+      const errBody = await res.text().catch(() => "");
+      console.error("[places] details failed", res.status, errBody.slice(0, 300));
       return { available: true, address: null, error: "provider_error" };
     }
 

@@ -33,7 +33,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, available: true, address: null });
   }
 
-  const result = await fetchPlacesDetails(placeId);
+  const sessionToken = (req.nextUrl.searchParams.get("sessionToken") ?? "").trim() || null;
+  const result = await fetchPlacesDetails(placeId, sessionToken);
   return NextResponse.json({
     ok: true,
     available: result.available,
