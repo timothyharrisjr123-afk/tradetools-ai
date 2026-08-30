@@ -448,14 +448,14 @@ export default function FieldDiveAppShell({ activeNav, activeSubId, children }: 
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <div className="flex min-h-screen">
         <aside
-          className="hidden w-[220px] shrink-0 flex-col border-r border-slate-200 bg-white lg:flex"
+          className="sticky top-0 hidden h-screen w-[220px] shrink-0 flex-col border-r border-slate-200 bg-white lg:flex"
           aria-label="FieldDive"
         >
           <Link href="/tools" className="flex items-center gap-2.5 border-b border-slate-100 px-4 py-4">
             <FieldDiveLogoMark />
             <span className="text-lg font-bold tracking-tight text-slate-900">FieldDive</span>
           </Link>
-          <nav className="flex-1 space-y-4 px-2 py-3">{navSections}</nav>
+          <nav className="flex-1 space-y-4 overflow-y-auto px-2 py-3">{navSections}</nav>
           <div className="mt-auto border-t border-slate-100 p-3">
             <SignOutButton className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50" />
           </div>
@@ -476,7 +476,7 @@ export default function FieldDiveAppShell({ activeNav, activeSubId, children }: 
               <Menu className="h-5 w-5" aria-hidden />
             </button>
             <div className="hidden flex-1 lg:block" />
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 lg:hidden">
               <SignOutButton className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50" />
             </div>
           </header>
@@ -538,9 +538,6 @@ export default function FieldDiveAppShell({ activeNav, activeSubId, children }: 
             >
               {navSections}
             </nav>
-            <div className="mt-auto border-t border-slate-100 p-3 sm:hidden">
-              <SignOutButton />
-            </div>
           </div>
         </div>
       ) : null}

@@ -20,6 +20,7 @@ const SHELL = read("app/tools/roofing/FieldDiveAppShell.tsx");
 const CARD = read("app/tools/roofing/saved/components/JobsBoardCard.tsx");
 const SAVED = read("app/tools/roofing/saved/SavedClient.tsx");
 const HEADER = read("app/tools/roofing/saved/components/JobsBoardHeader.tsx");
+const GUIDANCE = read("app/tools/roofing/saved/components/JobsBoardPipelineGuidance.tsx");
 
 describe("command / home language", () => {
   test("product-facing daily home is Jobs Board, not Command Center", () => {
@@ -52,6 +53,35 @@ describe("false KPI / notification chrome", () => {
   });
 });
 
+describe("quiet healthy board chrome", () => {
+  test("healthy setup state does not render Company setup complete", () => {
+    assert.doesNotMatch(GUIDANCE, /Company setup complete/);
+    assert.doesNotMatch(GUIDANCE, /CheckCircle2/);
+    assert.doesNotMatch(GUIDANCE, /Checking company setup/);
+    assert.match(GUIDANCE, /if \(readiness\.loading\) return null/);
+    assert.match(GUIDANCE, /if \(!readiness\.showBanner\) return null/);
+  });
+
+  test("action-required setup still surfaces a Board intervention", () => {
+    assert.match(GUIDANCE, /data-jobs-board-setup-action-required/);
+    assert.match(GUIDANCE, /Finish company setup to send proposals/);
+    assert.match(GUIDANCE, /Continue setup/);
+    assert.doesNotMatch(GUIDANCE, /of \$\{readiness\.totalCount\} complete/);
+    assert.doesNotMatch(GUIDANCE, /completeCount/);
+  });
+});
+
+describe("shell Sign out — one per active context", () => {
+  test("desktop sidebar keeps Sign out; header Sign out is mobile-only", () => {
+    assert.match(SHELL, /aside[\s\S]*sticky top-0[\s\S]*h-screen[\s\S]*lg:flex[\s\S]*SignOutButton/);
+    assert.match(SHELL, /lg:hidden[\s\S]*SignOutButton/);
+    // Mobile sheet no longer duplicates Sign out in the drawer footer.
+    assert.doesNotMatch(SHELL, /data-fielddive-mobile-nav[\s\S]*mt-auto[\s\S]*SignOutButton/);
+    const signOutCount = (SHELL.match(/<SignOutButton/g) || []).length;
+    assert.equal(signOutCount, 2);
+  });
+});
+
 describe("board card truth", () => {
   test("does not invent Unassigned when no assignment exists", () => {
     assert.doesNotMatch(CARD, /return "Unassigned"/);
@@ -77,5 +107,13 @@ describe("board card truth", () => {
     );
     assert.equal(model.assigneeLabel, "Assigned");
     assert.equal(model.tasksLabel, "1/3");
+  });
+});
+
+describe("search and lifecycle remain untouched by closeout", () => {
+  test("Stage-1 company search wiring stays on the Board", () => {
+    assert.match(SAVED, /useCompanyJobSearch/);
+    assert.match(SAVED, /JobsBoardSearchResults/);
+    assert.match(HEADER, /Search name, phone, address/);
   });
 });
