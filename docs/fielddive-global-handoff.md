@@ -82,7 +82,8 @@
 
 **Last updated checkpoint:**
 
-- **Wave C Property + typed search docs checkpoint:** this docs commit — `docs: checkpoint wave c property and typed search` (**WAVE C FULLY CLOSED**, see **§6DE.14**). Code **`ea18173`** — `feat(properties): add property identity and typed workspace search`. Customer → Property → Job is durable. `properties` + `jobs.property_id` **064 LIVE**. Typed Jobs Board search. Light Customer/Property workspaces via search (no sidebar items). Desktop + 390 **PASS**. Proof `tmp/fielddive-ui-review/wave-c/`. **Wave D next, not started.** **NO PUSH.**
+- **Wave C Property + typed search final closeout:** this docs commit — `docs: finalize wave c workspace integration` (**WAVE C FULLY CLOSED**, see **§6DE.14**). Architecture code **`ea18173`**. Workspace integration **`9dd8263`** — `fix(properties): integrate customer and property workspaces`. Read-first Customer/Property workspaces; on-demand Customer edit; contractor-facing copy; typed search unchanged. Desktop + 390 proof `tmp/fielddive-ui-review/wave-c-final-polish/`. **Wave D next, not started.** **NO PUSH.**
+- **Wave C Property + typed search docs checkpoint (superseded for close):** **`e17fb51`** — `docs: checkpoint wave c property and typed search`. Architecture **PASS**; initial workspace surfaces were functionally correct but failed product/visual integration review (architecture language, always-on edit form). Corrected by **`9dd8263`**.
 - **Wave B Places live closeout:** **`c5991e2`** — `docs: close wave b places verification` (**WAVE B FULLY CLOSED**, see **§6DE.13.3**). Code **`38f381b`**. Places API (New) live. Checkpoint **PUSHED** with origin sync before Wave C.
 - **Wave B Places live verification attempt (superseded):** **`0c5b0d8`** — `docs: record wave b places live verification block` (**PLACES KEY PRESENT / LIVE BLOCKED BY GCP API ENABLEMENT**, see **§6DE.13.2**). Code **`38f381b`**. Historical 403 until Places API (New) enabled on GCP.
 - **Wave B final closeout docs checkpoint:** **`be2519f`** — `docs: finalize wave b identity and intake` (**WAVE B IDENTITY PASS / PLACES CONFIG BLOCKED**, see **§6DE.13.1**). Code **`d11cc9a`** — `fix(jobs): quiet customer intake identity flow`. Identity reuse + quiet intake visual PASS. Proof `tmp/fielddive-ui-review/wave-b-final-closeout/`.
@@ -19568,18 +19569,16 @@ SHA256 **`1C21262F40BD3D9807302E04FCEA747E65E0A21D3FA6E374D2194D664A5301D6`** on
 
 ### §6DE.14 Wave C — Property identity + typed search + light workspaces
 
-**Status:** **WAVE C FULLY CLOSED.** Customer → Property → Job is the durable relationship. Places remains an address-entry aid, not Property authority. **Wave D next, not started.** Do **not** start Wave D until separately authorized. **NO PUSH.**
+**Status:** **WAVE C FULLY CLOSED** after product/visual workspace integration correction. Customer → Property → Job is the durable relationship. Places remains an address-entry aid, not Property authority. **Wave D next, not started.** Do **not** start Wave D until separately authorized. **NO PUSH.**
 
-**Code commit:** `feat(properties): add property identity and typed workspace search`  
-**Docs checkpoint:** this docs commit — `docs: checkpoint wave c property and typed search`.
-
-**Architecture:**
-- `customers` = person/org we do business with (unchanged Wave B identity).
-- `properties` = physical place where work occurs (new first-class tenant entity).
+**Architecture implementation (accepted, unchanged by polish):**
+- Code **`ea18173`** — `feat(properties): add property identity and typed workspace search`
+- Docs checkpoint **`e17fb51`** — `docs: checkpoint wave c property and typed search`
+- `customers` = person/org we do business with (Wave B identity).
+- `properties` = physical place where work occurs (first-class tenant entity).
 - `jobs` = project at a property; `jobs.customer_id` + `jobs.property_id` are stable nullable pointers.
-- No Customer↔Property join table. Relationship is inferred through jobs (rental / ownership change / commercial site remain possible).
-- Job address columns remain project/compatibility snapshot. Selecting or editing live Customer/Property does **not** rewrite job snapshots or frozen proposal/public/payment history.
-- Customer workspace may edit canonical name/email/phone only. Property address edit / mass cascade deferred.
+- No Customer↔Property join table. Relationship inferred through jobs.
+- Job address columns remain project/compatibility snapshot. Live Customer/Property edits do **not** rewrite job snapshots or frozen proposal/public/payment history.
 - Places API (New) unchanged: server-only assist for intake fields.
 
 **Property schema (`public.properties`):**
@@ -19587,35 +19586,45 @@ SHA256 **`1C21262F40BD3D9807302E04FCEA747E65E0A21D3FA6E374D2194D664A5301D6`** on
 No CRM profile fields, tags, notes, insurance, roof metadata, or ownership history.
 
 **Reuse / matching:**
-- Normalize street tokens (N→north, St→street, punctuation stripped) into `line1|line2|city|state|zip5`.
+- Normalize street tokens into `line1|line2|city|state|zip5`.
 - New Job offers reuse only on **exact** normalized key (never silent merge; contractor chooses Use or Create new).
+- Intake microcopy: **Matching property** / Use / Create new property (compact; non-blocking).
 - ZIP-only / letter-less rows are not Properties.
 
 **Backfill (064, live):**
-- Inspected 109 jobs: 54 street-like addresses, 55 empty.
-- Tenant-scoped: identical normalized key within a company → one Property.
-- Result: **34** properties, **48** jobs linked. Empty / ZIP-only remain `property_id` null.
+- Inspected 109 jobs → **34** properties, **48** jobs linked. Empty / ZIP-only remain `property_id` null.
 - No Google calls. No job address rewrite. No proposal rewrite.
 
-**Migration:** `20260830_064_properties_and_typed_search.sql` **LIVE** on **`rhquhnujjnzjhweypavd`**.  
-SHA256 **`39A44580D52B12EC2A2453A6EA97836AE620D047CB5FEED2EE8880AE319ED450`**.  
-Applied via linked SQL (historical `schema_migrations` date-only versions prevent `db push` of this file). RLS on; anon denied; `company_id` immutable; search RPCs SECURITY INVOKER + membership.
+**Migration:** `20260830_064_properties_and_typed_search.sql` **LIVE** on **`rhquhnujjnzjhweypavd`**.
+SHA256 **`39A44580D52B12EC2A2453A6EA97836AE620D047CB5FEED2EE8880AE319ED450`**.
+RLS on; anon denied; `company_id` immutable; search RPCs SECURITY INVOKER + membership. **Not changed by polish.**
 
-**Typed search:**
-- Durable RPC `search_company_workspace_v1` (keeps historical `search_company_jobs_v1`).
-- API `GET /api/search` → `{ type, id, primary, secondary, href, stage? }` for job | customer | property.
+**Typed search (unchanged contract):**
+- RPC `search_company_workspace_v1` + API `GET /api/search` → `{ type, id, primary, secondary, href, stage? }` for job | customer | property.
 - Jobs Board one search box. Quiet type groups. No search center page. No sidebar Customers/Properties.
 
-**Workspaces:**
-- `/tools/roofing/customers/[customerId]` — who / related jobs / properties from jobs / light identity edit.
-- `/tools/roofing/properties/[propertyId]` — where / jobs here / customers seen through jobs.
-- Job Card name + address link to those routes when ids exist.
+**Visual review debt (after architecture checkpoint):**
+- Customer/Property routes were functionally correct but looked like raw detail/edit pages.
+- Always-visible Customer edit inputs dominated the page.
+- Architecture/docs language leaked into UI (“Live identity…”, “Place identity…”, “Seen with”).
+- Desktop felt sparse/left-anchored; mobile felt like empty text stacks.
+
+**Product/visual integration correction:**
+- Code **`9dd8263`** — `fix(properties): integrate customer and property workspaces`
+- Shared quiet shell: `FieldDiveWorkspaceShell` (Back to Jobs, eyebrow, identity header, section rows) aligned with Job Card header language without copying the Job Card shell.
+- **Customer workspace** (`/tools/roofing/customers/[customerId]`): read-first identity + contact meta; **Edit customer** reveals name/email/phone with Save/Cancel; Jobs + Properties as compact link rows; no architecture copy.
+- **Property workspace** (`/tools/roofing/properties/[propertyId]`): address primary; locality secondary; **Customers** (customers connected through jobs — no ownership claim); **Jobs** history rows; no architecture copy; Job-owned domains stay on Job.
+- Customer canonical edit still does **not** rewrite historic job snapshots or frozen proposals.
+- Job Card Customer/Property links preserved. Sidebar IA unchanged (no Customers/Properties items).
 
 **IA:** Routes exist without permanent nav promotion. Daily home remains Jobs Board.
 
-**Tests / build:** focused Wave C + Wave B + 060 + persist + 061 + jobStore + Board + nav **101/101**. `npm run build` **PASS**. No package changes.
+**Tests / build:** focused Wave C + Wave B + 060 + persist + 061 + jobStore + Board + nav **136/136 PASS**. `npm run build` **PASS**. No migration. No package changes. No new TypeScript errors.
 
-**Visual proof:** `tmp/fielddive-ui-review/wave-c/` (desktop + 390: New Job property reuse, typed search, Customer workspace, Property workspace, Job Card).
+**Visual proof (final):** `tmp/fielddive-ui-review/wave-c-final-polish/`
+Desktop: Customer read, Customer edit, Property, typed search, Job Card.
+390: Customer read, Customer edit, Property, typed search, Job Card.
+Architecture-era captures remain at `tmp/fielddive-ui-review/wave-c/`.
 
 **Deferred:** Property address edit + job-address sync decision; Customer↔Property explicit roles; Property photo/measurement takeover; Lead/CRM; Wave D delivery completeness.
 
