@@ -116,20 +116,25 @@ export async function GET(
       href: buildDbJobCardHref(String(job.id)),
       propertyId: job.property_id ?? null,
     })),
-    properties: [...propertiesById.values()].map((property) => ({
-      id: property.id,
-      primary:
-        property.line1 ||
-        formatPropertyDisplayAddress({
-          line1: property.line1,
-          city: property.city,
-          state: property.state,
-          zip: property.zip,
-          formatted: property.formatted,
-        }),
-      secondary: [property.city, property.state, property.zip].filter(Boolean).join(", ") || null,
-      href: buildPropertyWorkspaceHref(property.id),
-    })),
+    properties: [...propertiesById.values()].map((property) => {
+      const jobCount = jobRows.filter((job) => String(job.property_id ?? "") === property.id)
+        .length;
+      return {
+        id: property.id,
+        primary:
+          property.line1 ||
+          formatPropertyDisplayAddress({
+            line1: property.line1,
+            city: property.city,
+            state: property.state,
+            zip: property.zip,
+            formatted: property.formatted,
+          }),
+        secondary: [property.city, property.state, property.zip].filter(Boolean).join(", ") || null,
+        jobCount,
+        href: buildPropertyWorkspaceHref(property.id),
+      };
+    }),
   });
 }
 

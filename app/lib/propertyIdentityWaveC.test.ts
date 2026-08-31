@@ -190,22 +190,45 @@ describe("Wave C — typed search contract", () => {
 });
 
 describe("Wave C — workspaces and frozen truth", () => {
-  test("Customer workspace is identity + related jobs/properties only", () => {
+  test("Customer workspace is read-first with on-demand edit", () => {
     const page = read("app/tools/roofing/customers/[customerId]/CustomerWorkspaceClient.tsx");
-    assert.match(page, /Live identity/);
-    assert.match(page, /Job snapshots and sent proposals stay unchanged/);
+    const shell = read("app/tools/roofing/workspace/FieldDiveWorkspaceShell.tsx");
+    assert.match(page, /Edit customer/);
+    assert.match(page, /customer-edit-action/);
+    assert.match(page, /customer-edit-form/);
+    assert.match(page, /Cancel/);
+    assert.match(page, /WorkspaceSection title="Jobs"/);
+    assert.match(page, /WorkspaceSection title="Properties"/);
+    assert.match(shell, /Back to Jobs/);
+    assert.doesNotMatch(page, /Live identity/);
+    assert.doesNotMatch(page, /Job snapshots/);
+    assert.doesNotMatch(page, /canonical/);
     assert.doesNotMatch(page, /lead stage/i);
     assert.doesNotMatch(page, /revenue/i);
     assert.doesNotMatch(page, /coming soon/i);
   });
 
-  test("Property workspace is place + job history without stealing job domains", () => {
+  test("Property workspace is place + job history without ownership claims", () => {
     const page = read("app/tools/roofing/properties/[propertyId]/PropertyWorkspaceClient.tsx");
-    assert.match(page, /Place identity/);
-    assert.match(page, /Jobs here/);
+    assert.match(page, /WorkspaceSection title="Customers"/);
+    assert.match(page, /WorkspaceSection title="Jobs"/);
+    assert.doesNotMatch(page, /Seen with/i);
+    assert.doesNotMatch(page, /Place identity/);
+    assert.doesNotMatch(page, /owner/i);
+    assert.doesNotMatch(page, /homeowner/i);
     assert.doesNotMatch(page, /job_attachments/);
     assert.doesNotMatch(page, /satellite/i);
     assert.doesNotMatch(page, /coming soon/i);
+  });
+
+  test("intake property matching microcopy stays compact and non-blocking", () => {
+    const intake = read("app/tools/roofing/JobPacketPropertyCandidates.tsx");
+    assert.match(intake, /Matching property/);
+    assert.match(intake, />Use</);
+    assert.match(intake, /Create new property/);
+    assert.doesNotMatch(intake, /Possible property/);
+    assert.doesNotMatch(intake, /warning/i);
+    assert.doesNotMatch(intake, /must reuse/i);
   });
 
   test("no sidebar Customer/Property items; routes exist without nav promotion", () => {
@@ -214,6 +237,13 @@ describe("Wave C — workspaces and frozen truth", () => {
     assert.doesNotMatch(nav, /label: "Properties"/);
     assert.equal(existsSync(join(ROOT, "app/tools/roofing/customers/[customerId]/page.tsx")), true);
     assert.equal(existsSync(join(ROOT, "app/tools/roofing/properties/[propertyId]/page.tsx")), true);
+  });
+
+  test("Job Card keeps Customer/Property contextual links", () => {
+    const header = read("app/tools/roofing/jobCard/JobCardHeader.tsx");
+    assert.match(header, /customerHref/);
+    assert.match(header, /propertyHref/);
+    assert.match(header, /data-jobcard-property-link/);
   });
 
   test("proposal/payment/lifecycle writers are not touched by Wave C identity files", () => {
@@ -225,6 +255,9 @@ describe("Wave C — workspaces and frozen truth", () => {
       "app/api/properties/search/route.ts",
       "app/api/customers/[customerId]/route.ts",
       "app/api/properties/[propertyId]/route.ts",
+      "app/tools/roofing/customers/[customerId]/CustomerWorkspaceClient.tsx",
+      "app/tools/roofing/properties/[propertyId]/PropertyWorkspaceClient.tsx",
+      "app/tools/roofing/workspace/FieldDiveWorkspaceShell.tsx",
     ];
     for (const file of waveC) {
       const source = read(file);
@@ -232,6 +265,9 @@ describe("Wave C — workspaces and frozen truth", () => {
       assert.doesNotMatch(source, /context_echo/);
       assert.doesNotMatch(source, /payment_requests/);
       assert.doesNotMatch(source, /frozen_at/);
+      assert.doesNotMatch(source, /Live identity/);
+      assert.doesNotMatch(source, /Place identity/);
+      assert.doesNotMatch(source, /Job snapshots and sent proposals/);
     }
     const sql = readFileSync(SQL_064, "utf8");
     assert.doesNotMatch(sql, /proposal_versions/);

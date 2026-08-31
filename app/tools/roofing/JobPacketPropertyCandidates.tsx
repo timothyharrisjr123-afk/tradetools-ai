@@ -63,7 +63,7 @@ export function JobPacketPropertyCandidates({
   return (
     <div className="mt-1.5 space-y-1" data-testid="property-candidates">
       <p className="text-[10.5px] font-medium uppercase tracking-[0.08em] text-slate-500">
-        {candidates.length === 1 ? "Possible property" : "Possible properties"}
+        {candidates.length === 1 ? "Matching property" : "Matching properties"}
       </p>
       <ul className="space-y-1">
         {candidates.map((c) => {

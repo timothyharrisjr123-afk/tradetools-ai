@@ -1,8 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
-import FieldDiveAppShell from "@/app/tools/roofing/FieldDiveAppShell";
+import { Mail, Phone } from "lucide-react";
+import FieldDiveWorkspaceShell, {
+  WorkspaceEmpty,
+  WorkspaceLinkRow,
+  WorkspaceSection,
+} from "@/app/tools/roofing/workspace/FieldDiveWorkspaceShell";
 
 type WorkspaceJob = {
   id: string;
@@ -10,6 +14,7 @@ type WorkspaceJob = {
   address: string;
   stageLabel: string;
   href: string;
+  propertyId?: string | null;
 };
 
 type WorkspaceProperty = {
@@ -17,6 +22,7 @@ type WorkspaceProperty = {
   primary: string;
   secondary: string | null;
   href: string;
+  jobCount?: number;
 };
 
 type CustomerPayload = {
@@ -31,6 +37,7 @@ export default function CustomerWorkspaceClient({ customerId }: { customerId: st
   const [jobs, setJobs] = useState<WorkspaceJob[]>([]);
   const [properties, setProperties] = useState<WorkspaceProperty[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -53,6 +60,8 @@ export default function CustomerWorkspaceClient({ customerId }: { customerId: st
       setPhone(json.customer.phone ?? "");
       setJobs(Array.isArray(json.jobs) ? json.jobs : []);
       setProperties(Array.isArray(json.properties) ? json.properties : []);
+      setEditing(false);
+      setSaveState("idle");
       setStatus("ready");
     } catch {
       setStatus("error");
@@ -62,6 +71,24 @@ export default function CustomerWorkspaceClient({ customerId }: { customerId: st
   useEffect(() => {
     void load();
   }, [load]);
+
+  const beginEdit = () => {
+    if (!customer) return;
+    setName(customer.name ?? "");
+    setEmail(customer.email ?? "");
+    setPhone(customer.phone ?? "");
+    setSaveState("idle");
+    setEditing(true);
+  };
+
+  const cancelEdit = () => {
+    if (!customer) return;
+    setName(customer.name ?? "");
+    setEmail(customer.email ?? "");
+    setPhone(customer.phone ?? "");
+    setSaveState("idle");
+    setEditing(false);
+  };
 
   const saveIdentity = async () => {
     if (!name.trim() || saveState === "saving") return;
@@ -92,44 +119,69 @@ export default function CustomerWorkspaceClient({ customerId }: { customerId: st
           : prev
       );
       setSaveState("saved");
+      setEditing(false);
       window.setTimeout(() => setSaveState("idle"), 1800);
     } catch {
       setSaveState("error");
     }
   };
 
+  const phoneValue = (customer?.phone ?? "").trim();
+  const emailValue = (customer?.email ?? "").trim();
+
+  const propertyRows = properties.map((property) => {
+    const count =
+      typeof property.jobCount === "number"
+        ? property.jobCount
+        : jobs.filter((job) => job.propertyId === property.id).length;
+    const countLabel =
+      count > 0 ? `${count} job${count === 1 ? "" : "s"}` : null;
+    const secondary = [property.secondary, countLabel].filter(Boolean).join(" · ") || null;
+    return { ...property, secondary };
+  });
+
   return (
-    <FieldDiveAppShell activeNav="jobs">
-      <div className="mx-auto w-full max-w-3xl px-4 pb-10 pt-4 sm:px-6">
-        <Link
-          href="/tools/roofing/saved"
-          className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 transition hover:text-slate-800"
-        >
-          ← Back to Jobs
-        </Link>
-
-        {status === "loading" ? (
-          <p className="mt-8 text-sm text-slate-500">Loading customer…</p>
-        ) : null}
-        {status === "error" ? (
-          <p className="mt-8 text-sm text-slate-600">Could not load this customer.</p>
-        ) : null}
-
-        {status === "ready" && customer ? (
-          <div className="mt-5 space-y-8">
-            <header>
-              <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                Customer
-              </p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
-                {customer.name || "Customer"}
-              </h1>
-              <p className="mt-1 text-sm text-slate-500">
-                Live identity. Job snapshots and sent proposals stay unchanged.
-              </p>
-            </header>
-
-            <section className="space-y-2">
+    <FieldDiveWorkspaceShell
+      eyebrow="Customer"
+      title={customer?.name || "Customer"}
+      status={status}
+      loadingLabel="Loading customer…"
+      errorLabel="Could not load this customer."
+      meta={
+        customer && !editing && (phoneValue || emailValue) ? (
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm">
+            {phoneValue ? (
+              <span className="inline-flex items-center gap-1.5 text-slate-700">
+                <Phone className="h-3.5 w-3.5 text-slate-400" strokeWidth={1.75} aria-hidden />
+                {phoneValue}
+              </span>
+            ) : null}
+            {emailValue ? (
+              <span className="inline-flex min-w-0 items-center gap-1.5 text-slate-700">
+                <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" strokeWidth={1.75} aria-hidden />
+                <span className="truncate">{emailValue}</span>
+              </span>
+            ) : null}
+          </div>
+        ) : null
+      }
+      actions={
+        customer && !editing ? (
+          <button
+            type="button"
+            onClick={beginEdit}
+            className="text-sm font-medium text-sky-700 underline-offset-2 hover:underline"
+            data-testid="customer-edit-action"
+          >
+            Edit customer
+          </button>
+        ) : null
+      }
+    >
+      {customer ? (
+        <>
+          {editing ? (
+            <section className="max-w-md space-y-2" data-testid="customer-edit-form">
               <input
                 value={name}
                 onChange={(e) => {
@@ -137,6 +189,7 @@ export default function CustomerWorkspaceClient({ customerId }: { customerId: st
                   setSaveState("idle");
                 }}
                 placeholder="Customer name"
+                aria-label="Customer name"
                 className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
               />
               <input
@@ -146,6 +199,7 @@ export default function CustomerWorkspaceClient({ customerId }: { customerId: st
                   setSaveState("idle");
                 }}
                 placeholder="Email"
+                aria-label="Email"
                 className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
               />
               <input
@@ -155,83 +209,74 @@ export default function CustomerWorkspaceClient({ customerId }: { customerId: st
                   setSaveState("idle");
                 }}
                 placeholder="Phone"
+                aria-label="Phone"
                 className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
               />
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3 pt-1">
                 <button
                   type="button"
                   onClick={() => void saveIdentity()}
                   className="h-9 rounded-lg bg-slate-900 px-3 text-sm font-medium text-white hover:bg-slate-800"
                 >
-                  Save identity
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelEdit}
+                  className="h-9 rounded-lg px-2 text-sm font-medium text-slate-600 hover:text-slate-900"
+                >
+                  Cancel
                 </button>
                 <span className="text-xs text-slate-500">
                   {saveState === "saving"
                     ? "Saving…"
-                    : saveState === "saved"
-                      ? "Saved"
-                      : saveState === "error"
-                        ? "Could not save"
-                        : ""}
+                    : saveState === "error"
+                      ? "Could not save"
+                      : ""}
                 </span>
               </div>
             </section>
+          ) : saveState === "saved" ? (
+            <p className="text-xs text-slate-500" data-testid="customer-saved-hint">
+              Saved
+            </p>
+          ) : null}
 
-            <section>
-              <h2 className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                Jobs
-              </h2>
-              {jobs.length === 0 ? (
-                <p className="mt-2 text-sm text-slate-500">No jobs linked yet.</p>
-              ) : (
-                <ul className="mt-2 divide-y divide-slate-100 border-t border-slate-100">
-                  {jobs.map((job) => (
-                    <li key={job.id}>
-                      <Link
-                        href={job.href}
-                        className="block py-3 hover:bg-slate-50"
-                      >
-                        <span className="block text-sm font-medium text-slate-900">{job.primary}</span>
-                        <span className="mt-0.5 block text-xs text-slate-500">
-                          {[job.address, job.stageLabel].filter(Boolean).join(" · ")}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
+          <WorkspaceSection title="Jobs">
+            {jobs.length === 0 ? (
+              <WorkspaceEmpty>No jobs yet.</WorkspaceEmpty>
+            ) : (
+              <div className="border-b border-slate-100">
+                {jobs.map((job) => (
+                  <WorkspaceLinkRow
+                    key={job.id}
+                    href={job.href}
+                    primary={job.primary}
+                    secondary={[job.address, job.stageLabel].filter(Boolean).join(" · ")}
+                  />
+                ))}
+              </div>
+            )}
+          </WorkspaceSection>
 
-            <section>
-              <h2 className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                Properties
-              </h2>
-              {properties.length === 0 ? (
-                <p className="mt-2 text-sm text-slate-500">
-                  No properties from this customer’s jobs yet.
-                </p>
-              ) : (
-                <ul className="mt-2 divide-y divide-slate-100 border-t border-slate-100">
-                  {properties.map((property) => (
-                    <li key={property.id}>
-                      <Link href={property.href} className="block py-3 hover:bg-slate-50">
-                        <span className="block text-sm font-medium text-slate-900">
-                          {property.primary}
-                        </span>
-                        {property.secondary ? (
-                          <span className="mt-0.5 block text-xs text-slate-500">
-                            {property.secondary}
-                          </span>
-                        ) : null}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          </div>
-        ) : null}
-      </div>
-    </FieldDiveAppShell>
+          <WorkspaceSection title="Properties">
+            {propertyRows.length === 0 ? (
+              <WorkspaceEmpty>No properties yet.</WorkspaceEmpty>
+            ) : (
+              <div className="border-b border-slate-100">
+                {propertyRows.map((property) => (
+                  <WorkspaceLinkRow
+                    key={property.id}
+                    href={property.href}
+                    primary={property.primary}
+                    secondary={property.secondary}
+                  />
+                ))}
+              </div>
+            )}
+          </WorkspaceSection>
+        </>
+      ) : null}
+    </FieldDiveWorkspaceShell>
   );
 }

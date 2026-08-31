@@ -1,8 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
-import FieldDiveAppShell from "@/app/tools/roofing/FieldDiveAppShell";
+import { MapPin } from "lucide-react";
+import FieldDiveWorkspaceShell, {
+  WorkspaceEmpty,
+  WorkspaceLinkRow,
+  WorkspaceSection,
+} from "@/app/tools/roofing/workspace/FieldDiveWorkspaceShell";
 
 type WorkspaceJob = {
   id: string;
@@ -16,6 +20,8 @@ type WorkspaceJob = {
 type WorkspaceCustomer = {
   id: string;
   name: string;
+  email?: string | null;
+  phone?: string | null;
   href: string;
 };
 
@@ -58,85 +64,69 @@ export default function PropertyWorkspaceClient({ propertyId }: { propertyId: st
     void load();
   }, [load]);
 
+  const locality = property
+    ? [property.city, property.state, property.zip].filter(Boolean).join(", ")
+    : "";
+
   return (
-    <FieldDiveAppShell activeNav="jobs">
-      <div className="mx-auto w-full max-w-3xl px-4 pb-10 pt-4 sm:px-6">
-        <Link
-          href="/tools/roofing/saved"
-          className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 transition hover:text-slate-800"
-        >
-          ← Back to Jobs
-        </Link>
-
-        {status === "loading" ? (
-          <p className="mt-8 text-sm text-slate-500">Loading property…</p>
-        ) : null}
-        {status === "error" ? (
-          <p className="mt-8 text-sm text-slate-600">Could not load this property.</p>
-        ) : null}
-
-        {status === "ready" && property ? (
-          <div className="mt-5 space-y-8">
-            <header>
-              <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                Property
-              </p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
-                {property.line1 || property.formatted}
-              </h1>
-              <p className="mt-1 text-sm text-slate-600">
-                {[property.city, property.state, property.zip].filter(Boolean).join(", ")}
-              </p>
-              <p className="mt-2 text-sm text-slate-500">
-                Place identity. Job work, files, and measurements stay on each Job.
-              </p>
-            </header>
-
-            <section>
-              <h2 className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                Seen with
-              </h2>
-              {customers.length === 0 ? (
-                <p className="mt-2 text-sm text-slate-500">
-                  No customer linked through jobs yet.
-                </p>
-              ) : (
-                <ul className="mt-2 divide-y divide-slate-100 border-t border-slate-100">
-                  {customers.map((customer) => (
-                    <li key={customer.id}>
-                      <Link href={customer.href} className="block py-3 text-sm font-medium text-slate-900 hover:bg-slate-50">
-                        {customer.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            <section>
-              <h2 className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                Jobs here
-              </h2>
-              {jobs.length === 0 ? (
-                <p className="mt-2 text-sm text-slate-500">No jobs at this property yet.</p>
-              ) : (
-                <ul className="mt-2 divide-y divide-slate-100 border-t border-slate-100">
-                  {jobs.map((job) => (
-                    <li key={job.id}>
-                      <Link href={job.href} className="block py-3 hover:bg-slate-50">
-                        <span className="block text-sm font-medium text-slate-900">{job.primary}</span>
-                        <span className="mt-0.5 block text-xs text-slate-500">
-                          {[job.customerName, job.stageLabel].filter(Boolean).join(" · ")}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
+    <FieldDiveWorkspaceShell
+      eyebrow="Property"
+      title={property?.line1 || property?.formatted || "Property"}
+      status={status}
+      loadingLabel="Loading property…"
+      errorLabel="Could not load this property."
+      meta={
+        property && locality ? (
+          <div className="flex min-w-0 items-start gap-1.5 text-sm text-slate-600">
+            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" strokeWidth={1.75} aria-hidden />
+            <span className="truncate">{locality}</span>
           </div>
-        ) : null}
-      </div>
-    </FieldDiveAppShell>
+        ) : null
+      }
+    >
+      {property ? (
+        <>
+          <WorkspaceSection title="Customers">
+            {customers.length === 0 ? (
+              <WorkspaceEmpty>No customers linked through jobs yet.</WorkspaceEmpty>
+            ) : (
+              <div className="border-b border-slate-100">
+                {customers.map((customer) => {
+                  const contact = [customer.phone, customer.email]
+                    .map((value) => String(value ?? "").trim())
+                    .filter(Boolean)
+                    .join(" · ");
+                  return (
+                    <WorkspaceLinkRow
+                      key={customer.id}
+                      href={customer.href}
+                      primary={customer.name}
+                      secondary={contact || null}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </WorkspaceSection>
+
+          <WorkspaceSection title="Jobs">
+            {jobs.length === 0 ? (
+              <WorkspaceEmpty>No jobs yet.</WorkspaceEmpty>
+            ) : (
+              <div className="border-b border-slate-100">
+                {jobs.map((job) => (
+                  <WorkspaceLinkRow
+                    key={job.id}
+                    href={job.href}
+                    primary={job.primary}
+                    secondary={[job.customerName, job.stageLabel].filter(Boolean).join(" · ")}
+                  />
+                ))}
+              </div>
+            )}
+          </WorkspaceSection>
+        </>
+      ) : null}
+    </FieldDiveWorkspaceShell>
   );
 }

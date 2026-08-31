@@ -71,17 +71,22 @@ export async function GET(
     ),
   ];
 
-  const customersById = new Map<string, { id: string; name: string }>();
+  const customersById = new Map<
+    string,
+    { id: string; name: string; email: string | null; phone: string | null }
+  >();
   if (customerIds.length > 0) {
     const { data: customers } = await supabase
       .from("customers")
-      .select("id, name")
+      .select("id, name, email, phone")
       .eq("company_id", companyId)
       .in("id", customerIds);
     for (const row of Array.isArray(customers) ? customers : []) {
       customersById.set(String(row.id), {
         id: String(row.id),
         name: String(row.name ?? "").trim() || "Customer",
+        email: row.email ?? null,
+        phone: row.phone ?? null,
       });
     }
   }
@@ -119,6 +124,8 @@ export async function GET(
     customers: [...customersById.values()].map((customer) => ({
       id: customer.id,
       name: customer.name,
+      email: customer.email,
+      phone: customer.phone,
       href: buildCustomerWorkspaceHref(customer.id),
     })),
   });
