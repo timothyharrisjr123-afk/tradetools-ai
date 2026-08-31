@@ -86,7 +86,18 @@ import { ensureJobCustomerPersisted } from "@/app/lib/jobCardCustomerPersist";
 import type { CustomerSearchCandidate } from "@/app/lib/customerMatch";
 import { JobPacketCustomerCandidates } from "@/app/tools/roofing/JobPacketCustomerCandidates";
 import { JobPacketAddressSuggestions } from "@/app/tools/roofing/JobPacketAddressSuggestions";
+import {
+  JobPacketPropertyCandidates,
+  type PropertySearchCandidate,
+} from "@/app/tools/roofing/JobPacketPropertyCandidates";
 import { useCompanyCustomerSearch } from "@/app/tools/roofing/useCompanyCustomerSearch";
+import { useCompanyPropertySearch } from "@/app/tools/roofing/useCompanyPropertySearch";
+import { createPropertyExplicit } from "@/app/lib/propertyStore";
+import {
+  buildCustomerWorkspaceHref,
+  buildPropertyWorkspaceHref,
+  propertyAddressIsMatchable,
+} from "@/app/lib/propertyAddressNormalize";
 import {
   usePlacesAddressAssist,
   type PlacesSuggestion,
@@ -1812,6 +1823,9 @@ export default function RoofingClient({
   const [jobCity, setJobCity] = useState("");
   const [jobState, setJobState] = useState("");
   const [jobZip, setJobZip] = useState("");
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+  const [selectedPropertyLabel, setSelectedPropertyLabel] = useState<string | null>(null);
+  const [forceNewProperty, setForceNewProperty] = useState(false);
   const [suppressAddressSuggestions, setSuppressAddressSuggestions] = useState(false);
 
   const resetPacketIntakeFields = useCallback(() => {
@@ -1825,6 +1839,9 @@ export default function RoofingClient({
     setJobCity("");
     setJobState("");
     setJobZip("");
+    setSelectedPropertyId(null);
+    setSelectedPropertyLabel(null);
+    setForceNewProperty(false);
     setSuppressAddressSuggestions(false);
     setJobCreationError(null);
     setAutofillFromZip(false);
@@ -5576,6 +5593,35 @@ Thanks,`;
     setForceNewCustomer(true);
   }, []);
 
+  const packetPropertySearchEnabled =
+    (entryMode === "packet" || entryMode === "instant") && !forceNewProperty && !selectedPropertyId;
+  const { results: propertyCandidates } = useCompanyPropertySearch(
+    {
+      line1: jobAddress1,
+      city: jobCity,
+      state: jobState,
+      zip: jobZip,
+    },
+    packetPropertySearchEnabled
+  );
+
+  const selectExistingProperty = useCallback((candidate: PropertySearchCandidate) => {
+    setSelectedPropertyId(candidate.id);
+    setSelectedPropertyLabel(candidate.line1 || candidate.formatted || "Property");
+    setForceNewProperty(false);
+    if (candidate.line1) setJobAddress1(candidate.line1);
+    if (candidate.city) setJobCity(candidate.city);
+    if (candidate.state) setJobState(candidate.state);
+    if (candidate.zip) setJobZip(candidate.zip);
+    setSuppressAddressSuggestions(true);
+  }, []);
+
+  const continueAsNewProperty = useCallback(() => {
+    setSelectedPropertyId(null);
+    setSelectedPropertyLabel(null);
+    setForceNewProperty(true);
+  }, []);
+
   const applyPlacesSuggestion = useCallback(
     async (suggestion: PlacesSuggestion) => {
       setSuppressAddressSuggestions(true);
@@ -5598,7 +5644,7 @@ Thanks,`;
   );
 
   const buildJobDraftFromPacketState = useCallback(
-    (linkedCustomerId?: string | null): JobDraft | null => {
+    (linkedCustomerId?: string | null, linkedPropertyId?: string | null): JobDraft | null => {
       const cid = (companyId ?? "").trim();
       if (!cid) return null;
 
@@ -5629,6 +5675,7 @@ Thanks,`;
       return {
         company_id: cid,
         customer_id: customerId,
+        property_id: linkedPropertyId && isUuidLike(linkedPropertyId) ? linkedPropertyId : null,
         job_name: jobName,
         stage: "intake",
         status: "active",
@@ -5714,7 +5761,30 @@ Thanks,`;
         }
       }
 
-      const draft = buildJobDraftFromPacketState(linkedCustomerId);
+      let linkedPropertyId =
+        selectedPropertyId && isUuidLike(selectedPropertyId) ? selectedPropertyId : null;
+      if (!linkedPropertyId) {
+        const propertyAddress = {
+          line1: (jobAddress1 || "").trim(),
+          city: (jobCity || "").trim(),
+          state: (jobState || "").trim(),
+          zip: (jobZip || "").trim(),
+          formatted: addressLine || null,
+        };
+        if (propertyAddressIsMatchable(propertyAddress)) {
+          linkedPropertyId = await createPropertyExplicit({
+            supabase,
+            companyId: cid,
+            address: propertyAddress,
+          });
+          if (!linkedPropertyId) {
+            setJobCreationError("Could not save property. Check the address and try again.");
+            return;
+          }
+        }
+      }
+
+      const draft = buildJobDraftFromPacketState(linkedCustomerId, linkedPropertyId);
       if (!draft) {
         setJobCreationError("Company context is missing. Refresh and try again.");
         return;
@@ -5761,6 +5831,7 @@ Thanks,`;
     jobState,
     jobZip,
     selectedCustomerId,
+    selectedPropertyId,
   ]);
 
   function renderJobPacketWorkbench(
@@ -5957,6 +6028,11 @@ Thanks,`;
                                 onChange={(e) => {
                                   setSuppressAddressSuggestions(false);
                                   setJobAddress1(e.target.value);
+                                  if (selectedPropertyId) {
+                                    setSelectedPropertyId(null);
+                                    setSelectedPropertyLabel(null);
+                                  }
+                                  if (forceNewProperty) setForceNewProperty(false);
                                 }}
                                 onBlur={(e) => {
                                   const cleaned = e.target.value.replace(/\s+/g, " ").trim();
@@ -5984,7 +6060,14 @@ Thanks,`;
                                 name="job_city_field"
                                 type="text"
                                 value={jobCity}
-                                onChange={(e) => setJobCity(e.target.value)}
+                                onChange={(e) => {
+                                  setJobCity(e.target.value);
+                                  if (selectedPropertyId) {
+                                    setSelectedPropertyId(null);
+                                    setSelectedPropertyLabel(null);
+                                  }
+                                  if (forceNewProperty) setForceNewProperty(false);
+                                }}
                                 onBlur={(e) => {
                                   const cleaned = e.target.value
                                     .replace(/[^a-zA-Z\s.'-]/g, "")
@@ -6006,7 +6089,14 @@ Thanks,`;
                                 name="job_state_field"
                                 type="text"
                                 value={jobState}
-                                onChange={(e) => setJobState(e.target.value)}
+                                onChange={(e) => {
+                                  setJobState(e.target.value);
+                                  if (selectedPropertyId) {
+                                    setSelectedPropertyId(null);
+                                    setSelectedPropertyLabel(null);
+                                  }
+                                  if (forceNewProperty) setForceNewProperty(false);
+                                }}
                                 onBlur={(e) => {
                                   const cleaned = e.target.value
                                     .replace(/[^a-zA-Z]/g, "")
@@ -6027,7 +6117,14 @@ Thanks,`;
                                 type="text"
                                 inputMode="numeric"
                                 value={jobZip}
-                                onChange={(e) => setJobZip(sanitizeZipInput(e.target.value))}
+                                onChange={(e) => {
+                                  setJobZip(sanitizeZipInput(e.target.value));
+                                  if (selectedPropertyId) {
+                                    setSelectedPropertyId(null);
+                                    setSelectedPropertyLabel(null);
+                                  }
+                                  if (forceNewProperty) setForceNewProperty(false);
+                                }}
                                 onBlur={() => {
                                   const sanitized = sanitizeZipInput(jobZip);
                                   if (sanitized !== jobZip) setJobZip(sanitized);
@@ -6049,6 +6146,18 @@ Thanks,`;
                                 className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12.5px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
                               />
                             </div>
+                            {(entryMode === "packet" || entryMode === "instant") && (
+                              <JobPacketPropertyCandidates
+                                candidates={propertyCandidates}
+                                selectedPropertyId={selectedPropertyId}
+                                selectedPropertyLabel={selectedPropertyLabel}
+                                onSelect={selectExistingProperty}
+                                onContinueAsNew={continueAsNewProperty}
+                                showContinueAsNew={
+                                  !forceNewProperty && propertyCandidates.length > 0
+                                }
+                              />
+                            )}
                             <div className="min-h-[1rem]">
                               {autofillFromZip && (
                                 <div className="flex flex-wrap items-center gap-2">
@@ -8587,6 +8696,16 @@ Thanks,`;
               isBoardOrigin={isBoardOrigin}
               phone={headerPhone}
               email={headerEmail}
+              customerHref={
+                hydratedJobRecord?.customer_id
+                  ? buildCustomerWorkspaceHref(hydratedJobRecord.customer_id)
+                  : null
+              }
+              propertyHref={
+                hydratedJobRecord?.property_id
+                  ? buildPropertyWorkspaceHref(hydratedJobRecord.property_id)
+                  : null
+              }
               dispositionNote={dispositionBlockedWorkCopy(
                 hydratedJobRecord?.status
               )}

@@ -172,6 +172,7 @@ export type JobRecord = {
   id: string;
   company_id: string;
   customer_id?: string | null;
+  property_id?: string | null;
 
   // Basic job / card fields
   job_name?: string | null;
@@ -235,6 +236,7 @@ export type JobSummary = {
   id: string;
   company_id: string;
   customer_id?: string | null;
+  property_id?: string | null;
   customer_name?: string | null;
   customer_email?: string | null;
   customer_phone?: string | null;

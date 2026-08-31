@@ -112,8 +112,8 @@ describe("board card truth", () => {
 
 describe("search and lifecycle remain untouched by closeout", () => {
   test("Stage-1 company search wiring stays on the Board", () => {
-    assert.match(SAVED, /useCompanyJobSearch/);
+    assert.match(SAVED, /useWorkspaceSearch/);
     assert.match(SAVED, /JobsBoardSearchResults/);
-    assert.match(HEADER, /Search name, phone, address/);
+    assert.match(HEADER, /Search jobs, customers, addresses/);
   });
 });

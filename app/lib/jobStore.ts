@@ -33,6 +33,7 @@ export type JobRow = {
   id: string;
   company_id: string;
   customer_id?: string | null;
+  property_id?: string | null;
   job_name?: string | null;
   stage: string;
   status: string;
@@ -93,7 +94,7 @@ export type EstimateSnapshotForJob = {
 };
 
 const JOB_SELECT_COLUMNS =
-  "id, company_id, customer_id, job_name, stage, status, source, priority, customer_name, customer_email, customer_phone, address_line1, address_line2, address_city, address_state, address_zip, address_country, address_formatted, assigned_to, created_by, updated_by, notes, summary, last_activity_at, stage_entered_at, production_started_at, completed_at, archived, deleted_at, selected_measurement_id, active_proposal_id, latest_estimate_id, latest_proposal_id, source_metadata, custom_fields, created_at, updated_at";
+  "id, company_id, customer_id, property_id, job_name, stage, status, source, priority, customer_name, customer_email, customer_phone, address_line1, address_line2, address_city, address_state, address_zip, address_country, address_formatted, assigned_to, created_by, updated_by, notes, summary, last_activity_at, stage_entered_at, production_started_at, completed_at, archived, deleted_at, selected_measurement_id, active_proposal_id, latest_estimate_id, latest_proposal_id, source_metadata, custom_fields, created_at, updated_at";
 
 // ---------------------------------------------------------------------------
 // Pure helpers
@@ -167,6 +168,7 @@ export function rowToJobRecord(row: JobRow): JobRecord {
     id: row.id,
     company_id: row.company_id,
     customer_id: row.customer_id ?? null,
+    property_id: row.property_id ?? null,
     job_name: row.job_name ?? null,
     stage: row.stage as JobStage,
     status: row.status as JobCardStatus,
@@ -202,6 +204,7 @@ export function rowToJobSummary(row: JobRow): JobSummary {
     id: record.id,
     company_id: record.company_id,
     customer_id: record.customer_id ?? null,
+    property_id: record.property_id ?? null,
     customer_name: record.contact?.customer_name ?? null,
     customer_email: record.contact?.customer_email ?? null,
     customer_phone: record.contact?.customer_phone ?? null,
@@ -235,6 +238,10 @@ export function jobDraftToInsertRow(draft: JobDraft | Partial<JobDraft>): Partia
     row.customer_id = draft.customer_id ?? draft.contact?.customer_id ?? null;
   } else if (draft.contact !== undefined) {
     row.customer_id = draft.contact?.customer_id ?? null;
+  }
+
+  if (draft.property_id !== undefined) {
+    row.property_id = draft.property_id ?? null;
   }
 
   if (draft.job_name !== undefined) {

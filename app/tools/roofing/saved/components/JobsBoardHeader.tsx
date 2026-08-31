@@ -50,7 +50,7 @@ export default function JobsBoardHeader({
             <input
               value={query}
               onChange={(e) => onQueryChange(e.target.value)}
-              placeholder="Search name, phone, address…"
+              placeholder="Search jobs, customers, addresses…"
               aria-label="Search jobs"
               enterKeyHint="search"
               className="h-11 w-full rounded-lg border border-slate-200 bg-white py-0 pl-3 pr-10 text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:border-slate-300 focus:ring-2 focus:ring-slate-100 sm:h-10"

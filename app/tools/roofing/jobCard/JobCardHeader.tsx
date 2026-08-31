@@ -10,6 +10,8 @@ type JobCardHeaderProps = {
   isBoardOrigin: boolean;
   phone?: string;
   email?: string;
+  customerHref?: string | null;
+  propertyHref?: string | null;
   actions?: ReactNode;
   dispositionNote?: string | null;
 };
@@ -19,6 +21,8 @@ export default function JobCardHeader({
   isBoardOrigin,
   phone = "",
   email = "",
+  customerHref = null,
+  propertyHref = null,
   actions,
   dispositionNote = null,
 }: JobCardHeaderProps) {
@@ -40,11 +44,23 @@ export default function JobCardHeader({
       <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-2xl font-semibold tracking-tight text-slate-900 sm:text-[1.65rem]">
-            {display.customerName}
+            {customerHref ? (
+              <Link href={customerHref} className="hover:underline">
+                {display.customerName}
+              </Link>
+            ) : (
+              display.customerName
+            )}
           </h1>
           <div className="mt-1.5 flex min-w-0 items-start gap-1.5 text-sm text-slate-600">
             <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" strokeWidth={1.75} aria-hidden />
-            <span className="truncate">{display.address}</span>
+            {propertyHref ? (
+              <Link href={propertyHref} className="truncate hover:underline" data-jobcard-property-link>
+                {display.address}
+              </Link>
+            ) : (
+              <span className="truncate">{display.address}</span>
+            )}
           </div>
           {phoneValue || emailValue ? (
             <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm">

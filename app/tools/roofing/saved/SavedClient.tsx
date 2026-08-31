@@ -24,7 +24,7 @@ import JobsBoardEmptyState from "./components/JobsBoardEmptyState";
 import JobsBoardErrorState from "./components/JobsBoardErrorState";
 import JobsBoardLegacySection from "./components/JobsBoardLegacySection";
 import JobsBoardSearchResults from "./components/JobsBoardSearchResults";
-import { useCompanyJobSearch } from "./useCompanyJobSearch";
+import { useWorkspaceSearch } from "./useWorkspaceSearch";
 import { restoreCanonicalBoardFromReturnStatus } from "@/app/lib/boardCanonicalSurface";
 import { useCompanySetupReadiness } from "./useCompanySetupReadiness";
 import { useBoardCanonicalJobs } from "./useBoardCanonicalJobs";
@@ -3603,7 +3603,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
 
   const dbBoardSearchFiltered = dbBoardEntries;
   const boardReady = hydrated && dbJobsStatus === "ready";
-  const companyJobSearch = useCompanyJobSearch(
+  const companyJobSearch = useWorkspaceSearch(
     query,
     statusFilter === "all" && hydrated
   );
@@ -4452,7 +4452,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                     query={query}
                     status={companyJobSearch.status}
                     results={companyJobSearch.results}
-                    onOpenJob={(href) => {
+                    onOpen={(href) => {
                       setCurrentLoadedSavedId(null);
                       router.push(href);
                     }}

@@ -119,6 +119,10 @@ import JobCardMeasurementCapture from "@/app/tools/roofing/jobCard/JobCardMeasur
 import { useJobCardPrepareProposal } from "@/app/tools/roofing/jobCard/useJobCardPrepareProposal";
 import JobCardActivityPanelWithCustomerRequests from "@/app/tools/roofing/jobCard/JobCardActivityPanelWithCustomerRequests";
 import { resolveJobCardIdentityFromRecord } from "@/app/tools/roofing/jobCard/jobCardIdentityUtils";
+import {
+  buildCustomerWorkspaceHref,
+  buildPropertyWorkspaceHref,
+} from "@/app/lib/propertyAddressNormalize";
 import type { JobCardDisplayModel } from "@/app/tools/roofing/jobCard/jobCardDisplayTypes";
 import type { JobScheduleWorkspaceSubmit } from "@/app/tools/roofing/jobCard/JobScheduleWorkspace";
 
@@ -842,6 +846,16 @@ export default function JobCardClient({
               isBoardOrigin={jobCardBoardOrigin}
               phone={identity.phone}
               email={identity.email}
+              customerHref={
+                hydratedJobRecord?.customer_id
+                  ? buildCustomerWorkspaceHref(hydratedJobRecord.customer_id)
+                  : null
+              }
+              propertyHref={
+                hydratedJobRecord?.property_id
+                  ? buildPropertyWorkspaceHref(hydratedJobRecord.property_id)
+                  : null
+              }
               dispositionNote={dispositionBlockedWorkCopy(
                 hydratedJobRecord?.status
               )}

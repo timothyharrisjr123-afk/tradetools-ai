@@ -45,6 +45,17 @@ describe("fieldDiveNavConfig", () => {
     assert.equal(jobs.href, "/tools/roofing/saved");
   });
 
+  test("does not add Customers or Properties as permanent sidebar items", () => {
+    const labels = flattenNavItems().map((item) => item.label.toLowerCase());
+    assert.ok(!labels.includes("customers"));
+    assert.ok(!labels.includes("properties"));
+    assert.ok(!labels.includes("customer"));
+    assert.ok(!labels.includes("property"));
+    const hrefs = collectNavHrefs();
+    assert.ok(!hrefs.some((href) => href.startsWith("/tools/roofing/customers")));
+    assert.ok(!hrefs.some((href) => href.startsWith("/tools/roofing/properties")));
+  });
+
   test("New job links directly to Job Packet intake", () => {
     const newJob = getPrimaryWorkflowNavItems().find((item) => item.key === "newJob");
     assert.ok(newJob);
