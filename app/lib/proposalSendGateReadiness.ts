@@ -36,7 +36,8 @@ export const SEND_GATE_EMAIL_SEND_DISCLAIMER =
 
 export const SEND_GATE_SEND_PROPOSAL_BY_EMAIL_LABEL = "Send proposal by email";
 export const SEND_GATE_SENDING_PROPOSAL_EMAIL_MESSAGE = "Sending proposal email…";
-export const SEND_GATE_EMAIL_PROVIDER_ACCEPTED_TITLE = "Proposal sent";
+export const SEND_GATE_EMAIL_PROVIDER_ACCEPTED_TITLE = "Proposal emailed";
+export const SEND_GATE_EMAIL_PROVIDER_ACCEPTED_BODY_PREFIX = "Submitted to";
 
 export const SEND_GATE_LOADING_MESSAGE = "Checking send readiness…";
 

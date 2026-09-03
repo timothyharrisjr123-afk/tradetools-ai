@@ -3,24 +3,15 @@ import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
 import { isUuidLike } from "@/app/lib/uuid";
 import { prepareProposalCustomerSendLinkForContractor } from "@/app/lib/proposalSendPrep.server";
 import { SEND_PREP_ERROR_MESSAGE } from "@/app/lib/proposalSendPrep";
+import {
+  PUBLIC_ORIGIN_MISCONFIGURED_CODE,
+  PUBLIC_ORIGIN_MISCONFIGURED_MESSAGE,
+  isPublicAppOriginError,
+  resolvePublicAppOrigin,
+} from "@/app/lib/publicAppOrigin.server";
 import { createClient } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
-
-function resolveRequestOrigin(req: NextRequest): string {
-  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (configured) {
-    return configured.replace(/\/$/, "");
-  }
-
-  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
-  const proto = req.headers.get("x-forwarded-proto") ?? "http";
-  if (host) {
-    return `${proto}://${host}`.replace(/\/$/, "");
-  }
-
-  return "http://localhost:3000";
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -35,6 +26,24 @@ export async function POST(req: NextRequest) {
         { ok: false, message: SEND_PREP_ERROR_MESSAGE },
         { status: 400 }
       );
+    }
+
+    let origin: string;
+    try {
+      origin = resolvePublicAppOrigin();
+    } catch (error) {
+      if (isPublicAppOriginError(error)) {
+        console.error("[proposals/send-prep]", PUBLIC_ORIGIN_MISCONFIGURED_CODE);
+        return NextResponse.json(
+          {
+            ok: false,
+            code: PUBLIC_ORIGIN_MISCONFIGURED_CODE,
+            message: PUBLIC_ORIGIN_MISCONFIGURED_MESSAGE,
+          },
+          { status: 503 }
+        );
+      }
+      throw error;
     }
 
     const supabase = await createClient();
@@ -56,7 +65,7 @@ export async function POST(req: NextRequest) {
       proposalId,
       jobId,
       userId: user.id,
-      origin: resolveRequestOrigin(req),
+      origin,
       recipientEmail,
     });
 

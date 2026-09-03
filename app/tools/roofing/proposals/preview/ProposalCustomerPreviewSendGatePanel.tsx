@@ -31,6 +31,7 @@ import {
   SEND_GATE_CUSTOMER_LINK_HELPER,
   SEND_GATE_DELIVERY_DISABLED_MESSAGE,
   SEND_GATE_EMAIL_PROVIDER_ACCEPTED_TITLE,
+  SEND_GATE_EMAIL_PROVIDER_ACCEPTED_BODY_PREFIX,
   SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL,
   SEND_GATE_PREPARING_CUSTOMER_LINK_MESSAGE,
   SEND_GATE_SENDING_PROPOSAL_EMAIL_MESSAGE,
@@ -426,7 +427,8 @@ export default function ProposalCustomerPreviewSendGatePanel({
               {SEND_GATE_EMAIL_PROVIDER_ACCEPTED_TITLE}
             </p>
             <p className="mt-1 text-[13px] leading-relaxed text-emerald-800">
-              Sent to {sendSuccess.recipientDisplay} · {sendSuccess.subject}
+              {SEND_GATE_EMAIL_PROVIDER_ACCEPTED_BODY_PREFIX}{" "}
+              {sendSuccess.recipientDisplay} · {sendSuccess.subject}
             </p>
           </div>
         </div>

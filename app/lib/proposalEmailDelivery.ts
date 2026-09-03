@@ -57,6 +57,9 @@ export const PROPOSAL_EMAIL_SEND_ERROR_MESSAGE =
 export const PROPOSAL_EMAIL_SEND_NOT_CONFIGURED_MESSAGE =
   "Email delivery is not configured yet.";
 
+export const PROPOSAL_EMAIL_SEND_PUBLIC_ORIGIN_MESSAGE =
+  "Sending is unavailable because this environment is not configured for customer links.";
+
 export const PROPOSAL_EMAIL_SEND_IN_PROGRESS_MESSAGE =
   "A proposal email send is already in progress. Please wait a moment and try again.";
 

@@ -9,6 +9,11 @@ import {
   createStandardConnectedAccount,
   retrieveConnectedAccount,
 } from "@/app/lib/jobPaymentStripe.server";
+import {
+  PUBLIC_ORIGIN_MISCONFIGURED_CODE,
+  PUBLIC_ORIGIN_MISCONFIGURED_MESSAGE,
+  isPublicAppOriginError,
+} from "@/app/lib/publicAppOrigin.server";
 import { createAdminClient } from "@/app/lib/supabase/admin";
 import { createClient } from "@/app/lib/supabase/server";
 
@@ -80,7 +85,23 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const origin = appOriginFromRequest(req.headers.get("origin"));
+    let origin: string;
+    try {
+      origin = appOriginFromRequest(req.headers.get("origin"));
+    } catch (error) {
+      if (isPublicAppOriginError(error)) {
+        console.error("[company/payments/connect]", PUBLIC_ORIGIN_MISCONFIGURED_CODE);
+        return NextResponse.json(
+          {
+            ok: false,
+            code: PUBLIC_ORIGIN_MISCONFIGURED_CODE,
+            message: PUBLIC_ORIGIN_MISCONFIGURED_MESSAGE,
+          },
+          { status: 503 }
+        );
+      }
+      throw error;
+    }
     const url = await createAccountOnboardingLink({
       accountId,
       returnUrl: `${origin}/tools/settings/payments?connect=return`,

@@ -1,26 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
 import { isUuidLike } from "@/app/lib/uuid";
-import { PROPOSAL_EMAIL_SEND_ERROR_MESSAGE } from "@/app/lib/proposalEmailDelivery";
+import {
+  PROPOSAL_EMAIL_SEND_ERROR_MESSAGE,
+  PROPOSAL_EMAIL_SEND_PUBLIC_ORIGIN_MESSAGE,
+} from "@/app/lib/proposalEmailDelivery";
 import { sendProposalEmailForContractor } from "@/app/lib/proposalEmailDelivery.server";
+import {
+  PUBLIC_ORIGIN_MISCONFIGURED_CODE,
+  isPublicAppOriginError,
+  resolvePublicAppOrigin,
+} from "@/app/lib/publicAppOrigin.server";
 import { createClient } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
-
-function resolveRequestOrigin(req: NextRequest): string {
-  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (configured) {
-    return configured.replace(/\/$/, "");
-  }
-
-  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
-  const proto = req.headers.get("x-forwarded-proto") ?? "http";
-  if (host) {
-    return `${proto}://${host}`.replace(/\/$/, "");
-  }
-
-  return "http://localhost:3000";
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -36,6 +29,24 @@ export async function POST(req: NextRequest) {
         { ok: false, code: "invalid_request", message: PROPOSAL_EMAIL_SEND_ERROR_MESSAGE },
         { status: 400 }
       );
+    }
+
+    let origin: string;
+    try {
+      origin = resolvePublicAppOrigin();
+    } catch (error) {
+      if (isPublicAppOriginError(error)) {
+        console.error("[proposals/send]", PUBLIC_ORIGIN_MISCONFIGURED_CODE);
+        return NextResponse.json(
+          {
+            ok: false,
+            code: PUBLIC_ORIGIN_MISCONFIGURED_CODE,
+            message: PROPOSAL_EMAIL_SEND_PUBLIC_ORIGIN_MESSAGE,
+          },
+          { status: 503 }
+        );
+      }
+      throw error;
     }
 
     const supabase = await createClient();
@@ -66,7 +77,7 @@ export async function POST(req: NextRequest) {
       recipientEmail,
       subject,
       body: messageBody,
-      origin: resolveRequestOrigin(req),
+      origin,
       replyTo: user.email ?? null,
     });
 
@@ -78,7 +89,9 @@ export async function POST(req: NextRequest) {
             ? 403
             : result.code === "send_in_progress"
               ? 409
-              : 400;
+              : result.code === PUBLIC_ORIGIN_MISCONFIGURED_CODE
+                ? 503
+                : 400;
       return NextResponse.json(result, { status });
     }
 

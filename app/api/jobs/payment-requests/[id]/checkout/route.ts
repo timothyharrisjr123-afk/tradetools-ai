@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
 import { openHostedCheckoutForRequest } from "@/app/lib/jobPaymentCheckout.server";
 import { appOriginFromRequest, withPaymentReturnHint } from "@/app/lib/jobPaymentStripe.server";
+import {
+  PUBLIC_ORIGIN_MISCONFIGURED_CODE,
+  PUBLIC_ORIGIN_MISCONFIGURED_MESSAGE,
+  isPublicAppOriginError,
+} from "@/app/lib/publicAppOrigin.server";
 import { isUuidLike } from "@/app/lib/uuid";
 import { createClient } from "@/app/lib/supabase/server";
 
@@ -72,6 +77,17 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
     return NextResponse.json({ ok: true, url: opened.url, reused: opened.reused });
   } catch (error) {
+    if (isPublicAppOriginError(error)) {
+      console.error("[jobs/payment-requests/checkout]", PUBLIC_ORIGIN_MISCONFIGURED_CODE);
+      return NextResponse.json(
+        {
+          ok: false,
+          code: PUBLIC_ORIGIN_MISCONFIGURED_CODE,
+          message: PUBLIC_ORIGIN_MISCONFIGURED_MESSAGE,
+        },
+        { status: 503 }
+      );
+    }
     const code =
       error && typeof error === "object" && "code" in error
         ? String((error as { code?: string }).code)

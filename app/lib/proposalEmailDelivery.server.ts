@@ -30,6 +30,7 @@ import { deriveProposalPricingStale } from "@/app/lib/proposalStaleness";
 import { readDraftOnlineDepositSendReadiness } from "@/app/lib/proposalPaymentTermsPersistence";
 import { SEND_GATE_PAYMENTS_SETUP_BODY } from "@/app/lib/proposalPaymentTerms";
 import { SEND_GATE_PAYMENTS_SETUP_CODE } from "@/app/lib/proposalPaymentSendReadiness";
+import { normalizePublicAppOrigin } from "@/app/lib/publicAppOrigin";
 import { createClient } from "@/app/lib/supabase/server";
 
 export type {
@@ -45,12 +46,21 @@ export function resolveProposalEmailDeliveryConfig(
 ): ProposalEmailDeliveryConfig | null {
   const resendApiKey = process.env.RESEND_API_KEY?.trim();
   const resendFrom = process.env.RESEND_FROM?.trim();
-  const resolvedOrigin =
-    origin.trim() ||
-    process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, "") ||
-    "";
+  if (!resendApiKey || !resendFrom) {
+    return null;
+  }
 
-  if (!resendApiKey || !resendFrom || !resolvedOrigin) {
+  const candidate =
+    origin.trim() || process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
+  if (!candidate) {
+    return null;
+  }
+
+  let canonicalOrigin: string;
+  try {
+    canonicalOrigin = normalizePublicAppOrigin(candidate);
+  } catch {
+    // Fail closed — never build a customer CTA with an illegal origin.
     return null;
   }
 
@@ -58,7 +68,7 @@ export function resolveProposalEmailDeliveryConfig(
   return {
     resendApiKey,
     resendFrom,
-    origin: resolvedOrigin,
+    origin: canonicalOrigin,
     replyTo: normalizedReplyTo.length > 0 ? normalizedReplyTo : null,
   };
 }

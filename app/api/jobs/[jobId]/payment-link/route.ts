@@ -1,23 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
 import { createAcceptedPaymentPublicLink } from "@/app/lib/jobPaymentPublicLink.server";
+import {
+  PUBLIC_ORIGIN_MISCONFIGURED_CODE,
+  PUBLIC_ORIGIN_MISCONFIGURED_MESSAGE,
+  isPublicAppOriginError,
+  resolvePublicAppOrigin,
+} from "@/app/lib/publicAppOrigin.server";
 import { isUuidLike } from "@/app/lib/uuid";
 import { createClient } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
-
-function resolveRequestOrigin(req: NextRequest): string {
-  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (configured) {
-    return configured.replace(/\/$/, "");
-  }
-  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
-  const proto = req.headers.get("x-forwarded-proto") ?? "http";
-  if (host) {
-    return `${proto}://${host}`.replace(/\/$/, "");
-  }
-  return "http://localhost:3000";
-}
 
 /**
  * Contractor Copy payment link for the canonical accepted proposal version.
@@ -41,11 +34,29 @@ export async function POST(req: NextRequest, context: { params: Promise<{ jobId:
       return NextResponse.json({ ok: false, code: "invalid_payload" }, { status: 400 });
     }
 
+    let origin: string;
+    try {
+      origin = resolvePublicAppOrigin();
+    } catch (error) {
+      if (isPublicAppOriginError(error)) {
+        console.error("[jobs/payment-link]", PUBLIC_ORIGIN_MISCONFIGURED_CODE);
+        return NextResponse.json(
+          {
+            ok: false,
+            code: PUBLIC_ORIGIN_MISCONFIGURED_CODE,
+            message: PUBLIC_ORIGIN_MISCONFIGURED_MESSAGE,
+          },
+          { status: 503 }
+        );
+      }
+      throw error;
+    }
+
     const result = await createAcceptedPaymentPublicLink({
       companyId,
       jobId,
       userId: user.id,
-      origin: resolveRequestOrigin(req),
+      origin,
     });
     if (!result.ok) {
       const status =

@@ -3,6 +3,10 @@ import { openHostedCheckoutForRequest } from "@/app/lib/jobPaymentCheckout.serve
 import { publicCheckoutShouldOpenCanonicalDeposit } from "@/app/lib/jobPaymentCustomerPresenter";
 import { resolvePublicJobPaymentCheckoutViaRpc } from "@/app/lib/jobPaymentPersistence";
 import { appOriginFromRequest, withPaymentReturnHint } from "@/app/lib/jobPaymentStripe.server";
+import {
+  PUBLIC_ORIGIN_MISCONFIGURED_CODE,
+  isPublicAppOriginError,
+} from "@/app/lib/publicAppOrigin.server";
 import { recordProposalAcceptance } from "@/app/lib/proposalAcceptanceStore.server";
 import { hashProposalPublicAccessToken } from "@/app/lib/proposalPublicAccessTokenHash";
 import { openCanonicalDepositFromAcceptedProposal } from "@/app/lib/jobPaymentAcceptanceObligation.server";
@@ -176,6 +180,13 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, url: opened.url });
   } catch (error) {
+    if (isPublicAppOriginError(error)) {
+      console.error("[public/payment-requests/checkout]", PUBLIC_ORIGIN_MISCONFIGURED_CODE);
+      return NextResponse.json(
+        { ok: false, message: SAFE_ERROR, code: PUBLIC_ORIGIN_MISCONFIGURED_CODE },
+        { status: 503 }
+      );
+    }
     const code =
       error && typeof error === "object" && "code" in error
         ? String((error as { code?: string }).code)

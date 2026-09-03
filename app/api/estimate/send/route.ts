@@ -9,6 +9,12 @@ import {
 } from "@/app/lib/contractorCapabilityAuth";
 import { putApprovalRecord } from "@/app/lib/kv";
 import { validateLegacyEstimateSendPayload } from "@/app/lib/legacyEstimateSendGuard";
+import {
+  PUBLIC_ORIGIN_MISCONFIGURED_CODE,
+  PUBLIC_ORIGIN_MISCONFIGURED_MESSAGE,
+  isPublicAppOriginError,
+  resolvePublicAppOrigin,
+} from "@/app/lib/publicAppOrigin";
 import { createClient } from "@/app/lib/supabase/server";
 import { isUuidLike } from "@/app/lib/uuid";
 
@@ -52,22 +58,6 @@ function safeUUID() {
   } catch {
     return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   }
-}
-
-function getStableOrigin(req: Request) {
-  const envUrl =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.APP_URL ||
-    "";
-
-  if (envUrl) return envUrl.replace(/\/$/, "");
-
-  const h = req.headers;
-  const proto = h.get("x-forwarded-proto") || "https";
-  const host = h.get("x-forwarded-host") || h.get("host") || "";
-  if (host) return `${proto}://${host}`.replace(/\/$/, "");
-
-  return "http://localhost:3000";
 }
 
 function normalizeEmail(toRaw: string) {
@@ -201,6 +191,24 @@ export async function POST(req: Request) {
       );
     }
 
+    let origin: string;
+    try {
+      origin = resolvePublicAppOrigin();
+    } catch (error) {
+      if (isPublicAppOriginError(error)) {
+        console.error("[estimate/send]", PUBLIC_ORIGIN_MISCONFIGURED_CODE);
+        return NextResponse.json(
+          {
+            success: false,
+            error: PUBLIC_ORIGIN_MISCONFIGURED_MESSAGE,
+            code: PUBLIC_ORIGIN_MISCONFIGURED_CODE,
+          },
+          { status: 503 }
+        );
+      }
+      throw error;
+    }
+
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
@@ -217,8 +225,6 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-
-    const origin = getStableOrigin(req);
 
     const approvalToken =
       (clientToken && String(clientToken).trim()) || safeUUID();

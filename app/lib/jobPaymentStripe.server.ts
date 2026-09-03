@@ -9,6 +9,7 @@ import "server-only";
 import Stripe from "stripe";
 import { checkoutLineLabel } from "@/app/lib/jobPaymentMoney";
 import type { JobPaymentKind } from "@/app/lib/jobPaymentTypes";
+import { resolvePublicAppOrigin } from "@/app/lib/publicAppOrigin.server";
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -35,12 +36,12 @@ export function getStripeConnectWebhookSecret(): string {
   );
 }
 
-export function appOriginFromRequest(originHeader: string | null): string {
-  const env = (process.env.NEXT_PUBLIC_APP_URL ?? "").trim().replace(/\/$/, "");
-  if (env) return env;
-  const origin = (originHeader ?? "").trim().replace(/\/$/, "");
-  if (origin) return origin;
-  return "http://localhost:3000";
+/**
+ * Canonical public origin for Connect return URLs and Checkout success/cancel.
+ * Ignores request Origin/Host in non-development (fail-closed via resolvePublicAppOrigin).
+ */
+export function appOriginFromRequest(_originHeader: string | null): string {
+  return resolvePublicAppOrigin();
 }
 
 export function withPaymentReturnHint(
