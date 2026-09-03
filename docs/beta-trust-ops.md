@@ -363,7 +363,42 @@ Before inviting real paid-beta contractors, run **multiple independent audits**:
 | Group | Status |
 |-------|--------|
 | A — Public origin + Send truth | **COMPLETE** (`c8c6553`) |
-| B — Env + runbooks + TEST Stripe policy | **THIS DOCUMENT** |
-| C — Account verification + production smoke | **NEXT** (do not start until authorized) |
+| B — Env + runbooks + TEST Stripe policy | **COMPLETE** (`8b30475`) |
+| C — Account verification + production smoke | **BLOCKED** — see §13 |
 | Wave D | **NOT STARTED** |
 | Paid beta | **PROHIBITED** until multi-audit HOLD clears |
+
+---
+
+## 13. Group C verification (2026-09-03) — BLOCKED
+
+Read-only account/repo discovery. No deploy. No push. No live-money change.
+
+### Proven
+
+- Git: `main` ahead of `origin/main` by **12** commits. Origin URL `https://github.com/timothyharrisjr123-afk/tradetools-ai.git`. Origin HEAD `8271f37` (`docs: finalize wave c workspace integration`).
+- Local CLI link + runtime URL + pooler host all name **`rhquhnujjnzjhweypavd`**.
+- Read-only table probe on that host: `properties` (064), `proposal_delivery_attempts`, `job_payment_requests`, `job_payment_refunds` exist.
+- Public site: **`https://www.fielddive.com`** serves this product on **Vercel**. Apex `https://fielddive.com` **307 → www**. `/tools/roofing/saved` 307 → `/login`.
+- Repo metadata already uses `https://www.fielddive.com` (`app/layout.tsx` `metadataBase`).
+- Local `.env.local` (dev only): Stripe **TEST** (`sk_test` / `pk_test`); `NEXT_PUBLIC_APP_URL` = `http://localhost:3000`; `RESEND_FROM` domain `fielddive.com`; `STRIPE_CONNECT_WEBHOOK_SECRET` **absent** (falls back to `STRIPE_WEBHOOK_SECRET`).
+- Local login copy is **FieldDive**. Live `/login` still says **TradeTools AI** → production is an **older deploy** than unpushed Group A/B commits.
+
+### Likely (not account-proven)
+
+- Intended production origin for `NEXT_PUBLIC_APP_URL` is **`https://www.fielddive.com`** (www, not apex, not localhost).
+- Intended Connect webhook: `https://www.fielddive.com/api/webhooks/stripe/connect`.
+
+### Unknown / account-level check required
+
+- Vercel project name, env scoping (Preview vs Production), and whether Production `NEXT_PUBLIC_APP_URL` is set to `https://www.fielddive.com`.
+- Production Resend domain verification + Production `RESEND_*`.
+- Stripe TEST Connect webhook **registered** on that exact URL + Production `STRIPE_CONNECT_WEBHOOK_SECRET`.
+- GitHub branch protection / auto-deploy on push.
+- `supabase migration list --linked` does **not** map this repo’s `YYYYMMDD_NNN_*.sql` names; do not treat empty CLI “remote” as missing LIVE schema.
+
+### Do not
+
+- Push until Production env + webhook + Resend are confirmed on `https://www.fielddive.com`.
+- Execute production smoke until that deploy includes Group A fail-closed origin.
+- Unlock live Stripe. Do not start Wave D.

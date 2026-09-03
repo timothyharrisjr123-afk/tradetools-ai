@@ -85,7 +85,8 @@
 
 **Last updated checkpoint:**
 
-- **Beta Trust Ops Group B:** this docs commit — `docs(ops): define controlled beta trust procedures` (see **`docs/beta-trust-ops.md`** + **§6DG**). Completes env contract (`.env.example`), Stripe TEST-only beta policy, Connect webhook / support / migration / deploy checklists, legacy payment P1 containment rule, multi-audit pre-beta **HOLD**. Group A code remains **`c8c6553`**. **Next = Trust Ops Group C** (account/deploy smoke) when authorized. **Wave D not started. Paid beta prohibited until multi-audit HOLD clears.** **NO PUSH.**
+- **Beta Trust Ops Group C verification:** this docs commit — `docs(ops): record group c deployment verification` (**GROUP C BLOCKED**, see **`docs/beta-trust-ops.md` §13**). Public site **`https://www.fielddive.com`** is live on Vercel; apex redirects to www. Intended APP_URL = that HTTPS www origin. Production login still **TradeTools AI** (origin/main stale vs local FieldDive + Group A/B). Vercel Production env / Resend verification / Stripe TEST Connect webhook registration **not inspectable** from this machine. Supabase **`rhquhnujjnzjhweypavd`** matches local link + runtime host; 064-era tables exist. **Do not push. Do not production-smoke. Do not start Wave D.**
+- **Beta Trust Ops Group B:** `docs(ops): define controlled beta trust procedures` (`8b30475`) — env contract, Stripe TEST-only policy, runbooks, multi-audit HOLD. Group A code **`c8c6553`**. **NO PUSH.**
 - **Commercial Wedge final visual gate closeout:** `docs: close commercial wedge visual gate` (**COMMERCIAL WEDGE COMPLETE / EXTERNALLY VISUALLY ACCEPTED**, see **§6DF**). Code **`8cfd064`**. Proof `tmp/fielddive-ui-review/commercial-wedge/final-visual-gate/`. **NO PUSH.**
 - **Commercial Wedge Groups 1–3 feature closeout (superseded for visual finality):** `docs: checkpoint commercial wedge` (**COMMERCIAL WEDGE COMPLETE / ACCEPTED** pre–final visual gate, see historical **§6DF** Groups). Code **`1440fc6`**. Desktop + 390 proof `tmp/fielddive-ui-review/commercial-wedge/group-3/`. Do **not** treat pre-gate “accepted” wording as the final external visual close.
 - **Wave C Property + typed search final closeout:** `docs: finalize wave c workspace integration` (**WAVE C FULLY CLOSED**, see **§6DE.14**). Architecture code **`ea18173`**. Workspace integration **`9dd8263`** — `fix(properties): integrate customer and property workspaces`. Read-first Customer/Property workspaces; on-demand Customer edit; contractor-facing copy; typed search unchanged. Desktop + 390 proof `tmp/fielddive-ui-review/wave-c-final-polish/`. **Wave D not started.** **NO PUSH.**
@@ -19805,9 +19806,10 @@ When uncertain: **Optimize for obvious contractor flow, truthful system state, r
 - Support runbooks **before** support admin UI.
 - No notification center.
 
-**GROUP C — Account verification + production smoke — NEXT**
-- Account/deployment verification against real target.
-- Production smoke paths after env is correct.
+**GROUP C — Account verification + production smoke — BLOCKED**
+- Public origin candidate **`https://www.fielddive.com`** (Vercel; apex → www).
+- Production env / Resend / Connect webhook **not account-verified**.
+- Do **not** push or production-smoke until those are confirmed. See **`docs/beta-trust-ops.md` §13**.
 
 #### §6DG.2 Locked boundaries
 
@@ -19824,7 +19826,7 @@ When uncertain: **Optimize for obvious contractor flow, truthful system state, r
 3. **Multi-audit HOLD** then controlled paid-beta gate (explicit approval required).
 4. Later work from beta evidence.
 
-**Exact next:** begin **Beta Trust Ops GROUP C** when explicitly authorized. Do **not** start Wave D yet. Do **not** invite paid beta until multi-audit HOLD clears.
+**Exact next:** resolve Group C account blockers in **`docs/beta-trust-ops.md` §13**, then deliberate push/smoke only with explicit authorization. Do **not** start Wave D yet. Do **not** invite paid beta until multi-audit HOLD clears.
 
 ---
 
