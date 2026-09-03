@@ -1,10 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getActiveCatalogItemsByCompany } from "@/app/lib/catalogStore";
+import { parseDollarsToCentsOrNull } from "@/app/admin/catalog/catalogAdminUtils";
+import {
+  getActiveCatalogItemsByCompany,
+  updateCatalogItem,
+} from "@/app/lib/catalogStore";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
 import { getPreferredSetupTemplateId } from "@/app/lib/companyTemplatePreferenceStore";
 import { filterContractorVisibleTemplates } from "@/app/lib/contractorFixtureIsolation";
+import { installDefaultRoofingCatalog } from "@/app/lib/defaultRoofingCatalogInstall";
+import { installDefaultRoofingProposalTemplates } from "@/app/lib/defaultRoofingProposalTemplateInstall";
+import {
+  FIRST_PROPOSAL_PREPARING,
+  FIRST_PROPOSAL_PRICE_SAVE_FAILED,
+  FIRST_PROPOSAL_STRUCTURE_FAILED,
+  collectLinkedCatalogPricingLines,
+  firstProposalPricingComplete,
+  resolveFirstProposalStructureNeed,
+  resolveShowFirstProposalPricing,
+  type FirstProposalPricingLine,
+} from "@/app/lib/firstProposalPrepare";
 import {
   buildManualMeasurementDraftFromFields,
   type JobCardManualMeasurementFields,
@@ -113,8 +129,15 @@ export function useJobCardPrepareProposal({
   const [selectBusy, setSelectBusy] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [preparingStructure, setPreparingStructure] = useState(false);
+  const [structureError, setStructureError] = useState<string | null>(null);
+  const [pricingDrafts, setPricingDrafts] = useState<Record<string, string>>({});
+  const [pricingSaving, setPricingSaving] = useState(false);
+  const [pricingSaveError, setPricingSaveError] = useState<string | null>(null);
   const createInFlightRef = useRef(false);
   const saveInFlightRef = useRef(false);
+  const bootstrapInFlightRef = useRef(false);
+  const priceSaveInFlightRef = useRef(false);
 
   const cid = (companyId ?? "").trim();
   const jid = (jobId ?? "").trim();
@@ -147,35 +170,102 @@ export function useJobCardPrepareProposal({
     void reloadMeasurements();
   }, [reloadMeasurements]);
 
-  const loadCreateDependencies = useCallback(async () => {
-    if (!cid || !isUuidLike(cid)) return;
-    const [templateRows, items, preferred] = await Promise.all([
-      getProposalTemplatesByCompany(cid),
-      getActiveCatalogItemsByCompany(cid),
-      getPreferredSetupTemplateId(cid),
-    ]);
-    setTemplates(templateRows);
-    setCatalogItems(items);
-    setPreferredTemplateId(preferred);
-    const visible = filterContractorVisibleTemplates(templateRows);
-    const starter = findStarterProposalTemplate(templateRows);
-    const defaultId = resolveDefaultJobCardTemplateId(
-      visible,
-      starter?.id ?? null,
-      preferred
-    );
-    setSelectedTemplateId((prev) => {
-      if (
-        prev &&
-        visible.some(
-          (row) => row.id === prev && row.status !== "archived" && row.active !== false
-        )
-      ) {
-        return prev;
+  const applyCreateDependencies = useCallback(
+    (templateRows: ProposalTemplate[], items: CatalogItem[], preferred: string | null) => {
+      setTemplates(templateRows);
+      setCatalogItems(items);
+      setPreferredTemplateId(preferred);
+      const visible = filterContractorVisibleTemplates(templateRows);
+      const starter = findStarterProposalTemplate(templateRows);
+      const defaultId = resolveDefaultJobCardTemplateId(
+        visible,
+        starter?.id ?? null,
+        preferred
+      );
+      setSelectedTemplateId((prev) => {
+        if (
+          prev &&
+          visible.some(
+            (row) =>
+              row.id === prev && row.status !== "archived" && row.active !== false
+          )
+        ) {
+          return prev;
+        }
+        return defaultId;
+      });
+    },
+    []
+  );
+
+  const ensureFirstProposalStructure = useCallback(async () => {
+    if (!cid || !isUuidLike(cid) || bootstrapInFlightRef.current) return;
+    bootstrapInFlightRef.current = true;
+    setStructureError(null);
+    setPreparingStructure(true);
+    try {
+      const [templateRows, items, preferred] = await Promise.all([
+        getProposalTemplatesByCompany(cid),
+        getActiveCatalogItemsByCompany(cid),
+        getPreferredSetupTemplateId(cid),
+      ]);
+      const starter = findStarterProposalTemplate(templateRows);
+      const need = resolveFirstProposalStructureNeed({
+        activeCatalogItems: items,
+        templates: templateRows,
+        preferredTemplateId: preferred,
+        starterTemplateId: starter?.id ?? null,
+      });
+
+      if (!need.mayBootstrapStarterStructure) {
+        applyCreateDependencies(templateRows, items, preferred);
+        return;
       }
-      return defaultId;
-    });
-  }, [cid]);
+
+      if (need.needsCatalogStructure) {
+        const catalogResult = await installDefaultRoofingCatalog(cid);
+        if (!catalogResult || (catalogResult.failedCount > 0 && catalogResult.createdCount === 0)) {
+          setStructureError(FIRST_PROPOSAL_STRUCTURE_FAILED);
+          applyCreateDependencies(templateRows, items, preferred);
+          return;
+        }
+      }
+
+      const catalogAfter = need.needsCatalogStructure
+        ? await getActiveCatalogItemsByCompany(cid)
+        : items;
+
+      if (need.needsTemplateStructure || need.needsCatalogStructure) {
+        const templateResult = await installDefaultRoofingProposalTemplates(cid);
+        if (
+          !templateResult ||
+          (templateResult.failedCount > 0 &&
+            !templateResult.templateId &&
+            templateResult.createdTemplateCount === 0 &&
+            templateResult.skippedTemplateCount === 0)
+        ) {
+          setStructureError(FIRST_PROPOSAL_STRUCTURE_FAILED);
+          applyCreateDependencies(
+            await getProposalTemplatesByCompany(cid),
+            catalogAfter,
+            preferred
+          );
+          return;
+        }
+      }
+
+      const [nextTemplates, nextItems] = await Promise.all([
+        getProposalTemplatesByCompany(cid),
+        getActiveCatalogItemsByCompany(cid),
+      ]);
+      applyCreateDependencies(nextTemplates, nextItems, preferred);
+    } catch {
+      setStructureError(FIRST_PROPOSAL_STRUCTURE_FAILED);
+    } finally {
+      bootstrapInFlightRef.current = false;
+      setPreparingStructure(false);
+    }
+  }, [cid, applyCreateDependencies]);
 
   useEffect(() => {
     if (!selectedTemplateId || !cid || !isUuidLike(cid)) {
@@ -205,10 +295,12 @@ export function useJobCardPrepareProposal({
 
   const openModal = useCallback(() => {
     setCreateError(null);
+    setStructureError(null);
+    setPricingSaveError(null);
     setModalOpen(true);
-    void loadCreateDependencies();
+    void ensureFirstProposalStructure();
     void reloadMeasurements();
-  }, [loadCreateDependencies, reloadMeasurements]);
+  }, [ensureFirstProposalStructure, reloadMeasurements]);
 
   const closeModal = useCallback(() => {
     if (createInFlightRef.current || creating) return;
@@ -441,6 +533,85 @@ export function useJobCardPrepareProposal({
       })
     : null;
 
+  const starterTemplateId = findStarterProposalTemplate(templates)?.id ?? null;
+
+  const pricingLines: FirstProposalPricingLine[] = useMemo(
+    () => collectLinkedCatalogPricingLines(templateGraph, catalogItems),
+    [templateGraph, catalogItems]
+  );
+
+  const showFirstProposalPricing = useMemo(
+    () =>
+      resolveShowFirstProposalPricing({
+        preferredTemplateId,
+        starterTemplateId,
+        selectedTemplateId,
+        pricingLines,
+      }),
+    [preferredTemplateId, starterTemplateId, selectedTemplateId, pricingLines]
+  );
+
+  const pricingComplete = useMemo(
+    () =>
+      !showFirstProposalPricing || firstProposalPricingComplete(pricingLines),
+    [showFirstProposalPricing, pricingLines]
+  );
+
+  const setPricingDraft = useCallback((catalogItemId: string, value: string) => {
+    setPricingDrafts((prev) => ({ ...prev, [catalogItemId]: value }));
+    setPricingSaveError(null);
+  }, []);
+
+  const saveFirstProposalPrices = useCallback(async () => {
+    if (!cid || !isUuidLike(cid) || priceSaveInFlightRef.current) return;
+    priceSaveInFlightRef.current = true;
+    setPricingSaving(true);
+    setPricingSaveError(null);
+    try {
+      const lines = collectLinkedCatalogPricingLines(templateGraph, catalogItems);
+      for (const line of lines) {
+        const raw =
+          pricingDrafts[line.catalogItemId] !== undefined
+            ? pricingDrafts[line.catalogItemId]
+            : line.unitPriceCents != null
+              ? String(line.unitPriceCents / 100)
+              : "";
+        if (!line.needsPrice && pricingDrafts[line.catalogItemId] === undefined) {
+          continue;
+        }
+        const parsed = parseDollarsToCentsOrNull(raw, "Price");
+        if (parsed.error) {
+          setPricingSaveError(parsed.error);
+          return;
+        }
+        if (parsed.cents == null) {
+          if (line.needsPrice) {
+            setPricingSaveError(FIRST_PROPOSAL_PRICE_SAVE_FAILED);
+            return;
+          }
+          continue;
+        }
+        const updated = await updateCatalogItem(
+          line.catalogItemId,
+          { unit_price_cents: parsed.cents },
+          { companyId: cid }
+        );
+        if (!updated) {
+          setPricingSaveError(FIRST_PROPOSAL_PRICE_SAVE_FAILED);
+          return;
+        }
+      }
+      const nextItems = await getActiveCatalogItemsByCompany(cid);
+      setCatalogItems(nextItems);
+      setPricingDrafts({});
+    } catch {
+      setPricingSaveError(FIRST_PROPOSAL_PRICE_SAVE_FAILED);
+    } finally {
+      priceSaveInFlightRef.current = false;
+      setPricingSaving(false);
+    }
+  }, [cid, templateGraph, catalogItems, pricingDrafts]);
+
   const createPayload =
     selected &&
     proposalHandoff?.proposalReady &&
@@ -464,11 +635,15 @@ export function useJobCardPrepareProposal({
 
   const createEnabled =
     createPayload != null &&
+    pricingComplete &&
+    !preparingStructure &&
+    !structureError &&
     (packageSetup.choices.length === 0 ||
       (packageSetup.selected != null && (packageSetup.selected.issueCount ?? 0) === 0));
 
   const createProposal = useCallback(() => {
     if (createInFlightRef.current || !createEnabled || !jid || !cid) return;
+    if (showFirstProposalPricing && !pricingComplete) return;
     createInFlightRef.current = true;
     setCreating(true);
     setCreateError(null);
@@ -510,6 +685,8 @@ export function useJobCardPrepareProposal({
     jid,
     routeHints,
     onCreatedProposal,
+    showFirstProposalPricing,
+    pricingComplete,
   ]);
 
   const captureInitial: Partial<JobCardManualMeasurementFields> | null =
@@ -542,7 +719,7 @@ export function useJobCardPrepareProposal({
       setSelectedPackageOptionId(null);
     },
     preferredTemplateId,
-    starterTemplateId: findStarterProposalTemplate(templates)?.id ?? null,
+    starterTemplateId,
     templateEligibility,
     packageSetup,
     selectedPackageOptionId: packageSetup.selectedOptionId,
@@ -552,6 +729,17 @@ export function useJobCardPrepareProposal({
     creating,
     createError,
     createProposal,
+    preparingStructure,
+    structureError,
+    preparingStructureLabel: FIRST_PROPOSAL_PREPARING,
+    showFirstProposalPricing,
+    firstProposalPricingLines: pricingLines,
+    firstProposalPricingDrafts: pricingDrafts,
+    setFirstProposalPricingDraft: setPricingDraft,
+    saveFirstProposalPrices,
+    firstProposalPricingSaving: pricingSaving,
+    firstProposalPricingSaveError: pricingSaveError,
+    firstProposalPricingComplete: pricingComplete,
     captureOpen,
     captureOrigin,
     captureKind,

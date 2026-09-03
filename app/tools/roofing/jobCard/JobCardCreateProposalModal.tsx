@@ -30,7 +30,9 @@ import {
   type PrepareProposalFieldView,
 } from "@/app/tools/roofing/jobCard/jobCardCreateProposalModalModel";
 import type { JobCardPackageChoice } from "@/app/tools/roofing/jobCard/jobCardProposalSetup";
+import JobCardFirstProposalPricing from "@/app/tools/roofing/jobCard/JobCardFirstProposalPricing";
 import { JOB_CARD_PROPOSALS_PRIMARY_BUTTON_CLASS } from "@/app/tools/roofing/jobCard/jobCardProposalsTabModel";
+import type { FirstProposalPricingLine } from "@/app/lib/firstProposalPrepare";
 import type { PackagePresentationMode } from "@/app/tools/roofing/templates/templatesWorkspaceFlow";
 
 export type JobCardCreateProposalModalTemplateChoice = {
@@ -76,6 +78,19 @@ export type JobCardCreateProposalModalProps = {
   createError: string | null;
   onCreateProposal: () => void;
   onAddMeasurement?: () => void;
+
+  preparingStructure?: boolean;
+  preparingStructureLabel?: string | null;
+  structureError?: string | null;
+
+  showFirstProposalPricing?: boolean;
+  firstProposalPricingLines?: readonly FirstProposalPricingLine[];
+  firstProposalPricingDrafts?: Record<string, string>;
+  onFirstProposalPricingDraftChange?: (catalogItemId: string, value: string) => void;
+  onSaveFirstProposalPrices?: () => void;
+  firstProposalPricingSaving?: boolean;
+  firstProposalPricingSaveError?: string | null;
+  firstProposalPricingComplete?: boolean;
 };
 
 const CANCEL_BUTTON_CLASS =
@@ -114,6 +129,17 @@ export function JobCardCreateProposalModal({
   createError,
   onCreateProposal,
   onAddMeasurement,
+  preparingStructure = false,
+  preparingStructureLabel = null,
+  structureError = null,
+  showFirstProposalPricing = false,
+  firstProposalPricingLines = [],
+  firstProposalPricingDrafts = {},
+  onFirstProposalPricingDraftChange,
+  onSaveFirstProposalPrices,
+  firstProposalPricingSaving = false,
+  firstProposalPricingSaveError = null,
+  firstProposalPricingComplete = true,
 }: JobCardCreateProposalModalProps) {
   const titleId = useId();
   const changeRefs = useRef<Partial<Record<PrepareProposalFieldId, HTMLButtonElement | null>>>(
@@ -178,7 +204,9 @@ export function JobCardCreateProposalModal({
       package: packageField.state,
     }) &&
     createEnabled &&
-    !creating;
+    !creating &&
+    !preparingStructure &&
+    (!showFirstProposalPricing || firstProposalPricingComplete);
 
   const restoreFocus = (field: PrepareProposalFieldId) => {
     window.requestAnimationFrame(() => {
@@ -412,6 +440,41 @@ export function JobCardCreateProposalModal({
               </div>
             ) : null}
           </PrepareFieldRow>
+
+          {preparingStructure ? (
+            <p
+              className="py-3 text-sm text-slate-600"
+              data-first-proposal-preparing="true"
+            >
+              {preparingStructureLabel ?? "Preparing proposal…"}
+            </p>
+          ) : null}
+
+          {structureError ? (
+            <p
+              className="py-2 text-sm text-rose-600"
+              role="alert"
+              data-first-proposal-structure-error="true"
+            >
+              {structureError}
+            </p>
+          ) : null}
+
+          {showFirstProposalPricing &&
+          onFirstProposalPricingDraftChange &&
+          onSaveFirstProposalPrices ? (
+            <div className="py-3">
+              <JobCardFirstProposalPricing
+                lines={firstProposalPricingLines}
+                draftPrices={firstProposalPricingDrafts}
+                onDraftChange={onFirstProposalPricingDraftChange}
+                onSaveAll={onSaveFirstProposalPrices}
+                saving={firstProposalPricingSaving}
+                saveError={firstProposalPricingSaveError}
+                allPriced={firstProposalPricingComplete}
+              />
+            </div>
+          ) : null}
         </div>
 
         <footer className="px-5 pb-4 pt-3 sm:px-6 sm:pb-4">

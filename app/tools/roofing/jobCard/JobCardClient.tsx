@@ -1265,6 +1265,17 @@ export default function JobCardClient({
           createError={prepare.createError}
           onCreateProposal={prepare.createProposal}
           onAddMeasurement={() => prepare.openCapture("prepare", "add")}
+          preparingStructure={prepare.preparingStructure}
+          preparingStructureLabel={prepare.preparingStructureLabel}
+          structureError={prepare.structureError}
+          showFirstProposalPricing={prepare.showFirstProposalPricing}
+          firstProposalPricingLines={prepare.firstProposalPricingLines}
+          firstProposalPricingDrafts={prepare.firstProposalPricingDrafts}
+          onFirstProposalPricingDraftChange={prepare.setFirstProposalPricingDraft}
+          onSaveFirstProposalPrices={() => void prepare.saveFirstProposalPrices()}
+          firstProposalPricingSaving={prepare.firstProposalPricingSaving}
+          firstProposalPricingSaveError={prepare.firstProposalPricingSaveError}
+          firstProposalPricingComplete={prepare.firstProposalPricingComplete}
         />
       ) : null}
       {prepare.captureOpen && prepare.captureOrigin === "prepare" ? (
