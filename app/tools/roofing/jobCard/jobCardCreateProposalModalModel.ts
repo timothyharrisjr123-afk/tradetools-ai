@@ -57,13 +57,12 @@ export type PrepareProposalFieldView = {
 
 export const PREPARE_PROPOSAL_TITLE = "Prepare proposal" as const;
 export const PREPARE_PROPOSAL_MEASUREMENT_LABEL = "Measurement" as const;
-export const PREPARE_PROPOSAL_SETUP_LABEL = "Reusable setup" as const;
+export const PREPARE_PROPOSAL_SETUP_LABEL = "Template" as const;
 export const PREPARE_PROPOSAL_PACKAGE_LABEL = "Starting package" as const;
 export const PREPARE_PROPOSAL_CHANGE_LABEL = "Change" as const;
 export const PREPARE_PROPOSAL_CREATE_LABEL = "Create proposal" as const;
 export const PREPARE_PROPOSAL_CANCEL_LABEL = "Cancel" as const;
-export const PREPARE_PROPOSAL_FOOTER =
-  "Creates a job-specific copy. Your reusable setup stays unchanged." as const;
+export const PREPARE_PROPOSAL_FOOTER = "" as const;
 
 export const PREPARE_PROPOSAL_MEASUREMENT_REQUIRED = "Measurement required" as const;
 export const PREPARE_PROPOSAL_ADD_MEASUREMENT_LABEL = "Add measurement" as const;
@@ -76,10 +75,10 @@ export const PREPARE_PROPOSAL_MEASUREMENT_CAPTURE_HINT =
   "Enter the roof numbers from the report you already trust." as const;
 
 export const PREPARE_PROPOSAL_MEASUREMENT_CHOOSE = "Choose a measurement." as const;
-export const PREPARE_PROPOSAL_SETUP_CHOOSE = "Choose a reusable setup." as const;
+export const PREPARE_PROPOSAL_SETUP_CHOOSE = "Choose a template." as const;
 export const PREPARE_PROPOSAL_PACKAGE_CHOOSE = "Choose a starting package." as const;
 export const PREPARE_PROPOSAL_PACKAGE_NEEDS_SETUP =
-  "Choose a reusable setup first." as const;
+  "Choose a template first." as const;
 export const PREPARE_PROPOSAL_PACKAGE_NONE =
   "This setup has no valid package. Add a package under Templates." as const;
 export const PREPARE_PROPOSAL_SETUP_NONE =
@@ -400,7 +399,7 @@ export function resolvePrepareProposalMeasurement(input: {
 }
 
 /**
- * Reusable setup prepare:
+ * Template prepare:
  * 1. eligible preferred setup
  * 2. eligible company starter (existing named Job Card rule)
  * 3. unique eligible setup
@@ -606,6 +605,27 @@ export function canCreatePrepareProposal(input: {
     return false;
   }
   return true;
+}
+
+export function isPrepareTemplateContextSecondary(input: {
+  setup: PrepareProposalFieldState;
+  package: PrepareProposalFieldState;
+}): boolean {
+  const ok = (state: PrepareProposalFieldState) =>
+    state === "prepared" || state === "alternative_available";
+  return ok(input.setup) && ok(input.package);
+}
+
+export function formatPrepareTemplateContextLabel(input: {
+  setupLabel: string | null;
+  packageLabel: string | null;
+}): string {
+  const setup = (input.setupLabel ?? "").trim();
+  const pkg = (input.packageLabel ?? "").trim().replace(/\s+package$/i, "").trim();
+  if (setup && pkg) return `${setup} · ${pkg} package`;
+  if (setup) return setup;
+  if (pkg) return `${pkg} package`;
+  return "Template";
 }
 
 export function resolvePrepareProposalExpandedField(input: {

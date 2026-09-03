@@ -558,6 +558,7 @@ export default function ProposalCustomerPreviewSendGatePanel({
           title={!readiness.canSend ? readiness.disabledReason : undefined}
           onClick={() => void handleSendProposalByEmail()}
           data-preview-send-proposal
+          data-preview-send-enabled={canSendProposalEmail ? "true" : "false"}
         >
           {sendPending ? (
             <>

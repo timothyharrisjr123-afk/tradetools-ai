@@ -64,16 +64,13 @@ describe("Prepare proposal V2A inference", () => {
   test("copy is restrained and contractor-facing", () => {
     assert.equal(PREPARE_PROPOSAL_TITLE, "Prepare proposal");
     assert.equal(PREPARE_PROPOSAL_MEASUREMENT_LABEL, "Measurement");
-    assert.equal(PREPARE_PROPOSAL_SETUP_LABEL, "Reusable setup");
+    assert.equal(PREPARE_PROPOSAL_SETUP_LABEL, "Template");
     assert.equal(PREPARE_PROPOSAL_PACKAGE_LABEL, "Starting package");
     assert.equal(PREPARE_PROPOSAL_CHANGE_LABEL, "Change");
     assert.equal(PREPARE_PROPOSAL_CREATE_LABEL, "Create proposal");
-    assert.equal(
-      PREPARE_PROPOSAL_FOOTER,
-      "Creates a job-specific copy. Your reusable setup stays unchanged."
-    );
+    assert.equal(PREPARE_PROPOSAL_FOOTER, "");
     assert.doesNotMatch(PREPARE_PROPOSAL_FOOTER, /accept|signature|payment|schedule/i);
-    assert.doesNotMatch(PREPARE_PROPOSAL_FOOTER, /existing proposals will not change/i);
+    assert.doesNotMatch(PREPARE_PROPOSAL_FOOTER, /reusable setup/i);
     assert.doesNotMatch(PREPARE_PROPOSAL_PACKAGE_LABEL, /customer/i);
     assert.equal(JOB_CARD_PROPOSALS_ADD_LABEL, "+ Proposal");
     assert.equal(JOB_CARD_PROPOSALS_CREATE_LABEL, "Create proposal");

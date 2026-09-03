@@ -17,7 +17,6 @@ import {
   SEND_GATE_EMAIL_SEND_DISCLAIMER,
   SEND_GATE_LOADING_MESSAGE,
   SEND_GATE_MISSING_RECIPIENT_BODY,
-  SEND_GATE_NO_SENT_SNAPSHOT_BODY,
   SEND_GATE_PANEL_INTRO,
   SEND_GATE_PANEL_TITLE,
   SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL,
@@ -81,7 +80,7 @@ describe("buildProposalSendGateReadinessViewModel", () => {
     assert.equal(vm.checklist.every((item) => item.status === "loading"), true);
   });
 
-  test("no sent snapshot marks customer view and sent snapshot as not ready", () => {
+  test("no sent snapshot still enables send when freeze, delivery, and recipient are ready", () => {
     const vm = buildProposalSendGateReadinessViewModel({
       hasSentSnapshot: false,
       sendFreezeReadiness: readySendFreeze(),
@@ -90,20 +89,19 @@ describe("buildProposalSendGateReadinessViewModel", () => {
       customerFirstName: "Jane",
       companyName: "Summit Roofing",
       projectAddress: "123 Main St",
+      emailDeliveryConfigured: true,
     });
 
-    assert.equal(vm.phase, "no_sent_snapshot");
-    assert.equal(vm.body, SEND_GATE_NO_SENT_SNAPSHOT_BODY);
-    assert.equal(vm.canSend, false);
-    assert.equal(vm.deliveryEnabled, false);
+    assert.equal(vm.phase, "ready");
+    assert.equal(vm.canSend, true);
+    assert.equal(vm.deliveryEnabled, true);
+    assert.equal(vm.canPrepareCustomerLink, true);
 
     const customerView = vm.checklist.find((item) => item.id === "customer_view");
     const sentSnapshot = vm.checklist.find((item) => item.id === "sent_snapshot");
-    assert.equal(customerView?.status, "needs_sent_snapshot");
-    assert.match(customerView?.detail ?? "", /needs sent snapshot/i);
-    assert.equal(sentSnapshot?.status, "missing");
-    assert.match(sentSnapshot?.detail ?? "", /not created yet/i);
-    assert.equal(vm.canPrepareCustomerLink, true);
+    assert.equal(customerView?.status, "ready");
+    assert.equal(sentSnapshot?.status, "ready");
+    assert.match(sentSnapshot?.detail ?? "", /created when sent/i);
   });
 
   test("sent snapshot ready keeps send disabled when delivery is not configured", () => {

@@ -236,8 +236,8 @@ export default function JobCardMeasurementCapture({
             />
           </label>
           <label className="block text-sm text-slate-600">
-            Hips (lf){" "}
-            <span className="font-normal text-slate-400">(optional)</span>
+            Hips{" "}
+            <span className="font-normal text-slate-400">lf · optional</span>
             <input
               className={FIELD_CLASS}
               inputMode="decimal"

@@ -368,36 +368,24 @@ function checklistStatusLabel(status: SendGateChecklistStatus): string {
 }
 
 function buildCustomerViewChecklist(hasSentSnapshot: boolean): SendGateChecklistItem {
-  if (!hasSentSnapshot) {
-    return {
-      id: "customer_view",
-      label: "Customer view",
-      status: "needs_sent_snapshot",
-      detail: checklistStatusLabel("needs_sent_snapshot"),
-    };
-  }
   return {
     id: "customer_view",
     label: "Customer view",
     status: "ready",
-    detail: checklistStatusLabel("ready"),
+    detail: hasSentSnapshot
+      ? checklistStatusLabel("ready")
+      : "Created when sent",
   };
 }
 
 function buildSentSnapshotChecklist(hasSentSnapshot: boolean): SendGateChecklistItem {
-  if (!hasSentSnapshot) {
-    return {
-      id: "sent_snapshot",
-      label: "Sent snapshot",
-      status: "missing",
-      detail: "Not created yet",
-    };
-  }
   return {
     id: "sent_snapshot",
     label: "Sent snapshot",
     status: "ready",
-    detail: checklistStatusLabel("ready"),
+    detail: hasSentSnapshot
+      ? checklistStatusLabel("ready")
+      : "Created when sent",
   };
 }
 
@@ -641,25 +629,6 @@ export function buildProposalSendGateReadinessViewModel(
     paymentTerms: input.paymentTerms,
     chargesEnabled: input.chargesEnabled,
   });
-
-  if (!input.hasSentSnapshot) {
-    return {
-      phase: "no_sent_snapshot",
-      heading: SEND_GATE_PANEL_TITLE,
-      summary: SEND_GATE_PANEL_INTRO,
-      body: SEND_GATE_NO_SENT_SNAPSHOT_BODY,
-      deliveryEnabled: false,
-      canSend: false,
-      canPrepareCustomerLink,
-      disabledReason,
-      emailSendDisclaimer,
-      checklist,
-      messagePreview,
-      deferredActions,
-      paymentsSetupRequired,
-      paymentsSetupHref,
-    };
-  }
 
   const bodyParts: string[] = [];
   if (!input.recipientEmail) {

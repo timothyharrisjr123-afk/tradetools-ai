@@ -78,7 +78,8 @@ describe("Job Card Proposals tab (Block 2 + Block 3 modal)", () => {
     assert.match(modal, /data-jobcard-prepare-proposal/);
     assert.match(modalModel, /Prepare proposal/);
     assert.match(modalModel, /Create proposal/);
-    assert.match(modalModel, /Reusable setup/);
+    assert.match(modalModel, /Template/);
+    assert.doesNotMatch(modalModel, /Reusable setup/);
     assert.doesNotMatch(tab, /data-jobcard-proposal-entry-placeholder/);
     const proposalsPanel = client.slice(
       client.indexOf('tabId="proposals"'),

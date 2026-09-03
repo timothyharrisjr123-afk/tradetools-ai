@@ -64,19 +64,24 @@ export default function ProposalCustomerPreviewPacketCover({
               <img
                 src={company.logoUrl!}
                 alt=""
-                className="h-9 w-auto shrink-0 object-contain"
+                className="h-9 w-auto max-w-[9rem] shrink-0 object-contain"
                 onError={() => setLogoFailed(true)}
+                onLoad={(event) => {
+                  if (event.currentTarget.naturalWidth < 2) {
+                    setLogoFailed(true);
+                  }
+                }}
               />
             ) : showMonogram ? (
               <span
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-[11px] font-bold text-white"
-                style={{ backgroundColor: brand }}
+                className="text-[13px] font-semibold tracking-[0.14em] text-slate-800"
+                data-preview-brand-fallback="initials"
                 aria-hidden
               >
                 {company.logoMonogram}
               </span>
             ) : null}
-            <div className="min-w-0">
+            <div className="min-w-0" data-preview-brand-wordmark="">
               {company.companyName ? (
                 <p className={PACKET_IDENTITY_NAME}>{company.companyName}</p>
               ) : null}

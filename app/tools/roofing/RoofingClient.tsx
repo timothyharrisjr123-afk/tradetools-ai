@@ -6121,9 +6121,6 @@ Thanks,`;
                                   )}
                                 </div>
                               )}
-                              {zipNoPresetMessage && jobZip.length === 5 && (
-                                <p className="text-[10.5px] text-slate-500">No ZIP defaults saved.</p>
-                              )}
                               {jobZip.length === 5 && presetForCurrentZip != null && (
                                 <button
                                   type="button"

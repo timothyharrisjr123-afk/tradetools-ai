@@ -333,6 +333,7 @@ describe("New Job commercial entry hides unfinished theater", () => {
     assert.doesNotMatch(workbench, /Instant Estimate/);
     assert.doesNotMatch(workbench, /Site visit/i);
     assert.doesNotMatch(workbench, /COMING SOON/);
+    assert.doesNotMatch(workbench, /No ZIP defaults saved/);
     assert.match(workbench, /\bCustomer\b/);
     assert.match(workbench, /\bProperty\b/);
     assert.match(roofing, /createJob\(draft\)/);

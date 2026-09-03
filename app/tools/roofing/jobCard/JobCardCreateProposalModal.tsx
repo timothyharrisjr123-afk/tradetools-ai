@@ -23,6 +23,8 @@ import {
   buildCreateProposalMeasurementChoice,
   canCreatePrepareProposal,
   formatCreateProposalTemplateSecondaryDetail,
+  formatPrepareTemplateContextLabel,
+  isPrepareTemplateContextSecondary,
   resolvePrepareProposalExpandedField,
   resolvePrepareProposalMeasurement,
   resolvePrepareProposalPackage,
@@ -115,6 +117,9 @@ const CANCEL_BUTTON_CLASS =
 
 const CHANGE_BUTTON_CLASS =
   "inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-md px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50";
+
+const SECONDARY_CHANGE_BUTTON_CLASS =
+  "inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-md px-2 text-[13px] font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-50";
 
 const SELECTOR_OFFSET_CLASS = "sm:ml-44 sm:pl-6";
 
@@ -234,6 +239,17 @@ export function JobCardCreateProposalModal({
     !preparingStructure &&
     (!showFirstProposalPricingRules || firstProposalPricingRulesComplete) &&
     (!showFirstProposalPricing || firstProposalPricingComplete);
+
+  const templateContextSecondary = isPrepareTemplateContextSecondary({
+    setup: setupField.state,
+    package: packageField.state,
+  });
+  const templateContextExpanded =
+    expandedField === "setup" || expandedField === "package";
+  const templateContextLabel = formatPrepareTemplateContextLabel({
+    setupLabel: setupField.valueLabel,
+    packageLabel: packageField.valueLabel,
+  });
 
   const measurementQuantityIncomplete =
     (measurementField.state === "prepared" ||
@@ -376,121 +392,154 @@ export function JobCardCreateProposalModal({
             </p>
           ) : null}
 
-          <PrepareFieldRow
-            label={PREPARE_PROPOSAL_SETUP_LABEL}
-            field={setupField}
-            expanded={expandedField === "setup"}
-            creating={creating}
-            changeRef={(node) => {
-              changeRefs.current.setup = node;
-            }}
-            onToggleChange={() =>
-              setContractorExpanded((current) =>
-                current === "setup" ? null : "setup"
-              )
-            }
-          >
-            {expandedField === "setup" ? (
-              <div
-                role="radiogroup"
-                aria-label={PREPARE_PROPOSAL_SETUP_LABEL}
-                className="divide-y divide-slate-100"
-                data-jobcard-prepare-selector="setup"
-                onKeyDown={onSelectorKeyDown}
-              >
-                {templates
-                  .filter((row) => !row.archived)
-                  .map((row) => {
-                    const selected =
-                      row.id === (setupField.preparedId ?? selectedTemplateId);
-                    const secondary = formatCreateProposalTemplateSecondaryDetail({
-                      linkedItemCount: row.linkedItemCount,
-                      packageCount: row.packageCount,
-                      availableUpgradeCount: row.availableUpgradeCount,
-                      packageMode: row.packageMode,
-                    });
-                    return (
-                      <SelectorOption
-                        key={row.id}
-                        selected={selected}
-                        disabled={creating}
-                        label={row.name}
-                        detail={secondary || null}
-                        dataIdAttr="data-jobcard-create-proposal-template"
-                        optionId={row.id}
-                        onSelect={() => {
-                          setContractorChoseSetup(true);
-                          setContractorChosePackage(false);
-                          onSelectTemplate(row.id);
-                          collapseAfterSelect("setup");
-                        }}
-                      />
-                    );
-                  })}
+          {templateContextSecondary && !templateContextExpanded ? (
+            <section
+              className="border-b border-slate-100 py-2"
+              data-jobcard-prepare-template-secondary="true"
+            >
+              <div className="flex items-center gap-3">
+                <p className="text-[13px] text-slate-400 sm:w-44 sm:shrink-0">
+                  {PREPARE_PROPOSAL_SETUP_LABEL}
+                </p>
+                <p className="min-w-0 flex-1 text-[13px] text-slate-600">
+                  {templateContextLabel}
+                </p>
+                <button
+                  ref={(node) => {
+                    changeRefs.current.setup = node;
+                  }}
+                  type="button"
+                  className={SECONDARY_CHANGE_BUTTON_CLASS}
+                  onClick={() => setContractorExpanded("setup")}
+                  disabled={creating}
+                  aria-expanded={false}
+                  data-jobcard-prepare-change="setup"
+                >
+                  {PREPARE_PROPOSAL_CHANGE_LABEL}
+                </button>
               </div>
-            ) : null}
-          </PrepareFieldRow>
+            </section>
+          ) : (
+            <>
+              <PrepareFieldRow
+                label={PREPARE_PROPOSAL_SETUP_LABEL}
+                field={setupField}
+                expanded={expandedField === "setup"}
+                creating={creating}
+                quietChange={templateContextSecondary}
+                changeRef={(node) => {
+                  changeRefs.current.setup = node;
+                }}
+                onToggleChange={() =>
+                  setContractorExpanded((current) =>
+                    current === "setup" ? null : "setup"
+                  )
+                }
+              >
+                {expandedField === "setup" ? (
+                  <div
+                    role="radiogroup"
+                    aria-label={PREPARE_PROPOSAL_SETUP_LABEL}
+                    className="divide-y divide-slate-100"
+                    data-jobcard-prepare-selector="setup"
+                    onKeyDown={onSelectorKeyDown}
+                  >
+                    {templates
+                      .filter((row) => !row.archived)
+                      .map((row) => {
+                        const selected =
+                          row.id === (setupField.preparedId ?? selectedTemplateId);
+                        const secondary = formatCreateProposalTemplateSecondaryDetail({
+                          linkedItemCount: row.linkedItemCount,
+                          packageCount: row.packageCount,
+                          availableUpgradeCount: row.availableUpgradeCount,
+                          packageMode: row.packageMode,
+                        });
+                        return (
+                          <SelectorOption
+                            key={row.id}
+                            selected={selected}
+                            disabled={creating}
+                            label={row.name}
+                            detail={secondary || null}
+                            dataIdAttr="data-jobcard-create-proposal-template"
+                            optionId={row.id}
+                            onSelect={() => {
+                              setContractorChoseSetup(true);
+                              setContractorChosePackage(false);
+                              onSelectTemplate(row.id);
+                              collapseAfterSelect("setup");
+                            }}
+                          />
+                        );
+                      })}
+                  </div>
+                ) : null}
+              </PrepareFieldRow>
 
-          <PrepareFieldRow
-            label={PREPARE_PROPOSAL_PACKAGE_LABEL}
-            field={packageField}
-            expanded={expandedField === "package"}
-            creating={creating}
-            changeRef={(node) => {
-              changeRefs.current.package = node;
-            }}
-            onToggleChange={() =>
-              setContractorExpanded((current) =>
-                current === "package" ? null : "package"
-              )
-            }
-            last
-          >
-            {expandedField === "package" ? (
-              <div
-                role="radiogroup"
-                aria-label={PREPARE_PROPOSAL_PACKAGE_LABEL}
-                className="divide-y divide-slate-100"
-                data-jobcard-prepare-selector="package"
-                data-jobcard-create-proposal-package-cards
-                data-jobcard-package-count={packageChoices.length}
-                onKeyDown={onSelectorKeyDown}
+              <PrepareFieldRow
+                label={PREPARE_PROPOSAL_PACKAGE_LABEL}
+                field={packageField}
+                expanded={expandedField === "package"}
+                creating={creating}
+                quietChange={templateContextSecondary}
+                changeRef={(node) => {
+                  changeRefs.current.package = node;
+                }}
+                onToggleChange={() =>
+                  setContractorExpanded((current) =>
+                    current === "package" ? null : "package"
+                  )
+                }
+                last
               >
-                {packageChoices.map((choice) => {
-                  const selected =
-                    choice.optionId ===
-                    (packageField.preparedId ?? selectedPackageOptionId);
-                  const detail = `${choice.linkedItemCount} included${
-                    choice.availableUpgradeCount
-                      ? ` · ${choice.availableUpgradeCount} optional upgrade${
-                          choice.availableUpgradeCount === 1 ? "" : "s"
-                        }`
-                      : ""
-                  }`;
-                  return (
-                    <SelectorOption
-                      key={choice.optionId}
-                      selected={selected}
-                      disabled={creating}
-                      label={choice.label}
-                      detail={detail}
-                      dataIdAttr="data-jobcard-create-proposal-package"
-                      optionId={choice.optionId}
-                      extraData={{
-                        "data-package-name": choice.label,
-                        "data-jobcard-create-proposal-package-counts": "true",
-                      }}
-                      onSelect={() => {
-                        setContractorChosePackage(true);
-                        onSelectPackage(choice.optionId);
-                        collapseAfterSelect("package");
-                      }}
-                    />
-                  );
-                })}
-              </div>
-            ) : null}
-          </PrepareFieldRow>
+                {expandedField === "package" ? (
+                  <div
+                    role="radiogroup"
+                    aria-label={PREPARE_PROPOSAL_PACKAGE_LABEL}
+                    className="divide-y divide-slate-100"
+                    data-jobcard-prepare-selector="package"
+                    data-jobcard-create-proposal-package-cards
+                    data-jobcard-package-count={packageChoices.length}
+                    onKeyDown={onSelectorKeyDown}
+                  >
+                    {packageChoices.map((choice) => {
+                      const selected =
+                        choice.optionId ===
+                        (packageField.preparedId ?? selectedPackageOptionId);
+                      const detail = `${choice.linkedItemCount} included${
+                        choice.availableUpgradeCount
+                          ? ` · ${choice.availableUpgradeCount} optional upgrade${
+                              choice.availableUpgradeCount === 1 ? "" : "s"
+                            }`
+                          : ""
+                      }`;
+                      return (
+                        <SelectorOption
+                          key={choice.optionId}
+                          selected={selected}
+                          disabled={creating}
+                          label={choice.label}
+                          detail={detail}
+                          dataIdAttr="data-jobcard-create-proposal-package"
+                          optionId={choice.optionId}
+                          extraData={{
+                            "data-package-name": choice.label,
+                            "data-jobcard-create-proposal-package-counts": "true",
+                          }}
+                          onSelect={() => {
+                            setContractorChosePackage(true);
+                            onSelectPackage(choice.optionId);
+                            collapseAfterSelect("package");
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </PrepareFieldRow>
+            </>
+          )}
 
           {preparingStructure ? (
             <p
@@ -545,9 +594,11 @@ export function JobCardCreateProposalModal({
         </div>
 
         <footer className="px-5 pb-4 pt-3 sm:px-6 sm:pb-4">
-          <p className="text-xs leading-snug text-slate-500">
-            {PREPARE_PROPOSAL_FOOTER}
-          </p>
+          {PREPARE_PROPOSAL_FOOTER.trim() ? (
+            <p className="text-xs leading-snug text-slate-500">
+              {PREPARE_PROPOSAL_FOOTER}
+            </p>
+          ) : null}
           {createError ? (
             <p
               className="mt-2 text-sm text-red-700"
@@ -597,6 +648,7 @@ function PrepareFieldRow({
   expanded,
   creating,
   last = false,
+  quietChange = false,
   changeRef,
   onToggleChange,
   extraAction = null,
@@ -607,6 +659,7 @@ function PrepareFieldRow({
   expanded: boolean;
   creating: boolean;
   last?: boolean;
+  quietChange?: boolean;
   changeRef: (node: HTMLButtonElement | null) => void;
   onToggleChange: () => void;
   extraAction?: ReactNode;
@@ -666,7 +719,7 @@ function PrepareFieldRow({
           <button
             ref={changeRef}
             type="button"
-            className={CHANGE_BUTTON_CLASS}
+            className={quietChange ? SECONDARY_CHANGE_BUTTON_CLASS : CHANGE_BUTTON_CLASS}
             onClick={onToggleChange}
             disabled={creating}
             aria-expanded={expanded}
