@@ -7,6 +7,10 @@
  */
 
 import { getGooglePlacesApiKey } from "@/app/lib/placesConfig";
+import {
+  composePlacesAutocompleteInput,
+  type PlacesLocalityBias,
+} from "@/app/lib/placesLocalityBias";
 
 export type PlacesAutocompleteSuggestion = {
   placeId: string;
@@ -43,17 +47,20 @@ function placesHeaders(apiKey: string, fieldMask: string): HeadersInit {
 
 export async function fetchPlacesAutocomplete(
   input: string,
-  sessionToken?: string | null
+  sessionToken?: string | null,
+  locality?: PlacesLocalityBias | null
 ): Promise<{ available: boolean; suggestions: PlacesAutocompleteSuggestion[]; error?: string }> {
   const apiKey = getGooglePlacesApiKey();
   if (!apiKey) {
     return { available: false, suggestions: [] };
   }
 
-  const q = input.trim();
-  if (q.length < 3) {
+  const street = input.trim();
+  if (street.length < 3) {
     return { available: true, suggestions: [] };
   }
+
+  const q = composePlacesAutocompleteInput(street, locality);
 
   try {
     const body: Record<string, unknown> = {

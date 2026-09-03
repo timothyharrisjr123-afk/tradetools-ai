@@ -76,8 +76,14 @@ type ProposalCustomerPreviewSendGatePanelProps = {
   isRevisionSend?: boolean;
 };
 
-const SEND_PRIMARY_ACTION =
-  "inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-[14px] font-semibold text-white shadow-[0_8px_18px_-10px_rgba(37,99,235,0.8)] transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none";
+/** FieldDive primary — solid blue + white; must not resemble disabled slate. */
+const SEND_PRIMARY_ENABLED =
+  "inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border border-blue-300 bg-blue-600 px-5 text-[14px] font-semibold text-white shadow-sm transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
+const SEND_PRIMARY_DISABLED =
+  "inline-flex min-h-[44px] w-full cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-200 px-5 text-[14px] font-semibold text-slate-500 shadow-none";
+/** Quiet subordinate rows — never compete with final Send. */
+const SEND_SECONDARY_ROW =
+  "rounded-lg border border-slate-200/80 bg-white";
 
 const SEND_SECONDARY_ACTION =
   "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 sm:min-h-10";
@@ -552,13 +558,14 @@ export default function ProposalCustomerPreviewSendGatePanel({
       <div className="space-y-2.5" data-preview-delivery-actions>
         <button
           type="button"
-          className={SEND_PRIMARY_ACTION}
+          className={canSendProposalEmail ? SEND_PRIMARY_ENABLED : SEND_PRIMARY_DISABLED}
           disabled={!canSendProposalEmail}
           aria-disabled={!canSendProposalEmail}
           title={!readiness.canSend ? readiness.disabledReason : undefined}
           onClick={() => void handleSendProposalByEmail()}
           data-preview-send-proposal
           data-preview-send-enabled={canSendProposalEmail ? "true" : "false"}
+          data-preview-send-visual={canSendProposalEmail ? "enabled" : "disabled"}
         >
           {sendPending ? (
             <>
@@ -574,7 +581,11 @@ export default function ProposalCustomerPreviewSendGatePanel({
         </button>
 
         {!sendSuccess ? (
-          <details className="rounded-lg border border-slate-200/80 bg-white" data-preview-send-link-optional>
+          <details
+            className={SEND_SECONDARY_ROW}
+            data-preview-send-link-optional
+            data-preview-send-secondary="link"
+          >
             <summary className="cursor-pointer list-none px-3.5 py-2.5 text-[12.5px] font-semibold text-slate-600 marker:content-none [&::-webkit-details-marker]:hidden">
               Optional: preview or share link first
             </summary>
@@ -631,9 +642,10 @@ export default function ProposalCustomerPreviewSendGatePanel({
       </div>
 
       <details
-        className="rounded-lg border border-slate-200/70 bg-white/80"
+        className={`${SEND_SECONDARY_ROW} bg-white/80`}
         data-preview-delivery-history-quiet
         data-preview-delivery-activity-v2c3
+        data-preview-send-secondary="activity"
       >
         <summary className="cursor-pointer list-none px-3.5 py-2.5 text-[12.5px] font-semibold text-slate-500 marker:content-none [&::-webkit-details-marker]:hidden">
           <span data-preview-delivery-activity-label>

@@ -124,7 +124,10 @@ describe("final Send proposal enablement", () => {
     );
     assert.match(panel, /data-preview-send-proposal/);
     assert.match(panel, /data-preview-send-enabled=\{canSendProposalEmail \? "true" : "false"\}/);
+    assert.match(panel, /data-preview-send-visual=\{canSendProposalEmail \? "enabled" : "disabled"\}/);
     assert.match(panel, /disabled=\{!canSendProposalEmail\}/);
+    assert.match(panel, /SEND_PRIMARY_ENABLED/);
+    assert.match(panel, /SEND_PRIMARY_DISABLED/);
   });
 });
 

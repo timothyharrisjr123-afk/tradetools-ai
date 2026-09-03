@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import {
+  rankPlacesSuggestionsByLocality,
+  type PlacesLocalityBias,
+} from "@/app/lib/placesLocalityBias";
 
 export type PlacesSuggestion = {
   placeId: string;
@@ -27,16 +31,33 @@ function newPlacesSessionToken(): string {
   return `places-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function localityKey(locality?: PlacesLocalityBias | null): string {
+  if (!locality) return "";
+  return [
+    String(locality.city ?? "").trim().toLowerCase(),
+    String(locality.state ?? "").trim().toLowerCase(),
+    String(locality.zip ?? "").trim(),
+  ].join("|");
+}
+
 /**
  * Quiet Places assist. When unavailable, stays idle — manual address continues.
  * One sessionToken covers autocomplete typing → Place Details selection (Places New billing).
+ * Optional locality (city/state/ZIP) biases ranking when already entered on New Job.
  */
-export function usePlacesAddressAssist(streetQuery: string, enabled: boolean) {
+export function usePlacesAddressAssist(
+  streetQuery: string,
+  enabled: boolean,
+  locality?: PlacesLocalityBias | null
+) {
   const [debounced, setDebounced] = useState(streetQuery);
   const [available, setAvailable] = useState<boolean | null>(null);
   const [suggestions, setSuggestions] = useState<PlacesSuggestion[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const sessionTokenRef = useRef<string | null>(null);
+  const localityRef = useRef(locality);
+  localityRef.current = locality;
+  const localityFingerprint = localityKey(locality);
 
   useEffect(() => {
     const handle = window.setTimeout(() => setDebounced(streetQuery), DEBOUNCE_MS);
@@ -62,6 +83,12 @@ export function usePlacesAddressAssist(streetQuery: string, enabled: boolean) {
     const token = sessionTokenRef.current;
     const params = new URLSearchParams({ q: debounced.trim() });
     if (token) params.set("sessionToken", token);
+    const city = String(localityRef.current?.city ?? "").trim();
+    const state = String(localityRef.current?.state ?? "").trim();
+    const zip = String(localityRef.current?.zip ?? "").trim();
+    if (city) params.set("city", city);
+    if (state) params.set("state", state);
+    if (zip) params.set("zip", zip);
 
     void fetch(`/api/places/autocomplete?${params.toString()}`, {
       cache: "no-store",
@@ -76,7 +103,8 @@ export function usePlacesAddressAssist(streetQuery: string, enabled: boolean) {
           return;
         }
         setAvailable(Boolean(json.available));
-        setSuggestions(Array.isArray(json.suggestions) ? json.suggestions : []);
+        const raw = Array.isArray(json.suggestions) ? json.suggestions : [];
+        setSuggestions(rankPlacesSuggestionsByLocality(raw, localityRef.current));
         setStatus("ready");
       })
       .catch((err: unknown) => {
@@ -87,7 +115,7 @@ export function usePlacesAddressAssist(streetQuery: string, enabled: boolean) {
       });
 
     return () => controller.abort();
-  }, [active, debounced]);
+  }, [active, debounced, localityFingerprint]);
 
   async function resolvePlace(placeId: string): Promise<PlacesResolvedAddress | null> {
     try {

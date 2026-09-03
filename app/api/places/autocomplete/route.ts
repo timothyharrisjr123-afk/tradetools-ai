@@ -30,7 +30,12 @@ export async function GET(req: NextRequest) {
 
   const q = (req.nextUrl.searchParams.get("q") ?? "").trim();
   const sessionToken = (req.nextUrl.searchParams.get("sessionToken") ?? "").trim() || null;
-  const result = await fetchPlacesAutocomplete(q, sessionToken);
+  const city = (req.nextUrl.searchParams.get("city") ?? "").trim() || null;
+  const state = (req.nextUrl.searchParams.get("state") ?? "").trim() || null;
+  const zip = (req.nextUrl.searchParams.get("zip") ?? "").trim() || null;
+  const locality =
+    city || state || zip ? { city, state, zip } : null;
+  const result = await fetchPlacesAutocomplete(q, sessionToken, locality);
   return NextResponse.json({
     ok: true,
     available: result.available,

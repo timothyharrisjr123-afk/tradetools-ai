@@ -5575,7 +5575,8 @@ Thanks,`;
     (entryMode === "packet" || entryMode === "instant") && !suppressAddressSuggestions;
   const { suggestions: addressSuggestions, resolvePlace } = usePlacesAddressAssist(
     jobAddress1,
-    placesAssistEnabled
+    placesAssistEnabled,
+    { city: jobCity, state: jobState, zip: jobZip }
   );
 
   const selectExistingCustomer = useCallback((candidate: CustomerSearchCandidate) => {
