@@ -3,6 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/app/lib/supabase/client";
+import {
+  FOCUSED_EDITOR_INPUT,
+  FOCUSED_EDITOR_LABEL,
+  FOCUSED_EDITOR_SAVE,
+} from "@/app/components/ui/FocusedEditor";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
@@ -30,15 +35,17 @@ export default function SignUpPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#131c2a] px-4 py-12">
+    <main className="min-h-screen bg-slate-50 px-4 py-12 text-slate-900">
       <div className="mx-auto flex max-w-md flex-col justify-center">
-        <div className="rounded-2xl border border-white/15 bg-slate-800/95 p-6 shadow-xl">
-          <p className="text-sm font-medium tracking-wide text-amber-400/90">FieldDive</p>
-          <h1 className="mt-1 text-xl font-semibold text-white">Create account</h1>
-          <p className="mt-1 text-sm text-slate-400">Roofing jobs, proposals, and payments.</p>
+        <div className="rounded-xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-7">
+          <p className="text-lg font-bold tracking-tight text-slate-900">FieldDive</p>
+          <h1 className="mt-3 text-xl font-semibold tracking-tight text-slate-900">Create account</h1>
+          <p className="mt-1 text-sm leading-relaxed text-slate-600">
+            Roofing jobs, proposals, and payments.
+          </p>
           <form onSubmit={handleSignUp} className="mt-6 space-y-4">
             <div>
-              <label htmlFor="signup-email" className="block text-sm font-medium text-slate-200">
+              <label htmlFor="signup-email" className={FOCUSED_EDITOR_LABEL}>
                 Email
               </label>
               <input
@@ -48,12 +55,12 @@ export default function SignUpPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className="mt-1 w-full rounded-xl border border-white/15 bg-slate-700/80 px-3 py-2 text-white placeholder-slate-400 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                className={FOCUSED_EDITOR_INPUT}
                 placeholder="you@example.com"
               />
             </div>
             <div>
-              <label htmlFor="signup-password" className="block text-sm font-medium text-slate-200">
+              <label htmlFor="signup-password" className={FOCUSED_EDITOR_LABEL}>
                 Password
               </label>
               <input
@@ -63,25 +70,26 @@ export default function SignUpPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="new-password"
-                className="mt-1 w-full rounded-xl border border-white/15 bg-slate-700/80 px-3 py-2 text-white placeholder-slate-400 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                className={FOCUSED_EDITOR_INPUT}
               />
             </div>
-          {message && (
-            <p className={message.type === "error" ? "text-sm text-red-400" : "text-sm text-emerald-400"}>
-              {message.text}
-            </p>
-          )}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black hover:bg-amber-400 disabled:opacity-50"
-          >
-            {loading ? "Creating account…" : "Create account"}
-          </button>
-        </form>
-          <p className="mt-4 text-center text-sm text-slate-400">
+            {message && (
+              <p
+                className={
+                  message.type === "error" ? "text-sm text-rose-600" : "text-sm text-emerald-700"
+                }
+                role={message.type === "error" ? "alert" : undefined}
+              >
+                {message.text}
+              </p>
+            )}
+            <button type="submit" disabled={loading} className={`${FOCUSED_EDITOR_SAVE} w-full`}>
+              {loading ? "Creating account…" : "Create account"}
+            </button>
+          </form>
+          <p className="mt-4 text-center text-sm text-slate-600">
             Already have an account?{" "}
-            <Link href="/login" className="font-medium text-amber-400 hover:text-amber-300">
+            <Link href="/login" className="font-medium text-blue-700 hover:text-blue-800">
               Sign in
             </Link>
           </p>

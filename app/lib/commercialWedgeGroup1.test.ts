@@ -38,6 +38,24 @@ describe("FieldDive auth branding", () => {
       assert.doesNotMatch(src, /Step 1 of|Getting started|Finish setup|confetti|AI-powered|testimonial/i);
     }
   });
+
+  test("auth presentation reuses FieldDive light surface and primary CTA tokens", () => {
+    for (const src of [LOGIN, SIGNUP]) {
+      assert.match(src, /bg-slate-50/);
+      assert.match(src, /border-slate-200\/80/);
+      assert.match(src, /FOCUSED_EDITOR_SAVE/);
+      assert.match(src, /FOCUSED_EDITOR_INPUT/);
+      assert.doesNotMatch(src, /bg-amber-500|bg-\[#131c2a\]|bg-slate-800/);
+      assert.doesNotMatch(src, /text-amber-400/);
+    }
+  });
+
+  test("auth redirect and supabase handlers remain intact", () => {
+    assert.match(LOGIN, /signInWithPassword/);
+    assert.match(LOGIN, /redirectTo/);
+    assert.match(LOGIN, /window\.location\.assign\(safePath\)/);
+    assert.match(SIGNUP, /signUp\(\{ email, password \}\)/);
+  });
 });
 
 describe("blank-company Jobs Board is job-first", () => {
