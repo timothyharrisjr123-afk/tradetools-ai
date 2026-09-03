@@ -67,6 +67,10 @@ export const PREPARE_PROPOSAL_FOOTER =
 
 export const PREPARE_PROPOSAL_MEASUREMENT_REQUIRED = "Measurement required" as const;
 export const PREPARE_PROPOSAL_ADD_MEASUREMENT_LABEL = "Add measurement" as const;
+/** Prepare capture — contractor enters trusted report numbers; not a measurement module. */
+export const PREPARE_PROPOSAL_MEASUREMENT_CAPTURE_TITLE = "Add measurement" as const;
+export const PREPARE_PROPOSAL_MEASUREMENT_CAPTURE_HINT =
+  "Enter the roof numbers from the report you already trust." as const;
 
 export const PREPARE_PROPOSAL_MEASUREMENT_CHOOSE = "Choose a measurement." as const;
 export const PREPARE_PROPOSAL_SETUP_CHOOSE = "Choose a reusable setup." as const;
@@ -84,7 +88,7 @@ export const CREATE_PROPOSAL_MODAL_TITLE = PREPARE_PROPOSAL_CREATE_LABEL;
 
 export const CREATE_PROPOSAL_MEASUREMENT_READY = "Report complete" as const;
 export const CREATE_PROPOSAL_MEASUREMENT_BLOCKED =
-  "Complete and save a measurement report before creating a proposal." as const;
+  "Add the roof numbers from your measurement report." as const;
 
 export const CREATE_PROPOSAL_TEMPLATE_BLOCKED = PREPARE_PROPOSAL_SETUP_NONE;
 

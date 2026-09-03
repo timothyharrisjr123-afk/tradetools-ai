@@ -14,11 +14,25 @@ import {
   hasRoofSize,
 } from "@/app/lib/measurementReadiness";
 
+/** Optional report provenance labels — existing `report_source` column; not required. */
+export const TRUSTED_MEASUREMENT_REPORT_SOURCES = [
+  "EagleView",
+  "Hover",
+  "Roofr",
+  "Manual",
+  "Other",
+] as const;
+
+export type TrustedMeasurementReportSource =
+  (typeof TRUSTED_MEASUREMENT_REPORT_SOURCES)[number];
+
 export type JobCardManualMeasurementFields = {
   roof_area_sqft: number;
   waste_percent: number;
   pitch_label: string;
   stories: string;
+  /** Optional; maps to measurement_records.report_source. */
+  report_source?: string;
 };
 
 function finiteOrNull(value: number): number | null {
@@ -54,9 +68,11 @@ export function buildManualMeasurementRecordShape(
   | "waste_percent"
   | "pitch_label"
   | "stories"
+  | "report_source"
 > {
   const area = Number(fields.roof_area_sqft);
   const waste = Number(fields.waste_percent);
+  const reportSource = (fields.report_source ?? "").trim() || "Manual";
   return {
     source_type: "manual",
     status: "incomplete",
@@ -68,6 +84,7 @@ export function buildManualMeasurementRecordShape(
     waste_percent: Number.isFinite(waste) ? waste : null,
     pitch_label: fields.pitch_label.trim() || null,
     stories: fields.stories.trim() || null,
+    report_source: reportSource,
   };
 }
 
@@ -107,7 +124,7 @@ export function buildManualMeasurementDraftFromFields(input: {
     report_attached: false,
     diagram_available: false,
     report_status: "Not attached",
-    report_source: "Manual",
+    report_source: shape.report_source,
     missing_fields: deriveAllMissingFieldsForPersistence(record),
     measurement_readiness_score: deriveMeasurementReadinessScore(
       estimateReady,

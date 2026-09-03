@@ -116,6 +116,7 @@ import JobCardProposalsTab, {
 import { JobCardCreateProposalModal } from "@/app/tools/roofing/jobCard/JobCardCreateProposalModal";
 import JobCardMeasurementsWorkspace from "@/app/tools/roofing/jobCard/JobCardMeasurementsWorkspace";
 import JobCardMeasurementCapture from "@/app/tools/roofing/jobCard/JobCardMeasurementCapture";
+import { PREPARE_PROPOSAL_MEASUREMENT_CAPTURE_HINT } from "@/app/tools/roofing/jobCard/jobCardCreateProposalModalModel";
 import { useJobCardPrepareProposal } from "@/app/tools/roofing/jobCard/useJobCardPrepareProposal";
 import JobCardActivityPanelWithCustomerRequests from "@/app/tools/roofing/jobCard/JobCardActivityPanelWithCustomerRequests";
 import { resolveJobCardIdentityFromRecord } from "@/app/tools/roofing/jobCard/jobCardIdentityUtils";
@@ -1303,7 +1304,12 @@ export default function JobCardClient({
               error={prepare.saveError}
               onCancel={prepare.closeCapture}
               onSave={prepare.saveMeasurement}
-              title="Add measurement"
+              title={prepare.captureTitle}
+              hint={
+                prepare.captureKind === "add"
+                  ? PREPARE_PROPOSAL_MEASUREMENT_CAPTURE_HINT
+                  : null
+              }
             />
           </div>
         </div>
