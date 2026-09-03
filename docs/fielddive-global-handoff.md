@@ -11,7 +11,7 @@
 
 **When to read related docs:**
 
-- Read **§6DE** first for **WHOLE-APP VALIDATION COMPLETE / ARCHITECTURE MASTER ROADMAP**. Phases 1–8 PASS. Active P0 count = **0**. Customer RLS P0 CLOSED (**§6DD**, pushed). **Wave A FULLY CLOSED** (**§6DE.10** + **§6DE.12**). Legacy billing RLS P0 CLOSED (**§6DE.11**, **062 LIVE**). **Wave B FULLY CLOSED** (**§6DE.13** + **§6DE.13.3**). **Wave C FULLY CLOSED** (**§6DE.14** — Property identity + typed search + light Customer/Property workspaces). Jobs Board is the daily command surface. **Exact next implementation:** **Wave D — Delivery completeness** — do **not** start until authorized. Then **§6DE.13** / **§6DD** / **§6DC** as needed.
+- Read **§6DE** first for **WHOLE-APP VALIDATION COMPLETE / ARCHITECTURE MASTER ROADMAP**. Phases 1–8 PASS. Active P0 count = **0**. Customer RLS P0 CLOSED (**§6DD**, pushed). **Wave A FULLY CLOSED** (**§6DE.10** + **§6DE.12**). Legacy billing RLS P0 CLOSED (**§6DE.11**, **062 LIVE**). **Wave B FULLY CLOSED** (**§6DE.13** + **§6DE.13.3**). **Wave C FULLY CLOSED** (**§6DE.14** — Property identity + typed search + light Customer/Property workspaces). **Commercial Wedge Groups 1–3 COMPLETE / ACCEPTED** (**§6DF**). Jobs Board is the daily command surface. **Wave D — Delivery completeness** is **not started** — do **not** start until authorized. Then **§6DE.13** / **§6DD** / **§6DC** as needed.
 - Read **`docs/fielddive-flow-map.md`** when changing routes, IA, screen flow, or Job Board / Job Card navigation — but **§6CU / §6BO.13 / §6AL / §6AM / §6AN / §6AO supersede** older flow-map terminology where they conflict (e.g. Job Board vs Command Center — **no separate Command Center** per §6BO.13).
 - Read **`docs/competitive-architecture-audit.md`** when adding modules, changing dashboard/Job Board architecture, or comparing against Roofr/competitor-style workflow.
 - Read **§6AL** before any recovery or template/Builder/lifecycle work — **mandatory stage order**.
@@ -82,7 +82,8 @@
 
 **Last updated checkpoint:**
 
-- **Wave C Property + typed search final closeout:** this docs commit — `docs: finalize wave c workspace integration` (**WAVE C FULLY CLOSED**, see **§6DE.14**). Architecture code **`ea18173`**. Workspace integration **`9dd8263`** — `fix(properties): integrate customer and property workspaces`. Read-first Customer/Property workspaces; on-demand Customer edit; contractor-facing copy; typed search unchanged. Desktop + 390 proof `tmp/fielddive-ui-review/wave-c-final-polish/`. **Wave D next, not started.** **NO PUSH.**
+- **Commercial Wedge Groups 1–3 closeout:** this docs commit — `docs: checkpoint commercial wedge` (**COMMERCIAL WEDGE COMPLETE / ACCEPTED**, see **§6DF**). Code **`1440fc6`** — `feat(proposals): complete first-proposal commercial wedge`. FieldDive-branded auth; job-first blank-company entry; no Board setup homework; starter Catalog/Template structure, company pricing-policy decisions, focused catalog prices, and trusted manual measurement all handled in Prepare; Builder → Preview → Send unchanged. No invented prices/measurements/terms. No pricing/quantity/proposal/payment/lifecycle authority changes. Desktop + 390 authenticated proof `tmp/fielddive-ui-review/commercial-wedge/group-3/`. ICP remains 2–8 retail residential roofing hypothesis. Activation candidate: **First proposal sent**. **Wave D / Measurement Acquisition / AI / Instant Estimate / Command Center not next.** **NO PUSH.**
+- **Wave C Property + typed search final closeout:** `docs: finalize wave c workspace integration` (**WAVE C FULLY CLOSED**, see **§6DE.14**). Architecture code **`ea18173`**. Workspace integration **`9dd8263`** — `fix(properties): integrate customer and property workspaces`. Read-first Customer/Property workspaces; on-demand Customer edit; contractor-facing copy; typed search unchanged. Desktop + 390 proof `tmp/fielddive-ui-review/wave-c-final-polish/`. **Wave D not started.** **NO PUSH.**
 - **Wave C Property + typed search docs checkpoint (superseded for close):** **`e17fb51`** — `docs: checkpoint wave c property and typed search`. Architecture **PASS**; initial workspace surfaces were functionally correct but failed product/visual integration review (architecture language, always-on edit form). Corrected by **`9dd8263`**.
 - **Wave B Places live closeout:** **`c5991e2`** — `docs: close wave b places verification` (**WAVE B FULLY CLOSED**, see **§6DE.13.3**). Code **`38f381b`**. Places API (New) live. Checkpoint **PUSHED** with origin sync before Wave C.
 - **Wave B Places live verification attempt (superseded):** **`0c5b0d8`** — `docs: record wave b places live verification block` (**PLACES KEY PRESENT / LIVE BLOCKED BY GCP API ENABLEMENT**, see **§6DE.13.2**). Code **`38f381b`**. Historical 403 until Places API (New) enabled on GCP.
@@ -19628,7 +19629,51 @@ Architecture-era captures remain at `tmp/fielddive-ui-review/wave-c/`.
 
 **Deferred:** Property address edit + job-address sync decision; Customer↔Property explicit roles; Property photo/measurement takeover; Lead/CRM; Wave D delivery completeness.
 
-**Exact next:** **Wave D — Delivery completeness** (Resend webhooks; payment-link / receipt delivery). Do **not** start until authorized.
+**Exact next (historical at Wave C close):** **Wave D — Delivery completeness**. Product priority after Wave C was **Commercial Wedge** (**§6DF**). Do **not** start Wave D until separately authorized.
+
+---
+
+### §6DF Commercial Wedge Groups 1–3 — first proposal path
+
+**Status:** **COMMERCIAL WEDGE COMPLETE / ACCEPTED.** A new residential roofer can move from FieldDive login → Job → Prepare → required pricing truth → trusted measurement → Create → Builder → Preview → Send without Catalog/Templates/Pricing Settings homework. **Wave D not started. Measurement Acquisition not started. AI / Instant Estimate / Command Center not next.** **NO PUSH.**
+
+**Market / ICP**
+- Evidence basis: bring the measurement you already trust; FieldDive is not EagleView/Hover/Roofr Measurements in this wedge.
+- Initial ICP remains a **2–8 person retail residential roofing** hypothesis.
+- Activation candidate: **First proposal sent** (not instrumented as a new analytics system in this wedge).
+
+**Group 1 — job-first entry**
+- FieldDive-branded auth (login/signup).
+- Jobs Board is the home. No 4-step company-setup homework on the Board.
+- Primary empty-state action: **+ New job** → canonical packet intake.
+
+**Group 2 — Prepare structure + pricing in context**
+- Quiet starter Catalog/Template install when the company is blank (insert-only, null catalog prices).
+- Company pricing-policy decisions asked in Prepare (**Set your pricing**) and persisted only through canonical `company_pricing_policies` / `upsertCompanyPricingPolicy`.
+- Focused **Price this proposal** catalog unit prices for starter-linked items.
+- Configured companies skip first-run pricing-policy UI. Existing policy is never overwritten.
+- No invented margin/markup/tax. Starter defaults are not auto-saved as company truth.
+
+**Group 3 — trusted measurement in Prepare**
+- Missing measurement stays in Prepare: **Add measurement**.
+- Copy: “Enter the roof numbers from the report you already trust.”
+- Minimum estimate-ready fields only: roof area (sq ft), waste (%), pitch, stories. Waste is not prefilled.
+- Optional report source (EagleView / Hover / Roofr / Manual / Other) writes existing `report_source`. **No SQL.**
+- Canonical writers: `buildManualMeasurementDraftFromFields` → `createMeasurementRecord` / `selectMeasurementRecord`. Append-only Ready edits preserved. Stale/rejected cannot become current.
+- Existing valid current measurement bypasses first-run Add. Historical records stay history.
+
+**Unchanged authority**
+- Pricing engine / math, quantity resolver, proposal create/snapshot, measurement selection rules, payment/refund, job lifecycle: **not changed**.
+- Send remains Builder → Customer review / Preview → Send. No second send button. Customer email is not invented.
+
+**Visual proof**
+- Folder: `tmp/fielddive-ui-review/commercial-wedge/group-3/`
+- Authenticated desktop + 390: Jobs Board, New Job intake, Job Card, Prepare, Add measurement / entry / ready, Builder, Preview, Send sheet, configured-company Prepare regression.
+- Fixture company already had jobs + configured pricing policy + catalog prices: **blank empty-board** and **Set your pricing / Price this proposal** first-run UIs were correctly skipped (not manufactured). New-job measurement path and configured Prepare regression were captured.
+
+**Tests:** focused Group 3 + Prepare + measurement + Group 2 correction suites **105/105**. Inherited `tsc` debt allowed; no new Group 3 errors.
+
+**Exact next:** product-priority decision. Do **not** start Wave D, Measurement Acquisition, or AI from this checkpoint.
 
 ---
 
