@@ -62,12 +62,17 @@ describe("quiet healthy board chrome", () => {
     assert.match(GUIDANCE, /if \(!readiness\.showBanner\) return null/);
   });
 
-  test("action-required setup still surfaces a Board intervention", () => {
-    assert.match(GUIDANCE, /data-jobs-board-setup-action-required/);
-    assert.match(GUIDANCE, /Finish company setup to send proposals/);
-    assert.match(GUIDANCE, /Continue setup/);
+  test("board intervention is company-name identity only — not four-step homework", () => {
+    assert.match(GUIDANCE, /data-jobs-board-company-identity-ask/);
+    assert.match(GUIDANCE, /Add your company name/);
+    assert.match(GUIDANCE, /You can still create jobs now/);
+    assert.doesNotMatch(GUIDANCE, /Finish company setup to send proposals/);
+    assert.doesNotMatch(GUIDANCE, /Continue setup/);
+    assert.doesNotMatch(GUIDANCE, /Company setup/);
+    assert.doesNotMatch(GUIDANCE, /Sparkles/);
     assert.doesNotMatch(GUIDANCE, /of \$\{readiness\.totalCount\} complete/);
     assert.doesNotMatch(GUIDANCE, /completeCount/);
+    assert.doesNotMatch(GUIDANCE, /readiness\.steps\.map/);
   });
 });
 

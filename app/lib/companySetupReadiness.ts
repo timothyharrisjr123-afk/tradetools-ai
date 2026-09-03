@@ -1,6 +1,8 @@
 /**
- * Pure company setup readiness for Job Board setup banner (Slice 1 — §6BO.13).
- * Four company-wide steps before proposals can be sent with full trust.
+ * Pure company setup readiness for Jobs Board first-run chrome.
+ * Four company-wide steps remain as system readiness truth for proposals.
+ * Jobs Board banner is identity-only (company name) — not homework for
+ * pricing / Catalog / Templates (those surface in proposal context later).
  */
 
 export type CompanySetupStepId =
@@ -85,11 +87,16 @@ export function deriveCompanySetupReadiness(
     input.priceBookReady === true &&
     input.proposalTemplatesReady === true;
 
-  const showBanner = !input.loading && !isComplete;
+  // First-run board chrome: ask only when company name is known-missing.
+  // Catalog / pricing / templates incompleteness stays in steps/isComplete
+  // but must not dominate the Jobs Board before a real Job exists.
+  const showBanner =
+    !input.loading && input.companyProfileComplete === false;
 
-  const firstIncomplete = steps.find(
-    (step) => step.status === "incomplete" || step.status === "unknown"
-  );
+  const companyProfileStep = steps.find((step) => step.id === "company_profile");
+  const firstIncomplete = showBanner
+    ? companyProfileStep
+    : steps.find((step) => step.status === "incomplete" || step.status === "unknown");
 
   return {
     steps,

@@ -4475,8 +4475,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
 
                 {!companyJobSearch.active && !hasBoardJobs ? (
                   <JobsBoardEmptyState
-                    setupIncomplete={companySetupReadiness.showBanner}
-                    setupPrimaryHref={companySetupReadiness.primaryHref}
+                    companyNameMissing={companySetupReadiness.showBanner}
                     searchActive={boardFiltersActive}
                   />
                 ) : !companyJobSearch.active ? (

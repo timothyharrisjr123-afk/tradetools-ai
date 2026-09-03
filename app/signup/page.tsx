@@ -33,8 +33,9 @@ export default function SignUpPage() {
     <main className="min-h-screen bg-[#131c2a] px-4 py-12">
       <div className="mx-auto flex max-w-md flex-col justify-center">
         <div className="rounded-2xl border border-white/15 bg-slate-800/95 p-6 shadow-xl">
-          <h1 className="text-xl font-semibold text-white">Create account</h1>
-          <p className="mt-1 text-sm text-slate-300">TradeTools AI</p>
+          <p className="text-sm font-medium tracking-wide text-amber-400/90">FieldDive</p>
+          <h1 className="mt-1 text-xl font-semibold text-white">Create account</h1>
+          <p className="mt-1 text-sm text-slate-400">Roofing jobs, proposals, and payments.</p>
           <form onSubmit={handleSignUp} className="mt-6 space-y-4">
             <div>
               <label htmlFor="signup-email" className="block text-sm font-medium text-slate-200">

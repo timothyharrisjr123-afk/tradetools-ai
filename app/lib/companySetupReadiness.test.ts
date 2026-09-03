@@ -42,7 +42,21 @@ describe("deriveCompanySetupReadiness", () => {
     assert.equal(result.completeCount, 4);
   });
 
-  test("partial setup shows banner with first incomplete href", () => {
+  test("company name missing shows identity banner only", () => {
+    const result = deriveCompanySetupReadiness({
+      loading: false,
+      companyProfileComplete: false,
+      pricingRulesConfigured: false,
+      priceBookReady: false,
+      proposalTemplatesReady: false,
+    });
+    assert.equal(result.showBanner, true);
+    assert.equal(result.isComplete, false);
+    assert.equal(result.primaryHref, "/tools/settings");
+    assert.equal(result.completeCount, 0);
+  });
+
+  test("catalog/pricing/templates incomplete does not dominate Jobs Board banner", () => {
     const result = deriveCompanySetupReadiness({
       loading: false,
       companyProfileComplete: true,
@@ -50,12 +64,16 @@ describe("deriveCompanySetupReadiness", () => {
       priceBookReady: false,
       proposalTemplatesReady: false,
     });
-    assert.equal(result.showBanner, true);
+    assert.equal(result.showBanner, false);
+    assert.equal(result.isComplete, false);
     assert.equal(result.completeCount, 1);
-    assert.equal(result.primaryHref, "/tools/settings/pricing");
+    assert.ok(result.steps.some((step) => step.id === "price_book" && step.status === "incomplete"));
+    assert.ok(
+      result.steps.some((step) => step.id === "proposal_templates" && step.status === "incomplete")
+    );
   });
 
-  test("unknown values after load count as incomplete for banner", () => {
+  test("unknown company profile after load stays quiet on board", () => {
     const result = deriveCompanySetupReadiness({
       loading: false,
       companyProfileComplete: null,
@@ -63,7 +81,8 @@ describe("deriveCompanySetupReadiness", () => {
       priceBookReady: true,
       proposalTemplatesReady: true,
     });
-    assert.equal(result.showBanner, true);
+    assert.equal(result.showBanner, false);
+    assert.equal(result.isComplete, false);
     assert.equal(result.steps[0]?.status, "unknown");
   });
 });

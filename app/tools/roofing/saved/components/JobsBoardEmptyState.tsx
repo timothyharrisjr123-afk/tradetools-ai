@@ -3,14 +3,12 @@
 import Link from "next/link";
 
 type JobsBoardEmptyStateProps = {
-  setupIncomplete: boolean;
-  setupPrimaryHref: string | null;
+  companyNameMissing: boolean;
   searchActive: boolean;
 };
 
 export default function JobsBoardEmptyState({
-  setupIncomplete,
-  setupPrimaryHref,
+  companyNameMissing,
   searchActive,
 }: JobsBoardEmptyStateProps) {
   if (searchActive) {
@@ -22,26 +20,30 @@ export default function JobsBoardEmptyState({
   }
 
   return (
-    <div className="rounded-lg border border-dashed border-slate-200 bg-white px-6 py-10 text-center">
-      <h2 className="text-base font-semibold text-slate-900">No jobs yet.</h2>
+    <div
+      className="rounded-lg border border-dashed border-slate-200 bg-white px-6 py-10 text-center"
+      data-jobs-board-empty-first-run
+    >
+      <h2 className="text-base font-semibold text-slate-900">No jobs yet</h2>
       <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-600">
-        Create your first job to measure a roof and build a proposal.
+        Create a job to start measuring, pricing, and sending a proposal.
       </p>
       <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-        {setupIncomplete && setupPrimaryHref ? (
-          <Link
-            href={setupPrimaryHref}
-            className="inline-flex h-9 items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-800 transition hover:bg-slate-50"
-          >
-            Finish setup first
-          </Link>
-        ) : null}
         <Link
           href="/tools/roofing?entry=packet"
-          className="inline-flex h-9 items-center justify-center rounded-md border border-slate-800 bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800"
+          className="inline-flex h-11 min-h-[44px] items-center justify-center rounded-md border border-slate-800 bg-slate-900 px-5 text-sm font-medium text-white transition hover:bg-slate-800"
+          data-jobs-board-empty-primary-action
         >
           + New job
         </Link>
+        {companyNameMissing ? (
+          <Link
+            href="/tools/settings"
+            className="inline-flex h-11 min-h-[44px] items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+          >
+            Add company name
+          </Link>
+        ) : null}
       </div>
     </div>
   );
