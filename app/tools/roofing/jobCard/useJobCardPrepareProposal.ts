@@ -12,14 +12,22 @@ import { filterContractorVisibleTemplates } from "@/app/lib/contractorFixtureIso
 import { installDefaultRoofingCatalog } from "@/app/lib/defaultRoofingCatalogInstall";
 import { installDefaultRoofingProposalTemplates } from "@/app/lib/defaultRoofingProposalTemplateInstall";
 import {
+  getResolvedCompanyPricingPolicy,
+  upsertCompanyPricingPolicy,
+} from "@/app/lib/companyPricingPolicyStore";
+import {
   FIRST_PROPOSAL_PREPARING,
   FIRST_PROPOSAL_PRICE_SAVE_FAILED,
+  FIRST_PROPOSAL_RULES_SAVE_FAILED,
   FIRST_PROPOSAL_STRUCTURE_FAILED,
+  buildFirstProposalPricingPolicyFromDraft,
   collectLinkedCatalogPricingLines,
+  emptyFirstProposalPricingRulesDraft,
   firstProposalPricingComplete,
   resolveFirstProposalStructureNeed,
   resolveShowFirstProposalPricing,
   type FirstProposalPricingLine,
+  type FirstProposalPricingRulesDraft,
 } from "@/app/lib/firstProposalPrepare";
 import {
   buildManualMeasurementDraftFromFields,
@@ -134,10 +142,21 @@ export function useJobCardPrepareProposal({
   const [pricingDrafts, setPricingDrafts] = useState<Record<string, string>>({});
   const [pricingSaving, setPricingSaving] = useState(false);
   const [pricingSaveError, setPricingSaveError] = useState<string | null>(null);
+  const [pricingPolicyConfigured, setPricingPolicyConfigured] = useState<
+    boolean | null
+  >(null);
+  const [pricingRulesDraft, setPricingRulesDraft] =
+    useState<FirstProposalPricingRulesDraft>(() => emptyFirstProposalPricingRulesDraft());
+  const [pricingRulesSaving, setPricingRulesSaving] = useState(false);
+  const [pricingRulesSaveError, setPricingRulesSaveError] = useState<string | null>(
+    null
+  );
   const createInFlightRef = useRef(false);
   const saveInFlightRef = useRef(false);
   const bootstrapInFlightRef = useRef(false);
   const priceSaveInFlightRef = useRef(false);
+  const pricingRulesSaveInFlightRef = useRef(false);
+  const pricingPolicyLoadInFlightRef = useRef(false);
 
   const cid = (companyId ?? "").trim();
   const jid = (jobId ?? "").trim();
@@ -267,6 +286,25 @@ export function useJobCardPrepareProposal({
     }
   }, [cid, applyCreateDependencies]);
 
+  const loadCompanyPricingPolicy = useCallback(async () => {
+    if (!cid || !isUuidLike(cid) || pricingPolicyLoadInFlightRef.current) return;
+    pricingPolicyLoadInFlightRef.current = true;
+    setPricingRulesSaveError(null);
+    try {
+      const resolution = await getResolvedCompanyPricingPolicy(cid);
+      const configured = resolution.configured === true;
+      setPricingPolicyConfigured(configured);
+      if (!configured) {
+        setPricingRulesDraft(emptyFirstProposalPricingRulesDraft());
+      }
+    } catch {
+      setPricingPolicyConfigured(false);
+      setPricingRulesDraft(emptyFirstProposalPricingRulesDraft());
+    } finally {
+      pricingPolicyLoadInFlightRef.current = false;
+    }
+  }, [cid]);
+
   useEffect(() => {
     if (!selectedTemplateId || !cid || !isUuidLike(cid)) {
       setTemplateGraph(null);
@@ -297,10 +335,13 @@ export function useJobCardPrepareProposal({
     setCreateError(null);
     setStructureError(null);
     setPricingSaveError(null);
+    setPricingRulesSaveError(null);
+    setPricingPolicyConfigured(null);
     setModalOpen(true);
     void ensureFirstProposalStructure();
+    void loadCompanyPricingPolicy();
     void reloadMeasurements();
-  }, [ensureFirstProposalStructure, reloadMeasurements]);
+  }, [ensureFirstProposalStructure, loadCompanyPricingPolicy, reloadMeasurements]);
 
   const closeModal = useCallback(() => {
     if (createInFlightRef.current || creating) return;
@@ -551,6 +592,10 @@ export function useJobCardPrepareProposal({
     [preferredTemplateId, starterTemplateId, selectedTemplateId, pricingLines]
   );
 
+  const showFirstProposalPricingRules = pricingPolicyConfigured === false;
+
+  const pricingRulesComplete = pricingPolicyConfigured === true;
+
   const pricingComplete = useMemo(
     () =>
       !showFirstProposalPricing || firstProposalPricingComplete(pricingLines),
@@ -561,6 +606,52 @@ export function useJobCardPrepareProposal({
     setPricingDrafts((prev) => ({ ...prev, [catalogItemId]: value }));
     setPricingSaveError(null);
   }, []);
+
+  const patchPricingRulesDraft = useCallback(
+    (patch: Partial<FirstProposalPricingRulesDraft>) => {
+      setPricingRulesDraft((prev) => ({ ...prev, ...patch }));
+      setPricingRulesSaveError(null);
+    },
+    []
+  );
+
+  const saveFirstProposalPricingRules = useCallback(async () => {
+    if (
+      !cid ||
+      !isUuidLike(cid) ||
+      pricingRulesSaveInFlightRef.current ||
+      pricingPolicyConfigured === true
+    ) {
+      return;
+    }
+    pricingRulesSaveInFlightRef.current = true;
+    setPricingRulesSaving(true);
+    setPricingRulesSaveError(null);
+    try {
+      const built = buildFirstProposalPricingPolicyFromDraft(pricingRulesDraft);
+      if (!built.ok) {
+        setPricingRulesSaveError(built.reason);
+        return;
+      }
+      const saved = await upsertCompanyPricingPolicy(cid, built.policy);
+      if (!saved) {
+        setPricingRulesSaveError(FIRST_PROPOSAL_RULES_SAVE_FAILED);
+        return;
+      }
+      const resolution = await getResolvedCompanyPricingPolicy(cid);
+      if (resolution.configured !== true) {
+        setPricingRulesSaveError(FIRST_PROPOSAL_RULES_SAVE_FAILED);
+        setPricingPolicyConfigured(false);
+        return;
+      }
+      setPricingPolicyConfigured(true);
+    } catch {
+      setPricingRulesSaveError(FIRST_PROPOSAL_RULES_SAVE_FAILED);
+    } finally {
+      pricingRulesSaveInFlightRef.current = false;
+      setPricingRulesSaving(false);
+    }
+  }, [cid, pricingRulesDraft, pricingPolicyConfigured]);
 
   const saveFirstProposalPrices = useCallback(async () => {
     if (!cid || !isUuidLike(cid) || priceSaveInFlightRef.current) return;
@@ -635,6 +726,7 @@ export function useJobCardPrepareProposal({
 
   const createEnabled =
     createPayload != null &&
+    pricingRulesComplete &&
     pricingComplete &&
     !preparingStructure &&
     !structureError &&
@@ -643,6 +735,7 @@ export function useJobCardPrepareProposal({
 
   const createProposal = useCallback(() => {
     if (createInFlightRef.current || !createEnabled || !jid || !cid) return;
+    if (!pricingRulesComplete) return;
     if (showFirstProposalPricing && !pricingComplete) return;
     createInFlightRef.current = true;
     setCreating(true);
@@ -687,6 +780,7 @@ export function useJobCardPrepareProposal({
     onCreatedProposal,
     showFirstProposalPricing,
     pricingComplete,
+    pricingRulesComplete,
   ]);
 
   const captureInitial: Partial<JobCardManualMeasurementFields> | null =
@@ -732,6 +826,13 @@ export function useJobCardPrepareProposal({
     preparingStructure,
     structureError,
     preparingStructureLabel: FIRST_PROPOSAL_PREPARING,
+    showFirstProposalPricingRules,
+    firstProposalPricingRulesDraft: pricingRulesDraft,
+    patchFirstProposalPricingRulesDraft: patchPricingRulesDraft,
+    saveFirstProposalPricingRules,
+    firstProposalPricingRulesSaving: pricingRulesSaving,
+    firstProposalPricingRulesSaveError: pricingRulesSaveError,
+    firstProposalPricingRulesComplete: pricingRulesComplete,
     showFirstProposalPricing,
     firstProposalPricingLines: pricingLines,
     firstProposalPricingDrafts: pricingDrafts,

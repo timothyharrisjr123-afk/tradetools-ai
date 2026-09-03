@@ -9,11 +9,14 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 import type { CatalogItem } from "./catalogTypes";
 import {
+  buildFirstProposalPricingPolicyFromDraft,
   collectLinkedCatalogPricingLines,
+  emptyFirstProposalPricingRulesDraft,
   firstProposalPricingComplete,
   formatCentsAsDollarInput,
   resolveFirstProposalStructureNeed,
   resolveShowFirstProposalPricing,
+  resolveShowFirstProposalPricingRules,
 } from "./firstProposalPrepare";
 import type { ProposalTemplateGraph } from "./proposalTemplateStore";
 import type { ProposalTemplate } from "./proposalTemplateTypes";
@@ -191,6 +194,88 @@ describe("resolveShowFirstProposalPricing", () => {
   });
 });
 
+describe("first proposal pricing rules (policy)", () => {
+  test("missing policy shows contextual rules ask", () => {
+    assert.equal(
+      resolveShowFirstProposalPricingRules({
+        configured: false,
+        source: "missing",
+        policy: null,
+        reason: "Company pricing policy is not configured.",
+      }),
+      true
+    );
+  });
+
+  test("configured policy hides first-run rules UI", () => {
+    assert.equal(
+      resolveShowFirstProposalPricingRules({
+        configured: true,
+        source: "company",
+        policy: {
+          profitabilityType: "margin",
+          defaultProfitabilityPct: 40,
+          minimumProfitabilityPct: 20,
+          quantityRounding: "exact",
+          wasteModel: "adjusted_measurement",
+          discount: null,
+          tax: { salesTaxRatePct: 0, materialPurchaseTaxRatePct: null },
+          subtotalOverrideCents: null,
+        },
+        reason: null,
+      }),
+      false
+    );
+  });
+
+  test("empty draft does not invent margin or tax percentages", () => {
+    const draft = emptyFirstProposalPricingRulesDraft();
+    assert.equal(draft.defaultProfitabilityPct, "");
+    assert.equal(draft.salesTaxRatePct, "");
+    const built = buildFirstProposalPricingPolicyFromDraft(draft);
+    assert.equal(built.ok, false);
+  });
+
+  test("build refuses blank target rate without inventing starter margin", () => {
+    const built = buildFirstProposalPricingPolicyFromDraft({
+      profitabilityType: "margin",
+      defaultProfitabilityPct: "",
+      salesTaxRatePct: "0",
+    });
+    assert.equal(built.ok, false);
+    if (!built.ok) assert.match(built.reason, /required/i);
+  });
+
+  test("build persists contractor answers with locked structural fields only", () => {
+    const built = buildFirstProposalPricingPolicyFromDraft({
+      profitabilityType: "markup",
+      defaultProfitabilityPct: "35",
+      salesTaxRatePct: "8.25",
+    });
+    assert.equal(built.ok, true);
+    if (!built.ok) return;
+    assert.equal(built.policy.profitabilityType, "markup");
+    assert.equal(built.policy.defaultProfitabilityPct, 35);
+    assert.equal(built.policy.minimumProfitabilityPct, 35);
+    assert.equal(built.policy.tax.salesTaxRatePct, 8.25);
+    assert.equal(built.policy.quantityRounding, "exact");
+    assert.equal(built.policy.wasteModel, "adjusted_measurement");
+    assert.equal(built.policy.discount, null);
+    assert.equal(built.policy.subtotalOverrideCents, null);
+  });
+
+  test("sales tax 0 is explicit contractor truth, not invented", () => {
+    const built = buildFirstProposalPricingPolicyFromDraft({
+      profitabilityType: "margin",
+      defaultProfitabilityPct: "40",
+      salesTaxRatePct: "0",
+    });
+    assert.equal(built.ok, true);
+    if (!built.ok) return;
+    assert.equal(built.policy.tax.salesTaxRatePct, 0);
+  });
+});
+
 describe("Group 2 wiring contracts", () => {
   test("Prepare hook uses canonical installers and catalog update", () => {
     const hook = read("app/tools/roofing/jobCard/useJobCardPrepareProposal.ts");
@@ -203,11 +288,34 @@ describe("Group 2 wiring contracts", () => {
     assert.doesNotMatch(hook, /onboardingPrices|temporaryPrice/);
   });
 
+  test("Prepare keeps pricing policy in context via canonical upsert", () => {
+    const hook = read("app/tools/roofing/jobCard/useJobCardPrepareProposal.ts");
+    assert.match(hook, /getResolvedCompanyPricingPolicy/);
+    assert.match(hook, /upsertCompanyPricingPolicy/);
+    assert.match(hook, /buildFirstProposalPricingPolicyFromDraft/);
+    assert.match(hook, /saveFirstProposalPricingRules/);
+    assert.match(hook, /pricingPolicyConfigured === true/);
+    assert.doesNotMatch(hook, /\/tools\/settings\/pricing/);
+    assert.doesNotMatch(hook, /DEFAULT_STARTER_PRICING_POLICY/);
+  });
+
   test("modal surfaces focused pricing without wizard copy", () => {
     const modal = read("app/tools/roofing/jobCard/JobCardCreateProposalModal.tsx");
     assert.match(modal, /JobCardFirstProposalPricing/);
+    assert.match(modal, /JobCardFirstProposalPricingRules/);
     assert.match(modal, /showFirstProposalPricing/);
+    assert.match(modal, /showFirstProposalPricingRules/);
     assert.doesNotMatch(modal, /Step 2 of|Installing your catalog|Configuration completed/i);
+    assert.doesNotMatch(modal, /Configure pricing policy|Pricing readiness|Company pricing setup/i);
+  });
+
+  test("contextual rules UI uses contractor language and canonical copy constants", () => {
+    const ui = read("app/tools/roofing/jobCard/JobCardFirstProposalPricingRules.tsx");
+    assert.match(ui, /FIRST_PROPOSAL_RULES_TITLE/);
+    assert.match(ui, /How do you price this work\?/);
+    assert.match(ui, /Save pricing/);
+    assert.doesNotMatch(ui, /\/tools\/settings\/pricing/);
+    assert.doesNotMatch(ui, /Configure pricing policy|Pricing readiness/i);
   });
 
   test("installers remain insert-only and null-priced", () => {

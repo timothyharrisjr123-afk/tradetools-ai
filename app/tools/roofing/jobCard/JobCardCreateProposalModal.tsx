@@ -31,8 +31,12 @@ import {
 } from "@/app/tools/roofing/jobCard/jobCardCreateProposalModalModel";
 import type { JobCardPackageChoice } from "@/app/tools/roofing/jobCard/jobCardProposalSetup";
 import JobCardFirstProposalPricing from "@/app/tools/roofing/jobCard/JobCardFirstProposalPricing";
+import JobCardFirstProposalPricingRules from "@/app/tools/roofing/jobCard/JobCardFirstProposalPricingRules";
 import { JOB_CARD_PROPOSALS_PRIMARY_BUTTON_CLASS } from "@/app/tools/roofing/jobCard/jobCardProposalsTabModel";
-import type { FirstProposalPricingLine } from "@/app/lib/firstProposalPrepare";
+import type {
+  FirstProposalPricingLine,
+  FirstProposalPricingRulesDraft,
+} from "@/app/lib/firstProposalPrepare";
 import type { PackagePresentationMode } from "@/app/tools/roofing/templates/templatesWorkspaceFlow";
 
 export type JobCardCreateProposalModalTemplateChoice = {
@@ -83,6 +87,16 @@ export type JobCardCreateProposalModalProps = {
   preparingStructureLabel?: string | null;
   structureError?: string | null;
 
+  showFirstProposalPricingRules?: boolean;
+  firstProposalPricingRulesDraft?: FirstProposalPricingRulesDraft | null;
+  onFirstProposalPricingRulesChange?: (
+    patch: Partial<FirstProposalPricingRulesDraft>
+  ) => void;
+  onSaveFirstProposalPricingRules?: () => void;
+  firstProposalPricingRulesSaving?: boolean;
+  firstProposalPricingRulesSaveError?: string | null;
+  firstProposalPricingRulesComplete?: boolean;
+
   showFirstProposalPricing?: boolean;
   firstProposalPricingLines?: readonly FirstProposalPricingLine[];
   firstProposalPricingDrafts?: Record<string, string>;
@@ -132,6 +146,13 @@ export function JobCardCreateProposalModal({
   preparingStructure = false,
   preparingStructureLabel = null,
   structureError = null,
+  showFirstProposalPricingRules = false,
+  firstProposalPricingRulesDraft = null,
+  onFirstProposalPricingRulesChange,
+  onSaveFirstProposalPricingRules,
+  firstProposalPricingRulesSaving = false,
+  firstProposalPricingRulesSaveError = null,
+  firstProposalPricingRulesComplete = true,
   showFirstProposalPricing = false,
   firstProposalPricingLines = [],
   firstProposalPricingDrafts = {},
@@ -206,6 +227,7 @@ export function JobCardCreateProposalModal({
     createEnabled &&
     !creating &&
     !preparingStructure &&
+    (!showFirstProposalPricingRules || firstProposalPricingRulesComplete) &&
     (!showFirstProposalPricing || firstProposalPricingComplete);
 
   const restoreFocus = (field: PrepareProposalFieldId) => {
@@ -458,6 +480,22 @@ export function JobCardCreateProposalModal({
             >
               {structureError}
             </p>
+          ) : null}
+
+          {showFirstProposalPricingRules &&
+          firstProposalPricingRulesDraft &&
+          onFirstProposalPricingRulesChange &&
+          onSaveFirstProposalPricingRules ? (
+            <div className="py-3">
+              <JobCardFirstProposalPricingRules
+                draft={firstProposalPricingRulesDraft}
+                onChange={onFirstProposalPricingRulesChange}
+                onSave={onSaveFirstProposalPricingRules}
+                saving={firstProposalPricingRulesSaving}
+                saveError={firstProposalPricingRulesSaveError}
+                configured={false}
+              />
+            </div>
           ) : null}
 
           {showFirstProposalPricing &&

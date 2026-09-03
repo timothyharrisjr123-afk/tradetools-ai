@@ -1268,6 +1268,19 @@ export default function JobCardClient({
           preparingStructure={prepare.preparingStructure}
           preparingStructureLabel={prepare.preparingStructureLabel}
           structureError={prepare.structureError}
+          showFirstProposalPricingRules={prepare.showFirstProposalPricingRules}
+          firstProposalPricingRulesDraft={prepare.firstProposalPricingRulesDraft}
+          onFirstProposalPricingRulesChange={prepare.patchFirstProposalPricingRulesDraft}
+          onSaveFirstProposalPricingRules={() =>
+            void prepare.saveFirstProposalPricingRules()
+          }
+          firstProposalPricingRulesSaving={prepare.firstProposalPricingRulesSaving}
+          firstProposalPricingRulesSaveError={
+            prepare.firstProposalPricingRulesSaveError
+          }
+          firstProposalPricingRulesComplete={
+            prepare.firstProposalPricingRulesComplete
+          }
           showFirstProposalPricing={prepare.showFirstProposalPricing}
           firstProposalPricingLines={prepare.firstProposalPricingLines}
           firstProposalPricingDrafts={prepare.firstProposalPricingDrafts}
