@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 import type { ProposalRecordStatusSummary } from "@/app/lib/proposalRecordTypes";
 import {
-  JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE,
+  JOB_CARD_PROPOSAL_STATUS_READY_TO_PREPARE,
   JOB_CARD_PROPOSALS_ADD_LABEL,
   JOB_CARD_PROPOSALS_CONTINUE_REVISION_LABEL,
   JOB_CARD_PROPOSALS_CREATE_LABEL,
@@ -74,7 +74,7 @@ describe("V2F1 Job Card six cases", () => {
   test("CASE 1 — no proposal", () => {
     assert.equal(
       formatJobCardContractorProposalStatusLabel({ visibleSummaries: [] }),
-      JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE
+      JOB_CARD_PROPOSAL_STATUS_READY_TO_PREPARE
     );
     assert.equal(JOB_CARD_PROPOSALS_CREATE_LABEL, "Create proposal");
     assert.equal(JOB_CARD_PROPOSALS_ADD_LABEL, "+ Proposal");

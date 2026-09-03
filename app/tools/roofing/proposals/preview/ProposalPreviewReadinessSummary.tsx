@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { CircleAlert } from "lucide-react";
 import {
-  CUSTOMER_PREVIEW_COMPANY_LOGO_MISSING_HINT,
   CUSTOMER_PREVIEW_NEEDS_REVIEW_HEADING,
   CUSTOMER_PREVIEW_RETURN_TO_BUILDER_ACTION,
 } from "@/app/lib/proposalBuilderDocumentIa";
@@ -14,8 +13,6 @@ type ProposalPreviewReadinessSummaryProps = {
   pricingComplete: boolean;
   hasRecipientEmail: boolean;
   builderHref: string;
-  /** When true, Send is blocked — must not show ready-to-send copy. */
-  companyLogoMissing?: boolean;
   extraHints?: string[];
 };
 
@@ -29,14 +26,10 @@ export default function ProposalPreviewReadinessSummary({
   pricingComplete,
   hasRecipientEmail,
   builderHref,
-  companyLogoMissing = false,
   extraHints = [],
 }: ProposalPreviewReadinessSummaryProps) {
   const needsReview =
-    !pricingComplete ||
-    blockingLineCount > 0 ||
-    companyLogoMissing ||
-    !hasRecipientEmail;
+    !pricingComplete || blockingLineCount > 0 || !hasRecipientEmail;
 
   if (!needsReview) {
     return null;
@@ -49,9 +42,6 @@ export default function ProposalPreviewReadinessSummary({
     );
   } else if (!pricingComplete) {
     hintParts.push("Estimate pricing needs review");
-  }
-  if (companyLogoMissing) {
-    hintParts.push(CUSTOMER_PREVIEW_COMPANY_LOGO_MISSING_HINT);
   }
   if (!hasRecipientEmail) {
     hintParts.push("Recipient email needs attention");

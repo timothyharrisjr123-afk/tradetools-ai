@@ -16,7 +16,6 @@ import type { ProposalCustomerPreviewReadiness } from "@/app/lib/proposalCustome
 import type { JobRecord } from "@/app/lib/jobTypes";
 import type { ProposalDraftGraph } from "@/app/lib/proposalRecordStore";
 import {
-  CUSTOMER_PREVIEW_COMPANY_LOGO_MISSING_HINT,
   CUSTOMER_PREVIEW_DELIVERY_ACTIVITY_LABEL,
   CUSTOMER_PREVIEW_NEEDS_REVIEW_HEADING,
   CUSTOMER_PREVIEW_RETURN_TO_BUILDER_ACTION,
@@ -85,7 +84,6 @@ const SEND_SECONDARY_ACTION =
 
 function buildSendBlockerHints(input: {
   previewReadiness: ProposalCustomerPreviewReadiness | null;
-  companyLogoMissing: boolean;
   recipientMissing: boolean;
   pricingStale: boolean;
   emailDeliveryConfigured: boolean;
@@ -98,9 +96,6 @@ function buildSendBlockerHints(input: {
     );
   } else if (input.previewReadiness?.pricingComplete === false) {
     hints.push("Estimate pricing needs review");
-  }
-  if (input.companyLogoMissing) {
-    hints.push(CUSTOMER_PREVIEW_COMPANY_LOGO_MISSING_HINT);
   }
   if (input.recipientMissing) {
     hints.push("Recipient email missing");
@@ -123,7 +118,7 @@ export default function ProposalCustomerPreviewSendGatePanel({
   pricingStale = false,
   loading,
   emailDeliveryConfigured,
-  companyLogoMissing = false,
+  companyLogoMissing: _companyLogoMissing = false,
   builderHref,
   hideDeferredActions = false,
   embedded = false,
@@ -394,7 +389,6 @@ export default function ProposalCustomerPreviewSendGatePanel({
   const shellClass = embedded ? "space-y-4" : "space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm";
   const blockerHints = buildSendBlockerHints({
     previewReadiness,
-    companyLogoMissing,
     recipientMissing: readiness.messagePreview.toMissing,
     pricingStale,
     emailDeliveryConfigured,

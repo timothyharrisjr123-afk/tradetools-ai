@@ -29,8 +29,10 @@ import {
   type FirstProposalPricingLine,
   type FirstProposalPricingRulesDraft,
 } from "@/app/lib/firstProposalPrepare";
+import { countUnresolvedRequiredPackageQuantities } from "@/app/lib/firstProposalQuantityOwnership";
 import {
   buildManualMeasurementDraftFromFields,
+  jobCardManualMeasurementFieldsFromRecord,
   type JobCardManualMeasurementFields,
 } from "@/app/lib/jobCardManualMeasurementDraft";
 import {
@@ -724,12 +726,24 @@ export function useJobCardPrepareProposal({
         }
       : null;
 
+  const unresolvedRequiredQuantityCount =
+    templateGraph && packageSetup.selectedOptionId && proposalHandoff && selected
+      ? countUnresolvedRequiredPackageQuantities({
+          graph: templateGraph,
+          optionId: packageSetup.selectedOptionId,
+          catalogItems,
+          measurementHandoff: proposalHandoff,
+          quantityMap: deriveQuantityMapFromRecord(selected),
+        })
+      : null;
+
   const createEnabled =
     createPayload != null &&
     pricingRulesComplete &&
     pricingComplete &&
     !preparingStructure &&
     !structureError &&
+    unresolvedRequiredQuantityCount === 0 &&
     (packageSetup.choices.length === 0 ||
       (packageSetup.selected != null && (packageSetup.selected.issueCount ?? 0) === 0));
 
@@ -737,6 +751,7 @@ export function useJobCardPrepareProposal({
     if (createInFlightRef.current || !createEnabled || !jid || !cid) return;
     if (!pricingRulesComplete) return;
     if (showFirstProposalPricing && !pricingComplete) return;
+    if (unresolvedRequiredQuantityCount !== 0) return;
     createInFlightRef.current = true;
     setCreating(true);
     setCreateError(null);
@@ -781,16 +796,12 @@ export function useJobCardPrepareProposal({
     showFirstProposalPricing,
     pricingComplete,
     pricingRulesComplete,
+    unresolvedRequiredQuantityCount,
   ]);
 
   const captureInitial: Partial<JobCardManualMeasurementFields> | null =
     captureOpen && captureKind === "edit" && selected
-      ? {
-          roof_area_sqft: selected.roof_area_sqft ?? 0,
-          waste_percent: selected.waste_percent ?? 10,
-          pitch_label: selected.pitch_label ?? "",
-          stories: selected.stories ?? "",
-        }
+      ? jobCardManualMeasurementFieldsFromRecord(selected)
       : null;
 
   const captureTitle =
@@ -819,6 +830,7 @@ export function useJobCardPrepareProposal({
     selectedPackageOptionId: packageSetup.selectedOptionId,
     setSelectedPackageOptionId,
     proposalHandoff,
+    unresolvedRequiredQuantityCount,
     createEnabled,
     creating,
     createError,

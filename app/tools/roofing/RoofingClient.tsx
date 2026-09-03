@@ -5836,7 +5836,7 @@ Thanks,`;
 
   function renderJobPacketWorkbench(
     variant: "standalone" | "embedded" = "embedded",
-    standaloneEntryMode: "packet" | "instant" = "packet"
+    _standaloneEntryMode: "packet" | "instant" = "packet"
   ) {
     const isStandalone = variant === "standalone";
     const packetFactsComplete = packetMinimumComplete;
@@ -5855,17 +5855,6 @@ Thanks,`;
         {isStandalone ? (
           <div className="rounded-2xl bg-white px-5 py-4 shadow-sm shadow-slate-200/50 ring-1 ring-slate-200/55 sm:px-6 sm:py-5">
             <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">New Roofing Job</h1>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <span className="inline-flex items-center rounded-full bg-slate-100/90 px-2.5 py-1 text-[11px] font-medium text-slate-700 shadow-sm ring-1 ring-slate-200/50">
-                Packet draft
-              </span>
-              <span className="inline-flex items-center rounded-full bg-slate-100/90 px-2.5 py-1 text-[11px] font-medium text-slate-600 shadow-sm ring-1 ring-slate-200/50">
-                No pricing yet
-              </span>
-              <span className="inline-flex items-center rounded-full bg-slate-100/90 px-2.5 py-1 text-[11px] font-medium text-slate-600 shadow-sm ring-1 ring-slate-200/50">
-                Estimate path: {standaloneEntryMode === "instant" ? "Instant — coming soon" : "Not selected"}
-              </span>
-            </div>
             {!packetFactsComplete ? (
               <p className="mt-3 text-[12px] leading-snug text-slate-500">
                 Add customer and property details to continue.
@@ -5891,52 +5880,11 @@ Thanks,`;
         </div>
         ) : null}
 
-        {/* Capture method — embedded manual step only */}
-        {!isStandalone ? (
-        <div className="flex flex-wrap items-center gap-2 px-3 pt-3 sm:px-4">
-                      <button
-                        type="button"
-                        aria-current="step"
-                        className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[12px] font-semibold text-emerald-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]"
-                      >
-                        <ClipboardList className="h-3.5 w-3.5 text-emerald-700" aria-hidden />
-                        Manual entry
-                      </button>
-                      <button
-                        type="button"
-                        disabled
-                        aria-label="Photos capture (coming soon)"
-                        className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-[12px] font-medium text-slate-400 shadow-inner"
-                      >
-                        <ImageIcon className="h-3.5 w-3.5 text-slate-400" aria-hidden />
-                        Photos <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Soon</span>
-                      </button>
-                      <button
-                        type="button"
-                        disabled
-                        aria-label="Voice capture (coming soon)"
-                        className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-[12px] font-medium text-slate-400 shadow-inner"
-                      >
-                        <Mic className="h-3.5 w-3.5 text-slate-400" aria-hidden />
-                        Voice <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Soon</span>
-                      </button>
-                      <button
-                        type="button"
-                        disabled
-                        aria-label="Customer message capture (coming soon)"
-                        className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-[12px] font-medium text-slate-400 shadow-inner"
-                      >
-                        <MessageCircle className="h-3.5 w-3.5 text-slate-400" aria-hidden />
-                        Customer message <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Soon</span>
-                      </button>
-                    </div>
-        ) : null}
-
         <div className={isStandalone ? "mt-5" : ""}>
         <div
           className={
             isStandalone
-              ? "grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(360px,480px)] lg:gap-7 2xl:grid-cols-[minmax(0,1.4fr)_minmax(420px,540px)]"
+              ? "grid grid-cols-1 gap-5"
               : "mt-3 grid grid-cols-1 gap-5 px-3 pb-3 sm:px-4 sm:pb-4 lg:grid-cols-[minmax(0,1fr)_minmax(210px,250px)] lg:gap-8"
           }
         >
@@ -6202,102 +6150,9 @@ Thanks,`;
                             </div>
                           </div>
             </section>
-
-            {/* Job request / notes — placeholder */}
-            <section className={isStandalone ? standaloneRaisedPanel : "bg-white px-3.5 py-3.5 sm:px-4"}>
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                  <MessageCircle className="h-3.5 w-3.5 text-slate-500" aria-hidden />
-                  Job request &amp; notes
-                </div>
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-[1px] text-[9px] font-semibold uppercase tracking-wide text-slate-400">
-                  Coming soon
-                </span>
-              </div>
-              <p className="mt-1 text-[10.5px] leading-snug text-slate-500">
-                Homeowner requests, HOA notes, and access instructions will live here.
-              </p>
-              <textarea
-                disabled
-                readOnly
-                rows={3}
-                value=""
-                placeholder="Notes capture is not wired yet — continue to Job Card if you need to add context now."
-                aria-disabled="true"
-                className="mt-2 w-full resize-none rounded-lg border border-dashed border-slate-200 bg-slate-50/80 px-2.5 py-2 text-[12px] leading-relaxed text-slate-400 placeholder:text-slate-400"
-              />
-            </section>
-
-            {/* Photos / evidence stub — embedded only; standalone uses right column */}
-            {!isStandalone ? (
-            <section className="bg-white px-3.5 py-4 sm:px-4">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-400">
-                  <Camera className="h-4.5 w-4.5" aria-hidden />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">Photos &amp; evidence</span>
-                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-[1px] text-[9px] font-semibold uppercase tracking-wide text-slate-400">
-                      0 attached
-                    </span>
-                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-[1px] text-[9px] font-semibold uppercase tracking-wide text-slate-400">
-                      Coming soon
-                    </span>
-                  </div>
-                  <p className="mt-1 text-[11px] leading-snug text-slate-500">
-                    Site photos and damage docs will attach here. Instant Estimate will require photos plus a property address.
-                  </p>
-                </div>
-              </div>
-            </section>
-            ) : null}
           </div>
 
-          {/* Status rail — embedded only; standalone uses context column above */}
-          {isStandalone ? (
-          <div className="space-y-5 xl:sticky xl:top-4 xl:self-start">
-            <section className={standaloneRaisedPanel}>
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                  <Camera className="h-3.5 w-3.5 text-slate-500" aria-hidden />
-                  Photos &amp; evidence
-                </div>
-                <span className="rounded-full bg-slate-100/90 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500 shadow-sm ring-1 ring-slate-200/45">
-                  0 photos attached
-                </span>
-              </div>
-              <div className="flex min-h-[190px] flex-col items-center justify-center rounded-xl bg-slate-50/45 px-4 py-7 text-center ring-1 ring-dashed ring-slate-200/55">
-                <Camera className="mb-3 h-10 w-10 text-slate-300" aria-hidden />
-                <p className="text-sm font-medium text-slate-600">No photos attached yet</p>
-                <p className="mt-1 max-w-xs text-xs leading-relaxed text-slate-500">
-                  Ground photos, roof photos, and customer-provided images will attach here.
-                </p>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <span className="rounded-full bg-slate-100/90 px-2.5 py-1 text-[10px] font-medium text-slate-600 shadow-sm ring-1 ring-slate-200/40">Ground photos</span>
-                <span className="rounded-full bg-slate-100/90 px-2.5 py-1 text-[10px] font-medium text-slate-600 shadow-sm ring-1 ring-slate-200/40">Roof photos</span>
-                <span className="rounded-full bg-slate-100/90 px-2.5 py-1 text-[10px] font-medium text-slate-600 shadow-sm ring-1 ring-slate-200/40">Customer-provided</span>
-              </div>
-              <p className="mt-3 text-xs leading-relaxed text-slate-500">
-                Instant Estimate will require photos + property address.
-              </p>
-            </section>
-
-            <section className={standaloneRaisedPanel}>
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                  <ClipboardList className="h-3.5 w-3.5 text-slate-500" aria-hidden />
-                  Site visit
-                </div>
-                <span className="rounded-full bg-slate-100/90 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500 shadow-sm ring-1 ring-slate-200/45">
-                  Not set up
-                </span>
-              </div>
-              <p className="mt-2 text-xs text-slate-500">Scheduling will connect here when site visits are wired.</p>
-            </section>
-          </div>
-          ) : !packetFactsComplete ? (
+          {!isStandalone && !packetFactsComplete ? (
           <aside className="h-fit rounded-lg border border-slate-200/80 bg-slate-50/40 p-3 lg:sticky lg:top-4">
             <p className="text-[11px] leading-snug text-slate-600">
               Add customer and property details to continue.
@@ -6327,7 +6182,7 @@ Thanks,`;
                 }
                 className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-900 bg-slate-900 px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isCreatingJob ? "Creating job…" : "Continue to Job Card"}
+                {isCreatingJob ? "Creating job…" : "Create job"}
                 <ArrowRight className="h-3.5 w-3.5" aria-hidden />
               </button>
               {jobCreationError ? (
@@ -6336,25 +6191,7 @@ Thanks,`;
                 </p>
               ) : null}
             </div>
-            <button
-              type="button"
-              disabled
-              aria-label="Draft save coming soon"
-              title="Draft save coming soon"
-              className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-[13px] font-medium text-slate-400 shadow-inner"
-            >
-              Save Packet
-              <span className="text-[10px] font-bold uppercase tracking-wide">Soon</span>
-            </button>
           </div>
-          <button
-            type="button"
-            disabled
-            aria-label="Instant Estimate (coming soon)"
-            className="inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-[13px] font-semibold text-slate-400 shadow-inner sm:w-auto"
-          >
-            Instant Estimate <span className="text-[10px] font-bold uppercase tracking-wide">Soon</span>
-          </button>
         </div>
         </div>
       </div>

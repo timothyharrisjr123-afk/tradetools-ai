@@ -9,6 +9,8 @@ import {
 } from "react";
 import {
   PREPARE_PROPOSAL_ADD_MEASUREMENT_LABEL,
+  PREPARE_PROPOSAL_FINISH_QUANTITIES_LABEL,
+  PREPARE_PROPOSAL_QUANTITY_INCOMPLETE,
   PREPARE_PROPOSAL_CANCEL_LABEL,
   PREPARE_PROPOSAL_CHANGE_LABEL,
   PREPARE_PROPOSAL_CREATE_LABEL,
@@ -82,6 +84,7 @@ export type JobCardCreateProposalModalProps = {
   createError: string | null;
   onCreateProposal: () => void;
   onAddMeasurement?: () => void;
+  unresolvedRequiredQuantityCount?: number | null;
 
   preparingStructure?: boolean;
   preparingStructureLabel?: string | null;
@@ -143,6 +146,7 @@ export function JobCardCreateProposalModal({
   createError,
   onCreateProposal,
   onAddMeasurement,
+  unresolvedRequiredQuantityCount = null,
   preparingStructure = false,
   preparingStructureLabel = null,
   structureError = null,
@@ -223,12 +227,19 @@ export function JobCardCreateProposalModal({
       measurement: measurementField.state,
       setup: setupField.state,
       package: packageField.state,
+      unresolvedRequiredQuantityCount,
     }) &&
     createEnabled &&
     !creating &&
     !preparingStructure &&
     (!showFirstProposalPricingRules || firstProposalPricingRulesComplete) &&
     (!showFirstProposalPricing || firstProposalPricingComplete);
+
+  const measurementQuantityIncomplete =
+    (measurementField.state === "prepared" ||
+      measurementField.state === "alternative_available") &&
+    unresolvedRequiredQuantityCount != null &&
+    unresolvedRequiredQuantityCount > 0;
 
   const restoreFocus = (field: PrepareProposalFieldId) => {
     window.requestAnimationFrame(() => {
@@ -312,6 +323,16 @@ export function JobCardCreateProposalModal({
                 >
                   {PREPARE_PROPOSAL_ADD_MEASUREMENT_LABEL}
                 </button>
+              ) : measurementQuantityIncomplete && onAddMeasurement ? (
+                <button
+                  type="button"
+                  className={CHANGE_BUTTON_CLASS}
+                  onClick={onAddMeasurement}
+                  disabled={creating}
+                  data-jobcard-prepare-finish-quantities="true"
+                >
+                  {PREPARE_PROPOSAL_FINISH_QUANTITIES_LABEL}
+                </button>
               ) : null
             }
           >
@@ -346,6 +367,14 @@ export function JobCardCreateProposalModal({
               </div>
             ) : null}
           </PrepareFieldRow>
+          {measurementQuantityIncomplete ? (
+            <p
+              className="pb-2 text-xs leading-snug text-amber-800 sm:pl-44 sm:ml-6"
+              data-jobcard-prepare-quantity-incomplete="true"
+            >
+              {PREPARE_PROPOSAL_QUANTITY_INCOMPLETE}
+            </p>
+          ) : null}
 
           <PrepareFieldRow
             label={PREPARE_PROPOSAL_SETUP_LABEL}
@@ -547,6 +576,11 @@ export function JobCardCreateProposalModal({
               onClick={onCreateProposal}
               data-jobcard-create-proposal-continue="true"
               data-jobcard-prepare-create="true"
+              data-unresolved-required-quantities={
+                unresolvedRequiredQuantityCount == null
+                  ? undefined
+                  : String(unresolvedRequiredQuantityCount)
+              }
             >
               {creating ? PREPARE_PROPOSAL_CREATING_LABEL : PREPARE_PROPOSAL_CREATE_LABEL}
             </button>

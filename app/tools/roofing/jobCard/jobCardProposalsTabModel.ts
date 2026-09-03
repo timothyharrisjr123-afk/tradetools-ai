@@ -58,7 +58,11 @@ export const JOB_CARD_PROPOSALS_EMPTY_TITLE = "No proposals yet" as const;
 export const JOB_CARD_PROPOSALS_EMPTY_BODY =
   "Create a proposal from this job’s completed measurement report." as const;
 
-/** Job Card metadata strip — actionable create guidance (Intake / Proposal only). */
+/** Job Card metadata strip — no proposal yet; Prepare is the next step. */
+export const JOB_CARD_PROPOSAL_STATUS_READY_TO_PREPARE =
+  "Ready to prepare" as const;
+
+/** @deprecated Prefer READY_TO_PREPARE when Create is not yet legal. */
 export const JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE =
   "Ready to create proposal" as const;
 
@@ -96,9 +100,9 @@ export function allowsJobCardProposalCreateGuidance(
 
 export function formatAbsentProposalStatusLabel(
   stage: string | null | undefined
-): typeof JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE | typeof JOB_CARD_PROPOSAL_STATUS_UNAVAILABLE {
+): typeof JOB_CARD_PROPOSAL_STATUS_READY_TO_PREPARE | typeof JOB_CARD_PROPOSAL_STATUS_UNAVAILABLE {
   return allowsJobCardProposalCreateGuidance(stage)
-    ? JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE
+    ? JOB_CARD_PROPOSAL_STATUS_READY_TO_PREPARE
     : JOB_CARD_PROPOSAL_STATUS_UNAVAILABLE;
 }
 

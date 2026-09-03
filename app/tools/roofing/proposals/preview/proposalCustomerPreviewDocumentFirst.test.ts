@@ -131,16 +131,17 @@ describe("Contractor-facing Proposal Preview workspace", () => {
     const sendPanel = readPreviewSource("ProposalCustomerPreviewSendGatePanel.tsx");
     const client = readPreviewSource("ProposalCustomerPreviewClient.tsx");
 
-    assert.match(summary, /companyLogoMissing/);
+    assert.doesNotMatch(summary, /companyLogoMissing/);
     assert.match(summary, /!hasRecipientEmail/);
     assert.match(summary, /CUSTOMER_PREVIEW_NEEDS_REVIEW_HEADING/);
-    assert.match(summary, /CUSTOMER_PREVIEW_COMPANY_LOGO_MISSING_HINT/);
+    assert.doesNotMatch(summary, /CUSTOMER_PREVIEW_COMPANY_LOGO_MISSING_HINT/);
     assert.match(client, /companyLogoMissing=\{companyLogoMissing\}/);
 
     // V2C2 — Send owns blocker surface only when blocked (no permanent Ready card).
+    // Missing logo is a freeze warning, not a Send-blocking review hint.
     assert.match(sendPanel, /CUSTOMER_PREVIEW_NEEDS_REVIEW_HEADING/);
     assert.doesNotMatch(sendPanel, /CUSTOMER_PREVIEW_READY_HEADING/);
-    assert.match(sendPanel, /CUSTOMER_PREVIEW_COMPANY_LOGO_MISSING_HINT/);
+    assert.doesNotMatch(sendPanel, /CUSTOMER_PREVIEW_COMPANY_LOGO_MISSING_HINT/);
     assert.match(sendPanel, /disabled=\{!canSendProposalEmail\}/);
     assert.match(sendPanel, /data-preview-send-blocker/);
     assert.match(sendPanel, /data-preview-send-return-to-builder/);

@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
-  JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE,
+  JOB_CARD_PROPOSAL_STATUS_READY_TO_PREPARE,
   JOB_CARD_PROPOSAL_STATUS_EXISTS,
   JOB_CARD_PROPOSAL_STATUS_UNAVAILABLE,
   formatBoardProposalPresenceLabel,
@@ -154,7 +154,7 @@ describe("jobCardProposalsTab helpers", () => {
     assert.equal(smokeOnly.length, 0);
     assert.equal(
       formatJobCardContractorProposalStatusLabel({ visibleSummaries: smokeOnly }),
-      JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE
+      JOB_CARD_PROPOSAL_STATUS_READY_TO_PREPARE
     );
     assert.doesNotMatch(
       formatJobCardContractorProposalStatusLabel({ visibleSummaries: smokeOnly }),
@@ -203,7 +203,7 @@ describe("jobCardProposalsTab helpers", () => {
         visibleSummaries: [],
         activeProposalId: pointer,
       }),
-      JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE
+      JOB_CARD_PROPOSAL_STATUS_READY_TO_PREPARE
     );
     assert.equal(
       formatJobCardContractorProposalStatusLabel({
@@ -252,7 +252,7 @@ describe("jobCardProposalsTab helpers", () => {
         latestProposalId: null,
         stage: "intake",
       }),
-      JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE
+      JOB_CARD_PROPOSAL_STATUS_READY_TO_PREPARE
     );
     assert.equal(
       formatJobCardContractorProposalStatusLabel({

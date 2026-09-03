@@ -1265,7 +1265,10 @@ export default function JobCardClient({
           creating={prepare.creating}
           createError={prepare.createError}
           onCreateProposal={prepare.createProposal}
-          onAddMeasurement={() => prepare.openCapture("prepare", "add")}
+          unresolvedRequiredQuantityCount={prepare.unresolvedRequiredQuantityCount}
+          onAddMeasurement={() =>
+            prepare.openCapture("prepare", prepare.selected ? "edit" : "add")
+          }
           preparingStructure={prepare.preparingStructure}
           preparingStructureLabel={prepare.preparingStructureLabel}
           structureError={prepare.structureError}
@@ -1297,7 +1300,7 @@ export default function JobCardClient({
           className="fixed inset-0 z-[60] flex items-end justify-center bg-slate-900/40 p-0 sm:items-center sm:p-5"
           data-jobcard-prepare-measurement-capture="true"
         >
-          <div className="relative z-10 w-full max-w-xl rounded-t-2xl border border-slate-200 bg-white p-5 shadow-xl sm:rounded-2xl">
+          <div className="relative z-10 max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-t-2xl border border-slate-200 bg-white p-5 shadow-xl sm:rounded-2xl">
             <JobCardMeasurementCapture
               initial={prepare.captureInitial}
               saving={prepare.saving}

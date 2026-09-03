@@ -211,7 +211,8 @@ describe("Measurement → Prepare", () => {
     assert.match(HOOK, /captureOrigin/);
     assert.match(HOOK, /CaptureOrigin = "tab" \| "prepare"/);
     assert.match(JOB_CARD, /data-jobcard-prepare-measurement-capture/);
-    assert.match(JOB_CARD, /onAddMeasurement=\{\(\) => prepare\.openCapture\("prepare", "add"\)\}/);
+    assert.match(JOB_CARD, /onAddMeasurement=\{\(\) =>/);
+    assert.match(JOB_CARD, /openCapture\("prepare"/);
     assert.doesNotMatch(HOOK, /setJobCardTab\("measurements"\)/);
   });
 });

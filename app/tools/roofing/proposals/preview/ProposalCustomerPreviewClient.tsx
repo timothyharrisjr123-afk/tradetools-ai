@@ -572,7 +572,6 @@ export default function ProposalCustomerPreviewClient({
                   pricingComplete={previewDocument.readiness.pricingComplete}
                   hasRecipientEmail={hasRecipientEmail}
                   builderHref={builderHref}
-                  companyLogoMissing={companyLogoMissing}
                 />
                 <ProposalPreviewRequestAwareness
                   proposalId={normalizedProposalId}

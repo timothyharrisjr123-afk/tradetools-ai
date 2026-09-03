@@ -23,6 +23,7 @@ import {
   formatBoardProposalPresenceLabel,
   formatJobCardContractorProposalStatusLabel,
   JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE,
+  JOB_CARD_PROPOSAL_STATUS_READY_TO_PREPARE,
   JOB_CARD_PROPOSAL_STATUS_UNAVAILABLE,
 } from "@/app/tools/roofing/jobCard/jobCardProposalsTabModel";
 import {
@@ -107,7 +108,7 @@ describe("lifecycle fixture policy", () => {
 });
 
 describe("stage-aware proposal guidance", () => {
-  test("Intake / Proposal may show Ready to create proposal", () => {
+  test("Intake / Proposal may show Ready to prepare", () => {
     assert.equal(allowsJobCardProposalCreateGuidance("intake"), true);
     assert.equal(allowsJobCardProposalCreateGuidance("proposal"), true);
     assert.equal(
@@ -115,14 +116,14 @@ describe("stage-aware proposal guidance", () => {
         visibleSummaries: [],
         stage: "intake",
       }),
-      JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE
+      JOB_CARD_PROPOSAL_STATUS_READY_TO_PREPARE
     );
     assert.equal(
       formatJobCardContractorProposalStatusLabel({
         visibleSummaries: [],
         stage: "proposal",
       }),
-      JOB_CARD_PROPOSAL_STATUS_READY_TO_CREATE
+      JOB_CARD_PROPOSAL_STATUS_READY_TO_PREPARE
     );
   });
 

@@ -33,10 +33,84 @@ export type JobCardManualMeasurementFields = {
   stories: string;
   /** Optional; maps to measurement_records.report_source. */
   report_source?: string;
+  /** Report geometry — linear feet; NaN means missing (not zero). */
+  eaves_lf?: number;
+  rakes_lf?: number;
+  ridges_lf?: number;
+  hips_lf?: number;
+  valleys_lf?: number;
+  step_flashing_lf?: number;
+  /** Job/scope counts; NaN means missing (not zero). Zero is a valid entered value. */
+  pipe_boots_count?: number;
+  vents_count?: number;
+  /** Job/scope; null means unanswered. */
+  tear_off_required?: boolean | null;
+  debris_tons_estimate?: number;
 };
 
-function finiteOrNull(value: number): number | null {
+function finitePositiveOrNull(value: number): number | null {
   return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function finiteNumberOrNull(value: number | null | undefined): number | null {
+  if (value == null) return null;
+  return Number.isFinite(value) ? value : null;
+}
+
+function isEnteredNumber(value: number | null | undefined): boolean {
+  return value != null && Number.isFinite(value);
+}
+
+export function emptyJobCardManualMeasurementFields(): JobCardManualMeasurementFields {
+  return {
+    roof_area_sqft: 0,
+    waste_percent: Number.NaN,
+    pitch_label: "",
+    stories: "",
+    report_source: "",
+    eaves_lf: Number.NaN,
+    rakes_lf: Number.NaN,
+    ridges_lf: Number.NaN,
+    hips_lf: Number.NaN,
+    valleys_lf: Number.NaN,
+    step_flashing_lf: Number.NaN,
+    pipe_boots_count: Number.NaN,
+    vents_count: Number.NaN,
+    tear_off_required: null,
+    debris_tons_estimate: Number.NaN,
+  };
+}
+
+export function jobCardManualMeasurementFieldsFromRecord(
+  record: MeasurementRecord
+): JobCardManualMeasurementFields {
+  return {
+    roof_area_sqft:
+      record.roof_area_sqft != null && Number.isFinite(record.roof_area_sqft)
+        ? record.roof_area_sqft
+        : 0,
+    waste_percent:
+      record.waste_percent != null && Number.isFinite(record.waste_percent)
+        ? record.waste_percent
+        : Number.NaN,
+    pitch_label: (record.pitch_label ?? "").trim(),
+    stories: (record.stories ?? "").trim(),
+    report_source: (record.report_source ?? "").trim(),
+    eaves_lf: finiteNumberOrNull(record.eaves_lf) ?? Number.NaN,
+    rakes_lf: finiteNumberOrNull(record.rakes_lf) ?? Number.NaN,
+    ridges_lf: finiteNumberOrNull(record.ridges_lf) ?? Number.NaN,
+    hips_lf: finiteNumberOrNull(record.hips_lf) ?? Number.NaN,
+    valleys_lf: finiteNumberOrNull(record.valleys_lf) ?? Number.NaN,
+    step_flashing_lf: finiteNumberOrNull(record.step_flashing_lf) ?? Number.NaN,
+    pipe_boots_count: finiteNumberOrNull(record.pipe_boots_count) ?? Number.NaN,
+    vents_count: finiteNumberOrNull(record.vents_count) ?? Number.NaN,
+    tear_off_required:
+      record.tear_off_required === true || record.tear_off_required === false
+        ? record.tear_off_required
+        : null,
+    debris_tons_estimate:
+      finiteNumberOrNull(record.debris_tons_estimate) ?? Number.NaN,
+  };
 }
 
 export function deriveManualMeasurementSquares(areaSqft: number): number | null {
@@ -54,6 +128,28 @@ export function deriveManualAdjustedSquares(
   return squares * (1 + wastePercent / 100);
 }
 
+/**
+ * Report + job-scope inputs the starter resolver needs.
+ * Does not invent zeros. Empty remains missing.
+ */
+export function isManualMeasurementStarterQuantityInputComplete(
+  fields: JobCardManualMeasurementFields
+): boolean {
+  if (!isManualMeasurementEstimateReady(fields)) return false;
+  if (!isEnteredNumber(fields.eaves_lf)) return false;
+  if (!isEnteredNumber(fields.rakes_lf)) return false;
+  if (!isEnteredNumber(fields.ridges_lf)) return false;
+  if (!isEnteredNumber(fields.valleys_lf)) return false;
+  if (!isEnteredNumber(fields.step_flashing_lf)) return false;
+  if (!isEnteredNumber(fields.pipe_boots_count)) return false;
+  if (!isEnteredNumber(fields.vents_count)) return false;
+  if (fields.tear_off_required !== true && fields.tear_off_required !== false) {
+    return false;
+  }
+  if (!isEnteredNumber(fields.debris_tons_estimate)) return false;
+  return true;
+}
+
 export function buildManualMeasurementRecordShape(
   fields: JobCardManualMeasurementFields
 ): Pick<
@@ -69,6 +165,16 @@ export function buildManualMeasurementRecordShape(
   | "pitch_label"
   | "stories"
   | "report_source"
+  | "eaves_lf"
+  | "rakes_lf"
+  | "ridges_lf"
+  | "hips_lf"
+  | "valleys_lf"
+  | "step_flashing_lf"
+  | "pipe_boots_count"
+  | "vents_count"
+  | "tear_off_required"
+  | "debris_tons_estimate"
 > {
   const area = Number(fields.roof_area_sqft);
   const waste = Number(fields.waste_percent);
@@ -78,13 +184,26 @@ export function buildManualMeasurementRecordShape(
     status: "incomplete",
     is_selected: false,
     is_verified: false,
-    roof_area_sqft: finiteOrNull(area) ?? (Number.isFinite(area) ? area : null),
+    roof_area_sqft: finitePositiveOrNull(area) ?? (Number.isFinite(area) ? area : null),
     roof_squares: deriveManualMeasurementSquares(area),
     adjusted_roof_squares: deriveManualAdjustedSquares(area, waste),
     waste_percent: Number.isFinite(waste) ? waste : null,
     pitch_label: fields.pitch_label.trim() || null,
     stories: fields.stories.trim() || null,
     report_source: reportSource,
+    eaves_lf: finiteNumberOrNull(fields.eaves_lf),
+    rakes_lf: finiteNumberOrNull(fields.rakes_lf),
+    ridges_lf: finiteNumberOrNull(fields.ridges_lf),
+    hips_lf: finiteNumberOrNull(fields.hips_lf),
+    valleys_lf: finiteNumberOrNull(fields.valleys_lf),
+    step_flashing_lf: finiteNumberOrNull(fields.step_flashing_lf),
+    pipe_boots_count: finiteNumberOrNull(fields.pipe_boots_count),
+    vents_count: finiteNumberOrNull(fields.vents_count),
+    tear_off_required:
+      fields.tear_off_required === true || fields.tear_off_required === false
+        ? fields.tear_off_required
+        : null,
+    debris_tons_estimate: finiteNumberOrNull(fields.debris_tons_estimate),
   };
 }
 
@@ -121,6 +240,16 @@ export function buildManualMeasurementDraftFromFields(input: {
     waste_percent: shape.waste_percent,
     pitch_label: shape.pitch_label,
     stories: shape.stories,
+    eaves_lf: shape.eaves_lf,
+    rakes_lf: shape.rakes_lf,
+    ridges_lf: shape.ridges_lf,
+    hips_lf: shape.hips_lf,
+    valleys_lf: shape.valleys_lf,
+    step_flashing_lf: shape.step_flashing_lf,
+    pipe_boots_count: shape.pipe_boots_count,
+    vents_count: shape.vents_count,
+    tear_off_required: shape.tear_off_required,
+    debris_tons_estimate: shape.debris_tons_estimate,
     report_attached: false,
     diagram_available: false,
     report_status: "Not attached",

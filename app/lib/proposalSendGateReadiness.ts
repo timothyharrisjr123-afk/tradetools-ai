@@ -485,18 +485,6 @@ function buildBrandingChecklist(
     };
   }
 
-  const logoWarning = sendFreezeReadiness.warnings.some((warning) =>
-    /company logo/i.test(warning)
-  );
-  if (logoWarning) {
-    return {
-      id: "branding_identity",
-      label: "Branding & identity",
-      status: "needs_review",
-      detail: "Company logo is missing.",
-    };
-  }
-
   return {
     id: "branding_identity",
     label: "Branding & identity",

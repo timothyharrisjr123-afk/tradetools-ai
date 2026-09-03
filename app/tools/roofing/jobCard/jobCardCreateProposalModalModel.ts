@@ -67,6 +67,9 @@ export const PREPARE_PROPOSAL_FOOTER =
 
 export const PREPARE_PROPOSAL_MEASUREMENT_REQUIRED = "Measurement required" as const;
 export const PREPARE_PROPOSAL_ADD_MEASUREMENT_LABEL = "Add measurement" as const;
+export const PREPARE_PROPOSAL_FINISH_QUANTITIES_LABEL = "Add remaining numbers" as const;
+export const PREPARE_PROPOSAL_QUANTITY_INCOMPLETE =
+  "Add the remaining roof and job numbers before creating." as const;
 /** Prepare capture — contractor enters trusted report numbers; not a measurement module. */
 export const PREPARE_PROPOSAL_MEASUREMENT_CAPTURE_TITLE = "Add measurement" as const;
 export const PREPARE_PROPOSAL_MEASUREMENT_CAPTURE_HINT =
@@ -589,10 +592,20 @@ export function canCreatePrepareProposal(input: {
   measurement: PrepareProposalFieldState;
   setup: PrepareProposalFieldState;
   package: PrepareProposalFieldState;
+  unresolvedRequiredQuantityCount?: number | null;
 }): boolean {
   const ok = (state: PrepareProposalFieldState) =>
     state === "prepared" || state === "alternative_available";
-  return ok(input.measurement) && ok(input.setup) && ok(input.package);
+  if (!ok(input.measurement) || !ok(input.setup) || !ok(input.package)) {
+    return false;
+  }
+  if (
+    input.unresolvedRequiredQuantityCount != null &&
+    input.unresolvedRequiredQuantityCount !== 0
+  ) {
+    return false;
+  }
+  return true;
 }
 
 export function resolvePrepareProposalExpandedField(input: {

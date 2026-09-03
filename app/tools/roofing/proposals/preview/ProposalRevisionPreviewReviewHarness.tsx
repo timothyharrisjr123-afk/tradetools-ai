@@ -99,7 +99,6 @@ export default function ProposalRevisionPreviewReviewHarness() {
               pricingComplete
               hasRecipientEmail
               builderHref="#builder"
-              companyLogoMissing={false}
             />
             {changeSummary ? <ProposalPreviewChangeSummary summary={changeSummary} /> : null}
           </div>

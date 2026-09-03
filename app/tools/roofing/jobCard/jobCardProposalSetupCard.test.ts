@@ -162,6 +162,7 @@ describe("Job Card Proposals tab (Block 2 + Block 3 modal)", () => {
     assert.match(client, /formatJobCardContractorProposalStatusLabel/);
     assert.match(jobCard, /formatJobCardContractorProposalStatusLabel/);
     assert.match(jobCard, /activeProposalId: hydratedJobRecord\?\.active_proposal_id/);
+    assert.match(helpers, /Ready to prepare/);
     assert.match(helpers, /Ready to create proposal/);
     assert.match(helpers, /Ready for proposal/);
     assert.match(helpers, /Proposal created/);
