@@ -704,8 +704,9 @@ describe("R18D2 send prep guardrails", () => {
     assert.match(panel, /ProposalCustomerPreviewDeliveryHistorySection/);
     assert.match(panel, /deliveryHistoryRefreshKey/);
     assert.match(panel, /Open customer proposal/);
-    assert.match(panel, /Copy customer send link/);
-    assert.match(panel, /Send proposal/);
+    assert.match(panel, /Copy link/);
+    assert.doesNotMatch(panel, /Copy customer send link/);
+    assert.match(panel, /SEND_GATE_SEND_PROPOSAL_LABEL/);
     assert.doesNotMatch(panel, /localStorage/);
     assert.doesNotMatch(panel, /token_hash|raw_token|rawToken/);
     assert.doesNotMatch(panel, /freezeDraftToSentSnapshot|mintProposalPublicAccessToken/);

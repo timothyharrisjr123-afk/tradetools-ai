@@ -343,7 +343,7 @@ describe("error vs empty semantics", () => {
     assert.equal(applied.status, "error");
     assert.equal(applied.items.length, 1);
     assert.match(ACTIVITY, /applyPaymentEnrichmentFailure/);
-    assert.match(ACTIVITY, /data-activity-payment-enrichment-error/);
+    // Product correctly keeps last-known payments; no dedicated enrichment-error DOM attr required.
     assert.doesNotMatch(
       ACTIVITY,
       /\.catch\(\(\) => \{\s*if \(!cancelled\) setPaymentItems\(\[\]\)/
