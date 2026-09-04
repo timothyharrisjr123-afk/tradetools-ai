@@ -2,6 +2,15 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-04 — Test-fixture type-contract cleanup complete
+
+- Independent test-typecheck debt is fully repaired: 105 errors across 34 test files reduced to 0 without suppressions or production type widening.
+- Production build PASS; production typecheck PASS; independent test typecheck PASS.
+- All changed-test fixtures/helpers passed (`486/486`), and focused auth/router, Supabase, tenant-isolation, proposal, payment/Stripe, and production-route safety verification passed (`348/348`).
+- No production behavior or dependency changes. No SQL, migrations, provider configuration, push, or deploy.
+- Stripe P1 hardening remains preserved separately at `5fefd1b`; the next implementation activity is to resume its verification, not recovery-schema work.
+- The mandatory full audit still includes technology-currency review.
+
 ## 2026-09-04 — Framework security and TypeScript build-boundary checkpoint
 
 - Production security/dependency slice accepted: Next.js `16.3.4`, `eslint-config-next` `16.3.4`, `@supabase/supabase-js` `2.115.0`, and `@supabase/ssr` `0.12.6`.
