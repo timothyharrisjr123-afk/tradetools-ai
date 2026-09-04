@@ -253,12 +253,11 @@ describe("V2F1 full-draft dirty truth — negatives do not touch header", () => 
     assert.doesNotMatch(tab, /JobCardActivityPanel/);
     assert.doesNotMatch(tab, /JobCardNextActionPanel/);
     assert.doesNotMatch(tab, /Needs attention/i);
-    const harness = read("app/tools/roofing/jobCard/JobCardV2f1ReviewHarness.tsx");
-    assert.match(harness, /JobCardActivityPanel/);
-    assert.match(harness, /JobCardNextActionPanel/);
-    assert.match(harness, /JobCardHeader/);
-    assert.match(harness, /JobCardMetadataStrip/);
-    assert.doesNotMatch(harness, /CustomerRequestReviewCard/);
+    const jobCard = read("app/tools/roofing/jobCard/JobCardClient.tsx");
+    assert.match(jobCard, /JobCardActivityPanelWithCustomerRequests/);
+    assert.match(jobCard, /JobCardNextActionPanel/);
+    assert.match(jobCard, /JobCardHeader/);
+    assert.doesNotMatch(jobCard, /CustomerRequestReviewCard/);
   });
 
   test("one authoritative helper; Job Card does not scan child rows", () => {

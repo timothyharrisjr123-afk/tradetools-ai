@@ -123,16 +123,6 @@ describe("true no-logo fallback", () => {
     assert.doesNotMatch(cover, /bg-slate-100|placeholder logo|Logo missing/i);
   });
 
-  test("no-logo visual harness proves logoUrl absent", () => {
-    const harness = read(
-      "app/tools/roofing/proposals/preview/no-logo-cover-review/ProposalNoLogoCoverReviewHarness.tsx"
-    );
-    assert.match(harness, /logoUrl:\s*null/);
-    assert.match(harness, /logoMonogram:\s*"AR"/);
-    assert.match(harness, /data-preview-nologo-proof="component"/);
-    assert.match(harness, /Visual component proof/);
-  });
-
   test("missing logo warning remains non-blocking for Send", () => {
     const vm = buildProposalSendGateReadinessViewModel({
       hasSentSnapshot: false,

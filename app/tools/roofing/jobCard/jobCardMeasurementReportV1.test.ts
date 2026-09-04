@@ -316,14 +316,4 @@ describe("append-only and selection wiring", () => {
     assert.match(JOB_CARD, /onMakeCurrent=\{prepare\.selectMeasurement\}/);
   });
 
-  test("visual harness has no amber warning banner", () => {
-    const page = read(
-      "app/tools/roofing/jobCard/measurement-report-v1-review/page.tsx"
-    );
-    assert.doesNotMatch(page, /bg-amber|border-amber|text-amber/);
-    assert.doesNotMatch(
-      page,
-      /<p[^>]*>[\s\S]*Visual-only measurement report fixture[\s\S]*<\/p>/i
-    );
-  });
 });

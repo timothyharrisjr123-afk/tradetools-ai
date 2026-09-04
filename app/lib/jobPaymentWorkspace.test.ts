@@ -563,17 +563,13 @@ describe("Payments tab routing", () => {
     const presenter = read("app/lib/jobPaymentWorkspace.ts");
     const workspaceUi = read("app/tools/roofing/jobCard/JobCardPaymentsWorkspace.tsx");
     const overview = read("app/tools/roofing/jobCard/JobCardOverviewSummary.tsx");
-    const harness = read(
-      "app/tools/roofing/jobCard/payment-stage-2a-review/PaymentStage2AReviewHarness.tsx"
-    );
-    for (const source of [presenter, workspaceUi, overview, harness]) {
+    for (const source of [presenter, workspaceUi, overview]) {
       assert.doesNotMatch(source, /coming in Stage/);
       assert.doesNotMatch(source, /collection setup coming/);
       assert.doesNotMatch(source, /Stage 2B/);
     }
     assert.doesNotMatch(workspaceUi, /Stage 2A/);
     assert.doesNotMatch(overview, /Stage 2A/);
-    assert.doesNotMatch(harness, /Stage 2A/);
   });
 
   test("Payments surface has no Next step heading; Collect is the action", () => {

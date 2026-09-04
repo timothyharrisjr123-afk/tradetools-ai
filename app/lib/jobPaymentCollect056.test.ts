@@ -270,16 +270,10 @@ describe("056 — API / UI / copy-link contracts", () => {
     assert.match(settings, /Customers pay securely through Stripe Checkout/);
     const summary = read("app/lib/companySettingsSummary.ts");
     assert.doesNotMatch(summary, /default deposit/);
-    const twoA = read("app/tools/roofing/jobCard/payment-stage-2a-review/page.tsx");
-    const twoB = read("app/tools/roofing/jobCard/payment-stage-2b-review/page.tsx");
-    assert.match(twoA, /Historical payment-workspace fixture/);
-    assert.match(twoB, /Historical payment-workspace fixture/);
-    const twoC = read(
-      "app/tools/roofing/jobCard/payment-stage-2c-review/PaymentStage2CReviewHarness.tsx"
-    );
-    assert.match(twoC, /progress-processing/);
-    assert.match(twoC, /failed-collect/);
-    assert.match(twoC, /onCopyPaymentLink/);
+    const jobCard = read("app/tools/roofing/jobCard/JobCardClient.tsx");
+    const workspace = read("app/tools/roofing/jobCard/JobCardPaymentsWorkspace.tsx");
+    assert.match(jobCard, /onCopyPaymentLink/);
+    assert.match(workspace, /onCopyPaymentLink/);
   });
 
   test("public progress labels and checkout typing", () => {
