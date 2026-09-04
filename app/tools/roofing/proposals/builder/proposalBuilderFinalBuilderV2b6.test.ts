@@ -45,12 +45,18 @@ describe("V2B6 final Builder consolidation", () => {
     assert.match(blocked, /Choose a job first/);
     assert.match(blocked, /Open a job before creating a proposal/);
     assert.match(blocked, /Open Jobs/);
+    assert.doesNotMatch(blocked, /Back to Job Card/);
     assert.doesNotMatch(blocked, /clean DB|database|fixture|smoke|harness/i);
     assert.doesNotMatch(blocked, /No proposal record is created/);
     assert.doesNotMatch(blocked, /blockedGates\.length > 1/);
     assert.doesNotMatch(blocked, /bg-amber-50/);
     const client = read("app/tools/roofing/proposals/builder/ProposalBuilderClient.tsx");
     assert.match(client, /primaryGate !== "missing_job"/);
+    const header = read(
+      "app/tools/roofing/proposals/builder/ProposalBuilderPageHeader.tsx"
+    );
+    assert.match(header, /hasValidJobContext/);
+    assert.match(header, /backHref \? \(/);
   });
 
   test("no setup-preview ghost metadata or quiet note", () => {

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { resolveJobIdentityDisplay } from "@/app/lib/jobIdentityDisplay";
 import { buildJobCardHref } from "@/app/lib/proposalBuilderReadiness";
+import { isUuidLike } from "@/app/lib/uuid";
 import type { JobRecord } from "@/app/lib/jobTypes";
 import type {
   ProposalBuilderGuidance,
@@ -44,15 +45,18 @@ export default function ProposalBuilderPageHeader({
   const identity = job ? resolveJobIdentityDisplay(job, "") : null;
   const jobLabel = (identity?.primaryLabel ?? "").trim();
   const address = (identity?.secondaryAddress ?? "").trim();
-  const backHref = jobId
-    ? buildJobCardHref(jobId, { tab: "proposals" })
-    : "/tools/roofing/saved";
+  // Back to Job Card requires a real job UUID — never fall back to Jobs Board
+  // under a "Job Card" label when no-job empty state owns Open Jobs.
+  const hasValidJobContext = Boolean(jobId && isUuidLike(jobId));
+  const backHref = hasValidJobContext
+    ? buildJobCardHref(jobId!, { tab: "proposals" })
+    : null;
 
   const packageLabel = shellReady ? (selectedPackageLabel ?? "").trim() : "";
   const totalLabel = shellReady ? (proposalTotalLabel ?? "").trim() : "";
   const savedLabel = shellReady ? (lastSavedLabel ?? "").trim() : "";
-  const hasJobContext = Boolean(job && jobLabel);
-  const contextReady = shellReady && hasJobContext;
+  const hasJobIdentity = Boolean(job && jobLabel);
+  const contextReady = shellReady && hasJobIdentity;
 
   return (
     <header
@@ -63,16 +67,18 @@ export default function ProposalBuilderPageHeader({
     >
       <div className="flex flex-col gap-2 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:py-2.5">
         <div className="min-w-0 flex-1">
-          <Link
-            href={backHref}
-            className="inline-flex min-h-[44px] items-center gap-1.5 text-[13px] font-semibold text-blue-600 transition hover:text-blue-700 sm:min-h-0 sm:h-auto"
-            data-builder-back-to-job-card
-          >
-            <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
-            Back to Job Card
-          </Link>
+          {backHref ? (
+            <Link
+              href={backHref}
+              className="inline-flex min-h-[44px] items-center gap-1.5 text-[13px] font-semibold text-blue-600 transition hover:text-blue-700 sm:min-h-0 sm:h-auto"
+              data-builder-back-to-job-card
+            >
+              <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+              Back to Job Card
+            </Link>
+          ) : null}
 
-          {hasJobContext ? (
+          {hasJobIdentity ? (
             <div className="mt-0.5 min-w-0">
               <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5">
                 <h1

@@ -23,6 +23,9 @@ describe("V2B1 Builder shell", () => {
     assert.match(header, /data-builder-job-secondary-identity/);
     assert.match(header, /data-builder-back-to-job-card/);
     assert.match(header, /Back to Job Card/);
+    assert.match(header, /hasValidJobContext/);
+    assert.match(header, /backHref \? \(/);
+    assert.doesNotMatch(header, /: "\/tools\/roofing\/saved"/);
     assert.doesNotMatch(header, /Proposal Builder/);
     assert.doesNotMatch(header, /Editing Roof replacement proposal/);
     assert.doesNotMatch(header, /Pricing ready/);
