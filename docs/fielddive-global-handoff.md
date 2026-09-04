@@ -66,7 +66,7 @@
 - Read **§6CW** before any Photos / Attachments / job file storage / signed URL / gallery work — **PHOTOS / ATTACHMENTS V1 COMPLETE / ACCEPTED**. Generic private shared file spine; documentation photos ≠ measurement-source imagery; `listed_in_job_gallery`; camera/library/file; batch; private signed access; PDF files; soft delete; no Activity spam; no customer publish; no proposal embed; no measurement acquisition. Tasks V1 is **§6CX**.
 - Read **§6CV** before any Measurements report / current measurement / Details / Earlier measurements / Make current / measurement–proposal binding work — **MEASUREMENT REPORT V1 COMPLETE / ACCEPTED**. Standing first-class measurement domain; progressive Details; explicit Make current; draft staleness Proposal Builder-owned. Photos V1 is **§6CW**. Do **not** start Tasks, Activity cleanup, or refunds until authorized.
 - Read **§6DF** before any Commercial Wedge / first-proposal / Prepare hierarchy / final Send visual work — **COMPLETE / EXTERNALLY VISUALLY ACCEPTED** at code **`8cfd064`**.
-- Read **§6DG** / **`docs/beta-trust-ops.md`** before any Beta Trust Ops / public-origin / paid-beta readiness work — Group A complete; Group B operating contract in `docs/beta-trust-ops.md`; Group C next; do **not** start Wave D inside Trust Ops.
+- Read **§6DG** / **`docs/beta-trust-ops.md`** before any Beta Trust Ops / public-origin / paid-beta readiness work — Groups A–B complete; Group C infrastructure is verified and awaits a deliberate push/deploy plus production smoke; do **not** start Wave D inside Trust Ops.
 - Read **§6CU** before any Job Card workspace, Prepare proposal, Overview, Attention, Board handoff, Tasks/Attachments empty-state, or contractor-flow work after Slice 1 — **SLICE 1 CORE CONTRACTOR WORKSPACE COMPLETE / ACCEPTED**. Live Job Card is one coherent workspace around canonical truth. Create proposal → Prepare (not Measurements). Measurement required inside Prepare. Domain-preservation + FLOW WHEN NEEDED. Payment domain remains **§6CT** locked. Measurement report depth is **§6CV**.
 - Read **§6CT** for the pre-Refunds Stage 2F payment live/visual lock. Its remaining payment P1, **refunds as a product**, is now **COMPLETE / ACCEPTED** at **§6DA**. **057** is job attachments (**§6CW**), not a payment migration.
 - Read **§6CS** before any Job Card Payments history / financial timeline / payment Activity work — **STAGE 2E PAYMENT HISTORY COMPLETE**. All financial detail lives on the Payments tab. Activity has no payment events. Canonical Payment History presenter (requested/received/failed/cancelled/refund). No migration 057. Live/visual lock is **§6CT**.
@@ -85,7 +85,7 @@
 
 **Last updated checkpoint:**
 
-- **Beta Trust Ops Group C verification:** this docs commit — `docs(ops): record group c deployment verification` (**GROUP C BLOCKED**, see **`docs/beta-trust-ops.md` §13**). Public site **`https://www.fielddive.com`** is live on Vercel; apex redirects to www. Intended APP_URL = that HTTPS www origin. Production login still **TradeTools AI** (origin/main stale vs local FieldDive + Group A/B). Vercel Production env / Resend verification / Stripe TEST Connect webhook registration **not inspectable** from this machine. Supabase **`rhquhnujjnzjhweypavd`** matches local link + runtime host; 064-era tables exist. **Do not push. Do not production-smoke. Do not start Wave D.**
+- **Beta Trust Ops Group C pre-deploy gate:** APP_URL scope architecture and Stripe TEST Connect infrastructure are verified; see **§6DG.4**. Production remains on stale remote SHA **`8271f3742fa2f8e23957ba61fa470e0af4ff256e`** while the local `main` branch is ahead pending a separately authorized deliberate push/deploy. No production smoke has run. Known paid-beta P1s and the mandatory multi-audit HOLD remain. **Do not push. Do not production-smoke. Do not start Wave D.**
 - **Beta Trust Ops Group B:** `docs(ops): define controlled beta trust procedures` (`8b30475`) — env contract, Stripe TEST-only policy, runbooks, multi-audit HOLD. Group A code **`c8c6553`**. **NO PUSH.**
 - **Commercial Wedge final visual gate closeout:** `docs: close commercial wedge visual gate` (**COMMERCIAL WEDGE COMPLETE / EXTERNALLY VISUALLY ACCEPTED**, see **§6DF**). Code **`8cfd064`**. Proof `tmp/fielddive-ui-review/commercial-wedge/final-visual-gate/`. **NO PUSH.**
 - **Commercial Wedge Groups 1–3 feature closeout (superseded for visual finality):** `docs: checkpoint commercial wedge` (**COMMERCIAL WEDGE COMPLETE / ACCEPTED** pre–final visual gate, see historical **§6DF** Groups). Code **`1440fc6`**. Desktop + 390 proof `tmp/fielddive-ui-review/commercial-wedge/group-3/`. Do **not** treat pre-gate “accepted” wording as the final external visual close.
@@ -19782,9 +19782,9 @@ When uncertain: **Optimize for obvious contractor flow, truthful system state, r
 
 ---
 
-### §6DG Beta Trust Ops — Groups A–B complete; Group C next
+### §6DG Beta Trust Ops — Groups A–B complete; Group C infrastructure verified
 
-**Status:** Group A **COMPLETE** at **`c8c6553`** (`fix(ops): harden public origin and send truth`). Group B **COMPLETE** — operating contract in **`docs/beta-trust-ops.md`** + `.env.example`. **Next = Group C** (account/deploy smoke) when authorized. **Do not start Wave D inside Trust Ops.** **Do not unlock live Stripe.** **Paid beta prohibited** until multi-audit HOLD in `docs/beta-trust-ops.md` clears. **NO PUSH** until separately authorized.
+**Status:** Group A **COMPLETE** at **`c8c6553`** (`fix(ops): harden public origin and send truth`). Group B **COMPLETE** — operating contract in **`docs/beta-trust-ops.md`** + `.env.example`. Group C infrastructure verification is **COMPLETE PRE-DEPLOY** at **§6DG.4**; deliberate push/deploy and production smoke remain separately authorized actions. **Do not start Wave D inside Trust Ops.** **Do not unlock live Stripe.** **Paid beta prohibited** until the multi-audit HOLD in `docs/beta-trust-ops.md` clears. **NO PUSH** until separately authorized.
 
 **Purpose:** Make FieldDive safe for a small controlled TEST-Stripe beta: correct public origin, truthful pre–Wave-D email wording, deploy/env/support/migration runbooks, account smoke. Not a product-feature wave.
 
@@ -19806,10 +19806,11 @@ When uncertain: **Optimize for obvious contractor flow, truthful system state, r
 - Support runbooks **before** support admin UI.
 - No notification center.
 
-**GROUP C — Account verification + production smoke — BLOCKED**
-- Public origin candidate **`https://www.fielddive.com`** (Vercel; apex → www).
-- Production env / Resend / Connect webhook **not account-verified**.
-- Do **not** push or production-smoke until those are confirmed. See **`docs/beta-trust-ops.md` §13**.
+**GROUP C — Account verification + production smoke — INFRASTRUCTURE VERIFIED; DEPLOY/SMOKE PENDING**
+- Canonical Production origin is **`https://www.fielddive.com`** (Vercel; apex → www).
+- Vercel, GitHub, Resend, Supabase, and Stripe TEST account/infrastructure truth is directly verified.
+- APP_URL scopes and the Stripe TEST Connect webhook/Production signing secret are configured as recorded in **§6DG.4**.
+- Do **not** push, deploy, or production-smoke without separate authorization. See **`docs/beta-trust-ops.md` §13**.
 
 #### §6DG.2 Locked boundaries
 
@@ -19826,7 +19827,21 @@ When uncertain: **Optimize for obvious contractor flow, truthful system state, r
 3. **Multi-audit HOLD** then controlled paid-beta gate (explicit approval required).
 4. Later work from beta evidence.
 
-**Exact next:** resolve Group C account blockers in **`docs/beta-trust-ops.md` §13**, then deliberate push/smoke only with explicit authorization. Do **not** start Wave D yet. Do **not** invite paid beta until multi-audit HOLD clears.
+#### §6DG.4 Group C infrastructure + final pre-deploy checkpoint — 2026-09-04
+
+- **APP_URL scope architecture closed:** Production **`https://www.fielddive.com`**; Preview **absent by default** (fail closed); Development **`http://localhost:3000`**.
+- Stripe CLI operations now use external current installation **`C:\Users\sabre\AppData\Local\Programs\StripeCLI\stripe.exe`**, version **1.50.10**. Repository-local tracked `stripe.exe` remains legacy tooling and is a future cleanup only; it was not modified.
+- Stripe account **FieldDive / `acct_1T5ahm2O7SclDeoc`** verified in **TEST-only** mode with Connect access.
+- One enabled platform-level TEST Connect webhook exists: **`we_1UBzll2O7SclDeocQquxSSVC`**, URL **`https://www.fielddive.com/api/webhooks/stripe/connect`**, no duplicate.
+- Exact webhook events: `account.updated`, `charge.refunded`, `checkout.session.async_payment_failed`, `checkout.session.async_payment_succeeded`, `checkout.session.completed`, `payment_intent.payment_failed`, `payment_intent.processing`, `payment_intent.succeeded`, `refund.created`, `refund.failed`, `refund.updated`.
+- Dedicated **Production-only** `STRIPE_CONNECT_WEBHOOK_SECRET` is configured in Vercel. Preview and Development were not changed and remain absent. No secret value is stored here.
+- Required Production core/send/Connect env names are present. Google Places server key remains absent and autocomplete therefore degrades to manual address entry; this remains P1 before paid beta, not a deploy-wide failure.
+- Pre-deploy gate at code HEAD **`9d41733640b382272463cd598e1f3ab38532f5bb`**: production build PASS; focused Trust Ops/payment/proposal suite **621/621 PASS**; no package or migration delta; no committed Stripe/Resend signing/API secret found. Baseline ESLint debt remains non-blocking; Next.js reports the existing `middleware` convention as deprecated.
+- **No deployment yet.** Production remains at remote SHA **`8271f3742fa2f8e23957ba61fa470e0af4ff256e`**. Local `main` was **13 commits ahead** before this docs checkpoint and remains pending deliberate push/deploy authorization.
+- **Paid-beta P1 carry-forward:** require `event.account` for relevant Connect settlement events; do not return HTTP 200 when settlement/`account.updated` persistence fails; complete disconnect/reconnect handling; richer Stripe account-health UX; contain legacy Board checkout; remove legacy secret-fragment logging; deliberately review/modernize the Stripe application SDK; configure a Production Google Places server key; close exact-property autocomplete ranking; run the broader account/company/login/first-run readiness audit.
+- **Scope locks:** the full user/company/login/onboarding audit remains scheduled for pre-beta readiness, not this checkpoint. Wave D has not started. The mandatory multi-audit paid-beta HOLD remains in force.
+
+**Exact next:** deliberate push/Production deploy only with explicit authorization, followed by the separately authorized Group C production smoke. Do **not** start Wave D yet. Do **not** invite paid beta until the multi-audit HOLD clears.
 
 ---
 
