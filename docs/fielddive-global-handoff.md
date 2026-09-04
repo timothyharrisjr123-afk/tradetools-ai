@@ -2,6 +2,19 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-04 — Framework security and TypeScript build-boundary checkpoint
+
+- Production security/dependency slice accepted: Next.js `16.3.4`, `eslint-config-next` `16.3.4`, `@supabase/supabase-js` `2.115.0`, and `@supabase/ssr` `0.12.6`.
+- Runtime contract is Node `>=22 <25`; Vercel Production is configured for Node `24.x`.
+- Vulnerable `ws` dependency removed. Final production audit: HIGH `0`, CRITICAL `0`, MODERATE `4`. Registry signature verification passed: 387 signed packages and 69 attestations.
+- Production build passed and production TypeScript check passed. Production and test TypeScript boundaries are now separate; tests remain independently type-checked through `npm run typecheck:test` with no suppression or weakened production strictness.
+- The legacy Checkout test now reflects the approved `/api/payments/create-checkout` `410` tombstone. Canonical Connect payment behavior was not changed in this slice; focused auth/router, Supabase, tenant-isolation, and payment/Stripe verification passed, including payment/Stripe `348/348`.
+- Independent test typecheck exposes a baseline of 105 pre-existing errors across 34 test files. These errors were not suppressed or repaired. Test-typecheck debt is a separate required, bounded maintenance slice before the full test-typecheck gate can be treated as green.
+- Stripe P1 hardening remains checkpointed separately at local commit `5fefd1b` and still awaits final verification. No Stripe recovery-schema work started.
+- No OpenAI 7 upgrade, no `proxy.ts` migration, no deploy, and no Wave D. The mandatory full audit still includes the technology-currency audit.
+
+**Gate statement:** Production security/dependency slice accepted. Test-typecheck baseline remains red and must be remediated in a separate bounded maintenance slice before treating the full test-typecheck gate as green.
+
 **Related docs (secondary anchors):**
 
 - `docs/fielddive-flow-map.md` — IA / screen flow map
