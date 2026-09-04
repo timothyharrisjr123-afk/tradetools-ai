@@ -136,7 +136,14 @@ function compositionsFromStarterSeed(): PackageComposition[] {
   );
   const def = DEFAULT_ROOFING_PROPOSAL_TEMPLATE_DEFINITIONS[0];
   assert.ok(def);
-  return def.options.map((opt) => {
+  const options = def.options;
+  assert.ok(options);
+  return options.map((opt) => {
+    assert.ok(opt.seed_key);
+    assert.ok(opt.customer_label);
+    assert.ok(opt.sort_order != null);
+    assert.ok(opt.sections);
+    const packageId = opt.seed_key;
     const lineSection = opt.sections.find((s) => s.kind === "line_items");
     const upgradeSection = opt.sections.find((s) => s.kind === "upgrade_group");
     const toEntry = (
@@ -173,9 +180,9 @@ function compositionsFromStarterSeed(): PackageComposition[] {
       customerLabel: opt.customer_label,
       order: opt.sort_order,
       isStartingDefault: opt.is_default,
-      included: (lineSection?.items ?? []).map((row) => toEntry(row, "included", opt.seed_key)),
+      included: (lineSection?.items ?? []).map((row) => toEntry(row, "included", packageId)),
       optionalUpgrades: (upgradeSection?.items ?? []).map((row) =>
-        toEntry(row, "optional_upgrade", opt.seed_key)
+        toEntry(row, "optional_upgrade", packageId)
       ),
     } satisfies PackageComposition;
   });

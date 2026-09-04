@@ -26,9 +26,7 @@ import {
 
 function catalog(partial: Partial<CatalogItem> & { id: string; name: string }): CatalogItem {
   return {
-    id: partial.id,
     company_id: "co",
-    name: partial.name,
     item_type: partial.item_type ?? "material",
     unit: partial.unit ?? "square",
     quantity_source: partial.quantity_source ?? "roof_squares",
@@ -49,14 +47,13 @@ function catalog(partial: Partial<CatalogItem> & { id: string; name: string }): 
     qxo_sku: null,
     srs_sku: null,
     ...partial,
-  } as CatalogItem;
+  };
 }
 
 function templateItem(
   partial: Partial<ProposalTemplateItem> & { id: string }
 ): ProposalTemplateItem {
   return {
-    id: partial.id,
     template_id: "t1",
     option_id: "o1",
     section_id: "s1",

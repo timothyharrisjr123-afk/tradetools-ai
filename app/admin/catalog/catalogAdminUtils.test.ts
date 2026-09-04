@@ -28,7 +28,6 @@ function item(
   overrides: Partial<CatalogItem> & Pick<CatalogItem, "id">
 ): CatalogItem {
   return {
-    id: overrides.id,
     company_id: "00000000-0000-4000-8000-000000000001",
     name: overrides.name ?? "Test item",
     item_type: "material",

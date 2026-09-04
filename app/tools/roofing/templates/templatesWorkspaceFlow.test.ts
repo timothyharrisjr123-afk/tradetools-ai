@@ -30,6 +30,7 @@ function packageSummary(
     Pick<PackageOptionSummary, "optionId" | "optionLabel">
 ): PackageOptionSummary {
   return {
+    isDefault: false,
     sectionCount: 1,
     catalogSectionCount: 1,
     linkedItemCount: 0,

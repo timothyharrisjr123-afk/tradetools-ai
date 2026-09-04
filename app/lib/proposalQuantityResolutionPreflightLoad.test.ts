@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, test } from "node:test";
+import { proposalContextEchoFixture, proposalPolicyEchoFixture } from "./proposalTypecheckFixtures.test";
 import type { CatalogItem } from "./catalogTypes";
 import type { MeasurementRecord } from "./measurementTypes";
 import { buildDraftProposalCreatePersistPayload } from "./proposalDraftCreatePersistence";
@@ -21,9 +22,9 @@ import type {
   ProposalDraftGraph,
   ProposalLineItemRow,
   ProposalOptionRow,
-  ProposalRecord,
   ProposalVersionRow,
 } from "./proposalRecordStore";
+import type { ProposalRecord } from "./proposalRecordTypes";
 import {
   buildProposalQuantityPreviewContextFromPersistedMeasurement,
   runDraftQuantityResolutionPreflight,
@@ -98,6 +99,10 @@ function measurement(squares: number): MeasurementRecord {
     is_selected: true,
     source_type: "manual",
     is_verified: true,
+    report_attached: false,
+    diagram_available: false,
+    estimate_ready: true,
+    production_ready: false,
     adjusted_roof_squares: squares,
     roof_squares: squares,
     roof_area_sqft: squares * 100,
@@ -479,8 +484,8 @@ describe("S3D8 loader boundaries", () => {
     };
 
     const instantiatePayload: DraftInstantiatePayload = {
-      contextEcho: { job_id: JOB_ID },
-      policyEcho: { configured: true },
+      contextEcho: proposalContextEchoFixture(JOB_ID, TEMPLATE_ID),
+      policyEcho: proposalPolicyEchoFixture(),
       pages: [
         {
           company_id: COMPANY_ID,

@@ -61,7 +61,32 @@ function measurementReady(): MeasurementProposalHandoff {
     proposalReady: true,
     blockers: [],
     selectedLabel: "Saved manual",
-  } as MeasurementProposalHandoff;
+    quantities: {
+      roof_squares: 24,
+      adjusted_roof_squares: 24,
+      roof_area_sqft: 2400,
+      waste_percent: 10,
+      eaves_lf: null,
+      rakes_lf: null,
+      ridges_lf: null,
+      hips_lf: null,
+      valleys_lf: null,
+      wall_flashing_lf: null,
+      step_flashing_lf: null,
+      transitions_lf: null,
+      parapet_wall_lf: null,
+      drip_edge_lf: null,
+      starter_lf: null,
+      ridge_cap_lf: null,
+      pipe_boots_count: null,
+      vents_count: null,
+      skylights_count: null,
+      chimneys_count: null,
+      satellite_dishes_count: null,
+    },
+    estimateReady: true,
+    productionReady: false,
+  };
 }
 
 describe("parseInternalReturnTo", () => {

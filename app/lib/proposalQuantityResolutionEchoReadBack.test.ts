@@ -13,6 +13,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, test } from "node:test";
+import { proposalContextEchoFixture, proposalPolicyEchoFixture } from "./proposalTypecheckFixtures.test";
 import type { CatalogItem } from "./catalogTypes";
 import type { MeasurementRecord } from "./measurementTypes";
 import {
@@ -33,9 +34,9 @@ import type {
   ProposalDraftGraph,
   ProposalLineItemRow,
   ProposalOptionRow,
-  ProposalRecord,
   ProposalVersionRow,
 } from "./proposalRecordStore";
+import type { ProposalRecord } from "./proposalRecordTypes";
 import {
   runDraftQuantityResolutionPreflight,
   type LoadDraftQuantityResolutionPreflightDeps,
@@ -127,13 +128,17 @@ function measurement(squares: number): MeasurementRecord {
     waste_percent: 10,
     pitch_label: "6/12",
     stories: "1",
+    report_attached: false,
+    diagram_available: false,
+    estimate_ready: true,
+    production_ready: false,
   };
 }
 
 function instantiatePayload(): DraftInstantiatePayload {
   return {
-    contextEcho: { job_id: JOB_ID },
-    policyEcho: { configured: true },
+    contextEcho: proposalContextEchoFixture(JOB_ID, TEMPLATE_ID),
+    policyEcho: proposalPolicyEchoFixture(),
     pages: [
       {
         company_id: COMPANY_ID,
@@ -197,7 +202,7 @@ function instantiateInput(echo: Record<string, unknown> | null): DraftInstantiat
           sort_order: 0,
           customer_name: "Shingles",
           description: null,
-          role: null,
+          role: "standard",
           quantity: 22,
           quantity_display_label: "22 SQ",
           quantity_source_label: "Measurement",
@@ -534,7 +539,9 @@ describe("S3D9 quantity_resolution_echo read-back chain", () => {
       sort_order: 0,
       customer_name: "Shingles",
       description: null,
-      role: null,
+      role: "standard",
+      composition_role: null,
+      composition_slot_key: null,
       quantity: 22,
       quantity_display_label: "22 SQ",
       quantity_source_label: "Measurement",

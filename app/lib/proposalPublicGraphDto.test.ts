@@ -212,19 +212,19 @@ function draftGraph(): ProposalDraftGraph {
     scopeDecisions: [
       {
         id: "18181818-1818-4818-8818-181818181818",
-        company_id: COMPANY_ID,
-        proposal_id: PROPOSAL_ID,
-        proposal_version_id: VERSION_ID,
-        proposal_option_id: RUNTIME_OPT_A,
-        decision_type: "excluded",
-        source_template_item_id: "17171717-1717-4717-8717-171717171717",
-        instance_line_key: null,
-        payload_json: {},
+        companyId: COMPANY_ID,
+        proposalId: PROPOSAL_ID,
+        proposalVersionId: VERSION_ID,
+        proposalOptionId: RUNTIME_OPT_A,
+        decisionType: "excluded",
+        sourceTemplateItemId: "17171717-1717-4717-8717-171717171717",
+        instanceLineKey: null,
+        payload: {},
         active: true,
-        created_by: null,
-        updated_by: null,
-        created_at: "2026-06-06T00:00:00.000Z",
-        updated_at: "2026-06-06T00:00:00.000Z",
+        createdBy: null,
+        updatedBy: null,
+        createdAt: "2026-06-06T00:00:00.000Z",
+        updatedAt: "2026-06-06T00:00:00.000Z",
       },
     ],
   };
@@ -374,55 +374,12 @@ describe("buildProposalPublicGraphDto", () => {
     assert.equal(dto.options[0]!.line_items.length, 1);
   });
 
-  test("consumes explicit sent ProposalVersionGraph shape without scope decisions", () => {
-    const draft = draftGraph();
-    const versionGraph: ProposalVersionGraph = {
-      proposal: { ...draft.proposal, latest_sent_version_id: VERSION_ID },
-      version: {
-        ...draft.version,
-        version_kind: "sent",
-        frozen_at: "2026-06-18T12:00:00.000Z",
-        parent_version_id: draft.version.id,
-        version_number: 2,
-      },
-      pages: draft.pages,
-      options: draft.options,
-      lineItems: draft.lineItems,
-      internalSummaries: draft.internalSummaries,
-    };
-
-    const like = {
-      version: versionGraph.version,
-      pages: versionGraph.pages,
-      options: versionGraph.options.map((option) => ({
-        source_template_option_id: option.source_template_option_id!,
-        name: option.name,
-        customer_label: option.customer_label,
-        description: option.description ?? null,
-        sort_order: option.sort_order,
-        visible_to_customer: option.visible_to_customer,
-        customer_subtotal_cents: option.customer_subtotal_cents,
-        discount_cents: option.discount_cents,
-        sales_tax_cents: option.sales_tax_cents,
-        customer_total_cents: option.customer_total_cents,
-        line_items: versionGraph.lineItems
-          .filter((line) => line.proposal_option_id === option.id)
-          .map((line) => ({
-            source_template_item_id: line.source_template_item_id,
-            customer_name: line.customer_name,
-            description: line.description,
-            quantity: line.quantity,
-            quantity_display_label: line.quantity_display_label,
-            unit: line.unit,
-            customer_unit_price_cents: line.customer_unit_price_cents,
-            customer_line_total_cents: line.customer_line_total_cents,
-            pricing_status: line.pricing_status,
-            visible_to_customer: line.visible_to_customer,
-            page_id: line.page_id,
-            sort_order: line.sort_order,
-          })),
-      })),
-    };
+  test("consumes explicit send-freeze graph-like shape without optional internal collections", () => {
+    const payload = buildProposalSendFreezePersistPayload(draftGraph(), {
+      sentVersionId: "aaaaaaa1-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    });
+    const frozen = buildSendFreezeGraphLikeFromPayload(payload, "2026-06-18T12:00:00.000Z");
+    const like = { version: frozen.version, pages: frozen.pages, options: frozen.options };
 
     const dto = buildProposalPublicGraphDto(like, TEMPLATE_OPT_A);
     assert.equal(dto.version_kind, "sent");

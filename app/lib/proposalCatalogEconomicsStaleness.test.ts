@@ -15,9 +15,7 @@ function catalog(
   partial: Partial<CatalogItem> & { id: string; name: string }
 ): CatalogItem {
   return {
-    id: partial.id,
     company_id: "co",
-    name: partial.name,
     item_type: "material",
     unit: "square",
     quantity_source: "roof_squares",
@@ -28,7 +26,7 @@ function catalog(
     unit_cost_cents: 5000,
     updated_at: partial.updated_at ?? "2026-07-01T00:00:00.000Z",
     ...partial,
-  } as CatalogItem;
+  };
 }
 
 describe("deriveDraftCatalogEconomicsStale", () => {

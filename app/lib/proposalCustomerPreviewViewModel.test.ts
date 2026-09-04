@@ -257,9 +257,9 @@ describe("buildProposalCustomerPreviewDocument", () => {
     );
   });
 
-  test("signature and payment_schedule pages are excluded even when visible", () => {
+  test("signature and payment_schedule pages are absent from the customer document contract", () => {
     const doc = buildProposalCustomerPreviewDocument(minimalGraph());
-    assert.ok(!doc.pages.some((page) => page.pageType === "signature"));
+    assert.ok(!doc.pages.some((page) => String(page.pageType) === "signature"));
   });
 
   test("text page resolves tokens via R14 and does not show raw token", () => {

@@ -19,6 +19,7 @@ function fullContext(overrides: Partial<ProposalDocumentContext> = {}): Proposal
       companyName: "Summit Roofing",
       companyLogoUrl: "https://cdn.example/logo.png",
       companyPhone: "918-555-0100",
+      companyEmail: "office@example.com",
       companyLicense: "OK-12345",
       companyAddress: "456 HQ Blvd",
       companyWebsite: "https://summitroofing.com",

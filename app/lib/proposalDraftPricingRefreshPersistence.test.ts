@@ -6,6 +6,7 @@
 
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
+import { proposalContextEchoFixture, proposalPolicyEchoFixture } from "./proposalTypecheckFixtures.test";
 import {
   buildDraftPricingRefreshGraphSnapshotFromTables,
   buildDraftPricingRefreshPersistPayload,
@@ -45,8 +46,8 @@ const TEMPLATE_OPT = "77777777-7777-4777-8777-777777777777";
 
 function minimalInstantiatePayload(): DraftInstantiatePayload {
   return {
-    contextEcho: {},
-    policyEcho: { configured: true },
+    contextEcho: proposalContextEchoFixture(PROPOSAL_ID),
+    policyEcho: proposalPolicyEchoFixture(),
     pages: [],
     options: [
       {
@@ -77,27 +78,11 @@ function minimalInstantiatePayload(): DraftInstantiatePayload {
 
 function minimalInstantiateInput(): DraftInstantiateInput {
   return {
-    companyId: COMPANY_ID,
-    graph: {
-      template: {
-        id: "tpl",
-        company_id: COMPANY_ID,
-        name: "T",
-        status: "active",
-      },
-      options: [],
-      sections: [],
-      items: [],
-    },
-    catalogItems: [],
-    quantityContext: null,
-    preview: {
-      selectedOptionId: TEMPLATE_OPT,
-      byOptionId: {},
-      options: [],
-    },
-    policy: TEST_POLICY,
-    pricingPolicyId: "policy-1",
+    company_id: COMPANY_ID,
+    templateOptions: [],
+    templateSections: [],
+    optionPricing: [],
+    policy: { configured: true, policy: TEST_POLICY, pricingPolicyId: "policy-1", source: "company" },
     context: { job_id: "job", template_id: "tpl" },
     selectedTemplateOptionId: TEMPLATE_OPT,
     lineItemsByTemplateOptionId: {
@@ -111,7 +96,7 @@ function minimalInstantiateInput(): DraftInstantiateInput {
           sort_order: 0,
           customer_name: "Shingles",
           description: null,
-          role: null,
+          role: "standard",
           quantity: 22,
           quantity_display_label: "22 SQ",
           quantity_source_label: "Measurement",
@@ -223,8 +208,9 @@ describe("draft pricing refresh persistence contract", () => {
     instantiatePayload.options[0]!.customer_subtotal_cents = 15_000;
     instantiatePayload.options[0]!.customer_total_cents = 15_000;
 
-    const instantiateInput = minimalInstantiateInput();
-    instantiateInput.lineItemsByTemplateOptionId[TEMPLATE_OPT] = [
+    const instantiateInput = {
+      ...minimalInstantiateInput(),
+      lineItemsByTemplateOptionId: { [TEMPLATE_OPT]: [
       {
         source_template_item_id: "item-visible",
         catalog_item_id: "cat-visible",
@@ -234,15 +220,15 @@ describe("draft pricing refresh persistence contract", () => {
         sort_order: 0,
         customer_name: "Shingles",
         description: null,
-        role: null,
+        role: "standard" as const,
         quantity: 22,
         quantity_display_label: "22 SQ",
         quantity_source_label: "Measurement",
         unit: "SQ",
         customer_unit_price_cents: 500,
         customer_line_total_cents: 10_000,
-        engineStatus: "priced",
-        customerVisibility: "customer_visible",
+        engineStatus: "priced" as const,
+        customerVisibility: "customer_visible" as const,
         catalogItemMissing: false,
         measurement_quantity_key: null,
       },
@@ -255,20 +241,21 @@ describe("draft pricing refresh persistence contract", () => {
         sort_order: 1,
         customer_name: "Hidden underlayment",
         description: null,
-        role: null,
+        role: "standard" as const,
         quantity: 1,
         quantity_display_label: "1 EA",
         quantity_source_label: "Template",
         unit: "EA",
         customer_unit_price_cents: 5000,
         customer_line_total_cents: 5000,
-        engineStatus: "priced",
-        customerVisibility: "customer_visible",
+        engineStatus: "priced" as const,
+        customerVisibility: "customer_visible" as const,
         hiddenButInCalc: true,
         catalogItemMissing: false,
         measurement_quantity_key: null,
       },
-    ];
+      ] },
+    };
 
     const payload = buildDraftPricingRefreshPersistPayload({
       companyId: COMPANY_ID,

@@ -89,7 +89,7 @@ describe("Catalog P0B–P0D page shell", () => {
     assert.ok(source.includes("data-catalog-columns-menu"));
     assert.ok(source.includes("data-catalog-manage-menu"));
     assert.ok(source.includes("onColumnVisibilityChange"));
-    assert.deepEqual(CATALOG_COMMAND_BAR_PLANNED_CONTROLS.map((c) => c.label), []);
+    assert.equal(CATALOG_COMMAND_BAR_PLANNED_CONTROLS.length, 0);
     assert.deepEqual(
       CATALOG_COMMAND_BAR_ACTIVE_CONTROLS.map((c) => c.label),
       ["Re-order items", "Columns", "Manage catalog"]
@@ -112,10 +112,8 @@ describe("Catalog P0B–P0D page shell", () => {
     assert.ok(CATALOG_OPTIONAL_COLUMNS.some((c) => c.id === "type"));
     assert.ok(CATALOG_OPTIONAL_COLUMNS.some((c) => c.id === "unit_price"));
     // Coverage / tax are not optional table columns in this shell.
-    assert.equal(
-      CATALOG_OPTIONAL_COLUMNS.some((c) => c.id === "coverage" || c.id === "tax"),
-      false
-    );
+    const optionalColumnIds: readonly string[] = CATALOG_OPTIONAL_COLUMNS.map((c) => c.id);
+    assert.equal(optionalColumnIds.includes("coverage") || optionalColumnIds.includes("tax"), false);
   });
 
   test("Manage Catalog menu activates CSV + reorder; supplier/jumpstart stay planned", () => {

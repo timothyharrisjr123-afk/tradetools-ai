@@ -14,7 +14,7 @@ function currentEcho(
 ): AdjustedQuantityResolutionEcho {
   return {
     quantity_mode: "adjusted_measurement",
-    source_measurement_key: "squares",
+    source_measurement_key: "roof_squares",
     source_measurement_value: 24,
     coverage_rate_used: null,
     waste_pct_used: null,
@@ -27,7 +27,7 @@ function currentEcho(
 function persistedEcho(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     quantity_mode: "adjusted_measurement",
-    source_measurement_key: "squares",
+    source_measurement_key: "roof_squares",
     source_measurement_value: 24,
     coverage_rate_used: null,
     waste_pct_used: null,
@@ -96,7 +96,7 @@ describe("compareAdjustedQuantityResolutionEcho", () => {
   test("6. source key mismatch = stale when both known", () => {
     const result = compareAdjustedQuantityResolutionEcho({
       persistedEcho: persistedEcho({ source_measurement_key: "ridge_lf" }),
-      currentEcho: currentEcho({ source_measurement_key: "squares" }),
+      currentEcho: currentEcho({ source_measurement_key: "roof_squares" }),
     });
     assert.equal(result.status, "stale");
     assert.ok(result.reasons.includes("source_measurement_key_mismatch"));
@@ -161,7 +161,7 @@ describe("compareAdjustedQuantityResolutionEcho", () => {
         resolved_purchase_quantity: 48,
       }),
       currentEcho: currentEcho({
-        source_measurement_key: "squares",
+        source_measurement_key: "roof_squares",
         source_measurement_value: null,
         resolved_purchase_quantity: 48,
       }),
@@ -207,7 +207,7 @@ describe("compareAdjustedQuantityResolutionEcho", () => {
   test("source key null on either side does not invent key mismatch stale", () => {
     const result = compareAdjustedQuantityResolutionEcho({
       persistedEcho: persistedEcho({ source_measurement_key: null }),
-      currentEcho: currentEcho({ source_measurement_key: "squares" }),
+      currentEcho: currentEcho({ source_measurement_key: "roof_squares" }),
     });
     assert.equal(result.status, "current");
     assert.ok(!result.reasons.includes("source_measurement_key_mismatch"));

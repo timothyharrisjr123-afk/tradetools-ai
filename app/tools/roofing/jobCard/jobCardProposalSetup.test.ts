@@ -499,13 +499,13 @@ describe("deriveJobCardSelectedTemplateEligibility", () => {
     });
     assert.equal(eligibility.usable, true);
 
-    const catalogReadiness = {
-      status: "ready",
-      active_item_count: 20,
-      priced_item_count: 20,
-      unpriced_item_count: 0,
-      missing_seed_key_count: 0,
-    } as CatalogReadinessSummary;
+    const catalogReadiness: CatalogReadinessSummary = {
+      state: "ready_for_templates",
+      activeItemCount: 20,
+      measurementMappedItemCount: 20,
+      pricedItemCount: 20,
+      starterDefinitionCount: 16,
+    };
     const companyReadiness = deriveProposalTemplateReadiness({
       catalogReadiness,
       activeCatalogItems: catalogItems,

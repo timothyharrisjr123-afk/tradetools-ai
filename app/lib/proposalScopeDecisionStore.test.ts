@@ -405,7 +405,7 @@ describe("proposalScopeDecisionStore", { concurrency: 1 }, () => {
     );
 
     assert.equal(saved.decisionType, "manual_quantity");
-    assert.equal(saved.payload.quantity, 19);
+    assert.deepEqual(saved.payload, { quantity: 19 });
 
     const byOption = await getScopeDecisionsForProposalOption(
       COMPANY_ID,
@@ -619,8 +619,7 @@ describe("proposalScopeDecisionStore", { concurrency: 1 }, () => {
     );
 
     await assert.rejects(
-      () =>
-        clearDraftScopeDecisionByTarget(
+      () => Reflect.apply(clearDraftScopeDecisionByTarget, undefined, [
           {
             company_id: COMPANY_ID,
             proposal_id: created.proposal.id,
@@ -628,8 +627,8 @@ describe("proposalScopeDecisionStore", { concurrency: 1 }, () => {
             decision_type: "remove",
             source_template_item_id: templateItemId,
           },
-          deps
-        ),
+          deps,
+        ]),
       (err: unknown) => err instanceof ProposalRecordStoreError
     );
 

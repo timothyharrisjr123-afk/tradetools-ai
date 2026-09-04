@@ -171,11 +171,17 @@ describe("catalogBulkPurchaseTax", () => {
     });
     assert.equal(resolveBulkPurchaseTaxRate("set", "").ok, false);
     assert.equal(resolveBulkPurchaseTaxRate("set", "   ").ok, false);
-    assert.match(resolveBulkPurchaseTaxRate("set", "-1").error ?? "", /negative/i);
-    assert.match(resolveBulkPurchaseTaxRate("set", "100.01").error ?? "", /exceed/i);
-    assert.match(resolveBulkPurchaseTaxRate("set", "5abc").error ?? "", /valid number/i);
-    assert.match(resolveBulkPurchaseTaxRate("set", "NaN").error ?? "", /valid number/i);
-    assert.match(resolveBulkPurchaseTaxRate("set", "Infinity").error ?? "", /valid number/i);
+    for (const [value, pattern] of [
+      ["-1", /negative/i],
+      ["100.01", /exceed/i],
+      ["5abc", /valid number/i],
+      ["NaN", /valid number/i],
+      ["Infinity", /valid number/i],
+    ] as const) {
+      const result = resolveBulkPurchaseTaxRate("set", value);
+      assert.equal(result.ok, false);
+      if (!result.ok) assert.match(result.error, pattern);
+    }
   });
 
   test("resolveBulkPurchaseTaxRate clear always yields null", () => {

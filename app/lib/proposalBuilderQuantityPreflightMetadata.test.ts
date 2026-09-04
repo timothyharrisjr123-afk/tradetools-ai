@@ -18,9 +18,9 @@ import type {
   ProposalDraftGraph,
   ProposalLineItemRow,
   ProposalOptionRow,
-  ProposalRecord,
   ProposalVersionRow,
 } from "./proposalRecordStore";
+import type { ProposalRecord } from "./proposalRecordTypes";
 import { buildProposalQuantityPreviewContextFromPersistedMeasurement } from "./proposalQuantityResolutionPreflightLoad";
 import { buildLineItemSnapshots } from "./proposalSnapshotBuilder";
 import type { ProposalTemplateItem } from "./proposalTemplateTypes";
@@ -90,6 +90,10 @@ function measurement(squares: number): MeasurementRecord {
     waste_percent: 10,
     pitch_label: "6/12",
     stories: "1",
+    report_attached: false,
+    diagram_available: false,
+    estimate_ready: true,
+    production_ready: false,
   };
 }
 
@@ -326,15 +330,15 @@ describe("resolveProposalBuilderQuantityPreflightMetadata", () => {
           sort_order: 0,
           customer_name: "Shingles",
           description: null,
-          role: null,
+          role: "standard",
           quantity: 24,
           quantity_display_label: "24 SQ",
           quantity_source_label: "Measurement",
           unit: "SQ",
           customer_unit_price_cents: 500,
           customer_line_total_cents: 12000,
-          pricing_status: "priced",
-          visible_to_customer: true,
+          engineStatus: "priced",
+          customerVisibility: "customer_visible",
           measurement_quantity_key: null,
           quantity_resolution_echo: matchingEcho(24),
         },

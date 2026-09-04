@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, test } from "node:test";
+import { proposalContextEchoFixture, proposalPolicyEchoFixture } from "./proposalTypecheckFixtures.test";
 import type { CatalogItem } from "./catalogTypes";
 import type {
   MeasurementProposalHandoff,
@@ -439,8 +440,8 @@ describe("S3D7 orchestrator boundaries", () => {
     };
 
     const instantiatePayload: DraftInstantiatePayload = {
-      contextEcho: { job_id: JOB_ID },
-      policyEcho: { configured: true },
+      contextEcho: proposalContextEchoFixture(JOB_ID),
+      policyEcho: proposalPolicyEchoFixture(),
       pages: [
         {
           company_id: CREATE_COMPANY_ID,

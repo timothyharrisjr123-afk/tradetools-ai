@@ -114,6 +114,7 @@ function graph(
       company_id: COMPANY_ID,
       name: "Test template",
       status: "active",
+      active: true,
     },
     options,
     sections,

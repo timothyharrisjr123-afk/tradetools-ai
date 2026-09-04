@@ -44,6 +44,7 @@ describe("Template Flow V1 — presentation truth + quiet infrastructure", () =>
       formatPackageScopeCountLine({
         optionId: "enhanced",
         optionLabel: "Enhanced",
+        isDefault: false,
         sectionCount: 6,
         catalogSectionCount: 2,
         linkedItemCount: 13,

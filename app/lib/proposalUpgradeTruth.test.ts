@@ -75,7 +75,7 @@ function graphForItems(items: ProposalTemplateItem[]): ProposalTemplateGraph {
         id: SECTION_ID,
         template_id: TEMPLATE_ID,
         option_id: OPTION_ID,
-        section_type: "line_items",
+        kind: "line_items",
         name: "Scope",
         sort_order: 0,
       },
@@ -120,7 +120,6 @@ describe("applyUpgradeTruthToPricingLines", () => {
         source_template_item_id: "upg-1",
         selection_state: "not_selected",
         upgrade_effect: "additive",
-        replaces_source_template_item_id: null,
       },
     ]);
 
@@ -154,7 +153,6 @@ describe("applyUpgradeTruthToPricingLines", () => {
         source_template_item_id: "upg-1",
         selection_state: "selected",
         upgrade_effect: "additive",
-        replaces_source_template_item_id: null,
       },
     ]);
 
@@ -189,7 +187,6 @@ describe("applyUpgradeTruthToPricingLines", () => {
         source_template_item_id: "upg-1",
         selection_state: "selected",
         upgrade_effect: "replacement",
-        replaces_source_template_item_id: "base-1",
       },
     ]);
 
@@ -224,7 +221,6 @@ describe("applyUpgradeTruthToPricingLines", () => {
         source_template_item_id: "upg-1",
         selection_state: "not_selected",
         upgrade_effect: "replacement",
-        replaces_source_template_item_id: "base-1",
       },
     ]);
 
@@ -274,8 +270,6 @@ describe("upgrade contribution via pricing engine", () => {
           source_template_item_id: "upg-1",
           selection_state: params.upgradeSelection,
           upgrade_effect: params.effect,
-          replaces_source_template_item_id:
-            params.effect === "replacement" ? "base-1" : null,
         },
       ]),
       lines: [

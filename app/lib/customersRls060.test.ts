@@ -40,7 +40,8 @@ describe("060 — historical files stay locked", () => {
       (n) => n.endsWith(".sql") && /_0(49|5\d)_/.test(n)
     );
     assert.deepEqual(names.sort(), [...AFTER_048_MIGRATIONS].sort());
-    assert.ok(!AFTER_048_MIGRATIONS.includes("20260830_060_customers_tenant_isolation.sql"));
+    const paymentMigrationNames: readonly string[] = AFTER_048_MIGRATIONS;
+    assert.ok(!paymentMigrationNames.includes("20260830_060_customers_tenant_isolation.sql"));
   });
 });
 

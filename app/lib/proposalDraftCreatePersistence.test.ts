@@ -6,6 +6,7 @@
 
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
+import { proposalContextEchoFixture, proposalPolicyEchoFixture } from "./proposalTypecheckFixtures.test";
 import {
   assertDraftProposalCreateGraphInvariants,
   buildDraftProposalCreatePersistPayload,
@@ -53,8 +54,8 @@ const SECTION_ID = "88888888-8888-4888-8888-888888888888";
 
 function minimalInstantiatePayload(): DraftInstantiatePayload {
   return {
-    contextEcho: { job_id: JOB_ID },
-    policyEcho: { configured: true },
+    contextEcho: proposalContextEchoFixture(JOB_ID, TEMPLATE_ID),
+    policyEcho: proposalPolicyEchoFixture(),
     pages: [
       {
         company_id: COMPANY_ID,
@@ -113,7 +114,7 @@ function minimalInstantiateInput(): DraftInstantiateInput {
           sort_order: 0,
           customer_name: "Shingles",
           description: null,
-          role: null,
+          role: "standard",
           quantity: 22,
           quantity_display_label: "22 SQ",
           quantity_source_label: "Measurement",
@@ -230,7 +231,7 @@ describe("draft proposal create persistence contract", () => {
     const option = payload.options[0]!;
     assert.equal(option.line_items.length, 1);
     assert.equal(option.line_items[0]!.section_id, SECTION_ID);
-    assert.equal(option.line_items[0]!.page_id, undefined);
+    assert.equal("page_id" in option.line_items[0]!, false);
     assert.equal(option.description, null);
     assert.ok(option.internal_summary);
 
@@ -238,8 +239,9 @@ describe("draft proposal create persistence contract", () => {
   });
 
   test("create persist copies Template composition_role and composition_slot_key", () => {
-    const input = minimalInstantiateInput();
-    input.lineItemsByTemplateOptionId[TEMPLATE_OPT] = [
+    const input: DraftInstantiateInput = {
+      ...minimalInstantiateInput(),
+      lineItemsByTemplateOptionId: { [TEMPLATE_OPT]: [
       templateItemToLineInput(
         {
           id: "99999999-9999-4999-8999-999999999999",
@@ -263,7 +265,8 @@ describe("draft proposal create persistence contract", () => {
           customerLineTotalCents: 10_000,
         }
       ),
-    ];
+      ] },
+    };
     const payload = buildDraftProposalCreatePersistPayload({
       companyId: COMPANY_ID,
       jobId: JOB_ID,

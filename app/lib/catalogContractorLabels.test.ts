@@ -24,10 +24,8 @@ import {
 
 function item(overrides: Partial<CatalogItem> & Pick<CatalogItem, "id" | "item_type">): CatalogItem {
   return {
-    id: overrides.id,
     company_id: "00000000-0000-4000-8000-000000000001",
     name: overrides.name ?? "Test item",
-    item_type: overrides.item_type,
     unit: "each",
     quantity_source: "fixed",
     pricing_basis: "unit_price",
@@ -122,7 +120,7 @@ describe("catalogContractorLabels", () => {
 
   test("command-bar reorder is active with Columns/Manage; Settings reorder notes live path", () => {
     assert.equal(CATALOG_COMING_SOON_LABEL, "Coming soon");
-    assert.deepEqual(CATALOG_COMMAND_BAR_PLANNED_CONTROLS.map((c) => c.label), []);
+    assert.equal(CATALOG_COMMAND_BAR_PLANNED_CONTROLS.length, 0);
     assert.deepEqual(
       CATALOG_COMMAND_BAR_ACTIVE_CONTROLS.map((c) => c.label),
       ["Re-order items", "Columns", "Manage catalog"]
