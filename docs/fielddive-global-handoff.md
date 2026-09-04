@@ -85,7 +85,7 @@
 
 **Last updated checkpoint:**
 
-- **Beta Trust Ops Group C pre-deploy gate:** APP_URL scope architecture and Stripe TEST Connect infrastructure are verified; see **§6DG.4**. Production remains on stale remote SHA **`8271f3742fa2f8e23957ba61fa470e0af4ff256e`** while the local `main` branch is ahead pending a separately authorized deliberate push/deploy. No production smoke has run. Known paid-beta P1s and the mandatory multi-audit HOLD remain. **Do not push. Do not production-smoke. Do not start Wave D.**
+- **Beta Trust Ops Group C fixture-route remediation:** systemic production-addressable visual fixture routes were discovered after the initial pre-deploy checkpoint and removed at **`4efa968`**; see **§6DG.5**. APP_URL and Stripe TEST Connect infrastructure remain verified. Production remains on stale remote SHA **`8271f3742fa2f8e23957ba61fa470e0af4ff256e`**. The full pre-deploy gate must be rerun before any push/deploy authorization. No production smoke has run. Known paid-beta P1s and the mandatory multi-audit HOLD remain. **Do not push. Do not production-smoke. Do not start Wave D.**
 - **Beta Trust Ops Group B:** `docs(ops): define controlled beta trust procedures` (`8b30475`) — env contract, Stripe TEST-only policy, runbooks, multi-audit HOLD. Group A code **`c8c6553`**. **NO PUSH.**
 - **Commercial Wedge final visual gate closeout:** `docs: close commercial wedge visual gate` (**COMMERCIAL WEDGE COMPLETE / EXTERNALLY VISUALLY ACCEPTED**, see **§6DF**). Code **`8cfd064`**. Proof `tmp/fielddive-ui-review/commercial-wedge/final-visual-gate/`. **NO PUSH.**
 - **Commercial Wedge Groups 1–3 feature closeout (superseded for visual finality):** `docs: checkpoint commercial wedge` (**COMMERCIAL WEDGE COMPLETE / ACCEPTED** pre–final visual gate, see historical **§6DF** Groups). Code **`1440fc6`**. Desktop + 390 proof `tmp/fielddive-ui-review/commercial-wedge/group-3/`. Do **not** treat pre-gate “accepted” wording as the final external visual close.
@@ -19841,7 +19841,18 @@ When uncertain: **Optimize for obvious contractor flow, truthful system state, r
 - **Paid-beta P1 carry-forward:** require `event.account` for relevant Connect settlement events; do not return HTTP 200 when settlement/`account.updated` persistence fails; complete disconnect/reconnect handling; richer Stripe account-health UX; contain legacy Board checkout; remove legacy secret-fragment logging; deliberately review/modernize the Stripe application SDK; configure a Production Google Places server key; close exact-property autocomplete ranking; run the broader account/company/login/first-run readiness audit.
 - **Scope locks:** the full user/company/login/onboarding audit remains scheduled for pre-beta readiness, not this checkpoint. Wave D has not started. The mandatory multi-audit paid-beta HOLD remains in force.
 
-**Exact next:** deliberate push/Production deploy only with explicit authorization, followed by the separately authorized Group C production smoke. Do **not** start Wave D yet. Do **not** invite paid beta until the multi-audit HOLD clears.
+#### §6DG.5 Systemic production fixture-route P0 remediation — 2026-09-04
+
+- The final pre-deploy route-table review found a newly added unguarded no-logo visual proof plus a systemic set of historical visual/review pages under the production Next.js `app/` route tree. These pages rendered fake company/customer data or explicit fixture/review copy and were deployment-blocking prototype leakage.
+- Application/test cleanup **`4efa968`** removes **23 production route entrypoints**: all **21 harness-backed review routes**, including `/tools/roofing/proposals/preview/no-logo-cover-review`, the four `/dev-harness/*` pages, all Job Card payment/task/photo/activity/measurement/scheduling/review pages, and the previously production-null R3G/R3H review pages; it also removes the unlinked public `/ai` and `/chat` placeholder pages.
+- The no-logo fixture route and its dedicated fake-data harness were deleted. Older non-route harness components remain available as development/test artifacts but are no longer production-addressable.
+- Four route-name matches were verified as real product behavior and retained: authenticated contractor Proposal Preview, authenticated acceptance acknowledge/confirm APIs, and authenticated public-review-link minting. The linked `/tools/roofing/ai` product surface was also retained; this cleanup did not redesign product navigation.
+- Tests that read route/harness source for product assertions were rewritten to assert real production components. New `productionRouteSafety.test.ts` recursively rejects `dev-harness` route entrypoints, route files importing `*Harness`, known fixture/review markers in route-bearing files, and restoration of the retired `/ai` or `/chat` placeholders.
+- Affected Proposal Preview / Job Card / payment / visual-gate / route-safety tests: **266/266 PASS**. Clean production build: **PASS**, **65 generated pages**; removed fixture routes are absent and normal Proposal Preview, Job Card, payment, acceptance, and Connect routes remain.
+- No Stripe, Vercel, database, migration, payment, lifecycle, dependency, or production configuration change. No deploy or production smoke occurred. Historical handoff references to removed review URLs describe past screenshot workflows only and are no longer runnable routes.
+- All Trust Ops infrastructure truth, paid-beta P1 carry-forward, Wave D prohibition, and mandatory multi-audit HOLD from **§6DG.4** remain intact.
+
+**Exact next:** rerun the full Group C pre-deploy gate against `4efa968` plus this docs checkpoint. A deliberate push/Production deploy still requires separate explicit authorization. Do **not** start Wave D or invite paid beta.
 
 ---
 
