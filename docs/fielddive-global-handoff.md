@@ -85,7 +85,7 @@
 
 **Last updated checkpoint:**
 
-- **Beta Trust Ops Group C pre-deploy gate renewed:** systemic production-addressable fixture routes were removed at **`4efa968`** and the full gate rerun passed at **§6DG.6**. APP_URL and Stripe TEST Connect infrastructure remain verified. Production remains on stale remote SHA **`8271f3742fa2f8e23957ba61fa470e0af4ff256e`**. The next safe action is a separately authorized deliberate push/Production deploy; no production smoke has run. Known paid-beta P1s and the mandatory multi-audit HOLD remain. **Do not push. Do not production-smoke. Do not start Wave D.**
+- **Beta Trust Ops Group C COMPLETE:** pre-deploy gate passed at **§6DG.6**, `main` was pushed, and Vercel Production deployment **`dpl_3DCBbeMv1uyadPHZUsJKwv81eqsw`** is READY for commit **`97d7016ee1b75df67e0008ed1355d15a9a48f8db`**. Canonical `www.fielddive.com` and apex aliases are live; safe production smoke passed. Remaining paid-beta P1s and the mandatory multi-audit HOLD remain. **Do not invite paid beta. Do not start Wave D without separate authorization.**
 - **Beta Trust Ops Group B:** `docs(ops): define controlled beta trust procedures` (`8b30475`) — env contract, Stripe TEST-only policy, runbooks, multi-audit HOLD. Group A code **`c8c6553`**. **NO PUSH.**
 - **Commercial Wedge final visual gate closeout:** `docs: close commercial wedge visual gate` (**COMMERCIAL WEDGE COMPLETE / EXTERNALLY VISUALLY ACCEPTED**, see **§6DF**). Code **`8cfd064`**. Proof `tmp/fielddive-ui-review/commercial-wedge/final-visual-gate/`. **NO PUSH.**
 - **Commercial Wedge Groups 1–3 feature closeout (superseded for visual finality):** `docs: checkpoint commercial wedge` (**COMMERCIAL WEDGE COMPLETE / ACCEPTED** pre–final visual gate, see historical **§6DF** Groups). Code **`1440fc6`**. Desktop + 390 proof `tmp/fielddive-ui-review/commercial-wedge/group-3/`. Do **not** treat pre-gate “accepted” wording as the final external visual close.
@@ -19863,7 +19863,19 @@ When uncertain: **Optimize for obvious contractor flow, truthful system state, r
 - Modernization triage: **no MUST-FIX-BEFORE-THIS-DEPLOY item**. **Before paid beta:** harden Connect event/persistence/account-health recovery; deliberately migrate the Stripe Node SDK and legacy Accounts v1/capability contract; remove the explicit card-only fallback; contain legacy checkout/logging; resolve the autocomplete React-ref lint issue and Places configuration; hide or complete the AI Library. **Before broader beta:** plan Next.js 16 patch uptake and `middleware` → `proxy`, plus Resend and Supabase client/SSR updates and baseline test/lint cleanup. Avoid opportunistic upgrades in this deploy.
 - No Stripe, Vercel, SQL, migration, push, deploy, production smoke, or Wave D action occurred during this renewed gate. The mandatory multi-audit HOLD before paid beta remains unchanged.
 
-**Exact next:** separately authorize the deliberate push/Production deploy of this reviewed branch, then separately authorize production smoke. Do **not** start Wave D or invite paid beta.
+**Superseded by §6DG.7:** the deliberate push/Production deploy and safe smoke verification are complete. Do **not** invite paid beta or start Wave D without separate authorization.
+
+#### §6DG.7 Production deployment and smoke verification — 2026-09-04
+
+- Authorized `git push origin main` completed. `origin/main` now matches application HEAD **`97d7016ee1b75df67e0008ed1355d15a9a48f8db`**; no additional application commit was pushed.
+- Vercel Production deployment **`dpl_3DCBbeMv1uyadPHZUsJKwv81eqsw`** completed **READY** from the exact commit. Canonical aliases include `https://www.fielddive.com`, `https://fielddive.com`, and the project deployment URL.
+- Production build logs show successful compile, TypeScript, static generation (**65/65**), serverless output, and deployment. Warnings are limited to the known Next.js `middleware` deprecation and npm install-script approval notices; no missing-env, route, secret, or runtime build error occurred.
+- Safe smoke passed: apex **307** to `https://www.fielddive.com/`; canonical home and login **200** with no localhost, Vercel-host, or fixture markers; protected app/proposal/settings paths resolve to login without loops; representative removed fixture routes return **404**; unsigned Connect POST returns **400 `missing_signature`**.
+- Interactive authenticated browser smoke was **UNPROVEN** because no browser session was available. No onboarding, account creation, payment, or lifecycle action was initiated. Unauthenticated protection and redirect behavior passed.
+- Stripe TEST endpoint **`we_1UBzll2O7SclDeocQquxSSVC`** remains enabled at the canonical Connect URL with no recent TEST events or pending webhook deliveries. Production `STRIPE_CONNECT_WEBHOOK_SECRET` is present; no Stripe or Vercel configuration changed during deployment.
+- Trust Ops Group C is complete for deployment/origin/route/webhook infrastructure. Paid-beta P1s remain: Connect event-account and persistence retry hardening, disconnect/reconnect and account-health UX, Stripe modernization, legacy checkout/logging containment, Google Places/autocomplete, thin AI Library, broader account/company/first-run audit, and the mandatory multi-audit HOLD.
+
+**Exact next:** separately authorize the next roadmap stage, **Wave D — Delivery Completeness**. Paid beta remains prohibited until the retained P1s and mandatory multi-audit HOLD are cleared.
 
 ---
 
