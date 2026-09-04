@@ -10,9 +10,14 @@ import {
 } from "@/app/lib/jobPaymentStripe.server";
 import {
   isIgnoredStripeConnectCommand,
+  isStripeConnectEventContractError,
   mapStripeRefundObjectToCommand,
   mapStripeConnectEventToCommand,
 } from "@/app/lib/jobPaymentWebhookMapper";
+import {
+  isConfirmedAccountPersistence,
+  isConfirmedSettlementPersistence,
+} from "@/app/lib/stripeConnectPersistenceContract";
 import { createAdminClient } from "@/app/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -49,6 +54,19 @@ export async function POST(req: NextRequest) {
     data: { object: event.data.object as unknown as Record<string, unknown> },
   });
 
+  if (isStripeConnectEventContractError(mapped)) {
+    console.warn("[stripe-connect-webhook] rejected event account context", {
+      code: mapped.code,
+      eventId: mapped.event_id,
+      eventAccountId: mapped.event_account_id,
+      objectAccountId: mapped.object_account_id,
+    });
+    return NextResponse.json(
+      { ok: false, code: mapped.code, eventId: mapped.event_id },
+      { status: 400 }
+    );
+  }
+
   if (isIgnoredStripeConnectCommand(mapped)) {
     return NextResponse.json({ ok: true, ignored: true, type: mapped.type });
   }
@@ -56,7 +74,7 @@ export async function POST(req: NextRequest) {
   try {
     const admin = createAdminClient();
     if (mapped.account_update) {
-      await upsertCompanyPaymentAccountFromProviderViaRpc(admin, {
+      const persisted = await upsertCompanyPaymentAccountFromProviderViaRpc(admin, {
         companyId: mapped.account_update.company_id,
         providerAccountId: mapped.account_update.provider_account_id,
         chargesEnabled: mapped.account_update.charges_enabled,
@@ -64,6 +82,14 @@ export async function POST(req: NextRequest) {
         detailsSubmitted: mapped.account_update.details_submitted,
         disabled: mapped.account_update.disabled,
       });
+      if (
+        !isConfirmedAccountPersistence(
+          persisted,
+          mapped.account_update.provider_account_id
+        )
+      ) {
+        throw new Error("account_update_persistence_rejected");
+      }
     }
 
     if (mapped.refund_event) {
@@ -114,7 +140,10 @@ export async function POST(req: NextRequest) {
         mapped.payment_request_id ||
         mapped.provider_checkout_session_id)
     ) {
-      await recordJobPaymentProviderEventViaRpc(admin, mapped);
+      const persisted = await recordJobPaymentProviderEventViaRpc(admin, mapped);
+      if (!isConfirmedSettlementPersistence(persisted)) {
+        throw new Error("settlement_persistence_rejected");
+      }
     }
 
     return NextResponse.json({ ok: true, type: mapped.raw_type });

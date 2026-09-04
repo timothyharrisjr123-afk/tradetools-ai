@@ -145,6 +145,9 @@ const ARRIVAL_WINDOWS = [
 const ROOFING_SAVED_RETURN_STATUS_FILTER = "roofing_saved_return_status_filter";
 const ROOFING_SAVED_RETURN_SCHEDULED_VIEW = "roofing_saved_return_scheduled_view";
 const ROOFING_SAVED_RETURN_QUERY = "roofing_saved_return_query";
+// Legacy estimate Checkout charged the platform account and is not an approved
+// beta path. Canonical Connect collection lives on DB-backed job/payment flows.
+const LEGACY_PLATFORM_CHECKOUT_ENABLED = false;
 
 function arrivalLabelFromValue(v: string) {
   const found = ARRIVAL_WINDOWS.find((x) => x.value === v);
@@ -2304,7 +2307,7 @@ function SavedEstimateCard({
             )}
 
             {/* ===== PAYMENT ACTIONS ===== */}
-            {!isFullyPaid && totalCents > 0 && (
+            {LEGACY_PLATFORM_CHECKOUT_ENABLED && !isFullyPaid && totalCents > 0 && (
               <div className="flex flex-wrap items-center gap-2">
                 {!showDepositPaid && collectedCents === 0 && !isFullyPaid && (
                   <button

@@ -16,6 +16,7 @@ import {
 } from "@/app/lib/publicAppOrigin.server";
 import { createAdminClient } from "@/app/lib/supabase/admin";
 import { createClient } from "@/app/lib/supabase/server";
+import { isConfirmedAccountPersistence } from "@/app/lib/stripeConnectPersistenceContract";
 
 export const runtime = "nodejs";
 
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest) {
       }
     } else {
       const live = await retrieveConnectedAccount(accountId);
-      await upsertCompanyPaymentAccountFromProviderViaRpc(admin, {
+      const persisted = await upsertCompanyPaymentAccountFromProviderViaRpc(admin, {
         companyId,
         providerAccountId: live.id,
         chargesEnabled: live.charges_enabled === true,
@@ -75,6 +76,16 @@ export async function POST(req: NextRequest) {
         detailsSubmitted: live.details_submitted === true,
         disabled: false,
       });
+      if (!isConfirmedAccountPersistence(persisted, live.id)) {
+        return NextResponse.json(
+          {
+            ok: false,
+            code: "payment_account_refresh_failed",
+            message: "We couldn't refresh your Stripe connection. Please try again.",
+          },
+          { status: 503 }
+        );
+      }
       if (live.charges_enabled) {
         return NextResponse.json({
           ok: true,

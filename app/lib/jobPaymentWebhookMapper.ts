@@ -63,6 +63,21 @@ export type JobPaymentProviderEventCommand = {
   } | null;
 };
 
+export type StripeConnectEventContractError = {
+  error: true;
+  ignore: true;
+  code: "missing_event_account" | "event_account_mismatch";
+  type: string;
+  event_id: string;
+  event_account_id: string | null;
+  object_account_id: string | null;
+};
+
+export type StripeConnectEventCommand =
+  | JobPaymentProviderEventCommand
+  | { ignore: true; type: string }
+  | StripeConnectEventContractError;
+
 export type JobPaymentRefundEventCommand = {
   provider_event_id: string;
   raw_type: string;
@@ -192,9 +207,15 @@ export function mapStripeRefundObjectToCommand(input: {
 }
 
 export function isIgnoredStripeConnectCommand(
-  value: JobPaymentProviderEventCommand | { ignore: true; type: string }
+  value: StripeConnectEventCommand
 ): value is { ignore: true; type: string } {
   return "ignore" in value && value.ignore === true;
+}
+
+export function isStripeConnectEventContractError(
+  value: StripeConnectEventCommand
+): value is StripeConnectEventContractError {
+  return "error" in value && value.error === true;
 }
 
 export function isHandledStripeConnectEventType(type: string): boolean {
@@ -203,17 +224,43 @@ export function isHandledStripeConnectEventType(type: string): boolean {
 
 export function mapStripeConnectEventToCommand(
   event: StripeConnectEventLike
-): JobPaymentProviderEventCommand | { ignore: true; type: string } {
+): StripeConnectEventCommand {
   const type = asString(event.type) ?? "";
   if (!HANDLED_TYPES.has(type)) {
     return { ignore: true, type: type || "unknown" };
   }
 
   const object = asRecord(event.data?.object) ?? {};
-  const connectedAccount =
-    asString(event.account) ??
-    asString(object.stripe_account) ??
-    (type === "account.updated" ? asString(object.id) : null);
+  const connectedAccount = asString(event.account);
+
+  // Expiration is an intentional no-op. Every handled mutating/state event
+  // must carry Stripe's signed top-level Connect account context; object data
+  // and metadata never substitute for it.
+  if (type === "checkout.session.expired") {
+    return { ignore: true, type };
+  }
+  if (!connectedAccount) {
+    return {
+      error: true,
+      ignore: true,
+      code: "missing_event_account",
+      type,
+      event_id: event.id,
+      event_account_id: null,
+      object_account_id: type === "account.updated" ? asString(object.id) : null,
+    };
+  }
+  if (type === "account.updated" && asString(object.id) !== connectedAccount) {
+    return {
+      error: true,
+      ignore: true,
+      code: "event_account_mismatch",
+      type,
+      event_id: event.id,
+      event_account_id: connectedAccount,
+      object_account_id: asString(object.id),
+    };
+  }
 
   const base = {
     provider_event_id: event.id,
@@ -241,19 +288,22 @@ export function mapStripeConnectEventToCommand(
 
   if (type === "account.updated") {
     const metadata = asRecord(object.metadata);
+    const requirements = asRecord(object.requirements);
+    const disabledReason = asString(requirements?.disabled_reason);
     return {
       ...base,
-      provider_account_id: asString(object.id),
+      provider_account_id: connectedAccount,
       account_update: {
-        provider_account_id: asString(object.id) ?? "",
+        provider_account_id: connectedAccount,
         charges_enabled: object.charges_enabled === true,
         payouts_enabled: object.payouts_enabled === true,
         details_submitted: object.details_submitted === true,
+        // Rejection is the only unusable state this event proves with the
+        // existing coarse schema. Incomplete onboarding stays pending and
+        // other requirements remain conservatively restricted.
         disabled:
           object.charges_enabled !== true &&
-          (asString(object.requirements && asRecord(object.requirements)?.disabled_reason) !=
-            null ||
-            object.payouts_enabled === false),
+          Boolean(disabledReason?.startsWith("rejected.")),
         company_id: metadata ? asString(metadata.company_id) : null,
       },
     };
@@ -291,10 +341,6 @@ export function mapStripeConnectEventToCommand(
     base.transaction_status = "failed";
     base.apply_request_status = "failed";
     return base;
-  }
-
-  if (type === "checkout.session.expired") {
-    return { ignore: true, type };
   }
 
   if (type === "payment_intent.succeeded") {
