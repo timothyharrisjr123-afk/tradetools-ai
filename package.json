@@ -2,20 +2,25 @@
   "name": "tradetools-ai",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22 <25"
+  },
   "scripts": {
     "dev": "next dev --webpack",
     "clean": "node scripts/clean.js",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "typecheck:test": "tsc -p tsconfig.test.json --noEmit"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.9.0",
-    "@supabase/supabase-js": "^2.99.1",
+    "@supabase/ssr": "0.12.6",
+    "@supabase/supabase-js": "2.115.0",
     "@vercel/kv": "^3.0.0",
     "framer-motion": "^11.18.2",
     "lucide-react": "^0.460.0",
-    "next": "16.1.6",
+    "next": "16.3.4",
     "openai": "^6.22.0",
     "pdf-lib": "^1.17.1",
     "react": "19.2.3",
@@ -31,7 +36,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.1.6",
+    "eslint-config-next": "16.3.4",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

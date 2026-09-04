@@ -100,7 +100,7 @@ describe("062 — accepted legacy payment code paths stay company-scoped", () =>
     assert.match(batch, /getDerivedPaymentStateFromSupabase/);
   });
 
-  test("record-offline inserts with membership company_id; webhook uses admin", () => {
+  test("record-offline stays scoped; webhook uses admin; legacy Checkout is tombstoned", () => {
     const offline = read("app/api/payments/record-offline/route.ts");
     const webhook = read("app/api/payments/webhook/route.ts");
     const checkout = read("app/api/payments/create-checkout/route.ts");
@@ -109,7 +109,9 @@ describe("062 — accepted legacy payment code paths stay company-scoped", () =>
     assert.match(offline, /company_id: companyId/);
     assert.match(webhook, /createAdminClient/);
     assert.match(webhook, /\.from\("payments"\)\.insert/);
-    assert.match(checkout, /getDerivedPaymentStateFromSupabase/);
+    assert.match(checkout, /legacy_checkout_disabled/);
+    assert.match(checkout, /status:\s*410/);
+    assert.doesNotMatch(checkout, /getDerivedPaymentStateFromSupabase|new Stripe|STRIPE_SECRET_KEY/);
   });
 
   test("no product references to public.subscriptions table", () => {
