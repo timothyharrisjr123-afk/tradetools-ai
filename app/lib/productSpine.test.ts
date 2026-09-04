@@ -117,6 +117,25 @@ describe("evaluateDbProposalLaunchSpine", () => {
     assert.equal(result.reason, null);
   });
 
+  test("blocks builder/preview without job using contractor-facing missing context", () => {
+    const builder = evaluateDbProposalLaunchSpine({
+      pathname: "/tools/roofing/proposals/builder",
+    });
+    assert.equal(builder.allowed, false);
+    assert.equal(builder.reason, "missing_job_context");
+    assert.equal(builder.errorMessage, "Open a job before creating a proposal.");
+    assert.doesNotMatch(builder.errorMessage ?? "", /clean DB|database|fixture|smoke|harness/i);
+    assert.equal(builder.normalizeHref, "/tools/roofing/saved");
+
+    const preview = evaluateDbProposalLaunchSpine({
+      pathname: "/tools/roofing/proposals/preview",
+    });
+    assert.equal(preview.allowed, false);
+    assert.equal(preview.reason, "missing_job_context");
+    assert.equal(preview.errorMessage, "Open a proposal from a job to preview it.");
+    assert.doesNotMatch(preview.errorMessage ?? "", /clean DB|database|fixture|smoke|harness/i);
+  });
+
   test("blocks mixed context with normalize href", () => {
     const result = evaluateDbProposalLaunchSpine({
       pathname: "/tools/roofing",
@@ -127,6 +146,7 @@ describe("evaluateDbProposalLaunchSpine", () => {
     assert.equal(result.allowed, false);
     assert.equal(result.reason, "mixed_spine_context");
     assert.equal(result.normalizeHref, buildCleanDbJobCardHref(JOB_ID));
+    assert.doesNotMatch(result.errorMessage ?? "", /clean DB/i);
   });
 
   test("blocks legacy loadSaved context", () => {
@@ -136,6 +156,7 @@ describe("evaluateDbProposalLaunchSpine", () => {
     });
     assert.equal(result.allowed, false);
     assert.equal(result.reason, "legacy_spine_blocked");
+    assert.doesNotMatch(result.errorMessage ?? "", /DB Job Card route/i);
   });
 
   test("allows omitted hints for test-only callers", () => {

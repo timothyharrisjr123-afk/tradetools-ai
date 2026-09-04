@@ -176,6 +176,7 @@ export default function CompanySettingsClient({
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [payments, setPayments] = useState<CompanyPaymentsStatus | null>(null);
+  const [paymentsStatus, setPaymentsStatus] = useState<"loading" | "ready" | "error">("loading");
   const [pricing, setPricing] = useState<CompanyPricingSummaryInput | null>(null);
   const [timezone, setTimezone] = useState<string | null>(null);
   const [timezoneStatus, setTimezoneStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -230,7 +231,16 @@ export default function CompanySettingsClient({
   }, []);
 
   const refreshPayments = useCallback(async () => {
-    setPayments(await loadCompanyPaymentsStatus());
+    // Keep prior truth while refreshing so Connected never flashes to Not connected.
+    setPaymentsStatus((prev) => (prev === "ready" ? "ready" : "loading"));
+    const next = await loadCompanyPaymentsStatus();
+    if (next) {
+      setPayments(next);
+      setPaymentsStatus("ready");
+      return;
+    }
+    // First-load failure → error. Refresh failure after known truth keeps prior Connected/Not connected.
+    setPaymentsStatus((prev) => (prev === "ready" ? "ready" : "error"));
   }, []);
 
   const refreshTimezone = useCallback(async () => {
@@ -381,7 +391,7 @@ export default function CompanySettingsClient({
             />
             <SummaryRow
               label="Payments"
-              detail={summarizePayments(payments)}
+              detail={summarizePayments(payments, paymentsStatus)}
               action="Manage"
               onClick={() => setEditor("payments")}
               testId="payments"
@@ -429,6 +439,7 @@ export default function CompanySettingsClient({
       {editor === "payments" ? (
         <CompanySettingsPaymentsEditor
           status={payments}
+          loadStatus={paymentsStatus}
           error={editorError}
           connecting={connecting}
           onClose={closeEditor}

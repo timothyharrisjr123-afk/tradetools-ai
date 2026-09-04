@@ -31,6 +31,7 @@ import {
 } from "@/app/lib/proposalBuilderReadiness";
 import {
   evaluateDbProposalLaunchSpine,
+  JOBS_BOARD_HREF,
   productSpineRouteHintsFromSearchParams,
 } from "@/app/lib/productSpine";
 import {
@@ -160,7 +161,7 @@ export default function ProposalCustomerPreviewClient({
       if (!stillCurrent()) return;
       setRouteError(
         routeSpineLaunch.errorMessage ??
-          "A valid DB proposal route is required to preview this draft."
+          "Open a proposal from a job to preview it."
       );
       setJobRead(applyIndependentReadFailure(createIndependentRead(), "Route blocked.", false));
       setGraphRead(applyIndependentReadFailure(createIndependentRead(), "Route blocked.", false));
@@ -505,7 +506,28 @@ export default function ProposalCustomerPreviewClient({
 
   return (
     <div className={PREVIEW_WORKSPACE_BG} data-preview-contractor-workspace>
-      {previewSurface.overall === "loading" && !previewSurface.canRenderProposal ? (
+      {!routeSpineLaunch.allowed &&
+      routeSpineLaunch.reason === "missing_job_context" ? (
+        <div
+          className={`${PREVIEW_WORKSPACE_STAGE} pt-6`}
+          data-preview-missing-job-context
+          role="status"
+        >
+          <h2 className="text-[1.35rem] font-semibold tracking-tight text-slate-950">
+            Choose a job first
+          </h2>
+          <p className="mt-2 text-[15px] leading-relaxed text-slate-600">
+            {routeSpineLaunch.errorMessage ??
+              "Open a proposal from a job to preview it."}
+          </p>
+          <a
+            href={routeSpineLaunch.normalizeHref ?? JOBS_BOARD_HREF}
+            className="mt-5 inline-flex min-h-[44px] items-center justify-center rounded-md bg-slate-900 px-4 text-[13px] font-semibold text-white transition hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+          >
+            Open Jobs
+          </a>
+        </div>
+      ) : previewSurface.overall === "loading" && !previewSurface.canRenderProposal ? (
         <div className={`${PREVIEW_WORKSPACE_STAGE} pt-6`}>
           <div className="text-sm text-slate-500">Loading preview…</div>
         </div>

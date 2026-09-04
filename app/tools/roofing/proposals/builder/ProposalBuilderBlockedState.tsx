@@ -42,16 +42,16 @@ export default function ProposalBuilderBlockedState({
 
   const gate = primaryGate ?? blockedGates[0] ?? "missing_job";
   const isMissingJob = gate === "missing_job";
-  const title = isMissingJob ? "Job required" : formatProposalBuilderGateTitle(gate);
+  const title = isMissingJob ? "Choose a job first" : formatProposalBuilderGateTitle(gate);
   const message = isMissingJob
-    ? "Open this Builder from a saved Job Card."
+    ? "Open a job before creating a proposal."
     : formatProposalBuilderGateMessage(gate, {
         measurementHandoff,
         catalogReadiness,
         templateReadiness,
       });
   const linkHref = builderGateLinkHref(gate, jobId);
-  const linkLabel = isMissingJob ? "Open Job Board" : builderGateLinkLabel(gate);
+  const linkLabel = isMissingJob ? "Open Jobs" : builderGateLinkLabel(gate);
 
   return (
     <div

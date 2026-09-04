@@ -87,7 +87,9 @@ describe("Company Settings summary-first model", () => {
       }),
       "Stripe connected"
     );
-    assert.equal(summarizePayments(null), "Not set up");
+    assert.equal(summarizePayments(null, "ready"), "Stripe not connected");
+    assert.equal(summarizePayments(null, "loading"), "Checking…");
+    assert.equal(summarizePayments(null, "error"), "Couldn't load status");
 
     assert.equal(
       summarizePricing({

@@ -42,9 +42,10 @@ describe("V2B6 final Builder consolidation", () => {
       "app/tools/roofing/proposals/builder/ProposalBuilderBlockedState.tsx"
     );
     assert.match(blocked, /data-builder-blocked-state/);
-    assert.match(blocked, /Job required/);
-    assert.match(blocked, /Open this Builder from a saved Job Card/);
-    assert.match(blocked, /Open Job Board/);
+    assert.match(blocked, /Choose a job first/);
+    assert.match(blocked, /Open a job before creating a proposal/);
+    assert.match(blocked, /Open Jobs/);
+    assert.doesNotMatch(blocked, /clean DB|database|fixture|smoke|harness/i);
     assert.doesNotMatch(blocked, /No proposal record is created/);
     assert.doesNotMatch(blocked, /blockedGates\.length > 1/);
     assert.doesNotMatch(blocked, /bg-amber-50/);

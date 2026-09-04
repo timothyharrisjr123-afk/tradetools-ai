@@ -269,6 +269,7 @@ export default function CohesionBFinalPolishHarness() {
       {view.startsWith("payments") ? (
         <CompanySettingsPaymentsEditor
           status={paymentsStatus}
+          loadStatus="ready"
           error={null}
           connecting={false}
           onClose={noop}

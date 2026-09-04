@@ -30,16 +30,27 @@ export type ProductSpineClassification = {
 
 export type DbProposalLaunchEvaluation = {
   allowed: boolean;
-  reason: "mixed_spine_context" | "legacy_spine_blocked" | null;
+  reason: "mixed_spine_context" | "legacy_spine_blocked" | "missing_job_context" | null;
   errorMessage: string | null;
   normalizeHref: string | null;
 };
 
-export const DB_PROPOSAL_LAUNCH_MIXED_MESSAGE =
-  "Open this job from a clean DB Job Card before creating or opening proposal drafts.";
+/** Contractor-facing — missing job/proposal query context on Builder/Preview. */
+export const DB_PROPOSAL_MISSING_CONTEXT_MESSAGE =
+  "Open a job before creating a proposal.";
 
+export const DB_PROPOSAL_MISSING_PREVIEW_CONTEXT_MESSAGE =
+  "Open a proposal from a job to preview it.";
+
+/** Contractor-facing — legacy params mixed into a Job Card / proposal route. */
+export const DB_PROPOSAL_LAUNCH_MIXED_MESSAGE =
+  "Open this job from the Job Card before creating or opening a proposal.";
+
+/** Contractor-facing — legacy saved-estimate sessions cannot open DB proposal drafts. */
 export const DB_PROPOSAL_LAUNCH_LEGACY_BLOCKED_MESSAGE =
-  "Proposal drafts require a DB Job Card route — legacy saved estimate sessions cannot create or open DB proposals.";
+  "Proposal drafts need a Job Card. Saved estimate sessions can’t create proposals here.";
+
+export const JOBS_BOARD_HREF = "/tools/roofing/saved";
 
 const LEGACY_FROM_BOARD = "board";
 
@@ -214,11 +225,28 @@ export function evaluateDbProposalLaunchSpine(
   }
 
   if (!isDbProposalLaunchSpine(hints)) {
+    const pathname = normalizedPathname(hints);
+    const onBuilder = pathname.includes("/proposals/builder");
+    const onPreview = pathname.includes("/proposals/preview");
+    const missingJob = !hasDbJobUuid(hints);
+    const missingPreviewPair = onPreview && (!hasDbJobUuid(hints) || !hasDbProposalUuid(hints));
+
+    if ((onBuilder && missingJob) || missingPreviewPair) {
+      return {
+        allowed: false,
+        reason: "missing_job_context",
+        errorMessage: onPreview
+          ? DB_PROPOSAL_MISSING_PREVIEW_CONTEXT_MESSAGE
+          : DB_PROPOSAL_MISSING_CONTEXT_MESSAGE,
+        normalizeHref: jobId && isUuidLike(jobId) ? buildCleanDbJobCardHref(jobId) : JOBS_BOARD_HREF,
+      };
+    }
+
     return {
       allowed: false,
       reason: "mixed_spine_context",
       errorMessage: DB_PROPOSAL_LAUNCH_MIXED_MESSAGE,
-      normalizeHref: jobId && isUuidLike(jobId) ? buildCleanDbJobCardHref(jobId) : null,
+      normalizeHref: jobId && isUuidLike(jobId) ? buildCleanDbJobCardHref(jobId) : JOBS_BOARD_HREF,
     };
   }
 

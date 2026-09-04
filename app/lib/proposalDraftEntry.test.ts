@@ -152,14 +152,15 @@ describe("isExpectedProposalDraftEntryFailure", () => {
 });
 
 describe("resolveProposalLaunchBlockerActions", () => {
-  test("db_identity_not_ready maps to Open DB-backed Job Card", () => {
+  test("db_identity_not_ready maps to Open Job Card", () => {
     const actions = resolveProposalLaunchBlockerActions("db_identity_not_ready", {
       jobId: "11111111-1111-4111-8111-111111111111",
     });
-    assert.equal(actions[0]?.label, "Open DB-backed Job Card");
+    assert.equal(actions[0]?.label, "Open Job Card");
     assert.equal(actions[0]?.actionType, "route");
     assert.match(actions[0]?.href ?? "", /entry=job-card/);
     assert.doesNotMatch(actions[0]?.href ?? "", /from=board/);
+    assert.doesNotMatch(actions[0]?.label ?? "", /DB-backed|clean DB/i);
   });
 
   test("unconfigured_pricing_policy maps to Configure Pricing Policy", () => {
@@ -180,9 +181,9 @@ describe("resolveProposalLaunchBlockerActions", () => {
     assert.equal(actions[0]?.targetTab, "measurements");
   });
 
-  test("wrong_job maps to Return to Job Board", () => {
+  test("wrong_job maps to Open Jobs", () => {
     const actions = resolveProposalLaunchBlockerActions("wrong_job");
-    assert.equal(actions[0]?.label, "Return to Job Board");
+    assert.equal(actions[0]?.label, "Open Jobs");
     assert.equal(actions[0]?.href, "/tools/roofing/saved");
   });
 
@@ -610,7 +611,8 @@ describe("resolveOrCreateProposalDraftEntry", () => {
     );
     assert.equal(createCalls, 0);
     assert.equal(result.reason, "mixed_spine_context");
-    assert.match(result.errorMessage ?? "", /clean DB Job Card/i);
+    assert.match(result.errorMessage ?? "", /Job Card/i);
+    assert.doesNotMatch(result.errorMessage ?? "", /clean DB/i);
   });
 
   test("legacy loadSaved spine blocks DB proposal create", async () => {

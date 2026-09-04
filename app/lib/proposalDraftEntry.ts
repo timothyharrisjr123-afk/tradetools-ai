@@ -52,7 +52,8 @@ export type ResolveOrCreateProposalDraftEntryReason =
   | "unconfigured_pricing_policy"
   | "create_failed"
   | "mixed_spine_context"
-  | "legacy_spine_blocked";
+  | "legacy_spine_blocked"
+  | "missing_job_context";
 
 export type ResolveProposalDraftEntryInput = {
   companyId: string;
@@ -146,6 +147,7 @@ export const EXPECTED_PROPOSAL_DRAFT_ENTRY_FAILURE_REASONS = [
   "unconfigured_pricing_policy",
   "mixed_spine_context",
   "legacy_spine_blocked",
+  "missing_job_context",
 ] as const satisfies readonly ResolveOrCreateProposalDraftEntryReason[];
 
 export function isExpectedProposalDraftEntryFailure(
@@ -193,7 +195,7 @@ function goToMeasurementsAction(helperText: string): ProposalLaunchBlockerAction
 function returnToJobBoardAction(helperText: string): ProposalLaunchBlockerAction {
   return {
     id: "return-job-board",
-    label: "Return to Job Board",
+    label: "Open Jobs",
     helperText,
     actionType: "route",
     href: JOB_BOARD_HREF,
@@ -203,9 +205,9 @@ function returnToJobBoardAction(helperText: string): ProposalLaunchBlockerAction
 function openDbBackedJobCardAction(jobId: string): ProposalLaunchBlockerAction {
   return {
     id: "open-db-job-card",
-    label: "Open DB-backed Job Card",
+    label: "Open Job Card",
     helperText:
-      "Open this job as a saved Job Card before creating proposal drafts. Saving measurements alone does not unblock board-origin jobs.",
+      "Open this job from the Job Card before creating a proposal.",
     actionType: "route",
     href: buildJobCardHref(jobId),
   };
@@ -263,6 +265,7 @@ function normalizeProposalLaunchBlockerReason(
     "create_failed",
     "mixed_spine_context",
     "legacy_spine_blocked",
+    "missing_job_context",
   ];
 
   if (known.includes(key as ResolveOrCreateProposalDraftEntryReason)) {
@@ -303,29 +306,30 @@ export function resolveProposalLaunchBlockerActions(
       }
       return [
         returnToJobBoardAction(
-          "Open a saved Job Card before creating proposal drafts."
+          "Open a job before creating a proposal."
         ),
       ];
     }
     case "mixed_spine_context":
-    case "legacy_spine_blocked": {
+    case "legacy_spine_blocked":
+    case "missing_job_context": {
       const jobId = normalizeId(context?.jobId);
       if (jobId) {
         return [
           {
             id: "normalize-db-job-card",
-            label: "Open clean DB Job Card",
+            label: "Open Job Card",
             helperText:
-              "Legacy saved estimate sessions cannot create or open DB proposal drafts. Open a clean DB Job Card route.",
+              "Open this job from the Job Card before creating or opening a proposal.",
             actionType: "route",
             href: buildCleanDbJobCardHref(jobId),
           },
-          returnToJobBoardAction("Return to the Job Board and reopen this job."),
+          returnToJobBoardAction("Return to Jobs and reopen this job."),
         ];
       }
       return [
         returnToJobBoardAction(
-          "Open a DB-backed Job Card before creating proposal drafts."
+          "Open a job before creating a proposal."
         ),
       ];
     }

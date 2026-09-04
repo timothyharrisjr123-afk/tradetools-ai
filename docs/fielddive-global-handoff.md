@@ -85,7 +85,7 @@
 
 **Last updated checkpoint:**
 
-- **Beta Trust Ops Group C COMPLETE:** pre-deploy gate passed at **§6DG.6**, `main` was pushed, and Vercel Production deployment **`dpl_3DCBbeMv1uyadPHZUsJKwv81eqsw`** is READY for commit **`97d7016ee1b75df67e0008ed1355d15a9a48f8db`**. Canonical `www.fielddive.com` and apex aliases are live; safe production smoke passed (**§6DG.7**) and post-interrupt continuation re-verified (**§6DG.8**). Remaining paid-beta P1s and the mandatory multi-audit HOLD remain. **Do not invite paid beta. Do not start Wave D without separate authorization.**
+- **Beta Trust Ops Group C COMPLETE:** pre-deploy gate passed at **§6DG.6**, `main` was pushed, and Vercel Production deployment **`dpl_3DCBbeMv1uyadPHZUsJKwv81eqsw`** is READY for commit **`97d7016ee1b75df67e0008ed1355d15a9a48f8db`**. Canonical `www.fielddive.com` and apex aliases are live; safe production smoke passed (**§6DG.7**) and post-interrupt continuation re-verified (**§6DG.8**). Authenticated smoke found Payments false-disconnected flash + Builder/Preview internal empty-gate copy — **corrected locally (§6DG.9); awaiting visual review before push**. Remaining paid-beta P1s include Production QA job hygiene cleanup and the mandatory multi-audit HOLD. **Do not invite paid beta. Do not start Wave D without separate authorization.**
 - **Beta Trust Ops Group B:** `docs(ops): define controlled beta trust procedures` (`8b30475`) — env contract, Stripe TEST-only policy, runbooks, multi-audit HOLD. Group A code **`c8c6553`**. **NO PUSH.**
 - **Commercial Wedge final visual gate closeout:** `docs: close commercial wedge visual gate` (**COMMERCIAL WEDGE COMPLETE / EXTERNALLY VISUALLY ACCEPTED**, see **§6DF**). Code **`8cfd064`**. Proof `tmp/fielddive-ui-review/commercial-wedge/final-visual-gate/`. **NO PUSH.**
 - **Commercial Wedge Groups 1–3 feature closeout (superseded for visual finality):** `docs: checkpoint commercial wedge` (**COMMERCIAL WEDGE COMPLETE / ACCEPTED** pre–final visual gate, see historical **§6DF** Groups). Code **`1440fc6`**. Desktop + 390 proof `tmp/fielddive-ui-review/commercial-wedge/group-3/`. Do **not** treat pre-gate “accepted” wording as the final external visual close.
@@ -19886,6 +19886,14 @@ When uncertain: **Optimize for obvious contractor flow, truthful system state, r
 - Interactive authenticated browser smoke remains **UNPROVEN** (no signed-in session). No real payments, account creation, SQL, migrations, Wave D, or dependency upgrades.
 
 **Exact next:** separately authorize **Wave D — Delivery Completeness**. Do **not** invite paid beta while retained P1s + multi-audit HOLD remain.
+
+#### §6DG.9 Production auth-smoke UX corrections + data hygiene (docs note) — 2026-09-04
+
+- **Payments false-disconnected flash:** Settings Payments treated unresolved `null` status as **Not connected** and showed **Connect Stripe** before `/api/company/payments/status` resolved. Durable model now distinguishes `loading` / `ready` / `error` and never collapses unknown into disconnected.
+- **Builder/Preview empty context:** Bare `/proposals/builder` and `/proposals/preview` without job context surfaced engineering copy (“clean DB Job Card”). Contractor-facing empty states now use **Choose a job first** + Jobs navigation; no fake proposal is invented.
+- **Production QA job hygiene (read-only — do not delete in this slice):** Anderson Roofing Production Job Board still contains QA/smoke/visual-gate titles (e.g. `G3 Visual…`, `Visual Gate…`, `R3D-043-SMOKE…`, `[R3G-046-VISUAL]…`). These are **historical tenant records**, not auto-seeded by current Production route code. `createJob` remains the normal contractor create path; fixture harness routes were already removed. **Cleanup is required before controlled paid beta** (archive/hide or deliberate delete under a separate authorized ops task). No automated Production fixture-job seeder was found in this pass.
+
+**Exact next:** user/ChatGPT visual review of the auth-smoke UX correction slice → then authorize push/deploy. Wave D still requires separate authorization. Paid beta still prohibited.
 
 ---
 

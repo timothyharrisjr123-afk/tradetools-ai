@@ -96,11 +96,17 @@ export type CompanyPaymentsSummaryInput = {
   defaultDepositFixedCents: number | null;
 };
 
+export type CompanyPaymentsSummaryLoadStatus = "loading" | "ready" | "error";
+
 /** Payment truth is provider-owned; this only restates what Stripe reported. */
 export function summarizePayments(
-  input: CompanyPaymentsSummaryInput | null
+  input: CompanyPaymentsSummaryInput | null,
+  loadStatus: CompanyPaymentsSummaryLoadStatus = "ready"
 ): string {
-  if (!input) return "Not set up";
+  // Unknown must never read as disconnected — that caused a false "Not connected" flash.
+  if (loadStatus === "loading") return "Checking…";
+  if (loadStatus === "error") return "Couldn't load status";
+  if (!input) return "Stripe not connected";
 
   const connection = !input.connected
     ? "Stripe not connected"
