@@ -2,6 +2,19 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-09 — Phase 0A COMPLETE: production property dedupe + Slice C schema cutover
+
+- Proven live pre-cutover production app remained `dpl_EhWbfZ8SWRaq8fENSe6TF8e3fp3J` @ commit **`0b9a90ceb19ff4c3ed0e7e37fd47763aa7b1d6c1`**. No application deploy. No push.
+- Production (`rhquhnujjnzjhweypavd`) exact audited duplicate reconciliation executed via ops script `scripts/ops/20260909_production_property_dedupe_cutover.sql` (not a schema migration): **13** retiree properties deleted; **12** `jobs.property_id` relinks; **3** survivors retained (`5cdca7bc…`, `c652cd64…`, `3b816b25…`); properties **50 → 37**; duplicate normalized groups **3 → 0**.
+- Temporary uniqueness established and **intentionally retained**: `properties_company_address_normalized_uidx_ops_guard` (same predicate as Slice C; different name). Do **not** drop until Phase 0B.
+- Unchanged Slice C migration `20260909215532_durable_property_resolution.sql` applied via guarded explicit `--project-ref` `db push` (non-dry-run). Dry-run pending set was exactly that one file. Ledger now: `20260909130000` + `20260909130935` + `20260909215532` (exactly once).
+- Schema verified: canonical unique index `properties_company_address_normalized_uidx`; places index `properties_company_places_place_id_idx` (non-unique); `resolve_company_property_v1` present — SECURITY INVOKER (`prosecdef=false`), `search_path=pg_catalog, public`, EXECUTE revoked from PUBLIC/anon and granted to authenticated/service_role; membership gate preserved; Place ID cannot establish tenancy; properties RLS enabled with company-scope select/insert/update/delete policies preserved; ops_guard still present.
+- Historical truth preserved (digest/count match pre-cutover fingerprint): job address snapshots; customer mailing addresses; proposal_versions / schedules / payment requests / activity event counts unchanged. No fabricated `places_place_id`. No orphan `jobs.property_id`.
+- Bounded old-app / new-DB handoff state (app still on `0b9a90c`): genuinely new property → succeeds; duplicate normalized property → fails closed with property-save error; no job is created with null `property_id`.
+- Local regressions PASS (property 16/16; New Job/intake 73/73; Places 23/23; customer 26/26; proposal identity 21/21; tenant isolation 32/32; production route safety 2/2); production + test typecheck PASS; production build PASS; audit HIGH **0** / CRITICAL **0**.
+- Google Cloud / Stripe / Vercel / unrelated systems **unchanged**. Staging CLI link remained `tjtrhdckinjtorgbkirm`.
+- **NEXT:** **Phase 0B only** — application release packaging/deployment of resolver-compatible app + New Job runtime verification, then drop `ops_guard` after canonical unique index confirmed live. Do **not** begin normal roadmap / next Google slice from this checkpoint alone. Do **not** deploy from this docs note alone.
+
 ## 2026-09-09 — Google Places P1 Slice C COMPLETE locally (staging proven)
 
 - Code checkpoint `39cd18a` (`feat(properties): add durable property resolution`) closes Google Places P1 **Slice C** implementation. This docs checkpoint records staging-proven acceptance. No remaining Slice C P0/P1.
@@ -18,7 +31,7 @@
 - Independent Cursor adversarial staging verification (after Codex implementation): two PostgreSQL backends `pg_backend_pid` **46138** / **46140**; **5/5** concurrent same-property races PASS (exactly one canonical row; both callers same `property_id`; no deadlock/timeout); unit/subpremise separation PASS; normalization PASS; Place-ID conflict matrix PASS; cross-tenant adversarial PASS (company spoof rejected; Place ID cannot establish tenancy); existing Google + manual property reuse PASS (incl. concurrent reuse); 4-way New Job matrix (new/existing customer × new/existing property) PASS; Google/manual/unit runtime flows PASS; existing customer mailing address preserved; retry/duplicate challenge PASS; `jobs.property_id` correct; job address snapshot preserved; frozen proposal/document identity preserved (resolver does not rewrite historical snapshots).
 - Final regressions: focused property / New Job-intake / Places / customer / proposal-identity / tenant-isolation / production-route-safety PASS; production + test typecheck PASS; production build PASS; audit HIGH **0** / CRITICAL **0**.
 - Temporary staging credential loader/session removed after verification. Synthetic staging fixtures cleaned.
-- **NEXT:** **SEPARATE PRODUCTION MIGRATION AUTHORIZATION** for `20260909215532_durable_property_resolution.sql` only. After production migration verification, continue remaining Google Places integration/reload/search/history work. Do **not** begin the next Google slice from this checkpoint alone. Do **not** apply production migration from this docs note alone.
+- **Historical NEXT at Slice C close:** separate production migration authorization — completed in Phase 0A above. Remaining Google Places integration/reload/search/history work waits until after Phase 0B app release. Do **not** begin the next Google slice from this checkpoint alone.
 
 ## 2026-09-09 — Google Places P1 Slice B COMPLETE locally
 
