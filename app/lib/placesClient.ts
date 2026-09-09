@@ -29,6 +29,26 @@ export type PlacesResolvedAddress = {
 };
 
 const AUTOCOMPLETE_URL = "https://places.googleapis.com/v1/places:autocomplete";
+export const PLACES_AUTOCOMPLETE_FIELD_MASK =
+  "suggestions.placePrediction.placeId,suggestions.placePrediction.text,suggestions.placePrediction.structuredFormat";
+export const PLACES_DETAILS_FIELD_MASK = "id,formattedAddress,addressComponents";
+export const PLACES_AUTOCOMPLETE_TIMEOUT_MS = 2_500;
+export const PLACES_DETAILS_TIMEOUT_MS = 4_000;
+export const PLACES_AUTOCOMPLETE_TYPES = [
+  "street_address",
+  "premise",
+  "subpremise",
+  "route",
+  "plus_code",
+] as const;
+
+export type PlacesProviderError =
+  | "timeout"
+  | "network_error"
+  | "provider_error"
+  | "malformed_response";
+
+type PlacesProviderResult<T> = { available: boolean; error?: PlacesProviderError } & T;
 
 /** Normalize Place ID / resource name to the id segment used by Places Details. */
 export function normalizePlacesPlaceId(placeId: string): string {
@@ -45,11 +65,53 @@ function placesHeaders(apiKey: string, fieldMask: string): HeadersInit {
   };
 }
 
+function logPlacesFailure(
+  operation: "autocomplete" | "details",
+  classification: PlacesProviderError,
+  status?: number
+): void {
+  console.error("[google_places] request failed", {
+    provider: "google_places",
+    operation,
+    classification,
+    ...(status == null ? {} : { status }),
+    environment: process.env.NODE_ENV ?? "unknown",
+  });
+}
+
+async function providerFetch(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export function buildPlacesAutocompleteBody(
+  input: string,
+  sessionToken?: string | null,
+  locality?: PlacesLocalityBias | null
+): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    input: composePlacesAutocompleteInput(input.trim(), locality),
+    includedRegionCodes: ["us"],
+    regionCode: "us",
+    languageCode: "en-US",
+    includedPrimaryTypes: [...PLACES_AUTOCOMPLETE_TYPES],
+    includeQueryPredictions: false,
+  };
+  const token = String(sessionToken ?? "").trim();
+  if (token) body.sessionToken = token;
+  return body;
+}
+
 export async function fetchPlacesAutocomplete(
   input: string,
   sessionToken?: string | null,
   locality?: PlacesLocalityBias | null
-): Promise<{ available: boolean; suggestions: PlacesAutocompleteSuggestion[]; error?: string }> {
+): Promise<PlacesProviderResult<{ suggestions: PlacesAutocompleteSuggestion[] }>> {
   const apiKey = getGooglePlacesApiKey();
   if (!apiKey) {
     return { available: false, suggestions: [] };
@@ -60,34 +122,20 @@ export async function fetchPlacesAutocomplete(
     return { available: true, suggestions: [] };
   }
 
-  const q = composePlacesAutocompleteInput(street, locality);
-
   try {
-    const body: Record<string, unknown> = {
-      input: q,
-      includedRegionCodes: ["us"],
-      languageCode: "en",
-    };
-    const token = String(sessionToken ?? "").trim();
-    if (token) body.sessionToken = token;
-
-    const res = await fetch(AUTOCOMPLETE_URL, {
+    const res = await providerFetch(AUTOCOMPLETE_URL, {
       method: "POST",
-      headers: placesHeaders(
-        apiKey,
-        "suggestions.placePrediction.placeId,suggestions.placePrediction.text,suggestions.placePrediction.structuredFormat"
-      ),
-      body: JSON.stringify(body),
+      headers: placesHeaders(apiKey, PLACES_AUTOCOMPLETE_FIELD_MASK),
+      body: JSON.stringify(buildPlacesAutocompleteBody(street, sessionToken, locality)),
       cache: "no-store",
-    });
+    }, PLACES_AUTOCOMPLETE_TIMEOUT_MS);
 
     if (!res.ok) {
-      const errBody = await res.text().catch(() => "");
-      console.error("[places] autocomplete failed", res.status, errBody.slice(0, 300));
-      return { available: true, suggestions: [], error: "provider_error" };
+      logPlacesFailure("autocomplete", "provider_error", res.status);
+      return { available: false, suggestions: [], error: "provider_error" };
     }
 
-    const json = (await res.json()) as {
+    const json = await res.json().catch(() => null) as {
       suggestions?: Array<{
         placePrediction?: {
           placeId?: string;
@@ -98,7 +146,11 @@ export async function fetchPlacesAutocomplete(
           };
         };
       }>;
-    };
+    } | null;
+    if (!json || (json.suggestions != null && !Array.isArray(json.suggestions))) {
+      logPlacesFailure("autocomplete", "malformed_response");
+      return { available: false, suggestions: [], error: "malformed_response" };
+    }
 
     const suggestions: PlacesAutocompleteSuggestion[] = [];
     for (const item of json.suggestions ?? []) {
@@ -120,9 +172,12 @@ export async function fetchPlacesAutocomplete(
     }
 
     return { available: true, suggestions };
-  } catch (err) {
-    console.error("[places] autocomplete error", err);
-    return { available: true, suggestions: [], error: "network_error" };
+  } catch (error) {
+    const classification = error instanceof DOMException && error.name === "AbortError"
+      ? "timeout"
+      : "network_error";
+    logPlacesFailure("autocomplete", classification);
+    return { available: false, suggestions: [], error: classification };
   }
 }
 
@@ -139,7 +194,7 @@ function component(
 export async function fetchPlacesDetails(
   placeId: string,
   sessionToken?: string | null
-): Promise<{ available: boolean; address: PlacesResolvedAddress | null; error?: string }> {
+): Promise<PlacesProviderResult<{ address: PlacesResolvedAddress | null }>> {
   const apiKey = getGooglePlacesApiKey();
   if (!apiKey) {
     return { available: false, address: null };
@@ -156,22 +211,29 @@ export async function fetchPlacesDetails(
     if (token) params.set("sessionToken", token);
     const qs = params.toString();
     const url = `https://places.googleapis.com/v1/places/${encodeURIComponent(id)}${qs ? `?${qs}` : ""}`;
-    const res = await fetch(url, {
+    const res = await providerFetch(url, {
       method: "GET",
-      headers: placesHeaders(apiKey, "formattedAddress,addressComponents"),
+      headers: placesHeaders(apiKey, PLACES_DETAILS_FIELD_MASK),
       cache: "no-store",
-    });
+    }, PLACES_DETAILS_TIMEOUT_MS);
 
     if (!res.ok) {
-      const errBody = await res.text().catch(() => "");
-      console.error("[places] details failed", res.status, errBody.slice(0, 300));
-      return { available: true, address: null, error: "provider_error" };
+      logPlacesFailure("details", "provider_error", res.status);
+      return { available: false, address: null, error: "provider_error" };
     }
 
-    const json = (await res.json()) as {
+    const json = await res.json().catch(() => null) as {
+      id?: string;
       formattedAddress?: string;
       addressComponents?: Array<{ longText?: string; shortText?: string; types?: string[] }>;
-    };
+    } | null;
+    if (
+      !json || normalizePlacesPlaceId(String(json.id ?? "")) !== id ||
+      !Array.isArray(json.addressComponents)
+    ) {
+      logPlacesFailure("details", "malformed_response");
+      return { available: false, address: null, error: "malformed_response" };
+    }
 
     const comps = Array.isArray(json.addressComponents) ? json.addressComponents : [];
     const streetNumber = component(comps, "street_number");
@@ -202,8 +264,11 @@ export async function fetchPlacesDetails(
         country,
       },
     };
-  } catch (err) {
-    console.error("[places] details error", err);
-    return { available: true, address: null, error: "network_error" };
+  } catch (error) {
+    const classification = error instanceof DOMException && error.name === "AbortError"
+      ? "timeout"
+      : "network_error";
+    logPlacesFailure("details", classification);
+    return { available: false, address: null, error: classification };
   }
 }
