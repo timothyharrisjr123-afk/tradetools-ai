@@ -9,6 +9,7 @@ const DEBOUNCE_MS = 280;
 export function useCompanyPropertySearch(
   address: {
     line1: string;
+    line2: string;
     city: string;
     state: string;
     zip: string;
@@ -22,7 +23,7 @@ export function useCompanyPropertySearch(
   useEffect(() => {
     const handle = window.setTimeout(() => setDebounced(address), DEBOUNCE_MS);
     return () => window.clearTimeout(handle);
-  }, [address.line1, address.city, address.state, address.zip]);
+  }, [address.line1, address.line2, address.city, address.state, address.zip]);
 
   const matchable = propertyAddressIsMatchable(debounced);
   const active = enabled && matchable;
@@ -38,6 +39,7 @@ export function useCompanyPropertySearch(
     setStatus("loading");
     const params = new URLSearchParams({
       line1: debounced.line1,
+      line2: debounced.line2,
       city: debounced.city,
       state: debounced.state,
       zip: debounced.zip,
@@ -59,6 +61,7 @@ export function useCompanyPropertySearch(
           rows.map((row: PropertySearchCandidate) => ({
             id: String(row.id),
             line1: row.line1 ?? null,
+            line2: row.line2 ?? null,
             city: row.city ?? null,
             state: row.state ?? null,
             zip: row.zip ?? null,
@@ -76,7 +79,7 @@ export function useCompanyPropertySearch(
       });
 
     return () => controller.abort();
-  }, [active, debounced.line1, debounced.city, debounced.state, debounced.zip]);
+  }, [active, debounced.line1, debounced.line2, debounced.city, debounced.state, debounced.zip]);
 
   return { results, status, active };
 }

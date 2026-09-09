@@ -3,6 +3,7 @@
 export type PropertySearchCandidate = {
   id: string;
   line1: string | null;
+  line2: string | null;
   city: string | null;
   state: string | null;
   zip: string | null;
@@ -26,6 +27,35 @@ function secondaryLine(c: PropertySearchCandidate): string {
       ? `${c.jobCount} job${c.jobCount === 1 ? "" : "s"}`
       : "";
   return [loc, jobs].filter(Boolean).join(" · ");
+}
+
+function candidateDisplayKey(c: PropertySearchCandidate): string {
+  return [
+    (c.line1 || "").trim().toLowerCase(),
+    (c.line2 || "").trim().toLowerCase(),
+    (c.city || "").trim().toLowerCase(),
+    (c.state || "").trim().toLowerCase(),
+    (c.zip || "").trim(),
+  ].join("|");
+}
+
+/**
+ * Presentation-only collapse of identical address rows.
+ * Slice C atomic resolver/dedupe must prevent or collapse duplicate canonical
+ * property candidates at domain truth — do not treat this as durable identity.
+ */
+export function dedupePropertyCandidatesForDisplay(
+  candidates: PropertySearchCandidate[]
+): PropertySearchCandidate[] {
+  const seen = new Set<string>();
+  const out: PropertySearchCandidate[] = [];
+  for (const candidate of candidates) {
+    const key = candidateDisplayKey(candidate);
+    if (!key.replace(/\|/g, "") || seen.has(key)) continue;
+    seen.add(key);
+    out.push(candidate);
+  }
+  return out;
 }
 
 /**
@@ -58,22 +88,23 @@ export function JobPacketPropertyCandidates({
     );
   }
 
-  if (candidates.length === 0) return null;
+  const visibleCandidates = dedupePropertyCandidatesForDisplay(candidates);
+  if (visibleCandidates.length === 0) return null;
 
   return (
     <div className="mt-1.5 space-y-1" data-testid="property-candidates">
       <p className="text-[10.5px] font-medium uppercase tracking-[0.08em] text-slate-500">
-        {candidates.length === 1 ? "Matching property" : "Matching properties"}
+        {visibleCandidates.length === 1 ? "Matching property" : "Matching properties"}
       </p>
       <ul className="space-y-1">
-        {candidates.map((c) => {
+        {visibleCandidates.map((c) => {
           const detail = secondaryLine(c);
           return (
             <li key={c.id}>
               <button
                 type="button"
                 onClick={() => onSelect(c)}
-                className="flex min-h-[40px] w-full items-start gap-2 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5 text-left transition hover:border-sky-300 hover:bg-sky-50/40"
+                className="flex min-h-11 w-full items-start gap-2 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5 text-left transition hover:border-sky-300 hover:bg-sky-50/40"
               >
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[12.5px] font-medium text-slate-900">

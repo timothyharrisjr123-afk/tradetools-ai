@@ -85,7 +85,7 @@ import { createCustomer, findOrCreateCustomer } from "@/app/lib/customerStore";
 import { ensureJobCustomerPersisted } from "@/app/lib/jobCardCustomerPersist";
 import type { CustomerSearchCandidate } from "@/app/lib/customerMatch";
 import { JobPacketCustomerCandidates } from "@/app/tools/roofing/JobPacketCustomerCandidates";
-import { JobPacketAddressSuggestions } from "@/app/tools/roofing/JobPacketAddressSuggestions";
+import { JobPacketAddressCombobox } from "@/app/tools/roofing/JobPacketAddressCombobox";
 import {
   JobPacketPropertyCandidates,
   type PropertySearchCandidate,
@@ -100,6 +100,7 @@ import {
 } from "@/app/lib/propertyAddressNormalize";
 import {
   usePlacesAddressAssist,
+  type PlacesResolvedSelection,
   type PlacesSuggestion,
 } from "@/app/tools/roofing/usePlacesAddressAssist";
 import { LAST_DB_JOB_ID_STORAGE_KEY } from "@/app/lib/jobBoardAdapter";
@@ -1820,6 +1821,7 @@ export default function RoofingClient({
   const [selectedCustomerLabel, setSelectedCustomerLabel] = useState<string | null>(null);
   const [forceNewCustomer, setForceNewCustomer] = useState(false);
   const [jobAddress1, setJobAddress1] = useState("");
+  const [jobAddress2, setJobAddress2] = useState("");
   const [jobCity, setJobCity] = useState("");
   const [jobState, setJobState] = useState("");
   const [jobZip, setJobZip] = useState("");
@@ -1827,6 +1829,19 @@ export default function RoofingClient({
   const [selectedPropertyLabel, setSelectedPropertyLabel] = useState<string | null>(null);
   const [forceNewProperty, setForceNewProperty] = useState(false);
   const [suppressAddressSuggestions, setSuppressAddressSuggestions] = useState(false);
+  const [addressEntryMode, setAddressEntryMode] = useState<"search" | "manual">("search");
+  const [selectedPlacesAddress, setSelectedPlacesAddress] = useState<PlacesResolvedSelection | null>(null);
+
+  /** Clear structured locality/unit so SEARCHING never shows or submits stale address truth. */
+  const clearStructuredAddressFields = useCallback(() => {
+    setJobAddress2("");
+    setJobCity("");
+    setJobState("");
+    setJobZip("");
+    setAutofillFromZip(false);
+    setZipNoPresetMessage(false);
+    setPreAutofillSnapshot(null);
+  }, []);
 
   const resetPacketIntakeFields = useCallback(() => {
     setCustomerName("");
@@ -1836,6 +1851,7 @@ export default function RoofingClient({
     setSelectedCustomerLabel(null);
     setForceNewCustomer(false);
     setJobAddress1("");
+    setJobAddress2("");
     setJobCity("");
     setJobState("");
     setJobZip("");
@@ -1843,6 +1859,8 @@ export default function RoofingClient({
     setSelectedPropertyLabel(null);
     setForceNewProperty(false);
     setSuppressAddressSuggestions(false);
+    setAddressEntryMode("search");
+    setSelectedPlacesAddress(null);
     setJobCreationError(null);
     setAutofillFromZip(false);
     setZipNoPresetMessage(false);
@@ -1892,6 +1910,12 @@ export default function RoofingClient({
       });
       setJobAddress1((prev) => {
         const next = (address?.line1 ?? "").trim();
+        if (!next) return prev;
+        if (fillEmptyOnly && prev.trim()) return prev;
+        return next;
+      });
+      setJobAddress2((prev) => {
+        const next = (address?.line2 ?? "").trim();
         if (!next) return prev;
         if (fillEmptyOnly && prev.trim()) return prev;
         return next;
@@ -2385,13 +2409,14 @@ export default function RoofingClient({
     return (
       buildFormattedAddress({
         line1: (jobAddress1 || "").trim() || null,
+        line2: (jobAddress2 || "").trim() || null,
         city: (jobCity || "").trim() || null,
         state: (jobState || "").trim() || null,
         zip: (jobZip || "").trim() || null,
         country: "US",
       }) ?? ""
     );
-  }, [jobAddress1, jobCity, jobState, jobZip]);
+  }, [jobAddress1, jobAddress2, jobCity, jobState, jobZip]);
 
   const persistJobScheduleAction = useCallback(
     async (
@@ -3454,6 +3479,7 @@ export default function RoofingClient({
       customerEmail,
       customerPhone,
       jobAddress1,
+      jobAddress2,
       jobCity,
       jobState,
       proposalNumber,
@@ -3847,6 +3873,7 @@ export default function RoofingClient({
     customerEmail,
     customerPhone,
     jobAddress1,
+    jobAddress2,
     jobCity,
     jobState,
     jobZip,
@@ -5554,9 +5581,15 @@ Thanks,`;
     }),
     [customerName, customerEmail, customerPhone, jobAddress1, jobCity, jobState, jobZip]
   );
+  // Address UI is one of SEARCHING | SELECTED | MANUAL. Create job requires a
+  // resolved structured address — never an unresolved Google query.
+  const packetAddressResolved =
+    Boolean(selectedPlacesAddress) ||
+    addressEntryMode === "manual" ||
+    Boolean(selectedPropertyId);
   const packetMinimumComplete = useMemo(
-    () => getPacketMinimumFieldsComplete(packetFieldSnapshot),
-    [packetFieldSnapshot]
+    () => getPacketMinimumFieldsComplete(packetFieldSnapshot) && packetAddressResolved,
+    [packetFieldSnapshot, packetAddressResolved]
   );
 
   const packetCustomerSearchEnabled =
@@ -5572,8 +5605,12 @@ Thanks,`;
   const visibleCustomerCandidates = customerCandidates;
 
   const placesAssistEnabled =
-    (entryMode === "packet" || entryMode === "instant") && !suppressAddressSuggestions;
-  const { suggestions: addressSuggestions, resolvePlace } = usePlacesAddressAssist(
+    (entryMode === "packet" || entryMode === "instant") &&
+    !suppressAddressSuggestions &&
+    addressEntryMode === "search" &&
+    !selectedPlacesAddress &&
+    !selectedPropertyId;
+  const { suggestions: addressSuggestions, status: placesStatus, resolvePlace, abandonSession } = usePlacesAddressAssist(
     jobAddress1,
     placesAssistEnabled,
     { city: jobCity, state: jobState, zip: jobZip }
@@ -5595,10 +5632,14 @@ Thanks,`;
   }, []);
 
   const packetPropertySearchEnabled =
-    (entryMode === "packet" || entryMode === "instant") && !forceNewProperty && !selectedPropertyId;
+    (entryMode === "packet" || entryMode === "instant") &&
+    !forceNewProperty &&
+    !selectedPropertyId &&
+    (addressEntryMode === "manual" || Boolean(selectedPlacesAddress));
   const { results: propertyCandidates } = useCompanyPropertySearch(
     {
       line1: jobAddress1,
+      line2: jobAddress2,
       city: jobCity,
       state: jobState,
       zip: jobZip,
@@ -5611,11 +5652,15 @@ Thanks,`;
     setSelectedPropertyLabel(candidate.line1 || candidate.formatted || "Property");
     setForceNewProperty(false);
     if (candidate.line1) setJobAddress1(candidate.line1);
+    setJobAddress2(candidate.line2 || "");
     if (candidate.city) setJobCity(candidate.city);
     if (candidate.state) setJobState(candidate.state);
     if (candidate.zip) setJobZip(candidate.zip);
     setSuppressAddressSuggestions(true);
-  }, []);
+    setSelectedPlacesAddress(null);
+    setAddressEntryMode("manual");
+    abandonSession();
+  }, [abandonSession]);
 
   const continueAsNewProperty = useCallback(() => {
     setSelectedPropertyId(null);
@@ -5628,11 +5673,12 @@ Thanks,`;
       setSuppressAddressSuggestions(true);
       const resolved = await resolvePlace(suggestion.placeId);
       if (resolved) {
-        setJobAddress1(resolved.line1 || suggestion.primaryText);
-        if (resolved.city) setJobCity(resolved.city);
-        if (resolved.state) setJobState(resolved.state);
-        if (resolved.zip) {
-          const zip = sanitizeZipInput(resolved.zip);
+        setSelectedPlacesAddress(resolved);
+        setJobAddress1(resolved.address.line1 || suggestion.primaryText);
+        if (resolved.address.city) setJobCity(resolved.address.city);
+        if (resolved.address.state) setJobState(resolved.address.state);
+        if (resolved.address.zip) {
+          const zip = sanitizeZipInput(resolved.address.zip);
           setJobZip(zip);
           if (zip.length === 5) tryApplyZipPreset(zip);
         }
@@ -5640,6 +5686,7 @@ Thanks,`;
       }
       // Quiet fallback: use prediction text as street; contractor finishes city/state/ZIP.
       setJobAddress1(suggestion.primaryText || suggestion.fullText);
+      setAddressEntryMode("manual");
     },
     [resolvePlace, tryApplyZipPreset]
   );
@@ -5655,11 +5702,12 @@ Thanks,`;
       const zip = (jobZip || "").trim() || null;
       const address: JobAddress = {
         line1,
+        line2: (jobAddress2 || "").trim() || null,
         city,
         state: stateVal,
         zip,
         country: "US",
-        formatted: buildFormattedAddress({ line1, city, state: stateVal, zip, country: "US" }),
+        formatted: buildFormattedAddress({ line1, line2: (jobAddress2 || "").trim() || null, city, state: stateVal, zip, country: "US" }),
       };
 
       const name = (customerName || "").trim() || null;
@@ -5709,6 +5757,11 @@ Thanks,`;
     setJobCreationError(null);
     if (isCreatingJob) return;
 
+    if (addressEntryMode === "search" && !selectedPlacesAddress && !selectedPropertyId) {
+      setJobCreationError("Select an address from suggestions or enter the address manually.");
+      return;
+    }
+
     if (!packetMinimumComplete) {
       setJobCreationError("Complete customer and property details before continuing to Job Card.");
       return;
@@ -5737,6 +5790,7 @@ Thanks,`;
 
       const addressLine = [
         (jobAddress1 || "").trim(),
+        (jobAddress2 || "").trim(),
         [(jobCity || "").trim(), (jobState || "").trim()].filter(Boolean).join(", "),
         (jobZip || "").trim(),
       ]
@@ -5767,6 +5821,7 @@ Thanks,`;
       if (!linkedPropertyId) {
         const propertyAddress = {
           line1: (jobAddress1 || "").trim(),
+          line2: (jobAddress2 || "").trim() || null,
           city: (jobCity || "").trim(),
           state: (jobState || "").trim(),
           zip: (jobZip || "").trim(),
@@ -5817,6 +5872,8 @@ Thanks,`;
     }
   }, [
     isCreatingJob,
+    addressEntryMode,
+    selectedPlacesAddress,
     packetMinimumComplete,
     searchParams,
     companyId,
@@ -5828,6 +5885,7 @@ Thanks,`;
     customerEmail,
     customerPhone,
     jobAddress1,
+    jobAddress2,
     jobCity,
     jobState,
     jobZip,
@@ -5889,7 +5947,7 @@ Thanks,`;
               : "mt-3 grid grid-cols-1 gap-5 px-3 pb-3 sm:px-4 sm:pb-4 lg:grid-cols-[minmax(0,1fr)_minmax(210px,250px)] lg:gap-8"
           }
         >
-          <div className={isStandalone ? "space-y-5" : "divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/30"}>
+          <div className={isStandalone ? "space-y-5" : "divide-y divide-slate-100 rounded-xl border border-slate-200 bg-slate-50/30"}>
             {/* Customer */}
             <section className={isStandalone ? standaloneRaisedPanel : "bg-white px-3.5 py-3.5 sm:px-4"}>
                           <div className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
@@ -5968,41 +6026,79 @@ Thanks,`;
                           </div>
                           <p className="mt-1 text-[10.5px] leading-snug text-slate-500">Where the job is happening.</p>
                           <div className="mt-2 grid gap-2">
-                            <div>
-                              <input
-                                id="job-address"
-                                name="job_address1_field"
-                                type="text"
-                                value={jobAddress1}
-                                onChange={(e) => {
-                                  setSuppressAddressSuggestions(false);
-                                  setJobAddress1(e.target.value);
-                                  if (selectedPropertyId) {
-                                    setSelectedPropertyId(null);
-                                    setSelectedPropertyLabel(null);
-                                  }
-                                  if (forceNewProperty) setForceNewProperty(false);
-                                }}
-                                onBlur={(e) => {
-                                  const cleaned = e.target.value.replace(/\s+/g, " ").trim();
-                                  if (cleaned !== jobAddress1) setJobAddress1(cleaned);
-                                }}
-                                placeholder="Street address"
-                                autoComplete="new-password"
-                                autoCorrect="off"
-                                autoCapitalize="off"
-                                spellCheck={false}
-                                className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12.5px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
-                              />
-                              {(entryMode === "packet" || entryMode === "instant") && (
-                                <JobPacketAddressSuggestions
-                                  suggestions={addressSuggestions}
-                                  onSelect={(s) => {
-                                    void applyPlacesSuggestion(s);
-                                  }}
-                                />
-                              )}
-                            </div>
+                            <JobPacketAddressCombobox
+                              value={jobAddress1}
+                              suggestions={addressSuggestions}
+                              status={placesStatus}
+                              manualMode={addressEntryMode === "manual"}
+                              selectedAddress={selectedPlacesAddress}
+                              onValueChange={(value) => {
+                                setSuppressAddressSuggestions(false);
+                                setJobAddress1(value);
+                                setSelectedPlacesAddress(null);
+                                if (addressEntryMode === "search") {
+                                  // SEARCHING must not visually or submit-wise mix with prior structured truth.
+                                  clearStructuredAddressFields();
+                                }
+                                if (selectedPropertyId) {
+                                  setSelectedPropertyId(null);
+                                  setSelectedPropertyLabel(null);
+                                }
+                                if (forceNewProperty) setForceNewProperty(false);
+                              }}
+                              onValueBlur={(value) => {
+                                const cleaned = value.replace(/\s+/g, " ").trim();
+                                if (cleaned !== jobAddress1) setJobAddress1(cleaned);
+                              }}
+                              onSelect={applyPlacesSuggestion}
+                              onManual={() => {
+                                abandonSession();
+                                setAddressEntryMode("manual");
+                              }}
+                              onSearch={() => {
+                                abandonSession();
+                                setAddressEntryMode("search");
+                                setSuppressAddressSuggestions(false);
+                                setSelectedPlacesAddress(null);
+                                clearStructuredAddressFields();
+                              }}
+                              onChangeSelected={() => {
+                                abandonSession();
+                                setSelectedPlacesAddress(null);
+                                setAddressEntryMode("search");
+                                setSuppressAddressSuggestions(false);
+                                clearStructuredAddressFields();
+                              }}
+                              onClear={() => {
+                                abandonSession();
+                                setSelectedPlacesAddress(null);
+                                setSelectedPropertyId(null);
+                                setSelectedPropertyLabel(null);
+                                setForceNewProperty(false);
+                                setSuppressAddressSuggestions(false);
+                                setAddressEntryMode("search");
+                                setJobAddress1("");
+                                clearStructuredAddressFields();
+                              }}
+                            />
+                            {(addressEntryMode === "manual" ||
+                              Boolean(selectedPlacesAddress) ||
+                              Boolean(selectedPropertyId)) && (
+                            <>
+                            <input
+                              id="job-address-line-2"
+                              name="job_address2_field"
+                              type="text"
+                              value={jobAddress2}
+                              onChange={(event) => setJobAddress2(event.target.value)}
+                              onBlur={(event) => {
+                                const cleaned = event.target.value.replace(/\s+/g, " ").trim();
+                                if (cleaned !== jobAddress2) setJobAddress2(cleaned);
+                              }}
+                              placeholder="Unit / Apt / Suite (optional)"
+                              autoComplete="address-line2"
+                              className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-[12.5px] font-medium text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+                            />
                             <div className="grid grid-cols-[minmax(0,1fr)_5rem_5.75rem] gap-2">
                               <input
                                 id="job-city"
@@ -6146,6 +6242,8 @@ Thanks,`;
                                 </button>
                               )}
                             </div>
+                            </>
+                            )}
                           </div>
             </section>
           </div>

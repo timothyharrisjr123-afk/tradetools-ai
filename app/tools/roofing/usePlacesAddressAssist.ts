@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   rankPlacesSuggestionsByLocality,
   type PlacesLocalityBias,
@@ -22,13 +22,35 @@ export type PlacesResolvedAddress = {
   country: string;
 };
 
-const DEBOUNCE_MS = 280;
+export type PlacesResolvedSelection = {
+  placeId: string;
+  address: PlacesResolvedAddress;
+};
+
+export type PlacesAssistStatus = "idle" | "loading" | "ready" | "unavailable";
+
+export const PLACES_DEBOUNCE_MS = 280;
+export const PLACES_MIN_QUERY_LENGTH = 3;
+export const PLACES_SESSION_IDLE_MS = 3 * 60 * 1_000;
+
+export function placesQueryIsEligible(value: string): boolean {
+  return value.trim().length >= PLACES_MIN_QUERY_LENGTH;
+}
+
+export function movePlacesActiveIndex(
+  current: number,
+  optionCount: number,
+  key: "ArrowDown" | "ArrowUp" | "Home" | "End"
+): number {
+  if (optionCount <= 0) return -1;
+  if (key === "Home") return 0;
+  if (key === "End") return optionCount - 1;
+  if (key === "ArrowDown") return current < 0 ? 0 : (current + 1) % optionCount;
+  return current < 0 ? optionCount - 1 : (current - 1 + optionCount) % optionCount;
+}
 
 function newPlacesSessionToken(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  return `places-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  return crypto.randomUUID();
 }
 
 function localityKey(locality?: PlacesLocalityBias | null): string {
@@ -40,49 +62,77 @@ function localityKey(locality?: PlacesLocalityBias | null): string {
   ].join("|");
 }
 
-/**
- * Quiet Places assist. When unavailable, stays idle — manual address continues.
- * One sessionToken covers autocomplete typing → Place Details selection (Places New billing).
- * Optional locality (city/state/ZIP) biases ranking when already entered on New Job.
- */
+/** Client lifecycle for one Autocomplete (New) -> Details (New) session. */
 export function usePlacesAddressAssist(
   streetQuery: string,
   enabled: boolean,
   locality?: PlacesLocalityBias | null
 ) {
   const [debounced, setDebounced] = useState(streetQuery);
-  const [available, setAvailable] = useState<boolean | null>(null);
   const [suggestions, setSuggestions] = useState<PlacesSuggestion[]>([]);
-  const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [status, setStatus] = useState<PlacesAssistStatus>("idle");
   const sessionTokenRef = useRef<string | null>(null);
+  const sessionIdleTimerRef = useRef<number | null>(null);
+  const requestSequenceRef = useRef(0);
   const localityRef = useRef(locality);
   localityRef.current = locality;
   const localityFingerprint = localityKey(locality);
 
+  const clearSessionTimer = useCallback(() => {
+    if (sessionIdleTimerRef.current != null) {
+      window.clearTimeout(sessionIdleTimerRef.current);
+      sessionIdleTimerRef.current = null;
+    }
+  }, []);
+
+  const abandonSession = useCallback(() => {
+    requestSequenceRef.current += 1;
+    sessionTokenRef.current = null;
+    clearSessionTimer();
+    setSuggestions([]);
+    setStatus("idle");
+  }, [clearSessionTimer]);
+
+  const touchSession = useCallback(() => {
+    clearSessionTimer();
+    sessionIdleTimerRef.current = window.setTimeout(() => {
+      sessionTokenRef.current = null;
+      sessionIdleTimerRef.current = null;
+      requestSequenceRef.current += 1;
+      setSuggestions([]);
+      setStatus("idle");
+    }, PLACES_SESSION_IDLE_MS);
+  }, [clearSessionTimer]);
+
   useEffect(() => {
-    const handle = window.setTimeout(() => setDebounced(streetQuery), DEBOUNCE_MS);
+    const handle = window.setTimeout(() => setDebounced(streetQuery), PLACES_DEBOUNCE_MS);
     return () => window.clearTimeout(handle);
   }, [streetQuery]);
 
-  const active = enabled && debounced.trim().length >= 3;
+  useEffect(() => {
+    if (streetQuery.trim().length === 0) abandonSession();
+  }, [abandonSession, streetQuery]);
+
+  const active = enabled && placesQueryIsEligible(debounced);
 
   useEffect(() => {
+    if (!enabled) {
+      abandonSession();
+      return;
+    }
     if (!active) {
       setSuggestions([]);
       setStatus("idle");
       return;
     }
 
-    if (!sessionTokenRef.current) {
-      sessionTokenRef.current = newPlacesSessionToken();
-    }
-
+    if (!sessionTokenRef.current) sessionTokenRef.current = newPlacesSessionToken();
+    touchSession();
     const controller = new AbortController();
+    const requestSequence = ++requestSequenceRef.current;
     setStatus("loading");
-
-    const token = sessionTokenRef.current;
     const params = new URLSearchParams({ q: debounced.trim() });
-    if (token) params.set("sessionToken", token);
+    params.set("sessionToken", sessionTokenRef.current);
     const city = String(localityRef.current?.city ?? "").trim();
     const state = String(localityRef.current?.state ?? "").trim();
     const zip = String(localityRef.current?.zip ?? "").trim();
@@ -96,50 +146,49 @@ export function usePlacesAddressAssist(
     })
       .then(async (res) => {
         const json = await res.json().catch(() => null);
-        if (controller.signal.aborted) return;
-        if (!res.ok || !json?.ok) {
-          setSuggestions([]);
-          setStatus("error");
+        if (controller.signal.aborted || requestSequence !== requestSequenceRef.current) return;
+        if (!res.ok || !json?.ok || json.available === false) {
+          setStatus("unavailable");
           return;
         }
-        setAvailable(Boolean(json.available));
-        const raw = Array.isArray(json.suggestions) ? json.suggestions : [];
+        const raw = Array.isArray(json.suggestions) ? json.suggestions.slice(0, 5) : [];
         setSuggestions(rankPlacesSuggestionsByLocality(raw, localityRef.current));
         setStatus("ready");
       })
-      .catch((err: unknown) => {
-        if (controller.signal.aborted) return;
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        setSuggestions([]);
-        setStatus("error");
+      .catch((error: unknown) => {
+        if (controller.signal.aborted || requestSequence !== requestSequenceRef.current) return;
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setStatus("unavailable");
       });
 
     return () => controller.abort();
-  }, [active, debounced, localityFingerprint]);
+  }, [abandonSession, active, debounced, enabled, localityFingerprint, touchSession]);
 
-  async function resolvePlace(placeId: string): Promise<PlacesResolvedAddress | null> {
+  useEffect(() => () => {
+    requestSequenceRef.current += 1;
+    sessionTokenRef.current = null;
+    if (sessionIdleTimerRef.current != null) window.clearTimeout(sessionIdleTimerRef.current);
+  }, []);
+
+  const resolvePlace = useCallback(async (placeId: string): Promise<PlacesResolvedSelection | null> => {
+    const token = sessionTokenRef.current;
+    if (!token) return null;
+    clearSessionTimer();
     try {
-      const params = new URLSearchParams({ placeId });
-      const token = sessionTokenRef.current;
-      if (token) params.set("sessionToken", token);
-      const res = await fetch(`/api/places/details?${params.toString()}`, {
-        cache: "no-store",
-      });
+      const params = new URLSearchParams({ placeId, sessionToken: token });
+      const res = await fetch(`/api/places/details?${params.toString()}`, { cache: "no-store" });
       const json = await res.json().catch(() => null);
-      // End session after details (success or fail) so the next typing starts fresh.
-      sessionTokenRef.current = null;
       if (!res.ok || !json?.ok || !json.address) return null;
-      return json.address as PlacesResolvedAddress;
+      return { placeId, address: json.address as PlacesResolvedAddress };
     } catch {
-      sessionTokenRef.current = null;
       return null;
+    } finally {
+      sessionTokenRef.current = null;
+      requestSequenceRef.current += 1;
+      setSuggestions([]);
+      setStatus("idle");
     }
-  }
+  }, [clearSessionTimer]);
 
-  return {
-    available,
-    suggestions: available === false ? [] : suggestions,
-    status: available === false ? "idle" : status,
-    resolvePlace,
-  };
+  return { suggestions, status, resolvePlace, abandonSession };
 }

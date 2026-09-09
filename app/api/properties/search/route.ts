@@ -61,6 +61,7 @@ export async function GET(req: NextRequest) {
     .map((row) => ({
       id: row.id,
       line1: row.address_line1,
+      line2: row.address_line2,
       city: row.address_city,
       state: row.address_state,
       zip: row.address_zip,

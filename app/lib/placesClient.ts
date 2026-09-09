@@ -34,13 +34,10 @@ export const PLACES_AUTOCOMPLETE_FIELD_MASK =
 export const PLACES_DETAILS_FIELD_MASK = "id,formattedAddress,addressComponents";
 export const PLACES_AUTOCOMPLETE_TIMEOUT_MS = 2_500;
 export const PLACES_DETAILS_TIMEOUT_MS = 4_000;
-export const PLACES_AUTOCOMPLETE_TYPES = [
-  "street_address",
-  "premise",
-  "subpremise",
-  "route",
-  "plus_code",
-] as const;
+// Places Autocomplete (New): street_address/premise/route primary-type filters
+// return empty predictions for typical contractor address typing. `geocode`
+// matches Google's address-entry guidance and returns usable place predictions.
+export const PLACES_AUTOCOMPLETE_TYPES = ["geocode"] as const;
 
 export type PlacesProviderError =
   | "timeout"

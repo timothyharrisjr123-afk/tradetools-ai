@@ -62,7 +62,7 @@ test("autocomplete body is server-owned, address-oriented, and US-only", () => {
     includedRegionCodes: ["us"],
     regionCode: "us",
     languageCode: "en-US",
-    includedPrimaryTypes: ["street_address", "premise", "subpremise", "route", "plus_code"],
+    includedPrimaryTypes: ["geocode"],
     includeQueryPredictions: false,
     sessionToken: VALID_TOKEN,
   });
