@@ -2,6 +2,21 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-09 — Durable Stripe connected-account recovery foundation complete locally
+
+- Code/migration checkpoint `58bbf8e` implements the retained-connection-row architecture. Historical `company_payment_accounts` rows remain permanently tenant-bound; `provider_account_id` remains immutable and globally unique per provider.
+- The local migration `20260909130935_durable_stripe_account_recovery.sql` adds `is_current`, `connection_status` (`active | replaced | access_lost | closed`), and `ended_at`; removes the one-row-per-company/provider constraint; and enforces one current account per company/provider with a partial unique index. Existing valid rows deterministically backfill as current/active.
+- New-money account selection is explicit and fail-closed: only the current, active, complete, charge-enabled Stripe account is eligible. Historical payment/refund bindings remain stamped to and authorized against their original `provider_account_id`; a replacement is never substituted.
+- `replace_company_payment_account_v1` is the service-only atomic compare-and-swap operation. It validates canonical same-company ownership and server-confirmed Stripe usability, serializes replacement, retains and ends the old row, activates exactly the replacement row, and returns an explicit replay on safe retry. Cross-tenant activation and unusable replacement fail closed.
+- Provider webhooks continue to resolve exact `provider_account_id` for current or historical rows. Readiness refresh cannot change `is_current`, `connection_status`, or `ended_at`, so a delayed old-account webhook cannot reactivate an old connection. Unknown accounts and metadata-based ownership remain fail-closed.
+- Same-account remediation remains the default for incomplete onboarding, requirements due, recoverable restriction, and pending verification. Replacement remains an intentional recovery action for genuinely unusable/inaccessible/closed or contractor-replaced accounts; it is never automatic and does not expose account IDs to contractors.
+- Concurrency/idempotency PASS by database invariants, company-scoped advisory locking, ordered row locking, compare-and-swap current identity, global account ownership uniqueness, and replay handling. Tenant isolation PASS.
+- Recovery-model tests PASS (`17/17`); Stripe/payment/refund focused regression PASS (`307/307`); maintained tenant/auth/route PASS (`60/60`); Supabase persistence/RPC PASS (`144/144`); maintained proposal regression PASS (`486/486`); production route safety PASS.
+- Production typecheck PASS; independent test typecheck PASS; production build PASS. Production audit: HIGH `0`, CRITICAL `0` (five moderate advisories remain for the mandatory technology-currency audit before beta).
+- No visible Settings Payments UX changed; Cursor visual review is not required for this backend/schema foundation.
+- Migration created but **NOT applied live**. The disposable local Supabase database was not running, so SQL verification in this slice was static only; live migration verification requires a separate explicit authorization gate. No live SQL, remote config change, dependency change, push, or deploy.
+- **NEXT:** explicitly authorize controlled live migration verification/application. Stripe SDK / Accounts v2 modernization remains separate. OpenAI 7 modernization remains separate. The technology-currency audit remains mandatory before beta.
+
 ## 2026-09-09 — Stripe Connect P1 correction slice complete
 
 - Verification found and closed three Stripe P1 defects in `b39a1df`: metadata-based tenant establishment on `account.updated`, permissive settlement acknowledgement, and rejected-account state softening during Connect refresh.
