@@ -2,6 +2,20 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-09 — Google Places P1 Slice B COMPLETE locally
+
+- Code checkpoint `284c20f` (`feat(properties): integrate accessible Places address selection`) closes Google Places P1 **Slice B**. UX accepted after desktop + true 390px external-browser review. No remaining Slice B P0/P1.
+- Accessible New Job property-address combobox (`JobPacketAddressCombobox`): 3-character minimum, 280ms debounce, stale/cancelled response protection, complete per-session UUID lifecycle (create → autocomplete → details retirement / idle abandon), keyboard (Arrow/Home/End/Enter/Escape/Tab) + pointer/touch (`preventDefault` blur-safe select), ARIA combobox/listbox/option + `aria-activedescendant`, quiet loading, no-results and provider-unavailable manual fallbacks, Google Maps attribution.
+- Deterministic address UI state model: **SEARCHING** | **SELECTED** | **MANUAL**. SEARCHING shows only the search input + quiet “Enter address manually” (no unit/city/state/ZIP). SELECTED shows resolved Google summary + Change/Clear + optional unit + structured locality. MANUAL is first-class structured entry with “Search addresses”.
+- Unresolved search cannot keep or display stale structured address truth; entering SEARCH / editing the query clears city/state/ZIP/unit. Create job is gated (`packetAddressResolved` + explicit SEARCHING reject) so unresolved query text cannot combine with stale structured fields into an incorrect property.
+- Selected Google address populates structured fields correctly. Browser verification caught and fixed a Google Autocomplete (New) request defect: over-narrow `includedPrimaryTypes` returned empty suggestions; corrected to address-oriented `geocode` while preserving US-only / max-five / server-owned contract.
+- Place ID retained in form memory only — **not persisted**. Existing FieldDive property candidate flow preserved under MANUAL/SELECTED; presentation-only identical-row collapse (`dedupePropertyCandidatesForDisplay`). Customer mailing semantics unchanged. Google remains subordinate to FieldDive property truth.
+- Verification: focused Places/Slice B + New Job/intake + property-candidate suite **57/57 PASS**; production typecheck PASS; test typecheck PASS; production build PASS; audit HIGH **0** / CRITICAL **0** (4 MODERATE transitive advisories outside Slice B). Desktop visual PASS; true 390px PASS; interaction/state integration PASS.
+- No DB/schema change; no Google Cloud change; no push/deploy.
+- **Product lesson (project-wide):** a user-facing capability is not complete merely because code/tests pass. Acceptance requires implementation correctness + real browser interaction + workflow/data propagation + visual/mobile verification.
+- **SLICE C carry-forward (do not start from this checkpoint alone):** persist confirmed `places_place_id`; durable structured property identity; duplicate-property preflight; company-scoped atomic property resolver; concurrency-safe resolve-or-create; durable property uniqueness/dedupe (presentation collapse is not domain truth); customer mailing vs property service-address semantics; existing/new customer × existing/new property flow; job snapshot preservation.
+- **NEXT:** Slice C only after separate authorization. Do not begin from this checkpoint alone.
+
 ## 2026-09-09 — Google Places P1 Slice A complete locally
 
 - Interruption recovery began from clean checkpoint `f458495`; the uncommitted Slice A files were isolated, internally coherent, preserved, completed, and committed as `60567cc` (`fix(properties): harden Google Places provider boundary`). No unrelated work was absorbed.
