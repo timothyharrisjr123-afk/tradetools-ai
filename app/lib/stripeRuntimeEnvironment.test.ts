@@ -79,4 +79,13 @@ describe("Stripe Connect webhook boundary", () => {
     assert.match(route, /status: 410/);
     assert.doesNotMatch(route, /STRIPE_|constructEvent|createAdminClient|\.from\(/);
   });
+
+  test("canonical Stripe client pins the reviewed request API version centrally", () => {
+    const source = readFileSync(
+      join(process.cwd(), "app/lib/jobPaymentStripe.server.ts"),
+      "utf8"
+    );
+    assert.match(source, /new Stripe\(requireStripeSecretKey\(\), \{/);
+    assert.match(source, /apiVersion: "2026-07-29\.dahlia"/);
+  });
 });

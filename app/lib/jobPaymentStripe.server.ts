@@ -16,7 +16,9 @@ import {
 } from "@/app/lib/stripeRuntimeEnvironment";
 
 export function getStripeConnectClient(): Stripe {
-  return new Stripe(requireStripeSecretKey());
+  return new Stripe(requireStripeSecretKey(), {
+    apiVersion: "2026-07-29.dahlia",
+  });
 }
 
 export function getStripeConnectWebhookSecret(): string {
@@ -200,9 +202,11 @@ export async function retrieveDirectPaymentRefund(input: {
   connectedAccountId: string;
   refundId: string;
 }): Promise<Stripe.Refund> {
-  return getStripeConnectClient().refunds.retrieve(input.refundId, {
-    stripeAccount: input.connectedAccountId,
-  });
+  return getStripeConnectClient().refunds.retrieve(
+    input.refundId,
+    {},
+    { stripeAccount: input.connectedAccountId }
+  );
 }
 
 export async function listDirectChargeRefunds(input: {
@@ -246,9 +250,11 @@ export async function retrieveDirectCheckoutSession(input: {
   sessionId: string;
 }): Promise<Stripe.Checkout.Session> {
   const stripe = getStripeConnectClient();
-  return stripe.checkout.sessions.retrieve(input.sessionId, {
-    stripeAccount: input.connectedAccountId,
-  });
+  return stripe.checkout.sessions.retrieve(
+    input.sessionId,
+    {},
+    { stripeAccount: input.connectedAccountId }
+  );
 }
 
 export function checkoutSessionIsReusable(
