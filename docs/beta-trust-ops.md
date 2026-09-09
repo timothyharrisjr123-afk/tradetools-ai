@@ -12,9 +12,9 @@
 
 | Kind | Examples |
 |------|----------|
-| **CODE ENFORCED** | Non-dev HTTPS `NEXT_PUBLIC_APP_URL` fail-closed; no Host/Origin substitute; Connect refuses `sk_live_`; Send success = provider-accepted wording (`Proposal emailed` / `Submitted to`) |
-| **ACCOUNT CONFIGURATION** | Domain DNS/HTTPS; Vercel (or host) env vars; Resend domain/From; Stripe TEST Connect + webhook endpoint + secrets; Supabase project selection |
-| **OPERATOR PROCEDURE** | Migration apply checklist; support runbooks; deploy checklist; beta invite messaging (TEST money); multi-audit HOLD before invites |
+| **CODE ENFORCED** | Non-dev HTTPS `NEXT_PUBLIC_APP_URL` fail-closed; no Host/Origin substitute; Stripe key/event mode matches explicit environment; dedicated Connect secret; Send success = provider-accepted wording (`Proposal emailed` / `Submitted to`) |
+| **ACCOUNT CONFIGURATION** | Domain DNS/HTTPS; Vercel (or host) env vars; Resend domain/From; separate Stripe TEST/LIVE Connect endpoints and secrets; Supabase project selection |
+| **OPERATOR PROCEDURE** | Migration apply checklist; support runbooks; deploy checklist; live-money authorization; multi-audit HOLD before invites |
 
 Healthy contractor UI stays quiet. Ops detail belongs here — not Job Card banners.
 
@@ -27,7 +27,7 @@ Healthy contractor UI stays quiet. Ops detail belongs here — not Job Card bann
 - **Non-development:** explicit `NEXT_PUBLIC_APP_URL`, absolute **https**, non-loopback; missing/invalid/http/localhost → fail closed **before** Resend or customer link mint.
 - Request Host / `x-forwarded-host` / Origin **do not** authorize public links in non-dev.
 - Pre–Wave-D email truth stops at **provider acceptance**. UI success: **Proposal emailed** / **Submitted to …**. Delivery Activity may say **Accepted by email provider**. Do **not** claim Delivered/Received/Opened without Wave D webhooks.
-- Stripe Connect: **`sk_live_` hard refusal** remains.
+- Stripe Connect: `FIELDDIVE_ENV` binds legal key and signed-event mode; missing or mismatched configuration fails closed.
 
 ---
 
@@ -38,6 +38,7 @@ Healthy contractor UI stays quiet. Ops detail belongs here — not Job Card bann
 - `NEXT_PUBLIC_APP_URL=http://localhost:3000` (or equivalent local) is legal.
 - Local Supabase project + anon/service-role keys in `.env.local`.
 - Stripe **TEST** keys only.
+- `FIELDDIVE_ENV=local`.
 - Resend may use onboarding/dev From until domain verified.
 - Host/Origin fallback is **not** used for customer links when APP_URL is set; missing APP_URL defaults to localhost in development only.
 
@@ -47,6 +48,7 @@ Healthy contractor UI stays quiet. Ops detail belongs here — not Job Card bann
 - Require **explicit HTTPS** `NEXT_PUBLIC_APP_URL` equal to that preview origin.
 - Environment-specific Supabase/Resend/Stripe TEST values — never production customer domain by accident.
 - Stripe TEST only.
+- `FIELDDIVE_ENV=staging`.
 - If APP_URL unset → customer Send / link mint **fail closed** (no Host substitute).
 
 ### PRODUCTION / CONTROLLED BETA
@@ -54,18 +56,18 @@ Healthy contractor UI stays quiet. Ops detail belongs here — not Job Card bann
 - Exact HTTPS public origin in `NEXT_PUBLIC_APP_URL`.
 - Exact Supabase project verified (see §7) before any migration or smoke.
 - Resend sending domain + `RESEND_FROM` verified.
-- Stripe Connect **TEST** mode; Connect webhook registered to production host path (below).
-- **No live money** until a future deliberate product/ops gate (not Trust Ops Group B/C alone).
+- `FIELDDIVE_ENV=production`; Stripe Connect **LIVE** key and live endpoint secret required by code.
+- Live operation still requires a separate configuration/deploy authorization; code support is not deployment authorization.
 
-Env names: see `.env.example` (REQUIRED CORE / SEND / TEST PAYMENTS / OPS / OPTIONAL / LEGACY).
+Env names: see `.env.example` (REQUIRED CORE / SEND / PAYMENTS / OPS / OPTIONAL / LEGACY).
 
 ---
 
-## 3. Stripe TEST-only controlled beta policy
+## 3. Stripe environment separation policy
 
-**LOCK: Controlled beta uses Stripe Connect TEST mode.**
+**LOCK: Local and staging use TEST. Production uses LIVE only after an explicit deployment authorization.**
 
-- Code refuses `sk_live_` on the Job Card Connect path (`getStripeConnectClient`).
+- Code rejects LIVE keys outside production and rejects TEST keys in production.
 - Beta contractors may exercise deposit/progress/balance Checkout with **Stripe test cards**.
 - **No real funds** are collected; refunds are also TEST-mode.
 - Payment UX evaluation remains valid without live money.
@@ -91,17 +93,23 @@ Do not imply real money in marketing/screenshots during TEST beta.
 
 | Item | Contract |
 |------|----------|
-| Preferred secret | `STRIPE_CONNECT_WEBHOOK_SECRET` |
-| Fallback | `STRIPE_WEBHOOK_SECRET` if Connect secret unset (prefer explicit Connect secret) |
+| Required secret | `STRIPE_CONNECT_WEBHOOK_SECRET` (no legacy-secret fallback) |
 | Verification | Stripe signature on raw body (`verifyStripeConnectWebhook`) |
-| Stripe mode | **TEST** Dashboard endpoint for controlled beta |
+| Runtime mode | `FIELDDIVE_ENV=production` requires LIVE; `staging`, `local`, and `test` require TEST |
+| Event mode | Production accepts `livemode=true`; all other environments accept `livemode=false` |
 | Handled families | `checkout.session.*`, `payment_intent.*`, `charge.refunded`, `account.updated` (see `jobPaymentWebhookMapper`) |
 
 **Prove a test event landed:** run TEST Checkout → confirm webhook delivery in Stripe Dashboard → confirm canonical **job payment request / ledger / event receipt** rows updated for that job.  
 
 **Browser Checkout success redirect is NOT payment truth.** Canonical DB + signed webhook wins.
 
-Legacy webhook `POST /api/payments/webhook` is **not** the Job Card Connect settlement path.
+Use separate Stripe TEST and LIVE Connect endpoint registrations and their unique
+signing secrets. A correctly signed wrong-mode event is quarantined before any
+persistence, logged without account/secret data, and acknowledged to prevent a
+permanent endpoint-routing error from causing a retry storm.
+
+Legacy webhook `POST /api/payments/webhook` is retired with HTTP 410 and performs
+no signature parsing, secret access, or persistence.
 
 ---
 
@@ -110,18 +118,17 @@ Legacy webhook `POST /api/payments/webhook` is **not** the Job Card Connect sett
 | Path | Role |
 |------|------|
 | Job Card money | Stripe Connect + `/api/webhooks/stripe/connect` + job payment ledger |
-| Legacy | `/api/payments/create-checkout`, `/api/payments/webhook` (estimates / `SavedClient` Board checkout) |
+| Legacy | `/api/payments/create-checkout` and `/api/payments/webhook` are HTTP 410 tombstones |
 
-**Verdict: P1 CONTAINMENT** (not P0 collision).
+**Verdict: RETIRED / FAIL-CLOSED.**
 
-- Normal **Job Card** paid-beta flow does **not** call legacy create-checkout.
-- **Jobs Board** (`SavedClient`) can still reach legacy checkout for estimate payment UI.
-- Confusion risk: contractor might use Board Stripe deposit vs Job Card Collect/Connect.
+- Normal **Job Card** paid flow uses only canonical Connect checkout and webhook paths.
+- Stale Jobs Board clients receive HTTP 410 from legacy Checkout.
+- Any legacy webhook delivery receives HTTP 410 and cannot write `payments`.
 
-**Controlled-beta rule:**  
-**Use Job Card / Connect payment flow only.** Do not use Board legacy estimate checkout for beta money exercises.
-
-Do **not** delete legacy routes in Group B. Carry optional UI hide/disable as a **pre-beta P1** if beta users hit it.
+**Operator rule:** remove/disable any Stripe Dashboard webhook destination still
+targeting `/api/payments/webhook`; retain only environment-correct Connect
+destinations targeting `/api/webhooks/stripe/connect`.
 
 ---
 
@@ -276,12 +283,13 @@ Re-confirm before every apply. Do not apply because a filename “looks right.�
 - [ ] `RESEND_FROM` verified  
 - [ ] API key scoped to that environment  
 
-### STRIPE TEST
+### STRIPE ENVIRONMENT
 
-- [ ] TEST Connect configured  
-- [ ] Webhook `…/api/webhooks/stripe/connect` registered in TEST  
-- [ ] `STRIPE_CONNECT_WEBHOOK_SECRET` set (preferred)  
-- [ ] Live secret keys absent; code refusal intact  
+- [ ] `FIELDDIVE_ENV` explicitly set (`production` LIVE; `staging` TEST)
+- [ ] Separate TEST and LIVE Connect destinations target `/api/webhooks/stripe/connect`
+- [ ] Each environment has its own required `STRIPE_CONNECT_WEBHOOK_SECRET`
+- [ ] No destination targets retired `/api/payments/webhook`
+- [ ] Local/staging contain TEST keys only; production contains LIVE keys only
 
 ### BUILD
 
@@ -381,7 +389,7 @@ Read-only account/repo discovery. No deploy. No push. No live-money change.
 - Read-only table probe on that host: `properties` (064), `proposal_delivery_attempts`, `job_payment_requests`, `job_payment_refunds` exist.
 - Public site: **`https://www.fielddive.com`** serves this product on **Vercel**. Apex `https://fielddive.com` **307 → www**. `/tools/roofing/saved` 307 → `/login`.
 - Repo metadata already uses `https://www.fielddive.com` (`app/layout.tsx` `metadataBase`).
-- Local `.env.local` (dev only): Stripe **TEST** (`sk_test` / `pk_test`); `NEXT_PUBLIC_APP_URL` = `http://localhost:3000`; `RESEND_FROM` domain `fielddive.com`; `STRIPE_CONNECT_WEBHOOK_SECRET` **absent** (falls back to `STRIPE_WEBHOOK_SECRET`).
+- Historical local checkpoint: Stripe **TEST** (`sk_test` / `pk_test`) and `NEXT_PUBLIC_APP_URL=http://localhost:3000`. Its absent Connect secret/fallback arrangement is superseded: local webhook verification now requires its own `STRIPE_CONNECT_WEBHOOK_SECRET`.
 - Local login copy is **FieldDive**. Live `/login` still says **TradeTools AI** → production is an **older deploy** than unpushed Group A/B commits.
 
 ### Likely (not account-proven)

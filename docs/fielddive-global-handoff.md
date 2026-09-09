@@ -2,6 +2,18 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-09 — Stripe modernization Slice A complete locally
+
+- Code checkpoint `9c44b64` implements the paid-mode and endpoint safety boundary without changing Stripe SDK `17.7.0`, request API version `2025-02-24.acacia`, Connect Accounts v1, Standard accounts, direct charges, Checkout parameters, refunds, or database schema.
+- New explicit `FIELDDIVE_ENV` contract: `production` requires a LIVE `sk_`/`rk_` key; `staging`, `local`, and `test` require TEST. A production Node build cannot infer staging vs production and fails closed if `FIELDDIVE_ENV` is absent. `NODE_ENV=development|test` may safely derive local/test only.
+- Canonical Connect signature verification now requires `STRIPE_CONNECT_WEBHOOK_SECRET`; fallback to unrelated `STRIPE_WEBHOOK_SECRET` is removed. Missing or malformed keys/secrets fail closed and secret values are never logged.
+- Signed Connect `event.livemode` is checked before mapping or persistence. Wrong-mode events cannot mutate state; they receive a deliberate 200 quarantine acknowledgement to avoid a permanent misrouting retry storm, with a sanitized error signal containing event ID/type and expected/received mode only.
+- Repository producer proof: legacy `/api/payments/create-checkout` was already an HTTP 410 tombstone; canonical money uses `/api/webhooks/stripe/connect`; no other current Stripe Checkout creator targets the legacy estimate metadata contract. `/api/payments/webhook` is now also a write-free HTTP 410 tombstone and cannot read Stripe secrets, verify events, or persist legacy payments.
+- Focused Stripe/payment/refund/recovery/tenant/route suite **357/357 PASS**; Slice-A focused suite **93/93 PASS**; production/test typechecks PASS; production build PASS; audit HIGH **0** / CRITICAL **0** (5 moderate pre-existing). Repository-wide sweep has two unrelated pre-existing stale assertions in `customerOptionChoice052.test.ts`, reproduced alone; Slice A did not touch their asserted migration/proposal files.
+- Stripe Dashboard and Vercel environment configuration were **not changed**. Required operator follow-up before live deployment: set environment-scoped `FIELDDIVE_ENV`; verify distinct TEST and LIVE Connect destinations/secrets; confirm each destination listens to connected-account events at `/api/webhooks/stripe/connect`; remove/disable any destination targeting retired `/api/payments/webhook`; verify endpoint `livemode` delivery with no secrets recorded.
+- No DB change; no production/staging mutation; no push/deploy; no visible UX change.
+- **NEXT:** Slice B only after separate authorization — upgrade to `stripe@22.4.0` and explicitly pin/test `2026-07-29.dahlia`. Do not begin from this checkpoint alone.
+
 ## 2026-09-09 — PRODUCTION Stripe recovery migration applied + verified COMPLETE
 
 - PRODUCTION (`rhquhnujjnzjhweypavd`) recovery migration `20260909130935_durable_stripe_account_recovery.sql` applied via guarded explicit `--project-ref` `db push` (non-dry-run) after final dry-run showed **only** that migration pending.
