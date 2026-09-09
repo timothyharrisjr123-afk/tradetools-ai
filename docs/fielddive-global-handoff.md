@@ -2,6 +2,18 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-09 — Stripe Connect P1 correction slice complete
+
+- Verification found and closed three Stripe P1 defects in `b39a1df`: metadata-based tenant establishment on `account.updated`, permissive settlement acknowledgement, and rejected-account state softening during Connect refresh.
+- `account.updated` now requires signed top-level `event.account` equal to the Account object ID and refreshes tenancy only through the existing canonical `provider_account_id` mapping. Stripe object metadata cannot create, bind, or redirect company ownership; unknown accounts fail closed.
+- Settlement acknowledgement is strict: only a validated canonical apply or an idempotent replay with canonical request/transaction identity receives success. Malformed, ambiguous, ignored, rejected, and infrastructure-failure results remain retryable/non-2xx. Retry/idempotency PASS.
+- Webhook and Connect refresh share one account-state classifier: incomplete onboarding is pending, recoverable requirements are restricted, explicit rejection/listing is disabled, and charge-ready is complete. Rejected accounts remain disabled.
+- Tenant isolation PASS; legacy Checkout `410 legacy_checkout_disabled` containment PASS; Stripe secret-fragment logging remains absent; no payment/refund lifecycle mutation was introduced.
+- Stripe/payment regression PASS (`290/290`); focused correction PASS (`16/16`); maintained tenant/auth/route, Supabase persistence/RPC, proposal (`358/358`), and production-route safety gates PASS.
+- Production build PASS; production typecheck PASS; independent test typecheck PASS. Production audit: HIGH `0`, CRITICAL `0` (five moderate advisories remain for the mandatory technology-currency audit before beta).
+- The Stripe recovery-schema slice is NEXT. Stripe SDK / Accounts v2 modernization remains separate; OpenAI 7 modernization remains separately tracked. Do not combine either modernization with recovery-schema work.
+- No SQL or migrations, dependency changes, Stripe/Vercel/Supabase configuration changes, push, or deploy.
+
 ## 2026-09-04 — Test-fixture type-contract cleanup complete
 
 - Independent test-typecheck debt is fully repaired: 105 errors across 34 test files reduced to 0 without suppressions or production type widening.
