@@ -177,7 +177,7 @@ describe("Wave B â€” writers + intake contracts", () => {
     assert.doesNotMatch(source, /Property preview/);
     assert.doesNotMatch(source, /Map preview when address is confirmed/);
     assert.match(source, /Add customer and property details to continue/);
-    assert.match(source, /job_address1_field/);
+    assert.match(read("app/tools/roofing/JobPacketAddressCombobox.tsx"), /job_address1_field/);
     assert.match(packet, /Show more/);
     assert.match(packet, /Continue as new customer/);
     assert.match(packet, /Using existing customer/);
@@ -255,8 +255,9 @@ describe("Wave B â€” Places boundary", () => {
     assert.match(hook, /sessionToken/);
     assert.match(hook, /randomUUID|newPlacesSessionToken/);
     const roofing = read("app/tools/roofing/RoofingClient.tsx");
-    assert.match(roofing, /JobPacketAddressSuggestions/);
-    assert.match(roofing, /job_address1_field/);
+    assert.match(roofing, /JobPacketAddressCombobox/);
+    const combobox = read("app/tools/roofing/JobPacketAddressCombobox.tsx");
+    assert.match(combobox, /job_address1_field/);
     assert.equal(
       isGooglePlacesConfigured(),
       Boolean(process.env.GOOGLE_PLACES_API_KEY)

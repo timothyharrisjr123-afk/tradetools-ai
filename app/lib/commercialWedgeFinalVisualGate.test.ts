@@ -149,9 +149,10 @@ describe("address autocomplete locality wiring", () => {
 
   test("autocomplete API forwards locality params", () => {
     const route = read("app/api/places/autocomplete/route.ts");
-    assert.match(route, /searchParams\.get\("city"\)/);
-    assert.match(route, /searchParams\.get\("state"\)/);
-    assert.match(route, /searchParams\.get\("zip"\)/);
-    assert.match(route, /fetchPlacesAutocomplete\(q, sessionToken, locality\)/);
+    const contract = read("app/lib/placesRequestContract.ts");
+    assert.match(contract, /searchParams\.get\("city"\)/);
+    assert.match(contract, /searchParams\.get\("state"\)/);
+    assert.match(contract, /searchParams\.get\("zip"\)/);
+    assert.match(route, /parsed\.value\.locality/);
   });
 });
