@@ -2,6 +2,18 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-09 — Canonical Supabase baseline local proof complete
+
+- Legacy collision problem: historical `YYYYMMDD_NNN_description.sql` filenames made Supabase parse only the date segment as the version; many same-day files collided. Production canonical ledger contained only `20260531`; later schema evolution was frequently applied via SQL Editor. Inventory found **63** date-plus-sequence legacy files (sequences `001`–`064` with `039` reserved/absent) plus the already-timestamped recovery migration.
+- Authoritative production pre-recovery schema dump fingerprint: SHA-256 `B435863DC562C374E02315F3EB5C9A700BED63538850E90F6FA3FF57AA3EFE2A` at ignored path `tmp/fielddive-db-audit/production-schema-pre-recovery.sql` (722,002 bytes; schema-only; no row data/secrets).
+- Hybrid canonical baseline implemented locally: legacy SQL archived byte-for-byte under `supabase/history/legacy-migrations/`; evidence manifest at `supabase/history/legacy-migrations-manifest.json`; active chain normalized to unique 14-digit versions only.
+- Canonical baseline: `supabase/migrations/20260909130000_canonical_pre_recovery_baseline.sql`. Stripe recovery remains next and **unrenamed**: `supabase/migrations/20260909130935_durable_stripe_account_recovery.sql`.
+- Local disposable Supabase applied baseline from zero via `npx supabase db reset --local --version 20260909130000` (recovery **not** applied for this gate). Local dump vs production structural equivalence: **PASS** — `0` unexplained differences; `0` security-significant differences (`scripts/compare-schema-dumps.mjs`).
+- High-risk domain equivalence PASS: auth/tenancy, jobs/lifecycle, proposals, payments, property/search. Pre-recovery payment model matched (`UNIQUE(company_id,provider)`, `UNIQUE(provider,provider_account_id)`, 10 columns); recovery fields `is_current` / `connection_status` / `ended_at` / partial current index **absent** locally.
+- Future migration rule: `npx supabase migration new <name>` only (`YYYYMMDDHHMMSS_description.sql`); no date-only versions; no SQL Editor-only structural production changes without committed forward migration + reconciliation.
+- Staging runbook updated: `docs/supabase-staging-runbook.md`. No staging mutation; no production mutation; no production/staging ledger changes; no push/deploy; no app/product behavior changes.
+- **NEXT gate:** authorize clean staging baseline application + verification, then Stripe recovery migration execution on staging. Do not apply baseline as a live forward migration on production without separate ledger-cutover authorization.
+
 ## 2026-09-09 — Supabase CLI temporary-credential exposure closed
 
 - During guarded read-only production schema-extraction preparation, Supabase CLI `2.117.0` `db dump --dry-run` printed the generated dump script, including the password of its automatically minted `cli_login_postgres` temporary login role. The secret value is intentionally not recorded here.
@@ -9,7 +21,8 @@
 - Persistent production database-password rotation was therefore not required. The deployed application does not read `DATABASE_URL`; runtime database access uses the environment-scoped Supabase URL plus anon or service-role API credentials. No Vercel secret update, redeploy, API-key rotation, production SQL, staging change, or production configuration change occurred.
 - The failed schema-dump destination was a zero-byte ignored artifact under `supabase/.temp/` and was removed. No tracked file contained `PGPASSWORD`; terminal/Codex transcript output cannot be programmatically erased, but the disclosed temporary credential has expired.
 - **Future dump safety rule:** never run `supabase db dump --dry-run` against a remote project because it renders connection credentials into console output. After Docker Desktop or another supported dump runtime is installed, run the guarded non-dry-run schema-only dump directly to an ignored local file, keep normal/debug logging disabled, inspect the artifact for structure only, and never commit it before sanitization review.
-- Migration-history normalization remains paused. **NEXT:** install Docker Desktop/local Supabase support, then resume the separately authorized read-only production schema extraction using the guarded non-dry-run workflow.
+- Migration-history normalization local proof is recorded above (**Canonical Supabase baseline local proof complete**). Staging/production cutover remains separately authorized.
+- **Future dump safety rule:** never run `supabase db dump --dry-run` against a remote project because it renders connection credentials into console output. After Docker Desktop or another supported dump runtime is installed, run the guarded non-dry-run schema-only dump directly to an ignored local file, keep normal/debug logging disabled, inspect the artifact for structure only, and never commit it before sanitization review.
 
 ## 2026-09-09 — Supabase staging safety foundation complete
 
