@@ -2,6 +2,20 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-09 — Staging Stripe recovery migration applied + adversarial PASS
+
+- Recovery migration `20260909130935_durable_stripe_account_recovery.sql` applied to **STAGING only** (`tjtrhdckinjtorgbkirm`) via guarded wrapper after baseline-only dry-run. Staging ledger: `20260909130000` + `20260909130935` both applied.
+- Pre-migration synthetic Company A + `acct_SYNTHSTAGEA1001` backfilled to `is_current=true`, `connection_status=active`, `ended_at=null` without duplicating the row.
+- Schema verified: recovery columns present; `company_payment_accounts_company_provider_unique` removed; `company_payment_accounts_provider_account_unique` preserved; indexes `company_payment_accounts_one_current_idx`, `company_payment_accounts_one_active_candidate_idx`, `company_payment_accounts_company_history_idx`; lifecycle CHECKs; row-guard + RLS + select policy retained.
+- Database proofs PASS: exactly-one-current rejection; cross-company provider ownership rejection; immutability/delete guards; replacement happy path A1→A2 then A2→A3; idempotent same-current replay; unauthorized caller rejected; unusable candidate atomic failure (no half-transition); same-account remediation without new rows; historical account remains non-current and cannot reactivate via readiness update.
+- `replace_company_payment_account_v1`: SECURITY DEFINER, `search_path=public`, owner postgres; PUBLIC/anon/authenticated execute revoked; service_role only.
+- New-money writers require current+active+complete+charges_enabled; historical accounts excluded. Historical refund contract still binds `v_request.provider_account_id` without `is_current` substitution (deployed `reserve_job_payment_refund_v1`).
+- Concurrent CLI dual-session: one winner replaced A3→A4; peer session hit temporary login-role auth contention; post-state still exactly one current; dual-current blocked by unique index.
+- Hosted migration runtime observed as short (order of tens of seconds including CLI login). Production apply risk: **LOW-MODERATE** (additive columns/backfill/indexes/function replace on `company_payment_accounts`; no table rewrite; lock risk bounded).
+- Regression: recovery **17/17**; refund **23/23**; Stripe Connect P1 + payment collect/balance/invariant/stage1/flow **167/167** after retargeting static fixtures to `supabase/history/legacy-migrations/`; tenant/auth/proposal/persistence samples **102/102**; production typecheck PASS; test typecheck PASS; production build PASS; audit HIGH **0** / CRITICAL **0** (5 moderate pre-existing).
+- Production untouched; production ledger untouched; no push/deploy; no Stripe/Vercel config changes; no product UX changes.
+- **NEXT:** controlled production baseline-ledger cutover + recovery migration authorization (separate gate). Do not apply to production from this checkpoint alone.
+
 ## 2026-09-09 — Canonical baseline applied to STAGING + equivalence PASS
 
 - Canonical pre-recovery baseline `20260909130000_canonical_pre_recovery_baseline.sql` applied to **STAGING only** (`tjtrhdckinjtorgbkirm`) via guarded staging wrapper. Staging was clean beforehand (0 public tables).
@@ -11,7 +25,7 @@
 - Pre-recovery payment model matched on staging (`UNIQUE(company_id,provider)`, `UNIQUE(provider,provider_account_id)`, row-guard trigger, membership SELECT policy, service-role ACL). Recovery fields `is_current` / `connection_status` / `ended_at` / `company_payment_accounts_one_current_idx` **absent**.
 - Hosted security catalog counts matched production dump deltas of 0 for RLS (48), policies (123), triggers (63), functions (136), grants (430), revokes (108), SECURITY DEFINER (74).
 - Production untouched; production ledger untouched; no production SQL; no push/deploy; no app/dependency/Stripe/Vercel changes.
-- **NEXT:** authorize Stripe recovery migration execution + adversarial verification in staging only (`20260909130935_durable_stripe_account_recovery.sql`). Do not apply recovery or baseline cutover to production without separate authorization.
+- **NEXT (superseded by staging recovery apply above):** Stripe recovery migration execution + adversarial verification in staging is complete. Do not apply recovery or baseline cutover to production without separate authorization.
 
 ## 2026-09-09 — Canonical Supabase baseline local proof complete
 
@@ -23,7 +37,7 @@
 - High-risk domain equivalence PASS: auth/tenancy, jobs/lifecycle, proposals, payments, property/search. Pre-recovery payment model matched (`UNIQUE(company_id,provider)`, `UNIQUE(provider,provider_account_id)`, 10 columns); recovery fields `is_current` / `connection_status` / `ended_at` / partial current index **absent** locally.
 - Future migration rule: `npx supabase migration new <name>` only (`YYYYMMDDHHMMSS_description.sql`); no date-only versions; no SQL Editor-only structural production changes without committed forward migration + reconciliation.
 - Staging runbook updated: `docs/supabase-staging-runbook.md`. No staging mutation; no production mutation; no production/staging ledger changes; no push/deploy; no app/product behavior changes.
-- **NEXT gate:** authorize clean staging baseline application + verification, then Stripe recovery migration execution on staging. Do not apply baseline as a live forward migration on production without separate ledger-cutover authorization.
+- **NEXT gate (superseded by staging baseline apply above):** clean staging baseline application is complete; next is Stripe recovery migration execution on staging. Do not apply baseline as a live forward migration on production without separate ledger-cutover authorization.
 
 ## 2026-09-09 — Supabase CLI temporary-credential exposure closed
 
