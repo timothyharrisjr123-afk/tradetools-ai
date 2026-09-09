@@ -75,7 +75,9 @@ export async function POST(req: NextRequest) {
     const admin = createAdminClient();
     if (mapped.account_update) {
       const persisted = await upsertCompanyPaymentAccountFromProviderViaRpc(admin, {
-        companyId: mapped.account_update.company_id,
+        // Signed Stripe account identity may refresh an existing canonical
+        // mapping, but object metadata must never create or redirect tenancy.
+        companyId: null,
         providerAccountId: mapped.account_update.provider_account_id,
         chargesEnabled: mapped.account_update.charges_enabled,
         payoutsEnabled: mapped.account_update.payouts_enabled,

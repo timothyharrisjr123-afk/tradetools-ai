@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, test } from "node:test";
 import {
+  classifyStripeConnectAccountState,
   isStripeConnectEventContractError,
   mapStripeConnectEventToCommand,
 } from "./jobPaymentWebhookMapper";
@@ -83,6 +84,28 @@ describe("Stripe Connect signed account contract", () => {
     }
   });
 
+  test("account.updated metadata cannot establish or redirect company ownership", () => {
+    for (const companyId of ["company-forged", "company-a-claiming-company-b"]) {
+      const mapped = mapStripeConnectEventToCommand({
+        id: `evt_${companyId}`,
+        type: "account.updated",
+        account: "acct_company_b",
+        data: {
+          object: {
+            id: "acct_company_b",
+            charges_enabled: true,
+            details_submitted: true,
+            metadata: { company_id: companyId },
+          },
+        },
+      });
+      assert.equal("ignore" in mapped, false);
+      if ("ignore" in mapped) throw new Error("unexpected mapper result");
+      assert.equal("company_id" in (mapped.account_update ?? {}), false);
+      assert.equal(mapped.account_update?.provider_account_id, "acct_company_b");
+    }
+  });
+
   test("checkout expiration is the only handled no-op with optional account", () => {
     const mapped = mapStripeConnectEventToCommand({
       id: "evt_expired",
@@ -148,18 +171,104 @@ describe("coarse account state input", () => {
       false
     );
   });
+
+  test("shared classifier preserves pending, restricted, disabled, and complete", () => {
+    assert.equal(
+      classifyStripeConnectAccountState({
+        charges_enabled: false,
+        details_submitted: false,
+        requirements: { disabled_reason: null },
+      }),
+      "pending"
+    );
+    assert.equal(
+      classifyStripeConnectAccountState({
+        charges_enabled: false,
+        details_submitted: true,
+        requirements: { disabled_reason: "requirements.past_due" },
+      }),
+      "restricted"
+    );
+    for (const disabledReason of ["rejected.fraud", "listed"]) {
+      assert.equal(
+        classifyStripeConnectAccountState({
+          charges_enabled: false,
+          details_submitted: true,
+          requirements: { disabled_reason: disabledReason },
+        }),
+        "disabled"
+      );
+    }
+    assert.equal(
+      classifyStripeConnectAccountState({
+        charges_enabled: true,
+        details_submitted: true,
+        requirements: { disabled_reason: null },
+      }),
+      "complete"
+    );
+  });
 });
 
 describe("persistence acknowledgement contracts", () => {
   test("settlement accepts canonical success and safe replay only", () => {
-    assert.equal(isConfirmedSettlementPersistence({ ok: true, ignored: false }), true);
+    const requestId = "11111111-1111-4111-8111-111111111111";
+    const transactionId = "22222222-2222-4222-8222-222222222222";
+    assert.equal(
+      isConfirmedSettlementPersistence({
+        ok: true,
+        ignored: false,
+        idempotent_replay: false,
+        payment_request_id: requestId,
+        request_status: "paid",
+        transaction_id: transactionId,
+        job_stage_unchanged: true,
+      }),
+      true
+    );
+    assert.equal(
+      isConfirmedSettlementPersistence({
+        ok: true,
+        ignored: false,
+        idempotent_replay: true,
+        payment_request_id: requestId,
+        transaction_id: transactionId,
+      }),
+      true
+    );
+    assert.equal(isConfirmedSettlementPersistence({ ok: true }), false);
+    assert.equal(isConfirmedSettlementPersistence({ ok: true, ignored: false }), false);
     assert.equal(
       isConfirmedSettlementPersistence({
         ok: true,
         ignored: false,
         idempotent_replay: true,
       }),
+      false
+    );
+    assert.equal(
+      isConfirmedSettlementPersistence({
+        ok: true,
+        ignored: false,
+        idempotent_replay: false,
+        payment_request_id: requestId,
+        request_status: "processing",
+        transaction_id: null,
+        job_stage_unchanged: true,
+      }),
       true
+    );
+    assert.equal(
+      isConfirmedSettlementPersistence({
+        ok: true,
+        ignored: false,
+        idempotent_replay: false,
+        payment_request_id: requestId,
+        request_status: "paid",
+        transaction_id: null,
+        job_stage_unchanged: true,
+      }),
+      false
     );
     assert.equal(
       isConfirmedSettlementPersistence({ ok: true, ignored: true, reason: "unbound_event" }),
@@ -187,6 +296,7 @@ describe("persistence acknowledgement contracts", () => {
     assert.match(webhook, /settlement_persistence_rejected/);
     assert.match(webhook, /isConfirmedAccountPersistence\(/);
     assert.match(webhook, /account_update_persistence_rejected/);
+    assert.match(webhook, /companyId: null/);
     assert.match(webhook, /\{ status: 400 \}/);
     assert.match(webhook, /\{ status: 500 \}/);
 
@@ -195,11 +305,24 @@ describe("persistence acknowledgement contracts", () => {
     assert.match(existingBranch, /const persisted = await upsertCompanyPaymentAccountFromProviderViaRpc/);
     assert.match(existingBranch, /isConfirmedAccountPersistence\(persisted, live\.id\)/);
     assert.match(existingBranch, /payment_account_refresh_failed/);
+    assert.doesNotMatch(existingBranch, /disabled: false/);
+    assert.match(existingBranch, /accountState === "disabled"/);
     assert.match(existingBranch, /status: 503/);
     assert.ok(
       existingBranch.indexOf("isConfirmedAccountPersistence") <
         existingBranch.indexOf("createAccountOnboardingLink")
     );
+  });
+
+  test("provider-account RPC resolves canonical ownership and rejects unknown accounts", () => {
+    const sql = read("supabase/migrations/20260816_044_job_payments.sql");
+    const fn = sql.slice(
+      sql.indexOf("create or replace function public.upsert_company_payment_account_from_provider_v1"),
+      sql.indexOf("revoke all on function public.upsert_company_payment_settings_v1")
+    );
+    assert.match(fn, /where a\.provider = 'stripe'[\s\S]*a\.provider_account_id = v_account_id/);
+    assert.match(fn, /if v_company_id is null then[\s\S]*'not_found'/);
+    assert.match(fn, /account_company_mismatch/);
   });
 });
 

@@ -49,7 +49,6 @@ export type JobPaymentProviderEventCommand = {
     payouts_enabled: boolean;
     details_submitted: boolean;
     disabled: boolean;
-    company_id: string | null;
   } | null;
   payment_method_label: string | null;
   refund_event: JobPaymentRefundEventCommand | null;
@@ -113,6 +112,31 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object"
     ? (value as Record<string, unknown>)
     : null;
+}
+
+export type StripeConnectAccountState =
+  | "pending"
+  | "restricted"
+  | "disabled"
+  | "complete";
+
+/**
+ * Coarse account state supported by company_payment_accounts. Rejection and
+ * Stripe's explicit listed state are unusable; all other disabled reasons are
+ * treated as recoverable restrictions unless onboarding is still incomplete.
+ */
+export function classifyStripeConnectAccountState(
+  account: Record<string, unknown>
+): StripeConnectAccountState {
+  if (account.charges_enabled === true) return "complete";
+
+  const requirements = asRecord(account.requirements);
+  const disabledReason = asString(requirements?.disabled_reason);
+  if (disabledReason?.startsWith("rejected.") || disabledReason === "listed") {
+    return "disabled";
+  }
+  if (account.details_submitted !== true) return "pending";
+  return "restricted";
 }
 
 function asString(value: unknown): string | null {
@@ -287,9 +311,7 @@ export function mapStripeConnectEventToCommand(
   };
 
   if (type === "account.updated") {
-    const metadata = asRecord(object.metadata);
-    const requirements = asRecord(object.requirements);
-    const disabledReason = asString(requirements?.disabled_reason);
+    const accountState = classifyStripeConnectAccountState(object);
     return {
       ...base,
       provider_account_id: connectedAccount,
@@ -298,13 +320,7 @@ export function mapStripeConnectEventToCommand(
         charges_enabled: object.charges_enabled === true,
         payouts_enabled: object.payouts_enabled === true,
         details_submitted: object.details_submitted === true,
-        // Rejection is the only unusable state this event proves with the
-        // existing coarse schema. Incomplete onboarding stays pending and
-        // other requirements remain conservatively restricted.
-        disabled:
-          object.charges_enabled !== true &&
-          Boolean(disabledReason?.startsWith("rejected.")),
-        company_id: metadata ? asString(metadata.company_id) : null,
+        disabled: accountState === "disabled",
       },
     };
   }

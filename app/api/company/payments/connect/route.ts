@@ -17,6 +17,7 @@ import {
 import { createAdminClient } from "@/app/lib/supabase/admin";
 import { createClient } from "@/app/lib/supabase/server";
 import { isConfirmedAccountPersistence } from "@/app/lib/stripeConnectPersistenceContract";
+import { classifyStripeConnectAccountState } from "@/app/lib/jobPaymentWebhookMapper";
 
 export const runtime = "nodejs";
 
@@ -52,13 +53,16 @@ export async function POST(req: NextRequest) {
     if (!accountId) {
       const account = await createStandardConnectedAccount({ companyId });
       accountId = account.id;
+      const accountState = classifyStripeConnectAccountState(
+        account as unknown as Record<string, unknown>
+      );
       const upserted = await upsertCompanyPaymentAccountFromProviderViaRpc(admin, {
         companyId,
         providerAccountId: account.id,
         chargesEnabled: account.charges_enabled === true,
         payoutsEnabled: account.payouts_enabled === true,
         detailsSubmitted: account.details_submitted === true,
-        disabled: false,
+        disabled: accountState === "disabled",
       });
       if (upserted.ok !== true) {
         return NextResponse.json(
@@ -68,13 +72,16 @@ export async function POST(req: NextRequest) {
       }
     } else {
       const live = await retrieveConnectedAccount(accountId);
+      const accountState = classifyStripeConnectAccountState(
+        live as unknown as Record<string, unknown>
+      );
       const persisted = await upsertCompanyPaymentAccountFromProviderViaRpc(admin, {
         companyId,
         providerAccountId: live.id,
         chargesEnabled: live.charges_enabled === true,
         payoutsEnabled: live.payouts_enabled === true,
         detailsSubmitted: live.details_submitted === true,
-        disabled: false,
+        disabled: accountState === "disabled",
       });
       if (!isConfirmedAccountPersistence(persisted, live.id)) {
         return NextResponse.json(
