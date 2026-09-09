@@ -2,6 +2,24 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-09 — Google Places P1 Slice C COMPLETE locally (staging proven)
+
+- Code checkpoint `39cd18a` (`feat(properties): add durable property resolution`) closes Google Places P1 **Slice C** implementation. This docs checkpoint records staging-proven acceptance. No remaining Slice C P0/P1.
+- Migration: `supabase/migrations/20260909215532_durable_property_resolution.sql` — unique `(company_id, address_normalized)` index; non-unique `(company_id, places_place_id)` index; `resolve_company_property_v1` SECURITY INVOKER RPC with membership gate + advisory xact lock.
+- Staging (`tjtrhdckinjtorgbkirm`): migration applied **exactly once**. Duplicate Place ID preflight = **0**; duplicate normalized-address preflight = **0**. Production (`rhquhnujjnzjhweypavd`) **NOT** changed. Google Cloud **NOT** changed. No push/deploy.
+- Identity contract (deliberate):
+  - `properties.id` remains canonical FieldDive property identity.
+  - `address_normalized` is the canonical property / service-location identity (unit/subpremise aware).
+  - `places_place_id` is a **provider signal**, not sole identity; it is persisted on resolve when present.
+  - `places_place_id` is **not** globally or company-uniquely authoritative — meaningful unit/subpremise distinctions may share provider premise identity. Non-unique Place ID behavior is **not** a P1.
+  - Conflicting Place ID + address combinations do **not** silently join the wrong property (`property_identity_conflict`).
+  - Provider identity cannot establish tenancy; membership/`company_id` ownership is FieldDive-owned.
+- New Job path: `resolveCompanyProperty` + optional in-memory `selectedPlacesAddress.placeId`; new customers created with `address: null` so customer mailing stays independent of property service address.
+- Independent Cursor adversarial staging verification (after Codex implementation): two PostgreSQL backends `pg_backend_pid` **46138** / **46140**; **5/5** concurrent same-property races PASS (exactly one canonical row; both callers same `property_id`; no deadlock/timeout); unit/subpremise separation PASS; normalization PASS; Place-ID conflict matrix PASS; cross-tenant adversarial PASS (company spoof rejected; Place ID cannot establish tenancy); existing Google + manual property reuse PASS (incl. concurrent reuse); 4-way New Job matrix (new/existing customer × new/existing property) PASS; Google/manual/unit runtime flows PASS; existing customer mailing address preserved; retry/duplicate challenge PASS; `jobs.property_id` correct; job address snapshot preserved; frozen proposal/document identity preserved (resolver does not rewrite historical snapshots).
+- Final regressions: focused property / New Job-intake / Places / customer / proposal-identity / tenant-isolation / production-route-safety PASS; production + test typecheck PASS; production build PASS; audit HIGH **0** / CRITICAL **0**.
+- Temporary staging credential loader/session removed after verification. Synthetic staging fixtures cleaned.
+- **NEXT:** **SEPARATE PRODUCTION MIGRATION AUTHORIZATION** for `20260909215532_durable_property_resolution.sql` only. After production migration verification, continue remaining Google Places integration/reload/search/history work. Do **not** begin the next Google slice from this checkpoint alone. Do **not** apply production migration from this docs note alone.
+
 ## 2026-09-09 — Google Places P1 Slice B COMPLETE locally
 
 - Code checkpoint `284c20f` (`feat(properties): integrate accessible Places address selection`) closes Google Places P1 **Slice B**. UX accepted after desktop + true 390px external-browser review. No remaining Slice B P0/P1.
@@ -13,8 +31,8 @@
 - Verification: focused Places/Slice B + New Job/intake + property-candidate suite **57/57 PASS**; production typecheck PASS; test typecheck PASS; production build PASS; audit HIGH **0** / CRITICAL **0** (4 MODERATE transitive advisories outside Slice B). Desktop visual PASS; true 390px PASS; interaction/state integration PASS.
 - No DB/schema change; no Google Cloud change; no push/deploy.
 - **Product lesson (project-wide):** a user-facing capability is not complete merely because code/tests pass. Acceptance requires implementation correctness + real browser interaction + workflow/data propagation + visual/mobile verification.
-- **SLICE C carry-forward (do not start from this checkpoint alone):** persist confirmed `places_place_id`; durable structured property identity; duplicate-property preflight; company-scoped atomic property resolver; concurrency-safe resolve-or-create; durable property uniqueness/dedupe (presentation collapse is not domain truth); customer mailing vs property service-address semantics; existing/new customer × existing/new property flow; job snapshot preservation.
-- **NEXT:** Slice C only after separate authorization. Do not begin from this checkpoint alone.
+- **SLICE C carry-forward (CLOSED at Slice C checkpoint above):** persist confirmed `places_place_id`; durable structured property identity; duplicate-property preflight; company-scoped atomic property resolver; concurrency-safe resolve-or-create; durable property uniqueness/dedupe (presentation collapse is not domain truth); customer mailing vs property service-address semantics; existing/new customer × existing/new property flow; job snapshot preservation.
+- **Historical NEXT at Slice B close:** Slice C only after separate authorization — now complete locally / staging-proven; see Slice C section above.
 
 ## 2026-09-09 — Google Places P1 Slice A complete locally
 
