@@ -2,6 +2,17 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-09 — Canonical baseline applied to STAGING + equivalence PASS
+
+- Canonical pre-recovery baseline `20260909130000_canonical_pre_recovery_baseline.sql` applied to **STAGING only** (`tjtrhdckinjtorgbkirm`) via guarded staging wrapper. Staging was clean beforehand (0 public tables).
+- Staging ledger after apply: `20260909130000` **applied**; Stripe recovery `20260909130935` **pending** (not executed). Recovery SQL file remained byte-identical (`SHA-256 278FEBC4…BA66`).
+- Staging schema dump (ignored): `tmp/fielddive-db-audit/staging-canonical-pre-recovery.sql` — schema-only; no INSERT/COPY; no secrets detected.
+- Production vs staging structural equivalence **PASS** (`scripts/compare-schema-dumps.mjs`): unexplained differences **0**; security-significant differences **0**. Auth/tenancy, jobs/lifecycle, proposals, payments, property/search all **PASS**.
+- Pre-recovery payment model matched on staging (`UNIQUE(company_id,provider)`, `UNIQUE(provider,provider_account_id)`, row-guard trigger, membership SELECT policy, service-role ACL). Recovery fields `is_current` / `connection_status` / `ended_at` / `company_payment_accounts_one_current_idx` **absent**.
+- Hosted security catalog counts matched production dump deltas of 0 for RLS (48), policies (123), triggers (63), functions (136), grants (430), revokes (108), SECURITY DEFINER (74).
+- Production untouched; production ledger untouched; no production SQL; no push/deploy; no app/dependency/Stripe/Vercel changes.
+- **NEXT:** authorize Stripe recovery migration execution + adversarial verification in staging only (`20260909130935_durable_stripe_account_recovery.sql`). Do not apply recovery or baseline cutover to production without separate authorization.
+
 ## 2026-09-09 — Canonical Supabase baseline local proof complete
 
 - Legacy collision problem: historical `YYYYMMDD_NNN_description.sql` filenames made Supabase parse only the date segment as the version; many same-day files collided. Production canonical ledger contained only `20260531`; later schema evolution was frequently applied via SQL Editor. Inventory found **63** date-plus-sequence legacy files (sequences `001`–`064` with `039` reserved/absent) plus the already-timestamped recovery migration.
