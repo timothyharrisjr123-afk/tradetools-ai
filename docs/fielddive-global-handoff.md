@@ -2,6 +2,15 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-09 — Supabase CLI temporary-credential exposure closed
+
+- During guarded read-only production schema-extraction preparation, Supabase CLI `2.117.0` `db dump --dry-run` printed the generated dump script, including the password of its automatically minted `cli_login_postgres` temporary login role. The secret value is intentionally not recorded here.
+- Official CLI source and Management API documentation confirm this was a temporary CLI-role password returned by `POST /v1/projects/{ref}/cli/login-role` with a TTL, not the persistent project database password, pooler password, Supabase API key, anon key, or service-role key. Supabase documents these temporary passwords as normally expiring within a few hundred seconds.
+- Persistent production database-password rotation was therefore not required. The deployed application does not read `DATABASE_URL`; runtime database access uses the environment-scoped Supabase URL plus anon or service-role API credentials. No Vercel secret update, redeploy, API-key rotation, production SQL, staging change, or production configuration change occurred.
+- The failed schema-dump destination was a zero-byte ignored artifact under `supabase/.temp/` and was removed. No tracked file contained `PGPASSWORD`; terminal/Codex transcript output cannot be programmatically erased, but the disclosed temporary credential has expired.
+- **Future dump safety rule:** never run `supabase db dump --dry-run` against a remote project because it renders connection credentials into console output. After Docker Desktop or another supported dump runtime is installed, run the guarded non-dry-run schema-only dump directly to an ignored local file, keep normal/debug logging disabled, inspect the artifact for structure only, and never commit it before sanitization review.
+- Migration-history normalization remains paused. **NEXT:** install Docker Desktop/local Supabase support, then resume the separately authorized read-only production schema extraction using the guarded non-dry-run workflow.
+
 ## 2026-09-09 — Supabase staging safety foundation complete
 
 - Staging project `fielddive-staging-nonprod` is registered as `tjtrhdckinjtorgbkirm` in `us-east-1`; production remains denylisted as `rhquhnujjnzjhweypavd` in `us-east-1`.
