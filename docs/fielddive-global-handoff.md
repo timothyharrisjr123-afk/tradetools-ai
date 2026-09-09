@@ -2,6 +2,21 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-09 — Google Places P1 Slice A complete locally
+
+- Interruption recovery began from clean checkpoint `f458495`; the uncommitted Slice A files were isolated, internally coherent, preserved, completed, and committed as `60567cc` (`fix(properties): harden Google Places provider boundary`). No unrelated work was absorbed.
+- Places API (New) and the authenticated FieldDive server proxy remain the architecture. Both routes still derive the authenticated user and company membership from FieldDive/Supabase context; browser parameters and Google content cannot establish tenancy or ownership.
+- `GOOGLE_PLACES_API_KEY` is now the only accepted server credential. Runtime fallback to generic `GOOGLE_MAPS_API_KEY` is removed. Missing Places or production rate-limit configuration fails closed to unavailable suggestions/details while manual New Job address entry remains usable.
+- Production provider access uses the repo-native writable KV boundary for distributed user + company limits. Local development may use the bounded process-local limiter; production without writable KV credentials leaves Places unavailable rather than running unthrottled. Limits are operation-specific: autocomplete 90/user and 600/company/minute; details 30/user and 180/company/minute. Identifiers are hashed before rate-limit keys are stored.
+- Google requests have explicit interactive timeouts: autocomplete 2.5 seconds; details 4 seconds; no retry chain. Timeout, network, provider-status, and malformed-response outcomes are classified without logging API keys, raw response bodies, addresses, auth headers, or session tokens.
+- The server owns the provider request contract: US-only `includedRegionCodes=[us]`, `regionCode=us`, `languageCode=en-US`; address primary types `street_address`, `premise`, `subpremise`, `route`, `plus_code`; query predictions disabled; maximum five normalized suggestions. Existing city/state/ZIP text augmentation remains only a locality hint and is not described as Google `locationBias`.
+- Field masks are locked to autocomplete `placeId`/text/structured format and Details `id`/formatted address/address components. Details verifies returned Place identity. No coordinates, business metadata, or raw provider blobs are requested or returned.
+- Route query allowlists, size/shape validation, UUID-v4 session-token validation, and Place-ID validation reject arbitrary provider proxying. Client token lifecycle is intentionally unchanged and remains Slice B.
+- Verification: focused Places + locality + intake + auth/tenancy/property + production-route suite **76/76 PASS**; production typecheck PASS; test typecheck PASS; production build PASS; audit HIGH **0** / CRITICAL **0** (4 MODERATE transitive advisories outside Slice A). Official current Google guidance remains compatible.
+- No visible UI change; no Place-ID persistence; no property resolver/dedupe; no customer/property semantic change; no database/schema or production/staging mutation; no Google Cloud mutation; no push/deploy. No visual review was required.
+- Later environment checklist: create separate non-production and production Places credentials/projects; restrict each credential to Places API (New) and appropriate server sources where stable egress permits; provision writable distributed KV for deployed rate limits; verify quotas, billing alerts, and sanitized observability. Do not perform this from the code checkpoint alone.
+- **NEXT:** Slice B only after separate authorization — accessible autocomplete and Google attribution, complete client session lifecycle, selected-address/manual/unit UX, and desktop + true 390px review. Do not begin from this checkpoint alone.
+
 ## 2026-09-09 — Stripe modernization Slice C complete locally
 
 - Code checkpoint `fefd1c9` closes the remaining paid-beta Stripe code P1s without changing schema, Accounts v1 Standard, direct charges, hosted Checkout, money methods, refunds, webhook routing, or custody/fee/transfer boundaries.
