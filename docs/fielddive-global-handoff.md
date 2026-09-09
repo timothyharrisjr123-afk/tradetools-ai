@@ -2,6 +2,17 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-09 — Supabase staging safety foundation complete
+
+- Staging project `fielddive-staging-nonprod` is registered as `tjtrhdckinjtorgbkirm` in `us-east-1`; production remains denylisted as `rhquhnujjnzjhweypavd` in `us-east-1`.
+- Infrastructure checkpoint `43f9f72` adds official CLI-generated `supabase/config.toml`, ignores `supabase/.temp`, and establishes the non-secret machine-readable environment registry at `supabase/environments.json`.
+- `scripts/supabase-target-guard.ps1` fails closed on missing, malformed, unknown, or environment-mismatched refs. Production requires two separate explicit controls. The seven-case guard matrix PASS.
+- `scripts/supabase-staging.ps1` provides staging-only verify, link, migration-status, dry-run, guarded apply, and post-apply entry points. Every action verifies and prints the explicit staging ref; non-link actions also require the local CLI link to match staging.
+- Ordinary CLI linkage changed from production to staging and now reads exactly `tjtrhdckinjtorgbkirm`. Production was not contacted or changed. The Next.js runtime connection was not changed: application database selection remains controlled independently by existing environment variables.
+- Windows/PowerShell operations, environment-scoped variable names, synthetic-only data rules, Stripe TEST-only staging rules, and the prepared recovery-migration command sequence are documented in `docs/supabase-staging-runbook.md`.
+- No migration executed; no staging SQL; no production SQL; no Stripe, Vercel, GitHub, or production configuration change; no push or deploy.
+- **NEXT:** execute and adversarially verify `20260909130935_durable_stripe_account_recovery.sql` against staging only, beginning with guarded migration status and dry-run. CLI compatibility with the historical date-plus-sequence migration filenames must be proven before any apply.
+
 ## 2026-09-09 — Durable Stripe connected-account recovery foundation complete locally
 
 - Code/migration checkpoint `58bbf8e` implements the retained-connection-row architecture. Historical `company_payment_accounts` rows remain permanently tenant-bound; `provider_account_id` remains immutable and globally unique per provider.
