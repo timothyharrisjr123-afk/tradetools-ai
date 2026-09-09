@@ -2,6 +2,16 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-09 — True DB-level concurrent Stripe replacement proof PASS (staging)
+
+- Closes the concurrency gap from the staging recovery gate. Prior dual `supabase db query` Start-Job race was **not** sufficient: the peer failed during `cli_login_postgres` temp-role authentication and may never have entered `replace_company_payment_account_v1` inside PostgreSQL.
+- Method (staging only, `tjtrhdckinjtorgbkirm`): staggered CLI authentication (avoid login-role contention) + shared in-DB barrier table with mid-script `COMMIT` so both sessions become visible, then simultaneous calls to `replace_company_payment_account_v1` (C1→C2 vs C1→C3) on fresh synthetic companies. Evidence requires two result rows and two distinct `pg_backend_pid()` values per iteration.
+- **5/5** fresh race iterations: both contenders reached PostgreSQL every time; exactly one winner; `current_count=1`; C1 historical `replaced`; loser always returned `current_account_changed`; no zero-current, two-current, half-transition, ownership mutation, or deadlock/hang.
+- Stale expected-current PASS: after winner C1→C2, loser C1→C3 with stale expected C1 rejected (`current_account_changed`); C2 remained current.
+- Locking contract verified on deployed function: company-scoped `pg_advisory_xact_lock('company_payment_account:'||company_id||':stripe')`, ordered `FOR UPDATE` row locks, post-lock expected-current check, plus partial unique index `company_payment_accounts_one_current_idx` as final invariant. Split-brain prevented primarily by the advisory lock + compare-and-swap; unique index is the hard backstop.
+- No migration re-apply; staging ledger unchanged (`20260909130000` + `20260909130935`); no source/migration SQL changes; production untouched; no push/deploy.
+- **NEXT:** controlled production baseline-ledger cutover + recovery migration authorization (separate gate).
+
 ## 2026-09-09 — Staging Stripe recovery migration applied + adversarial PASS
 
 - Recovery migration `20260909130935_durable_stripe_account_recovery.sql` applied to **STAGING only** (`tjtrhdckinjtorgbkirm`) via guarded wrapper after baseline-only dry-run. Staging ledger: `20260909130000` + `20260909130935` both applied.
@@ -10,7 +20,7 @@
 - Database proofs PASS: exactly-one-current rejection; cross-company provider ownership rejection; immutability/delete guards; replacement happy path A1→A2 then A2→A3; idempotent same-current replay; unauthorized caller rejected; unusable candidate atomic failure (no half-transition); same-account remediation without new rows; historical account remains non-current and cannot reactivate via readiness update.
 - `replace_company_payment_account_v1`: SECURITY DEFINER, `search_path=public`, owner postgres; PUBLIC/anon/authenticated execute revoked; service_role only.
 - New-money writers require current+active+complete+charges_enabled; historical accounts excluded. Historical refund contract still binds `v_request.provider_account_id` without `is_current` substitution (deployed `reserve_job_payment_refund_v1`).
-- Concurrent CLI dual-session: one winner replaced A3→A4; peer session hit temporary login-role auth contention; post-state still exactly one current; dual-current blocked by unique index.
+- Concurrent CLI dual-session (initial attempt): one winner replaced A3→A4; peer session hit temporary login-role auth contention and did **not** prove in-DB RPC contention — superseded by **True DB-level concurrent Stripe replacement proof** above.
 - Hosted migration runtime observed as short (order of tens of seconds including CLI login). Production apply risk: **LOW-MODERATE** (additive columns/backfill/indexes/function replace on `company_payment_accounts`; no table rewrite; lock risk bounded).
 - Regression: recovery **17/17**; refund **23/23**; Stripe Connect P1 + payment collect/balance/invariant/stage1/flow **167/167** after retargeting static fixtures to `supabase/history/legacy-migrations/`; tenant/auth/proposal/persistence samples **102/102**; production typecheck PASS; test typecheck PASS; production build PASS; audit HIGH **0** / CRITICAL **0** (5 moderate pre-existing).
 - Production untouched; production ledger untouched; no push/deploy; no Stripe/Vercel config changes; no product UX changes.
