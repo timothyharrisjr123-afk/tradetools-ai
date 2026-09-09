@@ -2,7 +2,23 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-09 — PRODUCTION Stripe recovery migration applied + verified COMPLETE
+
+- PRODUCTION (`rhquhnujjnzjhweypavd`) recovery migration `20260909130935_durable_stripe_account_recovery.sql` applied via guarded explicit `--project-ref` `db push` (non-dry-run) after final dry-run showed **only** that migration pending.
+- Prior production baseline ledger cutover remained intact: `20260909130000` already acknowledged (baseline SQL never executed on production). Final ledger: `20260909130000` + `20260909130935` both applied.
+- Apply window: start `2026-09-09T17:51:44Z` → end `2026-09-09T17:51:52Z` (~8.3s wall including CLI login). No apply errors. No live money movement. No Stripe/Vercel/app changes. No push/deploy.
+- Schema verified: `is_current`, `connection_status`, `ended_at` present; `company_payment_accounts_company_provider_unique` removed; `company_payment_accounts_provider_account_unique` preserved; indexes `company_payment_accounts_one_current_idx`, `company_payment_accounts_one_active_candidate_idx`, `company_payment_accounts_company_history_idx`; lifecycle CHECKs; `company_payment_accounts_row_guard` retained; RLS enabled; policy `company_payment_accounts_select_company_scope` retained.
+- Existing production row backfill PASS (1 row / 1 company): `is_current=true`, `connection_status=active`, `ended_at` null; provider/account identity unchanged; no duplicate. Invariants: no multi-current; no cross-company provider ownership; lifecycle clean.
+- `replace_company_payment_account_v1` deployed: SECURITY DEFINER, `search_path=public`, owner postgres; PUBLIC/anon/authenticated execute revoked; service_role execute granted.
+- New-money writers require current+active+complete+charges_enabled. Historical refund reserve binds request-stamped `provider_account_id` and does **not** filter `is_current`. Provider readiness upsert does not rewrite `is_current`/`connection_status`/`ended_at` on existing rows (row-guard + upsert contract). No job/proposal lifecycle mutation from migration.
+- Counts: 48 tables; 137 public functions (+1 replace RPC vs pre-recovery 136); 63 triggers; 123 policies; 48 RLS tables.
+- Regressions: recovery **17/17**; refund **23/23**; Stripe/payment bundle **184/184**; tenant/auth sample **74/74**; auth/router **32/32**; proposal core sample **51/51**; route safety **50/50**; Supabase persistence sample **49/49**; production typecheck PASS; test typecheck PASS; production build PASS; audit HIGH **0** / CRITICAL **0** (5 moderate pre-existing). Proposal formal suite has **3** unrelated stale UTF-8 assertion mojibake failures (not recovery-caused).
+- Staging untouched after verification (ordinary CLI link restored to `tjtrhdckinjtorgbkirm`).
+- **DATABASE / MIGRATION-HISTORY NORMALIZATION + STRIPE RECOVERY INFRASTRUCTURE CHAPTER: COMPLETE.**
+- **NEXT major roadmap:** Stripe modernization / current integration review, then Google Places/address P1. Do not combine with unrelated product work without a new gate.
+
 ## 2026-09-09 — Production canonical baseline ledger cutover COMPLETE (ledger-only)
+
 
 - PRODUCTION (`rhquhnujjnzjhweypavd`) migration history normalized without executing baseline SQL and without applying Stripe recovery.
 - Precondition: fresh production fingerprint gate PASS; frozen and fresh dumps byte-identical SHA-256 `B435863DC562C374E02315F3EB5C9A700BED63538850E90F6FA3FF57AA3EFE2A`; production still pre-recovery.
