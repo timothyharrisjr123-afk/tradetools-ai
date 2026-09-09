@@ -2,6 +2,20 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-09 — Stripe modernization Slice B complete locally
+
+- Code checkpoint `088096a` upgrades only the Stripe server SDK from `17.7.0` to exact `stripe@22.4.0` and pins the centralized request API contract to `2026-07-29.dahlia`. Official stripe-node `v22.4.0` source/release metadata confirms that bundled API version and Node `>=18`; FieldDive remains on Node `>=22 <25`.
+- The v22 service signature requires retrieve resource parameters before request options. Refund and Checkout Session retrieval now pass an explicit empty params object so `stripeAccount` remains the connected-account request option/header; no account routing or economic behavior changed.
+- Accounts v1 Standard, Stripe-hosted onboarding, direct charges, hosted Checkout, current-account new-money selection, original-account refunds, exact `event.account` ownership, global provider-account ownership, and the no-fee/no-transfer/no-platform-custody boundary are unchanged. Accounts v2 remains deliberately deferred.
+- Webhook compatibility matrix: the mapper continues to runtime-validate stable signed envelope fields (`id`, `type`, `created`, `account`, `data.object`). It consumes Account `id`/readiness booleans/requirements state; Checkout `id`, metadata request ID, `payment_status`, `amount_total`, PaymentIntent and payment-method details; PaymentIntent `id`, metadata, amount/status/charge/payment-method details; Charge `id`/PaymentIntent; and Refund `id`, metadata, PaymentIntent, Charge, integer `amount`, status/reasons, and `created`. Existing fixtures cover all subscribed event families, nullable/expanded identifiers, async/failure states, duplicate events, wrong-mode events, and historical/cross-tenant routing. The generic record-shaped mapper avoids falsely assuming a Dashboard endpoint version.
+- Slice A remains green: production LIVE/test-key separation, staging/local TEST-only behavior, dedicated Connect secret, wrong-mode quarantine before persistence, and the legacy webhook HTTP 410 tombstone all remain intact.
+- Money arithmetic impact: none. FieldDive sends and persists integer minor units; it does not depend on Stripe Decimal response types.
+- Verification: established Stripe/payment/refund/recovery/tenant/route bundle **358/358 PASS**; production typecheck PASS; test typecheck PASS; production build PASS; production audit HIGH **0** / CRITICAL **0** (4 moderate advisories outside Slice B). No unrelated historical-inventory/UTF-8 assertion was treated as a Slice-B regression.
+- Stripe Dashboard was **not changed**. Required later inventory: record the TEST and LIVE Connect destination API versions; verify the subscribed connected-account event set, distinct signing secrets, and environment-specific endpoint URLs; then decide and separately authorize a controlled endpoint-version migration to `2026-07-29.dahlia` after fixture/event comparison.
+- No database/schema change; no visible UX change; no production/staging mutation; no push/deploy.
+- Remaining paid-beta P1s belong to Slice C: remove the unsafe Checkout catch-all fallback, stop reusing one idempotency key with different parameters, and add durable connected-account creation idempotency.
+- **NEXT:** Slice C only after separate authorization — idempotency + Checkout correctness. Do not begin from this checkpoint alone.
+
 ## 2026-09-09 — Stripe modernization Slice A complete locally
 
 - Code checkpoint `9c44b64` implements the paid-mode and endpoint safety boundary without changing Stripe SDK `17.7.0`, request API version `2025-02-24.acacia`, Connect Accounts v1, Standard accounts, direct charges, Checkout parameters, refunds, or database schema.
