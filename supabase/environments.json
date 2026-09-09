@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "environments": {
+    "production": {
+      "project_ref": "rhquhnujjnzjhweypavd",
+      "region": "us-east-1"
+    },
+    "staging": {
+      "project_ref": "tjtrhdckinjtorgbkirm",
+      "region": "us-east-1"
+    }
+  }
+}
