@@ -67,6 +67,7 @@ export async function GET(_req: Request, context: RouteContext) {
           .select("charges_enabled,onboarding_status,details_submitted,payouts_enabled")
           .eq("company_id", companyId)
           .eq("provider", "stripe")
+          .eq("is_current", true)
           .maybeSingle(),
         supabase
           .from("proposal_acceptances")

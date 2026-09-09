@@ -167,6 +167,7 @@ export async function readDraftOnlineDepositSendReadiness(
     .select("charges_enabled")
     .eq("company_id", input.companyId)
     .eq("provider", "stripe")
+    .eq("is_current", true)
     .maybeSingle();
   return resolveOnlineDepositSendReadiness({
     terms,

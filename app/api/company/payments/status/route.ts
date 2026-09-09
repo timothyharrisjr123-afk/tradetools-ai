@@ -31,6 +31,7 @@ export async function GET() {
       .select("charges_enabled,payouts_enabled,details_submitted,onboarding_status")
       .eq("company_id", companyId)
       .eq("provider", "stripe")
+      .eq("is_current", true)
       .maybeSingle();
 
     return NextResponse.json({

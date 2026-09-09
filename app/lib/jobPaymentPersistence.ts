@@ -12,6 +12,7 @@ import {
   ENSURE_COMPANY_PAYMENT_SETTINGS_RPC_V1,
   RECONCILE_JOB_PAYMENT_REFUND_RESULT_RPC_V1,
   RECORD_JOB_PAYMENT_REFUND_EVENT_RPC_V1,
+  REPLACE_COMPANY_PAYMENT_ACCOUNT_RPC_V1,
   RECORD_JOB_PAYMENT_PROVIDER_EVENT_RPC_V1,
   RESERVE_JOB_PAYMENT_REFUND_RPC_V1,
   RESOLVE_PUBLIC_JOB_PAYMENT_CHECKOUT_RPC_V1,
@@ -534,6 +535,33 @@ export async function upsertCompanyPaymentAccountFromProviderViaRpc(
     p_payload: {
       company_id: input.companyId,
       provider_account_id: input.providerAccountId,
+      charges_enabled: input.chargesEnabled,
+      payouts_enabled: input.payoutsEnabled,
+      details_submitted: input.detailsSubmitted,
+      disabled: input.disabled,
+    },
+  });
+}
+
+export async function replaceCompanyPaymentAccountViaRpc(
+  supabase: SupabaseClient,
+  input: {
+    companyId: string;
+    expectedCurrentProviderAccountId: string | null;
+    replacementProviderAccountId: string;
+    chargesEnabled: boolean;
+    payoutsEnabled: boolean;
+    detailsSubmitted: boolean;
+    disabled: boolean;
+  }
+): Promise<Record<string, unknown>> {
+  return rpcJson(supabase, REPLACE_COMPANY_PAYMENT_ACCOUNT_RPC_V1, {
+    p_payload: {
+      company_id: input.companyId,
+      expected_current_provider_account_id:
+        input.expectedCurrentProviderAccountId,
+      replacement_provider_account_id: input.replacementProviderAccountId,
+      provider_access_validated: true,
       charges_enabled: input.chargesEnabled,
       payouts_enabled: input.payoutsEnabled,
       details_submitted: input.detailsSubmitted,

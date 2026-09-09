@@ -18,6 +18,7 @@ import { createAdminClient } from "@/app/lib/supabase/admin";
 import { createClient } from "@/app/lib/supabase/server";
 import { isConfirmedAccountPersistence } from "@/app/lib/stripeConnectPersistenceContract";
 import { classifyStripeConnectAccountState } from "@/app/lib/jobPaymentWebhookMapper";
+import { replaceCompanyStripeAccountAfterProviderValidation } from "@/app/lib/stripeAccountRecovery.server";
 
 export const runtime = "nodejs";
 
@@ -38,15 +39,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, code: "forbidden" }, { status: 403 });
     }
 
-    const { data: existing } = await supabase
-      .from("company_payment_accounts")
-      .select("provider_account_id,charges_enabled,details_submitted")
-      .eq("company_id", companyId)
-      .eq("provider", "stripe")
-      .maybeSingle();
+    const [{ data: existing }, { data: candidate }] = await Promise.all([
+      supabase
+        .from("company_payment_accounts")
+        .select("provider_account_id,charges_enabled,details_submitted")
+        .eq("company_id", companyId)
+        .eq("provider", "stripe")
+        .eq("is_current", true)
+        .maybeSingle(),
+      supabase
+        .from("company_payment_accounts")
+        .select("provider_account_id,charges_enabled,details_submitted")
+        .eq("company_id", companyId)
+        .eq("provider", "stripe")
+        .eq("is_current", false)
+        .eq("connection_status", "active")
+        .maybeSingle(),
+    ]);
 
-    let accountId = existing?.provider_account_id
-      ? String(existing.provider_account_id)
+    const accountIsCurrent = Boolean(existing?.provider_account_id);
+    const resumable = existing ?? candidate;
+
+    let accountId = resumable?.provider_account_id
+      ? String(resumable.provider_account_id)
       : "";
 
     const admin = createAdminClient();
@@ -94,6 +109,20 @@ export async function POST(req: NextRequest) {
         );
       }
       if (live.charges_enabled) {
+        if (!accountIsCurrent) {
+          const replacement =
+            await replaceCompanyStripeAccountAfterProviderValidation({
+              companyId,
+              expectedCurrentProviderAccountId: null,
+              replacementProviderAccountId: live.id,
+            });
+          if (!replacement.ok) {
+            return NextResponse.json(
+              { ok: false, code: replacement.code },
+              { status: 409 }
+            );
+          }
+        }
         return NextResponse.json({
           ok: true,
           connected: true,

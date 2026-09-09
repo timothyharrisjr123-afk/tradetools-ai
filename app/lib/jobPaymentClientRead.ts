@@ -51,6 +51,7 @@ export async function getCompanyPaymentAccount(): Promise<CompanyPaymentAccountR
     .from("company_payment_accounts")
     .select("charges_enabled,onboarding_status,details_submitted,payouts_enabled")
     .eq("provider", "stripe")
+    .eq("is_current", true)
     .maybeSingle();
   if (error || !data) return null;
   return data as CompanyPaymentAccountRow;

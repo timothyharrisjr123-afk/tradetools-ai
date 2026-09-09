@@ -21,6 +21,8 @@ export const ENSURE_COMPANY_PAYMENT_SETTINGS_RPC_V1 =
   "ensure_company_payment_settings_v1";
 export const UPSERT_COMPANY_PAYMENT_ACCOUNT_FROM_PROVIDER_RPC_V1 =
   "upsert_company_payment_account_from_provider_v1";
+export const REPLACE_COMPANY_PAYMENT_ACCOUNT_RPC_V1 =
+  "replace_company_payment_account_v1";
 export const SET_JOB_PAYMENT_SETTLED_METHOD_RPC_V1 =
   "set_job_payment_settled_method_v1";
 export const RESERVE_JOB_PAYMENT_REFUND_RPC_V1 =
