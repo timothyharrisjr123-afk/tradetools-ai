@@ -2,7 +2,21 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-09 — Production canonical baseline ledger cutover COMPLETE (ledger-only)
+
+- PRODUCTION (`rhquhnujjnzjhweypavd`) migration history normalized without executing baseline SQL and without applying Stripe recovery.
+- Precondition: fresh production fingerprint gate PASS; frozen and fresh dumps byte-identical SHA-256 `B435863DC562C374E02315F3EB5C9A700BED63538850E90F6FA3FF57AA3EFE2A`; production still pre-recovery.
+- Starting ledger: remote only `20260531` (historical `001_create_jobs` era entry). Active local chain unchanged: `20260909130000` + `20260909130935`.
+- Ledger repair (CLI 2.117.0, explicit `--project-ref rhquhnujjnzjhweypavd`):
+  1. `migration repair --status reverted 20260531` → remote ledger empty
+  2. `migration repair --status applied 20260909130000` → remote ledger exactly `20260909130000`
+- Baseline SQL was **NOT** executed on production. Post-cutover schema dump SHA still `B435863D…EFE2A` (byte-identical to frozen pre-recovery). Counts unchanged: 48 tables / 136 functions / 63 triggers / 123 policies. Recovery columns/RPC/one-current index still **absent**.
+- Production `db push --dry-run` pending set **exactly**: `20260909130935_durable_stripe_account_recovery.sql` only. Recovery **NOT** applied. No non-dry-run push.
+- Staging untouched (ordinary CLI link remains `tjtrhdckinjtorgbkirm`); staging recovery gate already green. No Stripe/Vercel/app changes; no push/deploy.
+- **NEXT:** explicit production Stripe recovery migration authorization (`20260909130935`) — separate gate. Do not apply recovery from this checkpoint alone.
+
 ## 2026-09-09 — True DB-level concurrent Stripe replacement proof PASS (staging)
+
 
 - Closes the concurrency gap from the staging recovery gate. Prior dual `supabase db query` Start-Job race was **not** sufficient: the peer failed during `cli_login_postgres` temp-role authentication and may never have entered `replace_company_payment_account_v1` inside PostgreSQL.
 - Method (staging only, `tjtrhdckinjtorgbkirm`): staggered CLI authentication (avoid login-role contention) + shared in-DB barrier table with mid-script `COMMIT` so both sessions become visible, then simultaneous calls to `replace_company_payment_account_v1` (C1→C2 vs C1→C3) on fresh synthetic companies. Evidence requires two result rows and two distinct `pg_backend_pid()` values per iteration.
