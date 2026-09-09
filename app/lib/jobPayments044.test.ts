@@ -414,7 +414,9 @@ describe("legacy isolation and no stage write", () => {
     const legacy = readFileSync(join(ROOT, "app/api/payments/webhook/route.ts"), "utf8");
     assert.match(connect, /R3E Stripe Connect webhook/);
     assert.doesNotMatch(connect, /estimateId/);
-    assert.match(legacy, /estimateId/);
+    assert.match(legacy, /legacy_payments_webhook_disabled/);
+    assert.match(legacy, /status: 410/);
+    assert.doesNotMatch(legacy, /createAdminClient|STRIPE_|constructEvent|\.from\(/);
     assert.doesNotMatch(sql044, /update public\.jobs/);
     assert.doesNotMatch(eventFn, /transition_job_stage/);
   });
@@ -437,7 +439,7 @@ describe("legacy isolation and no stage write", () => {
     assert.match(stripe, /must not set application fees/);
     assert.match(stripe, /automatic_payment_methods: \{ enabled: true \}/);
     assert.match(stripe, /payment_method_types: \["card"\]/);
-    assert.match(stripe, /R3E refuses live Stripe keys/);
+    assert.match(stripe, /requireStripeSecretKey/);
     assert.match(stripe, /findReusableCheckoutSessionForRequest/);
     assert.match(stripe, /timeoutMs \?\? 8000/);
     assert.match(stripe, /stripe_retrieve_timeout/);

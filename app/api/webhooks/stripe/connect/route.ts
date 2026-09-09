@@ -19,6 +19,11 @@ import {
   isConfirmedSettlementPersistence,
 } from "@/app/lib/stripeConnectPersistenceContract";
 import { createAdminClient } from "@/app/lib/supabase/admin";
+import {
+  expectedStripeMode,
+  resolveFieldDiveEnvironment,
+  stripeEventModeMatchesEnvironment,
+} from "@/app/lib/stripeRuntimeEnvironment";
 
 export const runtime = "nodejs";
 
@@ -44,6 +49,23 @@ export async function POST(req: NextRequest) {
     event = verifyStripeConnectWebhook(rawBody, signature);
   } catch {
     return NextResponse.json({ ok: false, code: "invalid_signature" }, { status: 400 });
+  }
+
+  if (!stripeEventModeMatchesEnvironment(event.livemode)) {
+    const expectedMode = expectedStripeMode(resolveFieldDiveEnvironment());
+    console.error("[stripe-connect-webhook] quarantined wrong-mode event", {
+      eventId: event.id,
+      eventType: event.type,
+      expectedMode,
+      receivedMode: event.livemode ? "live" : "test",
+    });
+    // This permanent endpoint-routing error must not mutate state or create a
+    // Stripe retry storm. The sanitized error log remains an operator signal.
+    return NextResponse.json({
+      ok: false,
+      ignored: true,
+      code: "stripe_mode_mismatch",
+    });
   }
 
   const mapped = mapStripeConnectEventToCommand({

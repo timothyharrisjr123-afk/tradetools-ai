@@ -1,5 +1,5 @@
 /**
- * R3E Stripe Connect — TEST/SANDBOX only.
+ * FieldDive Stripe Connect — environment-bound TEST/LIVE access.
  * Direct charges on the contractor connected account. No platform charge.
  * No application fee. Hosted Checkout only.
  */
@@ -10,30 +10,17 @@ import Stripe from "stripe";
 import { checkoutLineLabel } from "@/app/lib/jobPaymentMoney";
 import type { JobPaymentKind } from "@/app/lib/jobPaymentTypes";
 import { resolvePublicAppOrigin } from "@/app/lib/publicAppOrigin.server";
-
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) throw new Error(`Missing env: ${name}`);
-  return value;
-}
-
-export function stripeSecretKeyLooksLive(key: string): boolean {
-  return key.startsWith("sk_live_");
-}
+import {
+  requireStripeConnectWebhookSecret,
+  requireStripeSecretKey,
+} from "@/app/lib/stripeRuntimeEnvironment";
 
 export function getStripeConnectClient(): Stripe {
-  const key = requireEnv("STRIPE_SECRET_KEY");
-  if (stripeSecretKeyLooksLive(key)) {
-    throw new Error("R3E refuses live Stripe keys. Use TEST/SANDBOX only.");
-  }
-  return new Stripe(key);
+  return new Stripe(requireStripeSecretKey());
 }
 
 export function getStripeConnectWebhookSecret(): string {
-  return (
-    process.env.STRIPE_CONNECT_WEBHOOK_SECRET ||
-    requireEnv("STRIPE_WEBHOOK_SECRET")
-  );
+  return requireStripeConnectWebhookSecret();
 }
 
 /**

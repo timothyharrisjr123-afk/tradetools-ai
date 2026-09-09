@@ -214,10 +214,10 @@ describe("Group A wiring guardrails", () => {
     assert.doesNotMatch(readiness, /Delivered|Received|Opened/);
   });
 
-  test("sk_live_ refusal remains", () => {
+  test("Stripe client uses the environment-bound key contract", () => {
     const source = readFileSync(join(ROOT, "app/lib/jobPaymentStripe.server.ts"), "utf8");
-    assert.match(source, /refuses live Stripe keys/);
-    assert.match(source, /sk_live_/);
+    assert.match(source, /requireStripeSecretKey/);
+    assert.doesNotMatch(source, /refuses live Stripe keys/);
   });
 
   test("estimate/send uses shared origin before Resend", () => {
