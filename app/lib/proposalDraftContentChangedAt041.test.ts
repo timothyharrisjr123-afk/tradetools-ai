@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 041 migration contract: dirty-clock ownership, client write protection,
  * freeze unchanged, 040/039 discipline.
  *
@@ -14,19 +14,19 @@ import { describe, test } from "node:test";
 const ROOT = process.cwd();
 const SQL_041 = join(
   ROOT,
-  "supabase/migrations/20260816_041_proposal_draft_content_changed_at.sql"
+  "supabase/history/legacy-migrations/20260816_041_proposal_draft_content_changed_at.sql"
 );
 const SQL_040 = join(
   ROOT,
-  "supabase/migrations/20260816_040_proposal_formal_acceptance.sql"
+  "supabase/history/legacy-migrations/20260816_040_proposal_formal_acceptance.sql"
 );
 const SQL_039 = join(
   ROOT,
-  "supabase/migrations/20260816_039_proposal_formal_acceptance.sql"
+  "supabase/history/legacy-migrations/20260816_039_proposal_formal_acceptance.sql"
 );
 const SQL_038 = join(
   ROOT,
-  "supabase/migrations/20260816_038_job_lifecycle_foundation.sql"
+  "supabase/history/legacy-migrations/20260816_038_job_lifecycle_foundation.sql"
 );
 
 const sql041 = readFileSync(SQL_041, "utf8");

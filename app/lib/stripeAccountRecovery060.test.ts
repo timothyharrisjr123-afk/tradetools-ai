@@ -1,8 +1,10 @@
 /**
  * Durable Stripe connected-account recovery architecture.
  *
- * Static migration tests are intentional: this slice authors but does not
- * apply SQL. The live-application gate remains separately authorized.
+ * Static migration contract tests. Live staging application is separately gated.
+ * Legacy SQL fixtures live under supabase/history/legacy-migrations/ after the
+ * canonical baseline cutover; the active recovery migration remains under
+ * supabase/migrations/.
  */
 
 import assert from "node:assert/strict";
@@ -30,7 +32,9 @@ const OPEN_DEPOSIT = functionSection("open_job_deposit_from_acceptance_v1");
 const CREATE_REQUEST = functionSection("create_job_payment_request_v1");
 const RESOLVE_CHECKOUT = functionSection("resolve_public_job_payment_checkout_v1");
 const COLLECT = functionSection("collect_job_payment_v1");
-const REFUND_SQL = read("supabase/migrations/20260828_059_job_payment_refunds.sql");
+const REFUND_SQL = read(
+  "supabase/history/legacy-migrations/20260828_059_job_payment_refunds.sql"
+);
 
 describe("Stripe recovery schema model", () => {
   test("backfills existing single rows as current active connections", () => {
@@ -53,7 +57,9 @@ describe("Stripe recovery schema model", () => {
   });
 
   test("preserves global provider ownership and immutable row identity", () => {
-    const original = read("supabase/migrations/20260816_044_job_payments.sql");
+    const original = read(
+      "supabase/history/legacy-migrations/20260816_044_job_payments.sql"
+    );
     assert.match(
       original,
       /unique \(provider, provider_account_id\)/

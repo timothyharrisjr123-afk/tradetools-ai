@@ -1,5 +1,5 @@
-/**
- * 053 — Canonical Stripe settlement + customer contract totals.
+﻿/**
+ * 053 â€” Canonical Stripe settlement + customer contract totals.
  *
  * Financial identity is the provider payment (PaymentIntent), not the
  * Stripe event id. Customer-chosen acceptance cents govern the job ledger
@@ -16,7 +16,7 @@ import { describe, test } from "node:test";
 import { mapStripeConnectEventToCommand } from "./jobPaymentWebhookMapper";
 
 const ROOT = process.cwd();
-const MIGRATIONS = join(ROOT, "supabase/migrations");
+const MIGRATIONS = join(ROOT, "supabase/history/legacy-migrations");
 
 const SQL_044 = join(MIGRATIONS, "20260816_044_job_payments.sql");
 const SQL_048 = join(
@@ -91,7 +91,7 @@ function eventCommand(input: {
   });
 }
 
-describe("053 — historical live migrations immutable", () => {
+describe("053 â€” historical live migrations immutable", () => {
   test("039 remains absent and reserved", () => {
     const names = readdirSync(MIGRATIONS);
     assert.ok(!names.some((name) => name.includes("_039_")));
@@ -137,7 +137,7 @@ describe("053 — historical live migrations immutable", () => {
   });
 });
 
-describe("053 — financial identity is the provider payment", () => {
+describe("053 â€” financial identity is the provider payment", () => {
   const sql = readFileSync(SQL_053, "utf8");
 
   test("canonical identity prefers PaymentIntent over event id", () => {
@@ -201,7 +201,7 @@ describe("053 — financial identity is the provider payment", () => {
   });
 });
 
-describe("053 — dual Stripe events converge on one capture", () => {
+describe("053 â€” dual Stripe events converge on one capture", () => {
   test("payment_intent.succeeded first still maps to a capture command", () => {
     const pi = eventCommand({
       id: "evt_pi_first",
@@ -275,7 +275,7 @@ describe("053 — dual Stripe events converge on one capture", () => {
   });
 });
 
-describe("053 — async checkout must not mint capture on incomplete funds", () => {
+describe("053 â€” async checkout must not mint capture on incomplete funds", () => {
   test("checkout.session.completed unpaid stays processing without a capture", () => {
     const started = eventCommand({
       id: "evt_ach_start",
@@ -312,7 +312,7 @@ describe("053 — async checkout must not mint capture on incomplete funds", () 
   });
 });
 
-describe("053 — ledger and contract totals", () => {
+describe("053 â€” ledger and contract totals", () => {
   const sql = readFileSync(SQL_053, "utf8");
 
   test("gross received groups by canonical capture identity", () => {

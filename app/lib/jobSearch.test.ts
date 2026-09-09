@@ -1,5 +1,5 @@
-/**
- * Wave A — Stage-1 company job findability.
+﻿/**
+ * Wave A â€” Stage-1 company job findability.
  * Run: npx tsx --test app/lib/jobSearch.test.ts
  */
 
@@ -23,7 +23,7 @@ const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 const ROUTE = read("app/api/jobs/search/route.ts");
 const SAVED = read("app/tools/roofing/saved/SavedClient.tsx");
 const RESULTS = read("app/tools/roofing/saved/components/JobsBoardSearchResults.tsx");
-const SQL = read("supabase/migrations/20260830_061_search_company_jobs.sql");
+const SQL = read("supabase/history/legacy-migrations/20260830_061_search_company_jobs.sql");
 
 const JOB_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Pre-2C payment-domain invariant recovery (migration 055).
  *
  * Run: npx tsx --test app/lib/jobPaymentInvariant055.test.ts
@@ -12,7 +12,7 @@ import { describe, test } from "node:test";
 import { AFTER_048_MIGRATIONS } from "./jobPaymentBalance054.test";
 
 const ROOT = process.cwd();
-const MIGRATIONS = join(ROOT, "supabase/migrations");
+const MIGRATIONS = join(ROOT, "supabase/history/legacy-migrations");
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 const sha = (path: string) =>
   createHash("sha256").update(readFileSync(path)).digest("hex").toUpperCase();
@@ -62,7 +62,7 @@ function functionBody(sqlFn: string): string {
   return sqlFn.slice(start, end);
 }
 
-/** Documented A–G contract the SQL helper must implement. Not a live money engine. */
+/** Documented Aâ€“G contract the SQL helper must implement. Not a live money engine. */
 function uncoveredDepositCents(input: {
   obligation: number;
   gross: number;
@@ -73,7 +73,7 @@ function uncoveredDepositCents(input: {
   return amount < 100 ? 0 : amount;
 }
 
-describe("055 — historical migrations immutable", () => {
+describe("055 â€” historical migrations immutable", () => {
   test("039 remains absent and reserved", () => {
     const names = readdirSync(MIGRATIONS);
     assert.ok(!names.some((name) => name.includes("_039_")));
@@ -107,7 +107,7 @@ describe("055 — historical migrations immutable", () => {
   });
 });
 
-describe("055 — fail-closed preflight and one-active index", () => {
+describe("055 â€” fail-closed preflight and one-active index", () => {
   const sql = readFileSync(SQL_055, "utf8");
 
   test("preflight RAISE EXCEPTION exists before the new unique index", () => {
@@ -147,12 +147,12 @@ describe("055 — fail-closed preflight and one-active index", () => {
   });
 });
 
-describe("055 — uncovered deposit formula", () => {
+describe("055 â€” uncovered deposit formula", () => {
   const sql = readFileSync(SQL_055, "utf8");
   const helper = sliceFn(sql, "job_payment_uncovered_deposit_cents_v1");
   const openFn = sliceFn(sql, "open_job_deposit_from_acceptance_v1");
 
-  test("uses frozen obligation, 053 total, 053 gross, 054 collectible — not net", () => {
+  test("uses frozen obligation, 053 total, 053 gross, 054 collectible â€” not net", () => {
     const body = functionBody(helper);
     assert.match(body, /job_payment_resolve_deposit_obligation_cents_v1/);
     assert.match(body, /job_payment_gross_received_cents_v1/);
@@ -177,7 +177,7 @@ describe("055 — uncovered deposit formula", () => {
     assert.doesNotMatch(body, /v_acceptance\.accepted_total_cents/);
   });
 
-  test("A–G uncovered examples", () => {
+  test("Aâ€“G uncovered examples", () => {
     assert.equal(
       uncoveredDepositCents({ obligation: 200000, gross: 0, collectible: 2000000 }),
       200000
@@ -213,7 +213,7 @@ describe("055 — uncovered deposit formula", () => {
   });
 });
 
-describe("055 — deposit writer state machine", () => {
+describe("055 â€” deposit writer state machine", () => {
   const sql = readFileSync(SQL_055, "utf8");
   const openFn = sliceFn(sql, "open_job_deposit_from_acceptance_v1");
 
@@ -251,7 +251,7 @@ describe("055 — deposit writer state machine", () => {
   });
 });
 
-describe("055 — generic create, public resolve, cancel, seed", () => {
+describe("055 â€” generic create, public resolve, cancel, seed", () => {
   const sql = readFileSync(SQL_055, "utf8");
   const createFn = sliceFn(sql, "create_job_payment_request_v1");
   const resolveFn = sliceFn(sql, "resolve_public_job_payment_checkout_v1");
@@ -301,7 +301,7 @@ describe("055 — generic create, public resolve, cancel, seed", () => {
   });
 });
 
-describe("055 — app coordination", () => {
+describe("055 â€” app coordination", () => {
   test("public GET/load does not mint deposit", () => {
     const orchestrator = read("app/lib/proposalPublicAccessOrchestrator.server.ts");
     assert.doesNotMatch(orchestrator, /openCanonicalDepositFromAcceptedProposal/);

@@ -1,5 +1,5 @@
-/**
- * 061 — Stage-1 company job search RPC contract.
+﻿/**
+ * 061 â€” Stage-1 company job search RPC contract.
  * Run: npx tsx --test app/lib/jobSearch061.test.ts
  */
 
@@ -9,11 +9,11 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 
 const ROOT = process.cwd();
-const MIGRATIONS = join(ROOT, "supabase/migrations");
+const MIGRATIONS = join(ROOT, "supabase/history/legacy-migrations");
 const SQL_061 = join(MIGRATIONS, "20260830_061_search_company_jobs.sql");
 const SQL_060 = join(MIGRATIONS, "20260830_060_customers_tenant_isolation.sql");
 
-describe("061 — historical files stay locked", () => {
+describe("061 â€” historical files stay locked", () => {
   test("060 remains present and 061 is additive", () => {
     assert.equal(existsSync(SQL_060), true);
     assert.equal(existsSync(SQL_061), true);
@@ -21,7 +21,7 @@ describe("061 — historical files stay locked", () => {
   });
 });
 
-describe("061 — security contract", () => {
+describe("061 â€” security contract", () => {
   const sql = readFileSync(SQL_061, "utf8");
 
   test("search is SECURITY INVOKER and membership scoped", () => {

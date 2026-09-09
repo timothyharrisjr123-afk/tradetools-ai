@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Stage 2C Flexible Collect (migration 056).
  *
  * Run: npx tsx --test app/lib/jobPaymentCollect056.test.ts
@@ -26,7 +26,7 @@ import { buildPublicPaymentViewModel } from "./jobPaymentReadModel";
 import { DEFAULT_PROPOSAL_PAYMENT_TERMS } from "./proposalPaymentTerms";
 
 const ROOT = process.cwd();
-const MIGRATIONS = join(ROOT, "supabase/migrations");
+const MIGRATIONS = join(ROOT, "supabase/history/legacy-migrations");
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 const sha = (path: string) =>
   createHash("sha256").update(readFileSync(path)).digest("hex").toUpperCase();
@@ -69,7 +69,7 @@ function request(
   };
 }
 
-describe("056 — historical migrations immutable", () => {
+describe("056 â€” historical migrations immutable", () => {
   test("039 remains reserved; 044-055 unchanged; 056 remains historical", () => {
     const names = readdirSync(MIGRATIONS);
     assert.ok(!names.some((name) => name.includes("_039_")));
@@ -89,7 +89,7 @@ describe("056 — historical migrations immutable", () => {
   });
 });
 
-describe("056 — kind CHECK, metadata, collect RPC", () => {
+describe("056 â€” kind CHECK, metadata, collect RPC", () => {
   const sql = readFileSync(SQL_056, "utf8");
   const collectFn = sliceFn(sql, "collect_job_payment_v1");
 
@@ -144,7 +144,7 @@ describe("056 — kind CHECK, metadata, collect RPC", () => {
   });
 });
 
-describe("056 — kind derivation (A–G)", () => {
+describe("056 â€” kind derivation (Aâ€“G)", () => {
   test("Complete + exact collectible is balance for every mode", () => {
     assert.equal(
       deriveCollectRequestKind({ jobComplete: true, amountCents: 400000, collectibleCents: 400000 }),
@@ -176,7 +176,7 @@ describe("056 — kind derivation (A–G)", () => {
   });
 });
 
-describe("056 — percentage of original contract", () => {
+describe("056 â€” percentage of original contract", () => {
   test("50% of $20,000 is $10,000 even with $2,000 collected", () => {
     assert.equal(
       collectPercentageAmountCents({ contractTotalCents: 2000000, percentageBps: 5000 }),
@@ -197,7 +197,7 @@ describe("056 — percentage of original contract", () => {
   });
 });
 
-describe("056 — fixed server parse", () => {
+describe("056 â€” fixed server parse", () => {
   test("decimal strings convert exactly", () => {
     assert.equal(parseCollectFixedAmountToCents("10"), 1000);
     assert.equal(parseCollectFixedAmountToCents("10.5"), 1050);
@@ -217,7 +217,7 @@ describe("056 — fixed server parse", () => {
   });
 });
 
-describe("056 — API / UI / copy-link contracts", () => {
+describe("056 â€” API / UI / copy-link contracts", () => {
   test("collect route rejects kind and client amountCents; parses fixedAmount", () => {
     const route = read("app/api/jobs/[jobId]/payment-requests/collect/route.ts");
     assert.match(route, /body\?\.kind != null/);
@@ -318,7 +318,7 @@ describe("056 — API / UI / copy-link contracts", () => {
   });
 });
 
-describe("056 — workspace current request and Collect eligibility", () => {
+describe("056 â€” workspace current request and Collect eligibility", () => {
   test("failed is not current; Collect remains available", () => {
     const workspace = buildJobPaymentWorkspace({
       jobStage: "approved",

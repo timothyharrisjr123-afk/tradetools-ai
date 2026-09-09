@@ -1,5 +1,5 @@
-/**
- * 060 — customers tenant isolation (SECURITY P0).
+﻿/**
+ * 060 â€” customers tenant isolation (SECURITY P0).
  * Run: npx tsx --test app/lib/customersRls060.test.ts
  */
 
@@ -11,7 +11,7 @@ import { describe, test } from "node:test";
 import { AFTER_048_MIGRATIONS } from "./jobPaymentBalance054.test";
 
 const ROOT = process.cwd();
-const MIGRATIONS = join(ROOT, "supabase/migrations");
+const MIGRATIONS = join(ROOT, "supabase/history/legacy-migrations");
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 const sha = (path: string) =>
   createHash("sha256").update(readFileSync(path)).digest("hex").toUpperCase();
@@ -21,7 +21,7 @@ const SQL_060 = join(MIGRATIONS, "20260830_060_customers_tenant_isolation.sql");
 const SHA_059 = "F14E5EEAA5D407F8D8011D4CA246DD49644C1421985A17BE80B987DF57DA412B";
 const SHA_060 = "63273D0B4924E187D273B4D2010592B4C84BD34DFA5D4F28B0C62736EF78865C";
 
-describe("060 — historical files stay locked", () => {
+describe("060 â€” historical files stay locked", () => {
   test("059 SHA unchanged; 060 is customers isolation not identity redesign", () => {
     assert.equal(existsSync(SQL_060), true);
     assert.equal(sha(SQL_059), SHA_059);
@@ -45,7 +45,7 @@ describe("060 — historical files stay locked", () => {
   });
 });
 
-describe("060 — security contract", () => {
+describe("060 â€” security contract", () => {
   const sql = readFileSync(SQL_060, "utf8");
 
   test("enables RLS and membership-scoped policies without USING(true)", () => {
@@ -89,7 +89,7 @@ describe("060 — security contract", () => {
   });
 });
 
-describe("060 — accepted client paths stay company-scoped", () => {
+describe("060 â€” accepted client paths stay company-scoped", () => {
   test("findOrCreateCustomer still keys lookup by company_id + normalized email", () => {
     const source = read("app/lib/customerStore.ts");
     assert.match(source, /\.from\("customers"\)/);

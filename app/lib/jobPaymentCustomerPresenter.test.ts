@@ -1,5 +1,5 @@
-/**
- * Stage 2D — canonical customer payment presenter + checkout routing.
+﻿/**
+ * Stage 2D â€” canonical customer payment presenter + checkout routing.
  *
  * Run: npx tsx --test app/lib/jobPaymentCustomerPresenter.test.ts
  */
@@ -131,7 +131,7 @@ function vm(
   });
 }
 
-describe("Stage 2D — current request", () => {
+describe("Stage 2D â€” current request", () => {
   test("open is current; failed is never current", () => {
     const open = request({ status: "open", kind: "progress" });
     const failed = request({
@@ -160,7 +160,7 @@ describe("Stage 2D — current request", () => {
   });
 });
 
-describe("Stage 2D — due states", () => {
+describe("Stage 2D â€” due states", () => {
   test("open deposit", () => {
     const view = vm([request({ kind: "deposit", amount_cents: 462500 })], {
       requests: [request({ kind: "deposit", amount_cents: 462500 })],
@@ -193,7 +193,7 @@ describe("Stage 2D — due states", () => {
   });
 });
 
-describe("Stage 2D — processing", () => {
+describe("Stage 2D â€” processing", () => {
   test("processing has amount/type and no Pay", () => {
     const view = vm([request({ status: "processing" })]);
     assert.equal(view?.state, "processing");
@@ -203,7 +203,7 @@ describe("Stage 2D — processing", () => {
   });
 });
 
-describe("Stage 2D — failed deposit vs progress/balance", () => {
+describe("Stage 2D â€” failed deposit vs progress/balance", () => {
   test("retryable failed deposit offers Try payment again", () => {
     const view = vm(
       [request({ kind: "deposit", status: "failed", amount_cents: 462500 })],
@@ -245,7 +245,7 @@ describe("Stage 2D — failed deposit vs progress/balance", () => {
   });
 });
 
-describe("Stage 2D — collected states", () => {
+describe("Stage 2D â€” collected states", () => {
   test("paid progress with remaining is Payment received, not Paid in full", () => {
     const paid = request({
       kind: "progress",
@@ -319,7 +319,7 @@ describe("Stage 2D — collected states", () => {
   });
 });
 
-describe("Stage 2D — sequential history", () => {
+describe("Stage 2D â€” sequential history", () => {
   test("prior settled + new progress shows compact received history", () => {
     const deposit = request({
       id: "deposit-paid",
@@ -375,7 +375,7 @@ describe("Stage 2D — sequential history", () => {
   });
 });
 
-describe("Stage 2D — return hint", () => {
+describe("Stage 2D â€” return hint", () => {
   test("pending overlays open due but never fakes paid or hides failed", () => {
     const due = vm([request()]);
     const overlay = applyCustomerPaymentReturnHint(due, "pending");
@@ -400,7 +400,7 @@ describe("Stage 2D — return hint", () => {
   });
 });
 
-describe("Stage 2D — checkout routing", () => {
+describe("Stage 2D â€” checkout routing", () => {
   const snapshot = {
     kind: "deposit" as const,
     status: "failed",
@@ -490,7 +490,7 @@ describe("Stage 2D — checkout routing", () => {
   });
 });
 
-describe("Stage 2D — source locks", () => {
+describe("Stage 2D â€” source locks", () => {
   test("checkout is kind-aware and GET does not mint", () => {
     const checkout = readFileSync(
       join(ROOT, "app/api/public/payment-requests/checkout/route.ts"),
@@ -521,7 +521,7 @@ describe("Stage 2D — source locks", () => {
   test("no migration 057", () => {
     assert.equal(
       existsSync(
-        join(ROOT, "supabase/migrations/20260827_057_customer_payment_experience.sql")
+        join(ROOT, "supabase/history/legacy-migrations/20260827_057_customer_payment_experience.sql")
       ),
       false
     );

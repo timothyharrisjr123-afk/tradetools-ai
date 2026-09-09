@@ -1,5 +1,5 @@
-/**
- * R3C acceptance Activity composition — chronology owner is accepted_at.
+﻿/**
+ * R3C acceptance Activity composition â€” chronology owner is accepted_at.
  *
  * Run:
  * npx tsx --test app/lib/proposalAcceptanceActivity.test.ts
@@ -186,7 +186,7 @@ describe("Job Card Activity wiring", () => {
 
   test("acknowledge RPC does not insert Activity", () => {
     const sql = readFileSync(
-      join(ROOT, "supabase/migrations/20260816_040_proposal_formal_acceptance.sql"),
+      join(ROOT, "supabase/history/legacy-migrations/20260816_040_proposal_formal_acceptance.sql"),
       "utf8"
     );
     const ackFn = sql.slice(

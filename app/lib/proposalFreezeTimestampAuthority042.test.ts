@@ -1,5 +1,5 @@
-/**
- * 042 — Freeze timestamp authority.
+﻿/**
+ * 042 â€” Freeze timestamp authority.
  * DB transaction now() owns proposal_versions.frozen_at.
  * Caller/application frozen_at is not authoritative.
  *
@@ -23,19 +23,19 @@ import type { ProposalRecordStatusSummary } from "./proposalRecordTypes";
 const ROOT = process.cwd();
 const SQL_042 = join(
   ROOT,
-  "supabase/migrations/20260816_042_proposal_freeze_timestamp_authority.sql"
+  "supabase/history/legacy-migrations/20260816_042_proposal_freeze_timestamp_authority.sql"
 );
 const SQL_041 = join(
   ROOT,
-  "supabase/migrations/20260816_041_proposal_draft_content_changed_at.sql"
+  "supabase/history/legacy-migrations/20260816_041_proposal_draft_content_changed_at.sql"
 );
 const SQL_040 = join(
   ROOT,
-  "supabase/migrations/20260816_040_proposal_formal_acceptance.sql"
+  "supabase/history/legacy-migrations/20260816_040_proposal_formal_acceptance.sql"
 );
 const SQL_039 = join(
   ROOT,
-  "supabase/migrations/20260816_039_proposal_formal_acceptance.sql"
+  "supabase/history/legacy-migrations/20260816_039_proposal_formal_acceptance.sql"
 );
 const HASH_040 =
   "0c9929393e1662626357e72521792fa0a805e169de242073f43c5bd75be81256";
@@ -198,7 +198,7 @@ describe("042 application payload no longer manufactures freeze time", () => {
   });
 });
 
-describe("042 immediate create → send is clean without clock fudge", () => {
+describe("042 immediate create â†’ send is clean without clock fudge", () => {
   test("same-clock create then freeze is not dirty", () => {
     const createAt = "2026-08-16T20:00:00.000Z";
     const dbFreezeAt = "2026-08-16T20:00:00.000Z";

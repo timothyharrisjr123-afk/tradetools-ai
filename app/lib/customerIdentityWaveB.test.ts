@@ -1,5 +1,5 @@
-/**
- * Wave B — customer identity normalize + match + intake contracts.
+﻿/**
+ * Wave B â€” customer identity normalize + match + intake contracts.
  * Run: npx tsx --test app/lib/customerIdentityWaveB.test.ts
  */
 
@@ -26,7 +26,7 @@ import {
 import { isGooglePlacesConfigured } from "./placesConfig";
 
 const ROOT = process.cwd();
-const MIGRATIONS = join(ROOT, "supabase/migrations");
+const MIGRATIONS = join(ROOT, "supabase/history/legacy-migrations");
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 const sha = (path: string) =>
   createHash("sha256").update(readFileSync(path)).digest("hex").toUpperCase();
@@ -38,8 +38,8 @@ const SQL_063 = join(MIGRATIONS, "20260830_063_search_company_customers.sql");
 const SHA_060 = "63273D0B4924E187D273B4D2010592B4C84BD34DFA5D4F28B0C62736EF78865C";
 const SHA_062 = "1C21262F40BD3D9807302E04FCEA747E65E0A21D3FA6E374D2194D664A5301D6";
 
-describe("Wave B — normalization", () => {
-  test("email trim + lowercase; empty → null", () => {
+describe("Wave B â€” normalization", () => {
+  test("email trim + lowercase; empty â†’ null", () => {
     assert.equal(normalizeCustomerEmail("  Bob@Example.COM "), "bob@example.com");
     assert.equal(normalizeCustomerEmail(""), null);
     assert.equal(normalizeCustomerEmail("   "), null);
@@ -59,7 +59,7 @@ describe("Wave B — normalization", () => {
   });
 });
 
-describe("Wave B — candidate ranking (no auto-merge)", () => {
+describe("Wave B â€” candidate ranking (no auto-merge)", () => {
   const rows = [
     {
       id: "11111111-1111-4111-8111-111111111111",
@@ -93,11 +93,11 @@ describe("Wave B — candidate ranking (no auto-merge)", () => {
     assert.ok(ranked[0]?.signals.includes("exact_phone"));
   });
 
-  test("name is candidate discovery only — never sole auto-merge proof", () => {
+  test("name is candidate discovery only â€” never sole auto-merge proof", () => {
     const ranked = rankCustomerSearchCandidates(rows, { name: "Bob" });
     assert.ok(ranked.some((c) => c.id === rows[0].id));
     assert.ok(ranked.every((c) => c.signals.includes("name")));
-    // Ranker returns candidates; createCustomer / selection owns identity — no merge API.
+    // Ranker returns candidates; createCustomer / selection owns identity â€” no merge API.
     assert.equal(typeof ranked[0]?.id, "string");
   });
 
@@ -146,7 +146,7 @@ describe("Wave B — candidate ranking (no auto-merge)", () => {
   });
 });
 
-describe("Wave B — writers + intake contracts", () => {
+describe("Wave B â€” writers + intake contracts", () => {
   test("createCustomer always inserts; findOrCreate uses normalized email ilike", () => {
     const source = read("app/lib/customerStore.ts");
     assert.match(source, /export async function createCustomer/);
@@ -156,7 +156,7 @@ describe("Wave B — writers + intake contracts", () => {
     assert.match(source, /Do not use this for New Job "continue as new"/);
   });
 
-  test("New Job packet uses createCustomer or selected id — not silent findOrCreate collapse", () => {
+  test("New Job packet uses createCustomer or selected id â€” not silent findOrCreate collapse", () => {
     const source = read("app/tools/roofing/RoofingClient.tsx");
     assert.match(source, /createCustomer\(/);
     assert.match(source, /selectedCustomerId/);
@@ -198,7 +198,7 @@ describe("Wave B — writers + intake contracts", () => {
   });
 });
 
-describe("Wave B — migration 063 security contract", () => {
+describe("Wave B â€” migration 063 security contract", () => {
   test("historical 060/062 locked; 063 is customer search only", () => {
     assert.equal(existsSync(SQL_063), true);
     assert.equal(sha(SQL_060), SHA_060);
@@ -232,7 +232,7 @@ describe("Wave B — migration 063 security contract", () => {
   });
 });
 
-describe("Wave B — Places boundary", () => {
+describe("Wave B â€” Places boundary", () => {
   test("Places is server-gated; no hardcoded key; manual address path remains", () => {
     const config = read("app/lib/placesConfig.ts");
     assert.match(config, /GOOGLE_PLACES_API_KEY/);

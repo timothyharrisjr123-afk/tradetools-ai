@@ -1,5 +1,5 @@
-/**
- * Wave C — Property identity, security, search, workspaces.
+﻿/**
+ * Wave C â€” Property identity, security, search, workspaces.
  * Run: npx tsx --test app/lib/propertyIdentityWaveC.test.ts app/lib/workspaceSearch.test.ts
  */
 
@@ -23,7 +23,7 @@ import {
 } from "./workspaceSearch";
 
 const ROOT = process.cwd();
-const MIGRATIONS = join(ROOT, "supabase/migrations");
+const MIGRATIONS = join(ROOT, "supabase/history/legacy-migrations");
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 const sha = (path: string) =>
   createHash("sha256").update(readFileSync(path)).digest("hex").toUpperCase();
@@ -32,7 +32,7 @@ const SQL_063 = join(MIGRATIONS, "20260830_063_search_company_customers.sql");
 const SQL_064 = join(MIGRATIONS, "20260830_064_properties_and_typed_search.sql");
 const SHA_063 = "46C91BE779739EAC8340B2D6479A3596A2653873C85D67B3F50838A810B3C8B9";
 
-describe("Wave C — historical files stay locked", () => {
+describe("Wave C â€” historical files stay locked", () => {
   test("063 SHA unchanged; 064 is additive Property + typed search", () => {
     assert.equal(existsSync(SQL_063), true);
     assert.equal(existsSync(SQL_064), true);
@@ -47,7 +47,7 @@ describe("Wave C — historical files stay locked", () => {
   });
 });
 
-describe("Wave C — Property security contract", () => {
+describe("Wave C â€” Property security contract", () => {
   const sql = readFileSync(SQL_064, "utf8");
 
   test("RLS membership scoped; anon denied; company_id immutable", () => {
@@ -74,7 +74,7 @@ describe("Wave C — Property security contract", () => {
   });
 });
 
-describe("Wave C — Property identity", () => {
+describe("Wave C â€” Property identity", () => {
   test("normalizes street suffixes without treating format as guaranteed identity alone", () => {
     const a = normalizePropertyAddress({
       line1: "123 N Main St",
@@ -106,7 +106,7 @@ describe("Wave C — Property identity", () => {
     );
   });
 
-  test("create-new is explicit — store never findOrCreate collapses", () => {
+  test("create-new is explicit â€” store never findOrCreate collapses", () => {
     const store = read("app/lib/propertyStore.ts");
     assert.match(store, /createPropertyExplicit/);
     assert.doesNotMatch(store, /findOrCreateProperty/);
@@ -139,7 +139,7 @@ describe("Wave C — Property identity", () => {
   });
 });
 
-describe("Wave C — typed search contract", () => {
+describe("Wave C â€” typed search contract", () => {
   test("maps job, customer, and property rows to typed navigation", () => {
     const job = mapWorkspaceSearchRowToResult({
       entity_type: "job",
@@ -189,7 +189,7 @@ describe("Wave C — typed search contract", () => {
   });
 });
 
-describe("Wave C — workspaces and frozen truth", () => {
+describe("Wave C â€” workspaces and frozen truth", () => {
   test("Customer workspace is read-first with on-demand edit", () => {
     const page = read("app/tools/roofing/customers/[customerId]/CustomerWorkspaceClient.tsx");
     const shell = read("app/tools/roofing/workspace/FieldDiveWorkspaceShell.tsx");

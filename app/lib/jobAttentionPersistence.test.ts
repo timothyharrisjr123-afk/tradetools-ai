@@ -1,5 +1,5 @@
-/**
- * R3B4A — Durable attention foundation contract tests.
+﻿/**
+ * R3B4A â€” Durable attention foundation contract tests.
  *
  * Run:
  * npx tsx --test app/lib/jobAttentionPersistence.test.ts
@@ -24,7 +24,7 @@ const ATTENTION_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const USER_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const MIGRATION_PATH = join(
   process.cwd(),
-  "supabase/migrations/20260723_035_create_job_attention_foundation.sql"
+  "supabase/history/legacy-migrations/20260723_035_create_job_attention_foundation.sql"
 );
 const PUBLIC_API_PATH = join(
   process.cwd(),

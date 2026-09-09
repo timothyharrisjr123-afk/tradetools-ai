@@ -1,5 +1,5 @@
-/**
- * R3B3 — Contractor customer request review tests.
+﻿/**
+ * R3B3 â€” Contractor customer request review tests.
  *
  * Run: npx tsx --test app/lib/proposalCustomerRequestReview.test.ts app/lib/proposalCustomerRequestPersistence.test.ts
  */
@@ -47,7 +47,7 @@ const JOB_ID = "88888888-8888-4888-8888-888888888888";
 
 const UPDATE_MIGRATION_PATH = join(
   process.cwd(),
-  "supabase/migrations/20260723_034_update_proposal_customer_request_status_rpc.sql"
+  "supabase/history/legacy-migrations/20260723_034_update_proposal_customer_request_status_rpc.sql"
 );
 
 function sampleRow(
@@ -75,8 +75,8 @@ describe("R3B3 update status migration contract", () => {
 
   test("creates authenticated status update RPC with allowed transitions only", () => {
     assert.match(sql, /create or replace function public\.update_proposal_customer_request_status_v1/);
-    assert.match(sql, /new → seen \| dismissed/);
-    assert.match(sql, /seen → dismissed/);
+    assert.match(sql, /new â†’ seen \| dismissed/);
+    assert.match(sql, /seen â†’ dismissed/);
     assert.match(sql, /grant execute[\s\S]*to authenticated/);
     assert.match(sql, /v_next_status not in \('seen', 'dismissed'\)/);
     assert.match(
@@ -428,7 +428,7 @@ describe("R3B3 contractor copy", () => {
     assert.doesNotMatch(activity, /status !== "dismissed"/);
     assert.doesNotMatch(activity, /customerRequestItems/);
     assert.doesNotMatch(activity, /useJobProposalCustomerRequests/);
-    // V2C3 — Preview is awareness-only; Job Card owns history + Mark seen/Dismiss.
+    // V2C3 â€” Preview is awareness-only; Job Card owns history + Mark seen/Dismiss.
     assert.match(previewAwareness, /partitionCustomerRequestReviewItems\(requests\)/);
     assert.match(previewAwareness, /data-preview-request-awareness/);
     assert.match(previewAwareness, /CUSTOMER_PREVIEW_REQUEST_AWARENESS_ACTION/);

@@ -1,5 +1,5 @@
-/**
- * R3H-PERF-1 — dev/runtime stabilization contracts.
+﻿/**
+ * R3H-PERF-1 â€” dev/runtime stabilization contracts.
  *
  * Run:
  * npx tsx --test app/lib/jobPerf1.test.ts
@@ -46,7 +46,7 @@ const ROOFING_CLIENT = readFileSync(
 );
 const GITIGNORE = readFileSync(join(ROOT, ".gitignore"), "utf8");
 const NEXT_CONFIG = readFileSync(join(ROOT, "next.config.ts"), "utf8");
-const SQL_047 = join(ROOT, "supabase/migrations/20260823_047_job_work_complete.sql");
+const SQL_047 = join(ROOT, "supabase/history/legacy-migrations/20260823_047_job_work_complete.sql");
 const SQL_047_SHA =
   "FFE33FDD562742519BB92568CD5C55528537EA756540D1C6C906F8694B974979";
 
@@ -90,7 +90,7 @@ describe("R3H-PERF-1 stabilization contracts", () => {
     );
   });
 
-  test("H-J: server Job seed + schedule/timezone split + Job A→B protection remain", () => {
+  test("H-J: server Job seed + schedule/timezone split + Job Aâ†’B protection remain", () => {
     assert.match(ROOFING_CLIENT, /initialTrustedServerJobSeed/);
     assert.match(ROOFING_CLIENT, /useJobCardCanonicalRead/);
     assert.match(CANONICAL_READ, /shouldSkipClientCanonicalJobHydrate/);

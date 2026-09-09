@@ -1,5 +1,5 @@
-/**
- * R3H — migration 047, Complete job, read-model, and surface contracts.
+﻿/**
+ * R3H â€” migration 047, Complete job, read-model, and surface contracts.
  *
  * Run:
  * npx tsx --test app/lib/jobComplete047.test.ts
@@ -35,19 +35,19 @@ import type { JobRecord } from "./jobTypes";
 
 const ROOT = process.cwd();
 const SQL_047 = readFileSync(
-  join(ROOT, "supabase/migrations/20260823_047_job_work_complete.sql"),
+  join(ROOT, "supabase/history/legacy-migrations/20260823_047_job_work_complete.sql"),
   "utf8"
 );
 const SQL_038 = readFileSync(
-  join(ROOT, "supabase/migrations/20260816_038_job_lifecycle_foundation.sql"),
+  join(ROOT, "supabase/history/legacy-migrations/20260816_038_job_lifecycle_foundation.sql"),
   "utf8"
 );
 const SQL_045 = readFileSync(
-  join(ROOT, "supabase/migrations/20260817_045_job_schedules.sql"),
+  join(ROOT, "supabase/history/legacy-migrations/20260817_045_job_schedules.sql"),
   "utf8"
 );
 const SQL_046 = readFileSync(
-  join(ROOT, "supabase/migrations/20260817_046_job_production_start.sql"),
+  join(ROOT, "supabase/history/legacy-migrations/20260817_046_job_production_start.sql"),
   "utf8"
 );
 const JOB_CARD = readFileSync(
@@ -179,9 +179,9 @@ describe("047 schema and security contracts", () => {
   });
 
   test("historical migrations stay untouched and 039 remains absent", () => {
-    assert.equal(existsSync(join(ROOT, "supabase/migrations/20260817_045_job_schedules.sql")), true);
-    assert.equal(existsSync(join(ROOT, "supabase/migrations/20260817_046_job_production_start.sql")), true);
-    assert.equal(existsSync(join(ROOT, "supabase/migrations/20260823_047_job_work_complete.sql")), true);
+    assert.equal(existsSync(join(ROOT, "supabase/history/legacy-migrations/20260817_045_job_schedules.sql")), true);
+    assert.equal(existsSync(join(ROOT, "supabase/history/legacy-migrations/20260817_046_job_production_start.sql")), true);
+    assert.equal(existsSync(join(ROOT, "supabase/history/legacy-migrations/20260823_047_job_work_complete.sql")), true);
     const migrations = [
       "20260816_038_job_lifecycle_foundation.sql",
       "20260817_045_job_schedules.sql",

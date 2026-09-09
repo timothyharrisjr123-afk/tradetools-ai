@@ -1,5 +1,5 @@
-/**
- * Payment Stage 1 flow correction — select → pay, send fail-closed, nav, Overview.
+﻿/**
+ * Payment Stage 1 flow correction â€” select â†’ pay, send fail-closed, nav, Overview.
  *
  * Run: npx tsx --test app/lib/paymentStage1FlowCorrection.test.ts
  */
@@ -28,7 +28,7 @@ import { hasNavHref } from "../tools/roofing/fieldDiveNavConfig";
 const ROOT = process.cwd();
 const SQL_048 = join(
   ROOT,
-  "supabase/migrations/20260826_048_proposal_payment_terms_and_job_ledger.sql"
+  "supabase/history/legacy-migrations/20260826_048_proposal_payment_terms_and_job_ledger.sql"
 );
 const SQL_048_SHA =
   "72B46B61050287B094478485986772898BB0753FC0F1712D2825D9581A4BDCF0";
@@ -134,7 +134,7 @@ describe("Payment Stage 1 flow correction", () => {
     );
   });
 
-  test("Overview no dollar amounts — strip removed from Job Card", () => {
+  test("Overview no dollar amounts â€” strip removed from Job Card", () => {
     const jobCard = read("app/tools/roofing/jobCard/JobCardClient.tsx");
     assert.doesNotMatch(jobCard, /JobCardPaymentsStrip/);
     const roofing = read("app/tools/roofing/RoofingClient.tsx");

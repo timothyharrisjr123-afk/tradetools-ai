@@ -1,5 +1,5 @@
-/**
- * 3I-3B1 — Programmatic tests for companyPricingPolicy.ts (pure, no DB/UI).
+﻿/**
+ * 3I-3B1 â€” Programmatic tests for companyPricingPolicy.ts (pure, no DB/UI).
  *
  * Run: npx tsx --test app/lib/companyPricingPolicy.test.ts
  */
@@ -191,10 +191,10 @@ describe("companyPricingPolicy", () => {
   test("Phase 3: review-only migration widens waste_model CHECK only", () => {
     const sqlPath = path.join(
       process.cwd(),
-      "supabase/migrations/20260716_023_allow_raw_plus_waste_policy_mode.sql"
+      "supabase/history/legacy-migrations/20260716_023_allow_raw_plus_waste_policy_mode.sql"
     );
     const sql = readFileSync(sqlPath, "utf8");
-    assert.match(sql, /REVIEW ONLY — DO NOT APPLY WITHOUT EXPLICIT APPROVAL/);
+    assert.match(sql, /REVIEW ONLY â€” DO NOT APPLY WITHOUT EXPLICIT APPROVAL/);
     assert.match(sql, /waste_model in \('adjusted_measurement', 'raw_plus_waste'\)/);
     assert.match(sql, /company_pricing_policies_waste_model_check/);
     // Must not widen quantity_rounding (comments may mention it).

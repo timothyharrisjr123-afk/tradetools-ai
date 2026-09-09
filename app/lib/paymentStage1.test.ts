@@ -1,5 +1,5 @@
-/**
- * Payment Stage 1 — proposal payment terms, send readiness, accept/pay,
+﻿/**
+ * Payment Stage 1 â€” proposal payment terms, send readiness, accept/pay,
  * job-level ledger, supersession, payment-method language lock.
  *
  * Run: npx tsx --test app/lib/paymentStage1.test.ts
@@ -40,11 +40,11 @@ import {
 import type { ProposalSendFreezeReadiness } from "./proposalSendFreezeReadiness";
 
 const ROOT = process.cwd();
-const SQL_044 = join(ROOT, "supabase/migrations/20260816_044_job_payments.sql");
-const SQL_047 = join(ROOT, "supabase/migrations/20260823_047_job_work_complete.sql");
+const SQL_044 = join(ROOT, "supabase/history/legacy-migrations/20260816_044_job_payments.sql");
+const SQL_047 = join(ROOT, "supabase/history/legacy-migrations/20260823_047_job_work_complete.sql");
 const SQL_048 = join(
   ROOT,
-  "supabase/migrations/20260826_048_proposal_payment_terms_and_job_ledger.sql"
+  "supabase/history/legacy-migrations/20260826_048_proposal_payment_terms_and_job_ledger.sql"
 );
 const SQL_047_SHA =
   "FFE33FDD562742519BB92568CD5C55528537EA756540D1C6C906F8694B974979";
@@ -148,7 +148,7 @@ describe("PAYMENT TERMS", () => {
 });
 
 describe("SEND READINESS", () => {
-  test("no deposit → Send unaffected", () => {
+  test("no deposit â†’ Send unaffected", () => {
     const readiness = resolveOnlineDepositSendReadiness({
       terms: DEFAULT_PROPOSAL_PAYMENT_TERMS,
       chargesEnabled: false,
@@ -166,7 +166,7 @@ describe("SEND READINESS", () => {
     );
   });
 
-  test("online deposit + charge-enabled → Send allowed", () => {
+  test("online deposit + charge-enabled â†’ Send allowed", () => {
     const terms = {
       ...DEFAULT_PROPOSAL_PAYMENT_TERMS,
       depositMode: "percent" as const,
@@ -178,7 +178,7 @@ describe("SEND READINESS", () => {
     );
   });
 
-  test("unknown terms → Send blocked (fail-closed)", () => {
+  test("unknown terms â†’ Send blocked (fail-closed)", () => {
     const readiness = resolveOnlineDepositSendReadiness({
       terms: null,
       chargesEnabled: true,
@@ -189,7 +189,7 @@ describe("SEND READINESS", () => {
     assert.match(readiness.message ?? "", /could not be verified/i);
   });
 
-  test("online deposit + not connected → Send blocked", () => {
+  test("online deposit + not connected â†’ Send blocked", () => {
     const terms = {
       ...DEFAULT_PROPOSAL_PAYMENT_TERMS,
       depositMode: "fixed" as const,

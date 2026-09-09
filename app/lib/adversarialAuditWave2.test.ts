@@ -1,5 +1,5 @@
-/**
- * Wave 2 — contractor API auth, server import hygiene, Preview ownership,
+﻿/**
+ * Wave 2 â€” contractor API auth, server import hygiene, Preview ownership,
  * error/absence semantics, Board/Calendar a11y, historical stage aliases.
  *
  * Run: npx tsx --test app/lib/adversarialAuditWave2.test.ts
@@ -439,10 +439,10 @@ describe("Work Orders placeholder truth", () => {
 describe("locked migrations remain untouched", () => {
   test("039 reserved, 047 historical SHA unchanged, 048 absent", () => {
     assert.equal(
-      existsSync(join(ROOT, "supabase/migrations/20260816_039_reserved.sql")),
+      existsSync(join(ROOT, "supabase/history/legacy-migrations/20260816_039_reserved.sql")),
       false
     );
-    const sql047 = join(ROOT, "supabase/migrations/20260823_047_job_work_complete.sql");
+    const sql047 = join(ROOT, "supabase/history/legacy-migrations/20260823_047_job_work_complete.sql");
     assert.equal(existsSync(sql047), true);
     const sha = createHash("sha256")
       .update(readFileSync(sql047))
@@ -454,7 +454,7 @@ describe("locked migrations remain untouched", () => {
     );
     assert.equal(
       existsSync(
-        join(ROOT, "supabase/migrations/20260824_048_job_work_reopen.sql")
+        join(ROOT, "supabase/history/legacy-migrations/20260824_048_job_work_reopen.sql")
       ),
       false
     );

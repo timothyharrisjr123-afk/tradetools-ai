@@ -1,5 +1,5 @@
-/**
- * R3D — Proposal signatures 043 contract.
+﻿/**
+ * R3D â€” Proposal signatures 043 contract.
  *
  * Run: npx tsx --test app/lib/proposalSignatures043.test.ts
  */
@@ -25,28 +25,28 @@ import { formatJobCardContractorProposalStatusLabel } from "../tools/roofing/job
 import type { ProposalRecordStatusSummary } from "./proposalRecordTypes";
 
 const ROOT = process.cwd();
-const SQL_043 = join(ROOT, "supabase/migrations/20260816_043_proposal_signatures.sql");
+const SQL_043 = join(ROOT, "supabase/history/legacy-migrations/20260816_043_proposal_signatures.sql");
 const SQL_042 = join(
   ROOT,
-  "supabase/migrations/20260816_042_proposal_freeze_timestamp_authority.sql"
+  "supabase/history/legacy-migrations/20260816_042_proposal_freeze_timestamp_authority.sql"
 );
 const SQL_041 = join(
   ROOT,
-  "supabase/migrations/20260816_041_proposal_draft_content_changed_at.sql"
+  "supabase/history/legacy-migrations/20260816_041_proposal_draft_content_changed_at.sql"
 );
 const SQL_040 = join(
   ROOT,
-  "supabase/migrations/20260816_040_proposal_formal_acceptance.sql"
+  "supabase/history/legacy-migrations/20260816_040_proposal_formal_acceptance.sql"
 );
 const SQL_039 = join(
   ROOT,
-  "supabase/migrations/20260816_039_proposal_formal_acceptance.sql"
+  "supabase/history/legacy-migrations/20260816_039_proposal_formal_acceptance.sql"
 );
 const SQL_038 = join(
   ROOT,
-  "supabase/migrations/20260816_038_job_lifecycle_foundation.sql"
+  "supabase/history/legacy-migrations/20260816_038_job_lifecycle_foundation.sql"
 );
-const SQL_044 = join(ROOT, "supabase/migrations/20260816_044_proposal_signatures.sql");
+const SQL_044 = join(ROOT, "supabase/history/legacy-migrations/20260816_044_proposal_signatures.sql");
 
 const HASH_038 =
   "46027df3711a52814234d551ed9e5a08661eeb8cebe377ce4e58c694a95fd40b";

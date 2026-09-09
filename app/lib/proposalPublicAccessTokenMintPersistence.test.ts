@@ -1,5 +1,5 @@
-/**
- * R18C3B — proposalPublicAccessTokenMintPersistence tests.
+﻿/**
+ * R18C3B â€” proposalPublicAccessTokenMintPersistence tests.
  *
  * Run: npx tsx --test app/lib/proposalPublicAccessTokenMintPersistence.test.ts
  */
@@ -255,14 +255,14 @@ describe("R18C3B migration guardrails", () => {
   test("mint RPC migration exists with service_role-only hardening", () => {
     const mintMigration = readFileSync(
       new URL(
-        "../../supabase/migrations/20260626_018_create_proposal_public_access_mint_rpc.sql",
+        "../../supabase/history/legacy-migrations/20260626_018_create_proposal_public_access_mint_rpc.sql",
         import.meta.url
       ),
       "utf8"
     );
     const permMigration = readFileSync(
       new URL(
-        "../../supabase/migrations/20260626_019_harden_proposal_public_access_mint_rpc_permissions.sql",
+        "../../supabase/history/legacy-migrations/20260626_019_harden_proposal_public_access_mint_rpc_permissions.sql",
         import.meta.url
       ),
       "utf8"

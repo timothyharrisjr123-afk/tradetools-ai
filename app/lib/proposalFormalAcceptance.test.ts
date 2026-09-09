@@ -1,5 +1,5 @@
-/**
- * R3C — Formal customer acceptance contracts (contractor-controlled approval).
+﻿/**
+ * R3C â€” Formal customer acceptance contracts (contractor-controlled approval).
  *
  * Run:
  * npx tsx --test app/lib/proposalFormalAcceptance.test.ts
@@ -37,15 +37,15 @@ import { isAllowedStageEdge } from "./jobLifecycleMapper";
 const ROOT = process.cwd();
 const MIGRATION_040 = join(
   ROOT,
-  "supabase/migrations/20260816_040_proposal_formal_acceptance.sql"
+  "supabase/history/legacy-migrations/20260816_040_proposal_formal_acceptance.sql"
 );
 const MIGRATION_038 = join(
   ROOT,
-  "supabase/migrations/20260816_038_job_lifecycle_foundation.sql"
+  "supabase/history/legacy-migrations/20260816_038_job_lifecycle_foundation.sql"
 );
 const MIGRATION_039 = join(
   ROOT,
-  "supabase/migrations/20260816_039_proposal_formal_acceptance.sql"
+  "supabase/history/legacy-migrations/20260816_039_proposal_formal_acceptance.sql"
 );
 
 const sql040 = readFileSync(MIGRATION_040, "utf8");
@@ -258,7 +258,7 @@ describe("R3C migration 040 schema and ownership", () => {
     assert.doesNotMatch(recordFn, /p_mode,\s*'auto'/);
   });
 
-  test("contractor Approve job owns Proposal→Approved", () => {
+  test("contractor Approve job owns Proposalâ†’Approved", () => {
     assert.match(confirmFn, /job_lifecycle_apply_proposal_approved_from_acceptance_v1/);
     assert.match(confirmFn, /'confirm',\s*'contractor_approved'/);
     assert.match(confirmFn, /job_already_approved/);
@@ -350,7 +350,7 @@ describe("R3C migration 040 schema and ownership", () => {
     assert.doesNotMatch(sql040, /auto_approve/i);
     assert.doesNotMatch(sql040, /confirm_required/);
     assert.doesNotMatch(recordFn, /stage = 'approved'/);
-    assert.match(sql040, /There is no automatic Proposal → Approved/);
+    assert.match(sql040, /There is no automatic Proposal â†’ Approved/);
   });
 });
 
@@ -423,7 +423,7 @@ describe("R3C request vs acceptance and contractor UX", () => {
         packageLabel: "Premium",
         acceptedTotalCents: 1850000,
       }),
-      "Premium · $18,500"
+      "Premium Â· $18,500"
     );
     assert.equal(
       formatProposalAcceptanceAttentionDetail({
@@ -534,7 +534,7 @@ describe("R3C request vs acceptance and contractor UX", () => {
         acceptedTotalCents: 1850000,
         acceptedAt: "2026-08-16T12:00:00.000Z",
       }),
-      "Premium · $18,500 · Aug 16, 2026"
+      "Premium Â· $18,500 Â· Aug 16, 2026"
     );
   });
 
@@ -661,7 +661,7 @@ describe("R3C later-stage historical awareness", () => {
           packageLabel: "Premium",
           acceptedTotalCents: 1850000,
           ambiguityReason: "job_already_approved",
-          contractorReason: "Premium · $18,500 · Aug 16, 2026",
+          contractorReason: "Premium Â· $18,500 Â· Aug 16, 2026",
           reviewRequired: true,
           attentionAction: "acknowledge",
           acceptedAt: "2026-08-16T12:00:00.000Z",

@@ -1,5 +1,5 @@
-/**
- * Stage 2E — Payments tab financial history presenter.
+﻿/**
+ * Stage 2E â€” Payments tab financial history presenter.
  *
  * Run: npx tsx --test app/lib/jobPaymentHistory.test.ts
  */
@@ -89,7 +89,7 @@ function canonicalRefund(
   };
 }
 
-describe("Stage 2E — summary remains canonical", () => {
+describe("Stage 2E â€” summary remains canonical", () => {
   test("contract / collected / remaining still 053/054", () => {
     const workspace = buildJobPaymentWorkspace({
       jobStage: "production",
@@ -113,7 +113,7 @@ describe("Stage 2E — summary remains canonical", () => {
   });
 });
 
-describe("Stage 2E — requested rows", () => {
+describe("Stage 2E â€” requested rows", () => {
   test("deposit / progress / balance requested titles and amounts", () => {
     const timeline = buildJobPaymentWorkspaceTimeline({
       requests: [
@@ -155,7 +155,7 @@ describe("Stage 2E — requested rows", () => {
   });
 });
 
-describe("Stage 2E — received rows", () => {
+describe("Stage 2E â€” received rows", () => {
   test("kind-specific received titles; dual PI/Checkout collapse", () => {
     const timeline = buildJobPaymentWorkspaceTimeline({
       requests: [
@@ -182,7 +182,7 @@ describe("Stage 2E — received rows", () => {
   });
 });
 
-describe("Stage 2E — processing", () => {
+describe("Stage 2E â€” processing", () => {
   test("current processing is not a permanent history row", () => {
     const workspace = buildJobPaymentWorkspace({
       jobStage: "production",
@@ -213,7 +213,7 @@ describe("Stage 2E — processing", () => {
   });
 });
 
-describe("Stage 2E — failed / cancelled / refund", () => {
+describe("Stage 2E â€” failed / cancelled / refund", () => {
   test("failed row has no processor details; retry keeps old failure", () => {
     const first = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
     const retry = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -357,7 +357,7 @@ describe("Stage 2E — failed / cancelled / refund", () => {
   });
 });
 
-describe("Stage 2F — contractor zero-collectible wording", () => {
+describe("Stage 2F â€” contractor zero-collectible wording", () => {
   test("contractor labels stay aligned with customer Paid in full / Payments complete", () => {
     assert.equal(JOB_CARD_PAYMENTS_PAID_IN_FULL, PUBLIC_PAYMENT_PAID_IN_FULL_TITLE);
     assert.equal(
@@ -470,7 +470,7 @@ describe("Stage 2F — contractor zero-collectible wording", () => {
   });
 });
 
-describe("Stage 2E — sequential order and grouping", () => {
+describe("Stage 2E â€” sequential order and grouping", () => {
   test("newest-first chronology for request / fail / new request / received", () => {
     const timeline = buildJobPaymentWorkspaceTimeline({
       requests: [
@@ -536,7 +536,7 @@ describe("Stage 2E — sequential order and grouping", () => {
   });
 });
 
-describe("Stage 2E — Activity stays payment-free", () => {
+describe("Stage 2E â€” Activity stays payment-free", () => {
   test("live Job Card skips payment enrichment and does not compose payment Activity", () => {
     const jobCard = read("app/tools/roofing/jobCard/JobCardClient.tsx");
     const roofing = read("app/tools/roofing/RoofingClient.tsx");
@@ -571,13 +571,13 @@ describe("Stage 2E — Activity stays payment-free", () => {
   test("no migration 057", () => {
     assert.equal(
       existsSync(
-        join(ROOT, "supabase/migrations/20260827_057_payment_history.sql")
+        join(ROOT, "supabase/history/legacy-migrations/20260827_057_payment_history.sql")
       ),
       false
     );
     assert.equal(
       existsSync(
-        join(ROOT, "supabase/migrations/20260828_057_payment_activity.sql")
+        join(ROOT, "supabase/history/legacy-migrations/20260828_057_payment_activity.sql")
       ),
       false
     );

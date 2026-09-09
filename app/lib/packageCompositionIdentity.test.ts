@@ -1,5 +1,5 @@
-/**
- * V2E2A1 — Composition role/slot identity contract tests.
+﻿/**
+ * V2E2A1 â€” Composition role/slot identity contract tests.
  *
  * Run: npx tsx --test app/lib/packageCompositionIdentity.test.ts
  */
@@ -21,7 +21,7 @@ import {
 
 const MIGRATION = path.join(
   process.cwd(),
-  "supabase/migrations/20260815_036_add_composition_role_and_slot.sql"
+  "supabase/history/legacy-migrations/20260815_036_add_composition_role_and_slot.sql"
 );
 
 describe("starter Catalog composition role map", () => {

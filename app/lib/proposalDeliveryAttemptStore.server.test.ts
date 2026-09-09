@@ -1,5 +1,5 @@
-/**
- * R18D3A — proposalDeliveryAttemptStore.server tests.
+﻿/**
+ * R18D3A â€” proposalDeliveryAttemptStore.server tests.
  *
  * Run: npx tsx --test app/lib/proposalDeliveryAttemptStore.server.test.ts
  */
@@ -90,7 +90,7 @@ function baseAttemptRow(overrides: Record<string, unknown> = {}) {
 describe("R18D3A migration guardrails", () => {
   const migration = readFileSync(
     new URL(
-      "../../supabase/migrations/20260626_020_create_proposal_delivery_attempts.sql",
+      "../../supabase/history/legacy-migrations/20260626_020_create_proposal_delivery_attempts.sql",
       import.meta.url
     ),
     "utf8"

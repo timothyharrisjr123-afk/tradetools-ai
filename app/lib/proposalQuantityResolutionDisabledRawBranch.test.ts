@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Historical Phase 2 fixture helper + raw echo/staleness compare coverage.
  *
  * Run: npx tsx --test app/lib/proposalQuantityResolutionDisabledRawBranch.test.ts
@@ -138,8 +138,8 @@ function validCompanyPolicy(overrides: Partial<PricingPolicy> = {}): PricingPoli
   };
 }
 
-describe("fixture raw helper — adjusted regression identity", () => {
-  test("1–4. adjusted adapter still deep-equals resolver; ignores catalog coverage/waste", () => {
+describe("fixture raw helper â€” adjusted regression identity", () => {
+  test("1â€“4. adjusted adapter still deep-equals resolver; ignores catalog coverage/waste", () => {
     const input: ProposalQuantityResolverInput = {
       measurementHandoff: readyHandoff({ adjusted_roof_squares: 24 }),
       quantityMap: { adjusted_roof_squares: 24 } as MeasurementQuantityMap,
@@ -174,8 +174,8 @@ describe("fixture raw helper — adjusted regression identity", () => {
   });
 });
 
-describe("fixture raw helper — raw_plus_waste math/echo", () => {
-  test("5. computes source → coverage → waste → exact", () => {
+describe("fixture raw helper â€” raw_plus_waste math/echo", () => {
+  test("5. computes source â†’ coverage â†’ waste â†’ exact", () => {
     const result = resolveDisabledRawPlusWasteQuantityBranch({
       rawSourceQuantity: 100,
       coverageRate: 50,
@@ -316,7 +316,7 @@ describe("fixture raw helper — raw_plus_waste math/echo", () => {
   });
 });
 
-describe("fixture raw helper — staleness/preflight compare path", () => {
+describe("fixture raw helper â€” staleness/preflight compare path", () => {
   test("14. matching raw echo can compare current", () => {
     const current = rawEcho();
     const result = compareRawPlusWasteQuantityResolutionEcho({
@@ -426,7 +426,7 @@ describe("fixture raw helper — staleness/preflight compare path", () => {
   });
 });
 
-describe("fixture raw helper — policy / production gates", () => {
+describe("fixture raw helper â€” policy / production gates", () => {
   test("21. company policy may store raw_plus_waste; helper flag stays false; default adjusted", () => {
     const result = resolveCompanyPricingPolicy({
       storedPolicy: validCompanyPolicy({
@@ -450,11 +450,11 @@ describe("fixture raw helper — policy / production gates", () => {
     const migration = readFileSync(
       path.join(
         process.cwd(),
-        "supabase/migrations/20260716_023_allow_raw_plus_waste_policy_mode.sql"
+        "supabase/history/legacy-migrations/20260716_023_allow_raw_plus_waste_policy_mode.sql"
       ),
       "utf8"
     );
-    assert.match(migration, /REVIEW ONLY — DO NOT APPLY WITHOUT EXPLICIT APPROVAL/);
+    assert.match(migration, /REVIEW ONLY â€” DO NOT APPLY WITHOUT EXPLICIT APPROVAL/);
     assert.match(migration, /waste_model in \('adjusted_measurement', 'raw_plus_waste'\)/);
     assert.equal(migration.includes("quantity_rounding in"), false);
 

@@ -1,5 +1,5 @@
-/**
- * R2B — Preferred setup for roofing proposals.
+﻿/**
+ * R2B â€” Preferred setup for roofing proposals.
  *
  * Run: npx tsx --test app/tools/roofing/templates/templatesPreferredSetup.test.ts
  *
@@ -24,7 +24,7 @@ const STORE_PREF = join(process.cwd(), "app/lib/companyTemplatePreferenceStore.t
 const STORE_TEMPLATE = join(process.cwd(), "app/lib/proposalTemplateStore.ts");
 const MIGRATION = join(
   process.cwd(),
-  "supabase/migrations/20260722_032_create_company_template_preferences.sql"
+  "supabase/history/legacy-migrations/20260722_032_create_company_template_preferences.sql"
 );
 const ROOFING_CLIENT = join(process.cwd(), "app/tools/roofing/RoofingClient.tsx");
 const JOB_CARD = join(process.cwd(), "app/tools/roofing/jobCard/jobCardProposalSetup.ts");
@@ -33,7 +33,7 @@ function readTemplates(name: string): string {
   return readFileSync(join(ROOT, name), "utf8");
 }
 
-describe("R2B migration contract — company_template_preferences", () => {
+describe("R2B migration contract â€” company_template_preferences", () => {
   test("migration creates preference table with unique slot and company-scoped template FK", () => {
     const sql = readFileSync(MIGRATION, "utf8");
     const executable = sql
@@ -67,7 +67,7 @@ describe("R2B migration contract — company_template_preferences", () => {
   });
 });
 
-describe("R2B store contract — preferred setup helpers", () => {
+describe("R2B store contract â€” preferred setup helpers", () => {
   test("exports roofing proposal preferred constants", () => {
     assert.equal(MODULE_KEY_ROOFING, "roofing");
     assert.equal(WORKFLOW_KEY_PROPOSAL, "proposal");
@@ -116,7 +116,7 @@ describe("R2B store contract — preferred setup helpers", () => {
   });
 });
 
-describe("R2B — Job Card preferred-first resolution", () => {
+describe("R2B â€” Job Card preferred-first resolution", () => {
   test("preferred setup beats starter seed_key when eligible", () => {
     const templates = [
       { id: "starter", name: "Roof", active: true, status: "active" },
@@ -177,7 +177,7 @@ describe("R2B — Job Card preferred-first resolution", () => {
   });
 });
 
-describe("R2B — Templates UI preferred setup", () => {
+describe("R2B â€” Templates UI preferred setup", () => {
   test("library and header use Preferred / Make preferred copy", () => {
     const flow = readTemplates("templatesWorkspaceFlow.ts");
     const row = readTemplates("TemplatesTemplateLibraryRow.tsx");
@@ -232,7 +232,7 @@ describe("R2B — Templates UI preferred setup", () => {
   });
 });
 
-describe("R2B — protected systems untouched", () => {
+describe("R2B â€” protected systems untouched", () => {
   test("preference files do not import pricing, freeze, or package soft-remove writers", () => {
     const files = [
       readFileSync(STORE_PREF, "utf8"),

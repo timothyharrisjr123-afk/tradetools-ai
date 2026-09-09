@@ -1,5 +1,5 @@
-/**
- * Photos / Attachments V1 — schema, security, authority, UI.
+﻿/**
+ * Photos / Attachments V1 â€” schema, security, authority, UI.
  * Run: npx tsx --test app/lib/jobAttachmentSql057.test.ts
  */
 
@@ -11,7 +11,7 @@ import { describe, test } from "node:test";
 import { AFTER_048_MIGRATIONS } from "./jobPaymentBalance054.test";
 
 const ROOT = process.cwd();
-const MIGRATIONS = join(ROOT, "supabase/migrations");
+const MIGRATIONS = join(ROOT, "supabase/history/legacy-migrations");
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 const sha = (path: string) =>
   createHash("sha256").update(readFileSync(path)).digest("hex").toUpperCase();
@@ -20,7 +20,7 @@ const SQL_056 = join(MIGRATIONS, "20260827_056_flexible_collect_payment.sql");
 const SQL_057 = join(MIGRATIONS, "20260828_057_job_attachments.sql");
 const SHA_056 = "9A60B1AA495EEB88206580A9BB8C0F54BAD65399CCA4F86B9D77FEF78C2E3351";
 
-describe("057 — historical payments stay locked", () => {
+describe("057 â€” historical payments stay locked", () => {
   test("056 unchanged; 057 is job attachments not payment", () => {
     assert.equal(existsSync(SQL_057), true);
     assert.equal(sha(SQL_056), SHA_056);
@@ -40,7 +40,7 @@ describe("057 — historical payments stay locked", () => {
   });
 });
 
-describe("057 — schema and storage", () => {
+describe("057 â€” schema and storage", () => {
   const sql = readFileSync(SQL_057, "utf8");
 
   test("private bucket and signed-access-only objects", () => {
@@ -77,7 +77,7 @@ describe("057 — schema and storage", () => {
   });
 });
 
-describe("057 — authority isolation", () => {
+describe("057 â€” authority isolation", () => {
   const sql = readFileSync(SQL_057, "utf8");
   const persist = read("app/lib/jobAttachmentPersistence.ts");
   const routes = [

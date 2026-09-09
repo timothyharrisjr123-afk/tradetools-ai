@@ -1,5 +1,5 @@
-/**
- * Cohesion A recovery — durable pre-pay customer package choice (052)
+﻿/**
+ * Cohesion A recovery â€” durable pre-pay customer package choice (052)
  * plus deposit RPC error propagation.
  *
  * Run: npx tsx --test app/lib/customerOptionChoice052.test.ts
@@ -15,7 +15,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 type OpenJobDepositRpc = Pick<SupabaseClient, "rpc">["rpc"];
 
 const ROOT = process.cwd();
-const MIGRATIONS = join(ROOT, "supabase/migrations");
+const MIGRATIONS = join(ROOT, "supabase/history/legacy-migrations");
 
 const SQL_044 = join(MIGRATIONS, "20260816_044_job_payments.sql");
 const SQL_047 = join(MIGRATIONS, "20260823_047_job_work_complete.sql");
@@ -47,7 +47,7 @@ function read(rel: string): string {
   return readFileSync(join(ROOT, rel), "utf8");
 }
 
-describe("052 — historical live migrations immutable", () => {
+describe("052 â€” historical live migrations immutable", () => {
   test("039 remains absent", () => {
     const names = readdirSync(MIGRATIONS);
     assert.ok(!names.some((name) => name.includes("_039_")));
@@ -79,7 +79,7 @@ describe("052 — historical live migrations immutable", () => {
   });
 });
 
-describe("052 — durable choice ownership", () => {
+describe("052 â€” durable choice ownership", () => {
   const sql = readFileSync(SQL_052, "utf8");
 
   test("adds a dedicated table keyed to company + proposal + frozen version", () => {
@@ -135,7 +135,7 @@ describe("052 — durable choice ownership", () => {
   });
 });
 
-describe("052 — app write/read contract", () => {
+describe("052 â€” app write/read contract", () => {
   test("public packet persists through the server endpoint, never browser storage", () => {
     const packet = read("app/components/proposal-packet/ProposalPacket.tsx");
     assert.match(packet, /\/api\/proposals\/public-option-choice/);
@@ -184,7 +184,7 @@ describe("052 — app write/read contract", () => {
   });
 });
 
-describe("052 — deposit RPC error propagation", () => {
+describe("052 â€” deposit RPC error propagation", () => {
   test("helper returns a structured failure instead of swallowing", () => {
     const lib = read("app/lib/proposalPaymentTermsPersistence.ts");
     assert.match(lib, /export type OpenJobDepositFromAcceptanceResult/);

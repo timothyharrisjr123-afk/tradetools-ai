@@ -1,5 +1,5 @@
-/**
- * R3E — Job payments 044 schema and isolation contracts.
+﻿/**
+ * R3E â€” Job payments 044 schema and isolation contracts.
  *
  * Run: npx tsx --test app/lib/jobPayments044.test.ts
  */
@@ -27,27 +27,27 @@ import { prefillDepositCents, remainingAcceptedCents } from "./jobPaymentMoney";
 import { composeJobActivityItems } from "./jobActivityComposer";
 
 const ROOT = process.cwd();
-const SQL_044 = join(ROOT, "supabase/migrations/20260816_044_job_payments.sql");
-const SQL_043 = join(ROOT, "supabase/migrations/20260816_043_proposal_signatures.sql");
+const SQL_044 = join(ROOT, "supabase/history/legacy-migrations/20260816_044_job_payments.sql");
+const SQL_043 = join(ROOT, "supabase/history/legacy-migrations/20260816_043_proposal_signatures.sql");
 const SQL_042 = join(
   ROOT,
-  "supabase/migrations/20260816_042_proposal_freeze_timestamp_authority.sql"
+  "supabase/history/legacy-migrations/20260816_042_proposal_freeze_timestamp_authority.sql"
 );
 const SQL_041 = join(
   ROOT,
-  "supabase/migrations/20260816_041_proposal_draft_content_changed_at.sql"
+  "supabase/history/legacy-migrations/20260816_041_proposal_draft_content_changed_at.sql"
 );
 const SQL_040 = join(
   ROOT,
-  "supabase/migrations/20260816_040_proposal_formal_acceptance.sql"
+  "supabase/history/legacy-migrations/20260816_040_proposal_formal_acceptance.sql"
 );
 const SQL_039 = join(
   ROOT,
-  "supabase/migrations/20260816_039_proposal_formal_acceptance.sql"
+  "supabase/history/legacy-migrations/20260816_039_proposal_formal_acceptance.sql"
 );
 const SQL_038 = join(
   ROOT,
-  "supabase/migrations/20260816_038_job_lifecycle_foundation.sql"
+  "supabase/history/legacy-migrations/20260816_038_job_lifecycle_foundation.sql"
 );
 
 const HASH_038 =

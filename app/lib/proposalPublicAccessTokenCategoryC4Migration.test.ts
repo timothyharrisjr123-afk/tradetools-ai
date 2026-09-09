@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Stage C4 migration 037 contract tests.
  *
  * Static pre-apply verification only:
@@ -12,19 +12,19 @@ import { describe, test } from "node:test";
 
 const MIGRATION_PATH = join(
   process.cwd(),
-  "supabase/migrations/20260815_037_add_token_category_and_email_send_supersede_rpc.sql"
+  "supabase/history/legacy-migrations/20260815_037_add_token_category_and_email_send_supersede_rpc.sql"
 );
 const RESOLVE_MIGRATION_PATH = join(
   process.cwd(),
-  "supabase/migrations/20260626_016_create_proposal_public_access_resolve_rpc.sql"
+  "supabase/history/legacy-migrations/20260626_016_create_proposal_public_access_resolve_rpc.sql"
 );
 const REQUEST_MIGRATION_PATH = join(
   process.cwd(),
-  "supabase/migrations/20260723_035_create_job_attention_foundation.sql"
+  "supabase/history/legacy-migrations/20260723_035_create_job_attention_foundation.sql"
 );
 const FREEZE_MIGRATION_PATH = join(
   process.cwd(),
-  "supabase/migrations/20260626_012_create_proposal_send_freeze_rpc.sql"
+  "supabase/history/legacy-migrations/20260626_012_create_proposal_send_freeze_rpc.sql"
 );
 const PUBLIC_VIEW_MODEL_PATH = join(
   process.cwd(),

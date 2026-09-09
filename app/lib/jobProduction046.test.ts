@@ -1,5 +1,5 @@
-/**
- * R3G — migration 046, Start-work, read-model, and surface contracts.
+﻿/**
+ * R3G â€” migration 046, Start-work, read-model, and surface contracts.
  *
  * Run:
  * npx tsx --test app/lib/jobProduction046.test.ts
@@ -22,11 +22,11 @@ import {
 
 const ROOT = process.cwd();
 const SQL_046 = readFileSync(
-  join(ROOT, "supabase/migrations/20260817_046_job_production_start.sql"),
+  join(ROOT, "supabase/history/legacy-migrations/20260817_046_job_production_start.sql"),
   "utf8"
 );
 const SQL_038 = readFileSync(
-  join(ROOT, "supabase/migrations/20260816_038_job_lifecycle_foundation.sql"),
+  join(ROOT, "supabase/history/legacy-migrations/20260816_038_job_lifecycle_foundation.sql"),
   "utf8"
 );
 const JOB_CARD_TABS = readFileSync(
@@ -283,10 +283,10 @@ describe("R3G surface contracts", () => {
     assert.match(JOB_CARD, /isProduction \|\| isComplete/);
     assert.match(JOB_CARD, /hasActualStart = isProduction \|\| isComplete/);
     assert.match(JOB_CARD, /Work started/);
-    assert.match(JOB_CARD, /Planned schedule ·/);
-    assert.doesNotMatch(JOB_CARD, /Production · planned/);
+    assert.match(JOB_CARD, /Planned schedule Â·/);
+    assert.doesNotMatch(JOB_CARD, /Production Â· planned/);
     assert.match(ROOFING_CLIENT, /JobCardScheduleWorkspacePanel/);
-    assert.doesNotMatch(ROOFING_CLIENT, /Production · planned/);
+    assert.doesNotMatch(ROOFING_CLIENT, /Production Â· planned/);
     assert.match(JOB_CARD, /scheduleReady/);
     assert.doesNotMatch(JOB_CARD, /Undo Start/);
     assert.match(ROOFING_CLIENT, /\/api\/jobs\/start-work/);

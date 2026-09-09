@@ -1,5 +1,5 @@
-/**
- * Tasks V1 — Job Card workspace UI, store source, Complete regression.
+﻿/**
+ * Tasks V1 â€” Job Card workspace UI, store source, Complete regression.
  * Run: npx tsx --test app/tools/roofing/jobCard/jobCardTasksV1.test.ts
  */
 
@@ -193,7 +193,7 @@ describe("Complete job ignores tasks", () => {
   });
 
   test("Complete RPC and UI do not mention tasks", () => {
-    const sql = read("supabase/migrations/20260823_047_job_work_complete.sql");
+    const sql = read("supabase/history/legacy-migrations/20260823_047_job_work_complete.sql");
     const route = read("app/api/jobs/complete-work/route.ts");
     const next = read("app/tools/roofing/jobCard/JobCardNextActionPanel.tsx");
     assert.doesNotMatch(sql, /job_tasks/);

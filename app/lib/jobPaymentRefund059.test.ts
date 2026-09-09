@@ -22,10 +22,9 @@ import {
 const ROOT = process.cwd();
 const read = (relativePath: string) =>
   readFileSync(join(ROOT, relativePath), "utf8");
-const sql = read("supabase/migrations/20260828_059_job_payment_refunds.sql").replace(
-  /\r\n/g,
-  "\n"
-);
+const sql = read(
+  "supabase/history/legacy-migrations/20260828_059_job_payment_refunds.sql"
+).replace(/\r\n/g, "\n");
 
 function section(start: string, end: string): string {
   const startIndex = sql.indexOf(start);

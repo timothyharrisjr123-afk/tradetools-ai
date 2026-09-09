@@ -1,5 +1,5 @@
-/**
- * Tasks V1 — schema, security, authority.
+﻿/**
+ * Tasks V1 â€” schema, security, authority.
  * Run: npx tsx --test app/lib/jobTaskSql058.test.ts
  */
 
@@ -11,7 +11,7 @@ import { describe, test } from "node:test";
 import { AFTER_048_MIGRATIONS } from "./jobPaymentBalance054.test";
 
 const ROOT = process.cwd();
-const MIGRATIONS = join(ROOT, "supabase/migrations");
+const MIGRATIONS = join(ROOT, "supabase/history/legacy-migrations");
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 const sha = (path: string) =>
   createHash("sha256").update(readFileSync(path)).digest("hex").toUpperCase();
@@ -20,7 +20,7 @@ const SQL_057 = join(MIGRATIONS, "20260828_057_job_attachments.sql");
 const SQL_058 = join(MIGRATIONS, "20260828_058_job_tasks.sql");
 const SHA_057 = "EE5520AB0BC05E96C9A72EA30D26F142D75C80D77A1083BAD5A2CD4A7E774C46";
 
-describe("058 — historical files stay locked", () => {
+describe("058 â€” historical files stay locked", () => {
   test("057 unchanged; 058 is job tasks not payment", () => {
     assert.equal(existsSync(SQL_058), true);
     assert.equal(sha(SQL_057), SHA_057);
@@ -44,7 +44,7 @@ describe("058 — historical files stay locked", () => {
   });
 });
 
-describe("058 — schema", () => {
+describe("058 â€” schema", () => {
   const sql = readFileSync(SQL_058, "utf8");
 
   test("columns, open/complete only, due_on date, no assignment", () => {
@@ -101,7 +101,7 @@ describe("058 — schema", () => {
   });
 });
 
-describe("058 — authority isolation", () => {
+describe("058 â€” authority isolation", () => {
   const sql = readFileSync(SQL_058, "utf8");
   const persist = read("app/lib/jobTaskPersistence.ts");
   const routes = [
@@ -152,7 +152,7 @@ describe("058 — authority isolation", () => {
 
   test("open tasks do not block Complete", () => {
     const eligibility = read("app/lib/jobLifecycleActionEligibility.ts");
-    const completeSql = read("supabase/migrations/20260823_047_job_work_complete.sql");
+    const completeSql = read("supabase/history/legacy-migrations/20260823_047_job_work_complete.sql");
     const next = read("app/tools/roofing/jobCard/JobCardNextActionPanel.tsx");
     assert.doesNotMatch(eligibility, /job_tasks|openTask|taskCount/);
     assert.doesNotMatch(completeSql, /job_tasks/);

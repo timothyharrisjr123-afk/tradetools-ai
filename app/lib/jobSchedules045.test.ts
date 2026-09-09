@@ -1,5 +1,5 @@
-/**
- * R3F — job_schedules 045 contracts, mapper, Activity presentation.
+﻿/**
+ * R3F â€” job_schedules 045 contracts, mapper, Activity presentation.
  *
  * Run:
  * npx tsx --test app/lib/jobSchedules045.test.ts
@@ -45,11 +45,11 @@ import { getDefaultVisibleColumnKeys } from "../tools/roofing/saved/jobsBoardUti
 
 const ROOT = process.cwd();
 const SQL_045 = readFileSync(
-  join(ROOT, "supabase/migrations/20260817_045_job_schedules.sql"),
+  join(ROOT, "supabase/history/legacy-migrations/20260817_045_job_schedules.sql"),
   "utf8"
 );
 const SQL_038 = readFileSync(
-  join(ROOT, "supabase/migrations/20260816_038_job_lifecycle_foundation.sql"),
+  join(ROOT, "supabase/history/legacy-migrations/20260816_038_job_lifecycle_foundation.sql"),
   "utf8"
 );
 const USE_BOARD_JOBS = readFileSync(
@@ -164,7 +164,7 @@ describe("045 schema contracts", () => {
     assert.equal(TRANSITION_JOB_STAGE_RPC_V1, "transition_job_stage_v1");
   });
 
-  test("Approved→Scheduled and reverse use lifecycle GUC writers", () => {
+  test("Approvedâ†’Scheduled and reverse use lifecycle GUC writers", () => {
     assert.match(SQL_045, /job_lifecycle_apply_scheduled_from_work_v1/);
     assert.match(SQL_045, /job_lifecycle_apply_approved_from_unschedule_v1/);
     assert.match(SQL_045, /set_config\('job_lifecycle\.allow_stage_write', '1', true\)/);
@@ -240,7 +240,7 @@ describe("schedule mapper", () => {
         start_local_time: null,
         end_local_time: null,
       }),
-      "Aug 25 · All day"
+      "Aug 25 Â· All day"
     );
     assert.equal(
       formatScheduleWindowLabel({
@@ -250,7 +250,7 @@ describe("schedule mapper", () => {
         start_local_time: null,
         end_local_time: null,
       }),
-      "Aug 25–26 · All day"
+      "Aug 25â€“26 Â· All day"
     );
     assert.equal(
       formatScheduleWindowLabel({
@@ -260,7 +260,7 @@ describe("schedule mapper", () => {
         start_local_time: "08:00:00",
         end_local_time: "16:00:00",
       }),
-      "Aug 25 · 8:00 AM–4:00 PM"
+      "Aug 25 Â· 8:00 AMâ€“4:00 PM"
     );
   });
 

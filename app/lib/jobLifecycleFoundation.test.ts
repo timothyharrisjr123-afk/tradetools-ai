@@ -1,5 +1,5 @@
-/**
- * Job Lifecycle Foundation — mapper, write policy, activity composer, SQL contract.
+﻿/**
+ * Job Lifecycle Foundation â€” mapper, write policy, activity composer, SQL contract.
  *
  * Run:
  * npx tsx --test app/lib/jobLifecycleFoundation.test.ts
@@ -43,15 +43,15 @@ import { getDefaultVisibleColumnKeys, getStageAnchorIso } from "../tools/roofing
 
 const MIGRATION_PATH = join(
   process.cwd(),
-  "supabase/migrations/20260816_038_job_lifecycle_foundation.sql"
+  "supabase/history/legacy-migrations/20260816_038_job_lifecycle_foundation.sql"
 );
 const DRAFT_CREATE_036 = join(
   process.cwd(),
-  "supabase/migrations/20260815_036_add_composition_role_and_slot.sql"
+  "supabase/history/legacy-migrations/20260815_036_add_composition_role_and_slot.sql"
 );
 const TOKEN_037 = join(
   process.cwd(),
-  "supabase/migrations/20260815_037_add_token_category_and_email_send_supersede_rpc.sql"
+  "supabase/history/legacy-migrations/20260815_037_add_token_category_and_email_send_supersede_rpc.sql"
 );
 
 const JOB_ID = "11111111-1111-4111-8111-111111111111";
@@ -62,7 +62,7 @@ function job(overrides: Partial<JobSummary> = {}): JobSummary {
     id: JOB_ID,
     company_id: COMPANY_ID,
     customer_name: "Test",
-    job_name: "Test — roofing",
+    job_name: "Test â€” roofing",
     stage: "intake",
     status: "active",
     created_at: "2026-08-01T00:00:00.000Z",
@@ -151,7 +151,7 @@ describe("write policy", () => {
     assert.equal(assertOperationalDispositionWrite("lost"), "lost");
   });
 
-  test("Approved → Scheduled is blocked until R3F", () => {
+  test("Approved â†’ Scheduled is blocked until R3F", () => {
     assert.equal(JOB_LIFECYCLE_SCHEDULED_TRANSITIONS_ENABLED, false);
     assert.equal(isAllowedStageEdge("approved", "scheduled"), false);
     assert.equal(previewStageTransition({ stage: "approved" }, "scheduled").blockedUntilR3f, true);
@@ -164,7 +164,7 @@ describe("write policy", () => {
     );
   });
 
-  test("live write surface enables Intake → Proposal only", () => {
+  test("live write surface enables Intake â†’ Proposal only", () => {
     assert.equal(isAllowedStageEdge("intake", "proposal"), true);
     assert.equal(isAllowedStageEdge("intake", "intake"), true);
     assert.equal(isAllowedStageEdge("proposal", "proposal"), true);
@@ -509,7 +509,7 @@ describe("RPC payload guards", () => {
     }
   });
 
-  test("Intake→Proposal without proposal truth is a typed RPC failure", () => {
+  test("Intakeâ†’Proposal without proposal truth is a typed RPC failure", () => {
     const missing = parseTransitionJobStageResult({
       ok: false,
       code: "proposal_truth_required",
@@ -689,7 +689,7 @@ describe("038 SQL contract", () => {
     );
   });
 
-  test("Intake→Proposal RPC requires durable same-job proposal truth", () => {
+  test("Intakeâ†’Proposal RPC requires durable same-job proposal truth", () => {
     assert.match(sql, /job_lifecycle_has_proposal_truth/);
     assert.match(sql, /proposal_truth_required/);
     assert.match(sql, /proposal_truth_mismatch/);

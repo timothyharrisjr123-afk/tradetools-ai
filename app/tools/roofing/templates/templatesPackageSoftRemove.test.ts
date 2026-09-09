@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Run: npx tsx --test app/tools/roofing/templates/templatesPackageSoftRemove.test.ts
  */
 
@@ -16,7 +16,7 @@ import {
 const ROOT = join(process.cwd(), "app/tools/roofing/templates");
 const MIGRATION = join(
   process.cwd(),
-  "supabase/migrations/20260722_031_add_proposal_template_option_removed_at.sql"
+  "supabase/history/legacy-migrations/20260722_031_add_proposal_template_option_removed_at.sql"
 );
 const STORE = join(process.cwd(), "app/lib/proposalTemplateStore.ts");
 

@@ -1,7 +1,7 @@
-/**
- * S3D9 — quantity_resolution_echo read-back verification (unit tests).
+﻿/**
+ * S3D9 â€” quantity_resolution_echo read-back verification (unit tests).
  *
- * Stitches: create/refresh persist payload → simulated loaded line rows →
+ * Stitches: create/refresh persist payload â†’ simulated loaded line rows â†’
  * preflight orchestration (current / stale / unknown).
  *
  * No live DB. No production SQL. No UI.
@@ -229,7 +229,7 @@ function instantiateInput(echo: Record<string, unknown> | null): DraftInstantiat
   };
 }
 
-/** Test-only: map persist row → loaded ProposalLineItemRow shape (simulates select *). */
+/** Test-only: map persist row â†’ loaded ProposalLineItemRow shape (simulates select *). */
 function persistLineToLoadedRow(
   line: DraftProposalCreateLinePersistRow | DraftPricingRefreshLinePersistRow,
   overrides: Partial<ProposalLineItemRow> = {}
@@ -346,7 +346,7 @@ function preflightDeps(
 }
 
 describe("S3D9 quantity_resolution_echo read-back chain", () => {
-  test("1. create persist → loaded row → preflight current when echo matches", async () => {
+  test("1. create persist â†’ loaded row â†’ preflight current when echo matches", async () => {
     const payload = buildDraftProposalCreatePersistPayload({
       companyId: COMPANY_ID,
       jobId: JOB_ID,
@@ -384,7 +384,7 @@ describe("S3D9 quantity_resolution_echo read-back chain", () => {
     assert.equal(loaded.customer_line_total_cents, 10_000);
   });
 
-  test("2. refresh persist → loaded row → preflight current when echo matches", async () => {
+  test("2. refresh persist â†’ loaded row â†’ preflight current when echo matches", async () => {
     const payload = buildDraftPricingRefreshPersistPayload({
       companyId: COMPANY_ID,
       proposalId: PROPOSAL_ID,
@@ -421,7 +421,7 @@ describe("S3D9 quantity_resolution_echo read-back chain", () => {
     );
   });
 
-  test("3. create persist → loaded row → preflight stale on qty mismatch", async () => {
+  test("3. create persist â†’ loaded row â†’ preflight stale on qty mismatch", async () => {
     const payload = buildDraftProposalCreatePersistPayload({
       companyId: COMPANY_ID,
       jobId: JOB_ID,
@@ -457,7 +457,7 @@ describe("S3D9 quantity_resolution_echo read-back chain", () => {
     assert.equal(loaded.customer_line_total_cents, beforeTotal);
   });
 
-  test("4. historical missing echo → preflight unknown; customer snapshot still omits echo", async () => {
+  test("4. historical missing echo â†’ preflight unknown; customer snapshot still omits echo", async () => {
     const payload = buildDraftProposalCreatePersistPayload({
       companyId: COMPANY_ID,
       jobId: JOB_ID,
@@ -571,18 +571,18 @@ describe("S3D9 quantity_resolution_echo read-back chain", () => {
   });
 
   test("6. S3D10 RPC migration includes quantity_resolution_echo on create/refresh line INSERTs", () => {
-    // Read-only SQL text proof — does not run/apply SQL.
+    // Read-only SQL text proof â€” does not run/apply SQL.
     const legacyCreateRpc = readFileSync(
       path.join(
         process.cwd(),
-        "supabase/migrations/20260625_011_create_draft_proposal_create_rpc.sql"
+        "supabase/history/legacy-migrations/20260625_011_create_draft_proposal_create_rpc.sql"
       ),
       "utf8"
     );
     const legacyRefreshRpc = readFileSync(
       path.join(
         process.cwd(),
-        "supabase/migrations/20260624_010_create_refresh_draft_pricing_rpc.sql"
+        "supabase/history/legacy-migrations/20260624_010_create_refresh_draft_pricing_rpc.sql"
       ),
       "utf8"
     );
@@ -592,7 +592,7 @@ describe("S3D9 quantity_resolution_echo read-back chain", () => {
     const alignedRpc = readFileSync(
       path.join(
         process.cwd(),
-        "supabase/migrations/20260716_022_include_quantity_resolution_echo_in_draft_rpcs.sql"
+        "supabase/history/legacy-migrations/20260716_022_include_quantity_resolution_echo_in_draft_rpcs.sql"
       ),
       "utf8"
     );
@@ -615,7 +615,7 @@ describe("S3D9 quantity_resolution_echo read-back chain", () => {
     const columnMigration = readFileSync(
       path.join(
         process.cwd(),
-        "supabase/migrations/20260716_021_add_quantity_resolution_fields.sql"
+        "supabase/history/legacy-migrations/20260716_021_add_quantity_resolution_fields.sql"
       ),
       "utf8"
     );

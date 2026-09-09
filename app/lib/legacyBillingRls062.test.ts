@@ -1,5 +1,5 @@
-/**
- * 062 — legacy payments + subscriptions tenant isolation (SECURITY P0).
+﻿/**
+ * 062 â€” legacy payments + subscriptions tenant isolation (SECURITY P0).
  * Run: npx tsx --test app/lib/legacyBillingRls062.test.ts
  */
 
@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 
 const ROOT = process.cwd();
-const MIGRATIONS = join(ROOT, "supabase/migrations");
+const MIGRATIONS = join(ROOT, "supabase/history/legacy-migrations");
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 const sha = (path: string) =>
   createHash("sha256").update(readFileSync(path)).digest("hex").toUpperCase();
@@ -21,7 +21,7 @@ const SQL_062 = join(MIGRATIONS, "20260830_062_legacy_billing_tenant_isolation.s
 const SHA_060 = "63273D0B4924E187D273B4D2010592B4C84BD34DFA5D4F28B0C62736EF78865C";
 const SHA_061 = "E2E3383D5B792A57DD0CCFC8576BB264457A635FDBAD8B58E803213E600CF214";
 
-describe("062 — historical files stay locked", () => {
+describe("062 â€” historical files stay locked", () => {
   test("060 and 061 SHA unchanged; 062 is additive", () => {
     assert.equal(existsSync(SQL_062), true);
     assert.equal(sha(SQL_060), SHA_060);
@@ -40,7 +40,7 @@ describe("062 — historical files stay locked", () => {
   });
 });
 
-describe("062 — payments security contract", () => {
+describe("062 â€” payments security contract", () => {
   const sql = readFileSync(SQL_062, "utf8");
 
   test("enables RLS with membership SELECT/INSERT only", () => {
@@ -74,7 +74,7 @@ describe("062 — payments security contract", () => {
   });
 });
 
-describe("062 — subscriptions closed by default", () => {
+describe("062 â€” subscriptions closed by default", () => {
   const sql = readFileSync(SQL_062, "utf8");
 
   test("RLS on; no authenticated policies or grants", () => {
@@ -87,7 +87,7 @@ describe("062 — subscriptions closed by default", () => {
   });
 });
 
-describe("062 — accepted legacy payment code paths stay company-scoped", () => {
+describe("062 â€” accepted legacy payment code paths stay company-scoped", () => {
   test("paymentsTable and status routes filter by company_id", () => {
     const table = read("app/lib/paymentsTable.ts");
     const status = read("app/api/payments/status/route.ts");

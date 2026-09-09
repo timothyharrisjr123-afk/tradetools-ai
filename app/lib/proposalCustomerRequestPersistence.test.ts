@@ -1,5 +1,5 @@
-/**
- * R3B1 — Customer package request persistence / contract tests.
+﻿/**
+ * R3B1 â€” Customer package request persistence / contract tests.
  *
  * Run: npx tsx --test app/lib/proposalCustomerRequestPersistence.test.ts
  */
@@ -40,7 +40,7 @@ const SELECTED_OPTION_ID = "66666666-6666-4666-8666-666666666666";
 
 const MIGRATION_PATH = join(
   process.cwd(),
-  "supabase/migrations/20260723_033_create_proposal_customer_requests.sql"
+  "supabase/history/legacy-migrations/20260723_033_create_proposal_customer_requests.sql"
 );
 
 function successRpcData() {

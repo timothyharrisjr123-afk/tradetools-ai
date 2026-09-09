@@ -1,5 +1,5 @@
-/**
- * Payment Stage 2B — balance-request lifecycle (migration 054).
+﻿/**
+ * Payment Stage 2B â€” balance-request lifecycle (migration 054).
  *
  * Run: npx tsx --test app/lib/jobPaymentBalance054.test.ts
  */
@@ -20,7 +20,7 @@ import type { JobPaymentRefundRow } from "./jobPaymentReadModel";
 import { JOB_CARD_PAYMENTS_COLLECT_BALANCE_CTA } from "./jobPaymentTypes";
 
 const ROOT = process.cwd();
-const MIGRATIONS = join(ROOT, "supabase/migrations");
+const MIGRATIONS = join(ROOT, "supabase/history/legacy-migrations");
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 const sha = (path: string) =>
   createHash("sha256").update(readFileSync(path)).digest("hex").toUpperCase();
@@ -112,7 +112,7 @@ function txn(
   };
 }
 
-describe("054 — historical migrations immutable", () => {
+describe("054 â€” historical migrations immutable", () => {
   test("039 remains absent and reserved", () => {
     const names = readdirSync(MIGRATIONS);
     assert.ok(!names.some((name) => name.includes("_039_")));
@@ -136,7 +136,7 @@ describe("054 — historical migrations immutable", () => {
   });
 });
 
-describe("054 — balance request contract", () => {
+describe("054 â€” balance request contract", () => {
   const sql = readFileSync(SQL_054, "utf8");
   const createFn = sql.slice(
     sql.indexOf("create or replace function public.create_job_payment_request_v1")

@@ -1,5 +1,5 @@
-/**
- * Premium Cohesion Cut 1 — Phase 0.
+﻿/**
+ * Premium Cohesion Cut 1 â€” Phase 0.
  *
  * Canonical customer package selection truth (migration 049).
  *
@@ -15,7 +15,7 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 
 const ROOT = process.cwd();
-const MIGRATIONS = join(ROOT, "supabase/migrations");
+const MIGRATIONS = join(ROOT, "supabase/history/legacy-migrations");
 
 const SQL_040 = join(MIGRATIONS, "20260816_040_proposal_formal_acceptance.sql");
 const SQL_043 = join(MIGRATIONS, "20260816_043_proposal_signatures.sql");
@@ -61,7 +61,7 @@ function read(rel: string): string {
   return readFileSync(join(ROOT, rel), "utf8");
 }
 
-describe("049 — historical migrations untouched", () => {
+describe("049 â€” historical migrations untouched", () => {
   test("039 remains absent and reserved", () => {
     const names = readdirSync(MIGRATIONS);
     assert.ok(!names.some((name) => name.includes("_039_")));
@@ -96,7 +96,7 @@ describe("049 — historical migrations untouched", () => {
   });
 });
 
-describe("049 — additive customer choice truth", () => {
+describe("049 â€” additive customer choice truth", () => {
   const sql = readFileSync(SQL_049, "utf8");
 
   test("adds columns without dropping or retyping existing ones", () => {
@@ -143,7 +143,7 @@ describe("049 — additive customer choice truth", () => {
   });
 });
 
-describe("049 — option resolution invariants", () => {
+describe("049 â€” option resolution invariants", () => {
   const sql = readFileSync(SQL_049, "utf8");
 
   test("resolver is scoped to one company and one frozen version", () => {
@@ -179,7 +179,7 @@ describe("049 — option resolution invariants", () => {
   });
 });
 
-describe("049 — money derives from contract truth", () => {
+describe("049 â€” money derives from contract truth", () => {
   const sql = readFileSync(SQL_049, "utf8");
 
   test("contract helper prefers customer choice, falls back to contractor", () => {
@@ -221,7 +221,7 @@ describe("049 — money derives from contract truth", () => {
   });
 });
 
-describe("049 — acceptance stays idempotent and non-mutating", () => {
+describe("049 â€” acceptance stays idempotent and non-mutating", () => {
   const sql = readFileSync(SQL_049, "utf8");
 
   test("signature of record_proposal_acceptance_v1 is unchanged", () => {
@@ -266,7 +266,7 @@ describe("049 — acceptance stays idempotent and non-mutating", () => {
   });
 });
 
-describe("049 — grants and exposure", () => {
+describe("049 â€” grants and exposure", () => {
   const sql = readFileSync(SQL_049, "utf8");
 
   test("public and anon can never execute acceptance or deposit RPCs", () => {
@@ -303,7 +303,7 @@ describe("049 — grants and exposure", () => {
   });
 });
 
-describe("Phase 0 — app layer price authority", () => {
+describe("Phase 0 â€” app layer price authority", () => {
   test("checkout route rejects any client amount or binding", () => {
     const route = read("app/api/public/payment-requests/checkout/route.ts");
     assert.match(route, /body\?\.amountCents != null/);
@@ -340,7 +340,7 @@ describe("Phase 0 — app layer price authority", () => {
   });
 });
 
-describe("Phase 0 — fail-closed interlock", () => {
+describe("Phase 0 â€” fail-closed interlock", () => {
   const lib = read("app/lib/proposalAcceptancePersistence.ts");
 
   test("a sent choice that did not bind refuses instead of mis-charging", () => {

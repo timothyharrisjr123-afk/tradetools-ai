@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, test } from "node:test";
@@ -315,7 +315,7 @@ describe("persistence acknowledgement contracts", () => {
   });
 
   test("provider-account RPC resolves canonical ownership and rejects unknown accounts", () => {
-    const sql = read("supabase/migrations/20260816_044_job_payments.sql");
+    const sql = read("supabase/history/legacy-migrations/20260816_044_job_payments.sql");
     const fn = sql.slice(
       sql.indexOf("create or replace function public.upsert_company_payment_account_from_provider_v1"),
       sql.indexOf("revoke all on function public.upsert_company_payment_settings_v1")
