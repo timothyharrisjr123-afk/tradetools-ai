@@ -146,3 +146,29 @@ export async function findPropertiesByNormalizedKey({
 export async function createPropertyExplicit(params: PropertyWriteParams): Promise<string | null> {
   return createProperty(params);
 }
+
+/** Atomic canonical resolver. The database derives tenancy from authenticated membership. */
+export async function resolveCompanyProperty({
+  supabase,
+  companyId,
+  address,
+  placesPlaceId,
+}: PropertyWriteParams): Promise<{ propertyId: string; resolution: "created" | "reused" } | null> {
+  const normalized = normalizePropertyAddress(address);
+  if (!String(companyId ?? "").trim() || !normalized) return null;
+  const { data, error } = await supabase.rpc("resolve_company_property_v1", {
+    p_company_id: companyId,
+    p_line1: display(address.line1) ?? display(address.formatted),
+    p_line2: display(address.line2),
+    p_city: display(address.city),
+    p_state: display(address.state),
+    p_zip: display(address.zip),
+    p_formatted: display(address.formatted),
+    p_places_place_id: display(placesPlaceId),
+  });
+  if (error || !Array.isArray(data) || !data[0]?.property_id) return null;
+  return {
+    propertyId: String(data[0].property_id),
+    resolution: data[0].resolution === "created" ? "created" : "reused",
+  };
+}
