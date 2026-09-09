@@ -14,6 +14,8 @@ import {
   findReusableCheckoutSessionForRequest,
   retrieveDirectCheckoutSession,
 } from "@/app/lib/jobPaymentStripe.server";
+import { createOrRecoverCheckoutSession } from "@/app/lib/stripeIdempotentCreation";
+import { stripeMutationErrorIsAmbiguous } from "@/app/lib/stripeMutationSafety";
 import type { JobPaymentKind } from "@/app/lib/jobPaymentTypes";
 import { createAdminClient } from "@/app/lib/supabase/admin";
 
@@ -91,6 +93,7 @@ export async function openHostedCheckoutForRequest(input: {
     const recovered = await findReusableCheckoutSessionForRequest({
       connectedAccountId: request.provider_account_id,
       paymentRequestId: request.id,
+      checkoutGeneration: request.checkout_generation ?? 0,
     });
     if (recovered?.url && checkoutSessionIsReusable(recovered)) {
       try {
@@ -101,11 +104,31 @@ export async function openHostedCheckoutForRequest(input: {
       return { url: recovered.url, reused: true };
     }
   } catch {
-    // Listing is best-effort recovery; remint below if needed.
+    // Without an authoritative provider listing, a new generation is unsafe.
+    throw Object.assign(new Error("checkout_reconciliation_unavailable"), {
+      code: "checkout_reconciliation_unavailable",
+    });
   }
 
   const generation = (request.checkout_generation ?? 0) + 1;
-  const session = await createDirectCheckoutSession({
+  const priorAttempt = await findReusableCheckoutSessionForRequest({
+    connectedAccountId: request.provider_account_id,
+    paymentRequestId: request.id,
+    checkoutGeneration: generation,
+  }).catch(() => {
+    throw Object.assign(new Error("checkout_reconciliation_unavailable"), {
+      code: "checkout_reconciliation_unavailable",
+    });
+  });
+  if (priorAttempt?.url && checkoutSessionIsReusable(priorAttempt)) {
+    try {
+      await bindSession(priorAttempt, generation);
+    } catch {
+      // The same provider Session remains authoritative for this generation.
+    }
+    return { url: priorAttempt.url, reused: true };
+  }
+  const createInput = {
     connectedAccountId: request.provider_account_id,
     paymentRequestId: request.id,
     companyId: request.company_id,
@@ -115,8 +138,19 @@ export async function openHostedCheckoutForRequest(input: {
     currency: "usd",
     successUrl: input.successUrl,
     cancelUrl: input.cancelUrl,
-    idempotencyKey: `fielddive_r3e_checkout_${request.id}_${generation}`,
+    checkoutGeneration: generation,
+  } as const;
+  const created = await createOrRecoverCheckoutSession({
+    create: () => createDirectCheckoutSession(createInput),
+    reconcile: () =>
+      findReusableCheckoutSessionForRequest({
+        connectedAccountId: request.provider_account_id,
+        paymentRequestId: request.id,
+        checkoutGeneration: generation,
+      }),
+    isAmbiguous: stripeMutationErrorIsAmbiguous,
   });
+  const session = created.session;
 
   try {
     await bindSession(session, generation);

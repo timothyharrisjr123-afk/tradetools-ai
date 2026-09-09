@@ -14,6 +14,10 @@ import {
   requireStripeConnectWebhookSecret,
   requireStripeSecretKey,
 } from "@/app/lib/stripeRuntimeEnvironment";
+import {
+  stripeConnectAccountIdempotencyKey,
+  stripeCheckoutIdempotencyKey,
+} from "@/app/lib/stripeIdempotentCreation";
 
 export function getStripeConnectClient(): Stripe {
   return new Stripe(requireStripeSecretKey(), {
@@ -43,13 +47,41 @@ export function withPaymentReturnHint(
 
 export async function createStandardConnectedAccount(input: {
   companyId: string;
+  operationToken: string;
 }): Promise<Stripe.Account> {
   const stripe = getStripeConnectClient();
-  return stripe.accounts.create({
-    type: "standard",
-    country: "US",
-    metadata: { company_id: input.companyId },
-  });
+  return stripe.accounts.create(
+    {
+      type: "standard",
+      country: "US",
+      metadata: {
+        company_id: input.companyId,
+        fielddive_connect_operation: input.operationToken,
+      },
+    },
+    { idempotencyKey: stripeConnectAccountIdempotencyKey(input.operationToken) }
+  );
+}
+
+export async function findStandardConnectedAccountForOperation(input: {
+  companyId: string;
+  operationToken: string;
+}): Promise<Stripe.Account | null> {
+  let matched: Stripe.Account | null = null;
+  await getStripeConnectClient()
+    .accounts.list({ limit: 100 })
+    .autoPagingEach((account) => {
+      if (
+        account.type === "standard" &&
+        account.metadata?.company_id === input.companyId &&
+        account.metadata?.fielddive_connect_operation === input.operationToken
+      ) {
+        matched = account;
+        return false;
+      }
+      return true;
+    });
+  return matched;
 }
 
 export async function createAccountOnboardingLink(input: {
@@ -91,7 +123,7 @@ export type CreateDirectCheckoutInput = {
   currency: "usd";
   successUrl: string;
   cancelUrl: string;
-  idempotencyKey: string;
+  checkoutGeneration: number;
 };
 
 export type CreateDirectPaymentRefundInput = {
@@ -126,6 +158,7 @@ export async function createDirectCheckoutSession(
       payment_request_id: input.paymentRequestId,
       company_id: input.companyId,
       job_id: input.jobId,
+      checkout_generation: String(input.checkoutGeneration),
     },
     line_items: [
       {
@@ -144,6 +177,7 @@ export async function createDirectCheckoutSession(
         payment_request_id: input.paymentRequestId,
         company_id: input.companyId,
         job_id: input.jobId,
+        checkout_generation: String(input.checkoutGeneration),
       },
     },
   };
@@ -151,26 +185,10 @@ export async function createDirectCheckoutSession(
 
   const requestOptions: Stripe.RequestOptions = {
     stripeAccount: input.connectedAccountId,
-    idempotencyKey: input.idempotencyKey,
+    idempotencyKey: stripeCheckoutIdempotencyKey(input),
   };
 
-  try {
-    return await stripe.checkout.sessions.create(
-      {
-        ...params,
-        automatic_payment_methods: { enabled: true },
-      } as Stripe.Checkout.SessionCreateParams,
-      requestOptions
-    );
-  } catch {
-    return stripe.checkout.sessions.create(
-      {
-        ...params,
-        payment_method_types: ["card"],
-      },
-      requestOptions
-    );
-  }
+  return stripe.checkout.sessions.create(params, requestOptions);
 }
 
 export async function createDirectPaymentRefund(
@@ -279,6 +297,7 @@ export function checkoutSessionMatchesRequest(
 export async function findReusableCheckoutSessionForRequest(input: {
   connectedAccountId: string;
   paymentRequestId: string;
+  checkoutGeneration: number;
 }): Promise<Stripe.Checkout.Session | null> {
   const stripe = getStripeConnectClient();
   const listed = await stripe.checkout.sessions.list(
@@ -289,7 +308,8 @@ export async function findReusableCheckoutSessionForRequest(input: {
     listed.data.find(
       (session) =>
         checkoutSessionIsReusable(session) &&
-        checkoutSessionMatchesRequest(session, input.paymentRequestId)
+        checkoutSessionMatchesRequest(session, input.paymentRequestId) &&
+        session.metadata?.checkout_generation === String(input.checkoutGeneration)
     ) ?? null
   );
 }

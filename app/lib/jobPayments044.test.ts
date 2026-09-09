@@ -437,8 +437,8 @@ describe("legacy isolation and no stage write", () => {
     );
     assert.match(stripe, /stripeAccount: input\.connectedAccountId/);
     assert.match(stripe, /must not set application fees/);
-    assert.match(stripe, /automatic_payment_methods: \{ enabled: true \}/);
-    assert.match(stripe, /payment_method_types: \["card"\]/);
+    assert.doesNotMatch(stripe, /payment_method_types/);
+    assert.doesNotMatch(stripe, /catch\s*\{[\s\S]*checkout\.sessions\.create/);
     assert.match(stripe, /requireStripeSecretKey/);
     assert.match(stripe, /apiVersion: "2026-07-29\.dahlia"/);
     assert.match(stripe, /findReusableCheckoutSessionForRequest/);

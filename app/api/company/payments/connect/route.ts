@@ -7,6 +7,7 @@ import {
   appOriginFromRequest,
   createAccountOnboardingLink,
   createStandardConnectedAccount,
+  findStandardConnectedAccountForOperation,
   retrieveConnectedAccount,
 } from "@/app/lib/jobPaymentStripe.server";
 import {
@@ -19,6 +20,11 @@ import { createClient } from "@/app/lib/supabase/server";
 import { isConfirmedAccountPersistence } from "@/app/lib/stripeConnectPersistenceContract";
 import { classifyStripeConnectAccountState } from "@/app/lib/jobPaymentWebhookMapper";
 import { replaceCompanyStripeAccountAfterProviderValidation } from "@/app/lib/stripeAccountRecovery.server";
+import {
+  createOrRecoverStripeAccount,
+  stripeConnectOperationToken,
+} from "@/app/lib/stripeIdempotentCreation";
+import { stripeMutationErrorIsAmbiguous } from "@/app/lib/stripeMutationSafety";
 
 export const runtime = "nodejs";
 
@@ -39,13 +45,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, code: "forbidden" }, { status: 403 });
     }
 
-    const [{ data: existing }, { data: candidate }] = await Promise.all([
+    const [existingResult, predecessorResult, candidateResult] = await Promise.all([
       supabase
         .from("company_payment_accounts")
         .select("provider_account_id,charges_enabled,details_submitted")
         .eq("company_id", companyId)
         .eq("provider", "stripe")
         .eq("is_current", true)
+        .maybeSingle(),
+      supabase
+        .from("company_payment_accounts")
+        .select("provider_account_id")
+        .eq("company_id", companyId)
+        .eq("provider", "stripe")
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle(),
       supabase
         .from("company_payment_accounts")
@@ -56,6 +70,15 @@ export async function POST(req: NextRequest) {
         .eq("connection_status", "active")
         .maybeSingle(),
     ]);
+    if (existingResult.error || candidateResult.error || predecessorResult.error) {
+      return NextResponse.json(
+        { ok: false, code: "payment_account_lookup_failed" },
+        { status: 503 }
+      );
+    }
+    const existing = existingResult.data;
+    const candidate = candidateResult.data;
+    const predecessor = predecessorResult.data;
 
     const accountIsCurrent = Boolean(existing?.provider_account_id);
     const resumable = existing ?? candidate;
@@ -66,7 +89,20 @@ export async function POST(req: NextRequest) {
 
     const admin = createAdminClient();
     if (!accountId) {
-      const account = await createStandardConnectedAccount({ companyId });
+      const operationToken = stripeConnectOperationToken({
+        companyId,
+        predecessorProviderAccountId: predecessor?.provider_account_id
+          ? String(predecessor.provider_account_id)
+          : null,
+      });
+      const created = await createOrRecoverStripeAccount({
+        operationToken,
+        findExisting: () =>
+          findStandardConnectedAccountForOperation({ companyId, operationToken }),
+        create: () => createStandardConnectedAccount({ companyId, operationToken }),
+        isAmbiguous: stripeMutationErrorIsAmbiguous,
+      });
+      const account = created.account;
       accountId = account.id;
       const accountState = classifyStripeConnectAccountState(
         account as unknown as Record<string, unknown>

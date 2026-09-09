@@ -346,12 +346,10 @@ describe("ACCEPT/PAY and ledger", () => {
 });
 
 describe("architecture source locks", () => {
-  test("Checkout prefers Stripe-managed methods with card fallback", () => {
+  test("Checkout uses Stripe-managed methods without a parameter-changing fallback", () => {
     const stripe = read("app/lib/jobPaymentStripe.server.ts");
-    assert.match(stripe, /automatic_payment_methods: \{ enabled: true \}/);
-    assert.match(stripe, /payment_method_types: \["card"\]/);
+    assert.doesNotMatch(stripe, /payment_method_types/);
     assert.doesNotMatch(stripe, /cashapp/);
-    assert.doesNotMatch(stripe, /payment_method_types: \["card", "us_bank_account"\]/);
   });
 
   test("Accept and sign open deposit after success", () => {
