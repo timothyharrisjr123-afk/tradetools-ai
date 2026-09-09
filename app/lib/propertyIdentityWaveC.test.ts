@@ -106,13 +106,13 @@ describe("Wave C â€” Property identity", () => {
     );
   });
 
-  test("create-new is explicit â€” store never findOrCreate collapses", () => {
+  test("intake resolution is explicit and company-scoped", () => {
     const store = read("app/lib/propertyStore.ts");
     assert.match(store, /createPropertyExplicit/);
     assert.doesNotMatch(store, /findOrCreateProperty/);
     assert.match(store, /Always insert/);
     const intake = read("app/tools/roofing/RoofingClient.tsx");
-    assert.match(intake, /createPropertyExplicit/);
+    assert.match(intake, /resolveCompanyProperty/);
     assert.match(intake, /selectedPropertyId/);
     assert.match(intake, /JobPacketPropertyCandidates/);
     const searchApi = read("app/api/properties/search/route.ts");

@@ -92,7 +92,7 @@ import {
 } from "@/app/tools/roofing/JobPacketPropertyCandidates";
 import { useCompanyCustomerSearch } from "@/app/tools/roofing/useCompanyCustomerSearch";
 import { useCompanyPropertySearch } from "@/app/tools/roofing/useCompanyPropertySearch";
-import { createPropertyExplicit } from "@/app/lib/propertyStore";
+import { resolveCompanyProperty } from "@/app/lib/propertyStore";
 import {
   buildCustomerWorkspaceHref,
   buildPropertyWorkspaceHref,
@@ -5808,7 +5808,7 @@ Thanks,`;
           name: (customerName || "").trim(),
           email: (customerEmail || "").trim() || null,
           phone: (customerPhone || "").trim() || null,
-          address: addressLine || null,
+          address: null,
         });
         if (!linkedCustomerId) {
           setJobCreationError("Could not save customer. Check your connection and try again.");
@@ -5828,11 +5828,13 @@ Thanks,`;
           formatted: addressLine || null,
         };
         if (propertyAddressIsMatchable(propertyAddress)) {
-          linkedPropertyId = await createPropertyExplicit({
+          const resolvedProperty = await resolveCompanyProperty({
             supabase,
             companyId: cid,
             address: propertyAddress,
+            placesPlaceId: selectedPlacesAddress?.placeId ?? null,
           });
+          linkedPropertyId = resolvedProperty?.propertyId ?? null;
           if (!linkedPropertyId) {
             setJobCreationError("Could not save property. Check the address and try again.");
             return;
@@ -5891,6 +5893,7 @@ Thanks,`;
     jobZip,
     selectedCustomerId,
     selectedPropertyId,
+    selectedPlacesAddress,
   ]);
 
   function renderJobPacketWorkbench(
