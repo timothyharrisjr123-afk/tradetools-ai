@@ -1,0 +1,1995 @@
+﻿{
+    "schema_version":  1,
+    "generated_at_utc":  "2026-09-09T16:10:14.6638413Z",
+    "architecture":  "hybrid-canonical-baseline",
+    "production_project_ref":  "rhquhnujjnzjhweypavd",
+    "staging_project_ref":  "tjtrhdckinjtorgbkirm",
+    "production_schema_snapshot":  {
+                                       "path":  "tmp/fielddive-db-audit/production-schema-pre-recovery.sql",
+                                       "sha256":  "B435863DC562C374E02315F3EB5C9A700BED63538850E90F6FA3FF57AA3EFE2A",
+                                       "bytes":  722002,
+                                       "note":  "Authoritative pre-recovery production schema; local/untracked artifact"
+                                   },
+    "canonical_baseline":  {
+                               "path":  "supabase/migrations/20260909130000_canonical_pre_recovery_baseline.sql",
+                               "version":  "20260909130000"
+                           },
+    "recovery_migration":  {
+                               "path":  "supabase/migrations/20260909130935_durable_stripe_account_recovery.sql",
+                               "version":  "20260909130935",
+                               "status":  "likely-never-applied",
+                               "note":  "Remains next after baseline; not applied in local pre-recovery equivalence gate"
+                           },
+    "status_vocabulary":  [
+                              "canonical-ledger-confirmed",
+                              "documented-manual-live",
+                              "structurally-confirmed-live",
+                              "likely-live",
+                              "uncertain",
+                              "likely-never-applied",
+                              "superseded"
+                          ],
+    "caveats":  [
+                    "Production ledger only records 20260531; colliding files under that version are NOT canonical-ledger-confirmed.",
+                    "structurally-confirmed-live means production contains resulting objects; it does not mean this exact file was executed.",
+                    "Legacy SQL archived byte-for-byte; do not normalize, reformat, or edit archive contents.",
+                    "Historical inventory count is 63 date-plus-sequence files (001-064 with 039 reserved/absent). Recovery migration is separate and remains active."
+                ],
+    "migrations":  [
+                       {
+                           "original_filename":  "20260531_001_create_jobs.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260531_001_create_jobs.sql",
+                           "sha256":  "C3685A6D0FD578D89E654E91E87D7E8DADA6A55CC7E4EE39A344ABD164187711",
+                           "parsed_legacy_version":  "20260531",
+                           "git_introduction_commit":  "c80cda076046aefae8d79ba9a867b9ed07efa49b",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  1,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "idx_jobs_active",
+                                                    "idx_jobs_assigned_to",
+                                                    "idx_jobs_company_id",
+                                                    "idx_jobs_created_at",
+                                                    "idx_jobs_customer_id",
+                                                    "idx_jobs_last_activity_at",
+                                                    "idx_jobs_stage",
+                                                    "idx_jobs_status",
+                                                    "idx_jobs_updated_at",
+                                                    "jobs",
+                                                    "jobs_delete_company_scope",
+                                                    "jobs_insert_company_scope",
+                                                    "jobs_select_company_scope",
+                                                    "jobs_set_updated_at",
+                                                    "jobs_update_company_scope",
+                                                    "set_updated_at"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Production ledger records only version 20260531; later evolution often via SQL Editor. Exact file execution not proven from ledger alone.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "uncertain",
+                           "confidence":  "low",
+                           "notes":  "Four files share parsed version 20260531; production ledger has 20260531 but does not identify which file(s). Do not mark canonical-ledger-confirmed."
+                       },
+                       {
+                           "original_filename":  "20260531_002_add_estimate_job_bridge_and_measurement_records.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260531_002_add_estimate_job_bridge_and_measurement_records.sql",
+                           "sha256":  "805A779305B82D765934D69E40B3CD4ADF25BD9DF527926730CA03F20F609F53",
+                           "parsed_legacy_version":  "20260531",
+                           "git_introduction_commit":  "341c47d955141cfd1807ca2a20fd616725b7f71e",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  2,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "estimates",
+                                                    "idx_estimates_company_job",
+                                                    "idx_estimates_job_id",
+                                                    "idx_measurement_records_company_id",
+                                                    "idx_measurement_records_created_at",
+                                                    "idx_measurement_records_estimate_id",
+                                                    "idx_measurement_records_estimate_ready",
+                                                    "idx_measurement_records_job_id",
+                                                    "idx_measurement_records_one_selected_per_estimate",
+                                                    "idx_measurement_records_one_selected_per_job",
+                                                    "idx_measurement_records_production_ready",
+                                                    "idx_measurement_records_report_file_id",
+                                                    "idx_measurement_records_selected",
+                                                    "idx_measurement_records_source_type",
+                                                    "idx_measurement_records_status",
+                                                    "measurement_records",
+                                                    "measurement_records_delete_company_scope",
+                                                    "measurement_records_insert_company_scope",
+                                                    "measurement_records_select_company_scope",
+                                                    "measurement_records_set_updated_at",
+                                                    "measurement_records_update_company_scope"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Production ledger records only version 20260531; later evolution often via SQL Editor. Exact file execution not proven from ledger alone.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "uncertain",
+                           "confidence":  "low",
+                           "notes":  "Four files share parsed version 20260531; production ledger has 20260531 but does not identify which file(s). Do not mark canonical-ledger-confirmed."
+                       },
+                       {
+                           "original_filename":  "20260531_003_create_catalog_items.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260531_003_create_catalog_items.sql",
+                           "sha256":  "22C81657CAB11DB74D2D23D685C8F88C59EFD9E6C93EE3E475FCADE5F5D25C34",
+                           "parsed_legacy_version":  "20260531",
+                           "git_introduction_commit":  "81b8f031c6bf48b9f8c70791d8d149769b79a068",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  3,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "catalog_items",
+                                                    "catalog_items_delete_company_scope",
+                                                    "catalog_items_insert_company_scope",
+                                                    "catalog_items_select_company_scope",
+                                                    "catalog_items_set_updated_at",
+                                                    "catalog_items_update_company_scope",
+                                                    "idx_catalog_items_company_active",
+                                                    "idx_catalog_items_company_id",
+                                                    "idx_catalog_items_company_item_type",
+                                                    "idx_catalog_items_company_quantity_source",
+                                                    "idx_catalog_items_created_at"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Production ledger records only version 20260531; later evolution often via SQL Editor. Exact file execution not proven from ledger alone.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "uncertain",
+                           "confidence":  "low",
+                           "notes":  "Four files share parsed version 20260531; production ledger has 20260531 but does not identify which file(s). Do not mark canonical-ledger-confirmed."
+                       },
+                       {
+                           "original_filename":  "20260531_004_create_proposal_template_tables.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260531_004_create_proposal_template_tables.sql",
+                           "sha256":  "435C6CE3F7115A0D1527BAAAD75425D24D255F000078458B9D693D95B26A5F78",
+                           "parsed_legacy_version":  "20260531",
+                           "git_introduction_commit":  "c825942d33a90d7670e9a66c140f34a1663f6969",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  4,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "catalog_items",
+                                                    "idx_proposal_template_items_catalog_item_id",
+                                                    "idx_proposal_template_items_company_id",
+                                                    "idx_proposal_template_items_option_id",
+                                                    "idx_proposal_template_items_section_seed_key",
+                                                    "idx_proposal_template_items_section_sort",
+                                                    "idx_proposal_template_items_template_id",
+                                                    "idx_proposal_template_options_company_id",
+                                                    "idx_proposal_template_options_one_default_per_template",
+                                                    "idx_proposal_template_options_template_seed_key",
+                                                    "idx_proposal_template_options_template_sort",
+                                                    "idx_proposal_template_sections_company_id",
+                                                    "idx_proposal_template_sections_option_seed_key",
+                                                    "idx_proposal_template_sections_option_sort",
+                                                    "idx_proposal_template_sections_template_option",
+                                                    "idx_proposal_templates_company_active_sort",
+                                                    "idx_proposal_templates_company_id",
+                                                    "idx_proposal_templates_company_seed_key",
+                                                    "idx_proposal_templates_company_status",
+                                                    "idx_proposal_templates_created_at",
+                                                    "proposal_template_items",
+                                                    "proposal_template_items_delete_company_scope",
+                                                    "proposal_template_items_insert_company_scope",
+                                                    "proposal_template_items_select_company_scope",
+                                                    "proposal_template_items_set_updated_at",
+                                                    "proposal_template_items_update_company_scope",
+                                                    "proposal_template_options",
+                                                    "proposal_template_options_delete_company_scope",
+                                                    "proposal_template_options_insert_company_scope",
+                                                    "proposal_template_options_select_company_scope",
+                                                    "proposal_template_options_set_updated_at",
+                                                    "proposal_template_options_update_company_scope",
+                                                    "proposal_template_sections",
+                                                    "proposal_template_sections_delete_company_scope",
+                                                    "proposal_template_sections_insert_company_scope",
+                                                    "proposal_template_sections_select_company_scope",
+                                                    "proposal_template_sections_set_updated_at",
+                                                    "proposal_template_sections_update_company_scope",
+                                                    "proposal_templates",
+                                                    "proposal_templates_delete_company_scope"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Production ledger records only version 20260531; later evolution often via SQL Editor. Exact file execution not proven from ledger alone.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "uncertain",
+                           "confidence":  "low",
+                           "notes":  "Four files share parsed version 20260531; production ledger has 20260531 but does not identify which file(s). Do not mark canonical-ledger-confirmed."
+                       },
+                       {
+                           "original_filename":  "20260605_005_create_company_pricing_policies.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260605_005_create_company_pricing_policies.sql",
+                           "sha256":  "F3239E9C27827125DD7A913E85B6EC262875761B81FD738839F04E2F8E089411",
+                           "parsed_legacy_version":  "20260605",
+                           "git_introduction_commit":  "76b87b829a4741e168560a67bbbf18fa75355073",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  5,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "company_pricing_policies",
+                                                    "company_pricing_policies_delete_company_scope",
+                                                    "company_pricing_policies_insert_company_scope",
+                                                    "company_pricing_policies_select_company_scope",
+                                                    "company_pricing_policies_set_updated_at",
+                                                    "company_pricing_policies_update_company_scope",
+                                                    "idx_company_pricing_policies_company_id"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Early foundation cohort; production contains resulting objects but pre-ledger/bootstrap and manual applies blur exact provenance.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "low",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order. Pre-ledger/bootstrap cohort predates reliable migration ledger."
+                       },
+                       {
+                           "original_filename":  "20260606_006_create_proposal_records.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260606_006_create_proposal_records.sql",
+                           "sha256":  "FB6B77BBDEDD4F30A89BDB4664BD091E75AD9F91A4879DEE61FA14D19BD815C1",
+                           "parsed_legacy_version":  "20260606",
+                           "git_introduction_commit":  "387993e4006ff30d87f14b5b689a5789a2426f19",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  6,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "idx_proposal_events_company_proposal_occurred",
+                                                    "idx_proposal_internal_summaries_company_option",
+                                                    "idx_proposal_line_items_company_option_sort",
+                                                    "idx_proposal_line_items_company_page_sort",
+                                                    "idx_proposal_options_company_version_sort",
+                                                    "idx_proposal_pages_company_version_sort",
+                                                    "idx_proposal_versions_company_kind",
+                                                    "idx_proposal_versions_company_proposal_id",
+                                                    "idx_proposal_versions_company_proposal_version_number",
+                                                    "idx_proposals_company_current_draft_version",
+                                                    "idx_proposals_company_id",
+                                                    "idx_proposals_company_job_id",
+                                                    "idx_proposals_company_proposal_number",
+                                                    "idx_proposals_company_status",
+                                                    "proposal_events",
+                                                    "proposal_events_delete_company_scope",
+                                                    "proposal_events_insert_company_scope",
+                                                    "proposal_events_select_company_scope",
+                                                    "proposal_events_update_company_scope",
+                                                    "proposal_internal_summaries",
+                                                    "proposal_internal_summaries_delete_company_scope",
+                                                    "proposal_internal_summaries_insert_company_scope",
+                                                    "proposal_internal_summaries_select_company_scope",
+                                                    "proposal_internal_summaries_set_updated_at",
+                                                    "proposal_internal_summaries_update_company_scope",
+                                                    "proposal_line_items",
+                                                    "proposal_line_items_delete_company_scope",
+                                                    "proposal_line_items_insert_company_scope",
+                                                    "proposal_line_items_select_company_scope",
+                                                    "proposal_line_items_set_updated_at",
+                                                    "proposal_line_items_update_company_scope",
+                                                    "proposal_options",
+                                                    "proposal_options_delete_company_scope",
+                                                    "proposal_options_insert_company_scope",
+                                                    "proposal_options_select_company_scope",
+                                                    "proposal_options_set_updated_at",
+                                                    "proposal_options_update_company_scope",
+                                                    "proposal_pages",
+                                                    "proposal_pages_delete_company_scope",
+                                                    "proposal_pages_insert_company_scope"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Early foundation cohort; production contains resulting objects but pre-ledger/bootstrap and manual applies blur exact provenance.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "low",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order. Pre-ledger/bootstrap cohort predates reliable migration ledger."
+                       },
+                       {
+                           "original_filename":  "20260607_007_harden_proposal_records_before_apply.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260607_007_harden_proposal_records_before_apply.sql",
+                           "sha256":  "6068FC7A302DE123CADC1785CD4CC09E20ECD1427C457C8FEADE1D3B869F5143",
+                           "parsed_legacy_version":  "20260607",
+                           "git_introduction_commit":  "7b234153f85623f0ba71f6c2441f2f4191464099",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  7,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "proposal_line_items",
+                                                    "proposals",
+                                                    "proposals_insert_company_scope",
+                                                    "proposals_update_company_scope"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Early foundation cohort; production contains resulting objects but pre-ledger/bootstrap and manual applies blur exact provenance.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "low",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order. Pre-ledger/bootstrap cohort predates reliable migration ledger."
+                       },
+                       {
+                           "original_filename":  "20260617_008_create_company_branding_profiles.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260617_008_create_company_branding_profiles.sql",
+                           "sha256":  "652F19C807807BCA6F8F0779057E6437F9F3BCE264FBA8804856B1B2B1FDE6F9",
+                           "parsed_legacy_version":  "20260617",
+                           "git_introduction_commit":  "097d25e4a749f4e20eba094ea3c0111649b7b74a",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  8,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "company_branding_profiles",
+                                                    "company_branding_profiles_insert_company_scope",
+                                                    "company_branding_profiles_select_company_scope",
+                                                    "company_branding_profiles_set_updated_at",
+                                                    "company_branding_profiles_update_company_scope",
+                                                    "idx_company_branding_profiles_company_id"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Early foundation cohort; production contains resulting objects but pre-ledger/bootstrap and manual applies blur exact provenance.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "low",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order. Pre-ledger/bootstrap cohort predates reliable migration ledger."
+                       },
+                       {
+                           "original_filename":  "20260618_009_create_proposal_option_scope_decisions.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260618_009_create_proposal_option_scope_decisions.sql",
+                           "sha256":  "742F33382F5C45C5EEB3EB1E55E83FD521684FE4C43050E021B6A9BC57681362",
+                           "parsed_legacy_version":  "20260618",
+                           "git_introduction_commit":  "43c83a2b135eddf41923c5f968276cbe024adf98",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  9,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "idx_proposal_option_scope_decisions_active_instance_line",
+                                                    "idx_proposal_option_scope_decisions_active_template_target",
+                                                    "idx_proposal_option_scope_decisions_company_option",
+                                                    "idx_proposal_option_scope_decisions_company_proposal",
+                                                    "idx_proposal_option_scope_decisions_company_version",
+                                                    "proposal_option_scope_decisions",
+                                                    "proposal_option_scope_decisions_delete_company_scope",
+                                                    "proposal_option_scope_decisions_insert_company_scope",
+                                                    "proposal_option_scope_decisions_select_company_scope",
+                                                    "proposal_option_scope_decisions_update_company_scope"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Early foundation cohort; production contains resulting objects but pre-ledger/bootstrap and manual applies blur exact provenance.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "low",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order. Pre-ledger/bootstrap cohort predates reliable migration ledger."
+                       },
+                       {
+                           "original_filename":  "20260624_010_create_refresh_draft_pricing_rpc.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260624_010_create_refresh_draft_pricing_rpc.sql",
+                           "sha256":  "6FF87DD850DCEB1414E3EB7A4C8FB37EAB90133C271E2DD071B89240F2CA87D3",
+                           "parsed_legacy_version":  "20260624",
+                           "git_introduction_commit":  "c2c02dc6d6319c698743f9e82f5c392fade7f13a",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  10,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "persist_draft_pricing_refresh_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Early foundation cohort; production contains resulting objects but pre-ledger/bootstrap and manual applies blur exact provenance.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "low",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order. Pre-ledger/bootstrap cohort predates reliable migration ledger."
+                       },
+                       {
+                           "original_filename":  "20260625_011_create_draft_proposal_create_rpc.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260625_011_create_draft_proposal_create_rpc.sql",
+                           "sha256":  "7AF0363DBE9D0AF614E440FEE4B5AB8631AB6F992FB59135A9A2A3B632CC067D",
+                           "parsed_legacy_version":  "20260625",
+                           "git_introduction_commit":  "daf526867b218535a21b478d90703a6f9bc7a4cc",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  11,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "persist_draft_proposal_create_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Early foundation cohort; production contains resulting objects but pre-ledger/bootstrap and manual applies blur exact provenance.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "low",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order. Pre-ledger/bootstrap cohort predates reliable migration ledger."
+                       },
+                       {
+                           "original_filename":  "20260626_012_create_proposal_send_freeze_rpc.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260626_012_create_proposal_send_freeze_rpc.sql",
+                           "sha256":  "EE9DF204BA085EEC27411E158CDDC57C8B3F868F1B90F8CE9CF906AD2A128D67",
+                           "parsed_legacy_version":  "20260626",
+                           "git_introduction_commit":  "1a6de401cd0553a5df6dd4d574d411e9dd472c02",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  12,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "persist_proposal_send_freeze_v1",
+                                                    "proposal_events",
+                                                    "proposal_immutable_version_child_guard",
+                                                    "proposal_immutable_version_row_guard",
+                                                    "proposal_internal_summaries_immutable_version_guard",
+                                                    "proposal_line_items_immutable_version_guard",
+                                                    "proposal_options_immutable_version_guard",
+                                                    "proposal_pages_immutable_version_guard",
+                                                    "proposal_versions_immutable_row_guard"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Proposal/catalog evolution cohort; corresponding objects largely present in production snapshot.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260626_013_harden_proposal_send_freeze_rpc_permissions.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260626_013_harden_proposal_send_freeze_rpc_permissions.sql",
+                           "sha256":  "9C0696F8A9B604ED18F4284E0AADBAA833D88154BCE89DB44620A6079CD28EF0",
+                           "parsed_legacy_version":  "20260626",
+                           "git_introduction_commit":  "0dae9899501bdeb815e0c3a320316c90a44a443d",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  13,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Proposal/catalog evolution cohort; corresponding objects largely present in production snapshot.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260626_014_create_proposal_public_access_tables.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260626_014_create_proposal_public_access_tables.sql",
+                           "sha256":  "565E77D4D61BB15359FAE0A98B2D517538C4108219976529FDE5DFB8B145C28A",
+                           "parsed_legacy_version":  "20260626",
+                           "git_introduction_commit":  "b651c7acc189f2872bbc5fd168fb744b7104a853",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  14,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "idx_proposal_customer_activity_company_proposal_occurred",
+                                                    "idx_proposal_customer_activity_company_version_occurred",
+                                                    "idx_proposal_customer_activity_token_occurred",
+                                                    "idx_proposal_public_access_tokens_company_proposal",
+                                                    "idx_proposal_public_access_tokens_company_status_expires",
+                                                    "idx_proposal_public_access_tokens_company_version",
+                                                    "idx_proposal_public_access_tokens_prefix",
+                                                    "idx_proposal_public_access_tokens_token_hash",
+                                                    "proposal_customer_activity",
+                                                    "proposal_customer_activity_delete_company_scope",
+                                                    "proposal_customer_activity_insert_company_scope",
+                                                    "proposal_customer_activity_row_guard",
+                                                    "proposal_customer_activity_select_company_scope",
+                                                    "proposal_customer_activity_update_company_scope",
+                                                    "proposal_forbidden_token_json_keys",
+                                                    "proposal_public_access_token_row_guard",
+                                                    "proposal_public_access_tokens",
+                                                    "proposal_public_access_tokens_delete_company_scope",
+                                                    "proposal_public_access_tokens_insert_company_scope",
+                                                    "proposal_public_access_tokens_row_guard",
+                                                    "proposal_public_access_tokens_select_company_scope",
+                                                    "proposal_public_access_tokens_update_company_scope"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Proposal/catalog evolution cohort; corresponding objects largely present in production snapshot.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260626_015_harden_proposal_public_access_table_grants.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260626_015_harden_proposal_public_access_table_grants.sql",
+                           "sha256":  "B0B31DC82DC770AF21FBAC4A40F2EB5DB6679AEF9121BD3B9953479EE522AFAB",
+                           "parsed_legacy_version":  "20260626",
+                           "git_introduction_commit":  "b651c7acc189f2872bbc5fd168fb744b7104a853",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  15,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "proposal_customer_activity_select_company_scope",
+                                                    "proposal_public_access_tokens_select_company_scope"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Proposal/catalog evolution cohort; corresponding objects largely present in production snapshot.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260626_016_create_proposal_public_access_resolve_rpc.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260626_016_create_proposal_public_access_resolve_rpc.sql",
+                           "sha256":  "F64A3576116DCC2F7782027AE3360304A5231B4287420647B97F955F8B06332D",
+                           "parsed_legacy_version":  "20260626",
+                           "git_introduction_commit":  "e7798a734023117cad83a182b3d8b967fbe37284",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  16,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "proposal_assert_public_access_token_active_v1",
+                                                    "record_proposal_customer_view_v1",
+                                                    "resolve_proposal_public_access_token_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Proposal/catalog evolution cohort; corresponding objects largely present in production snapshot.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260626_017_harden_proposal_public_access_resolve_rpc_permissions.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260626_017_harden_proposal_public_access_resolve_rpc_permissions.sql",
+                           "sha256":  "FBA1A62971EEB54B4E6AEFD6FC21CFF4747B74218797CB4AD5BB259B7CBD7174",
+                           "parsed_legacy_version":  "20260626",
+                           "git_introduction_commit":  "e7798a734023117cad83a182b3d8b967fbe37284",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  17,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Proposal/catalog evolution cohort; corresponding objects largely present in production snapshot.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260626_018_create_proposal_public_access_mint_rpc.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260626_018_create_proposal_public_access_mint_rpc.sql",
+                           "sha256":  "544A8168EBB544C65A8BA789F0D222C9E75B00F897B8D07266196B2E178229EE",
+                           "parsed_legacy_version":  "20260626",
+                           "git_introduction_commit":  "5c4785495e04a4cf47c33b3e231036f255a4ac48",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  18,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "mint_proposal_public_access_token_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Proposal/catalog evolution cohort; corresponding objects largely present in production snapshot.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260626_019_harden_proposal_public_access_mint_rpc_permissions.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260626_019_harden_proposal_public_access_mint_rpc_permissions.sql",
+                           "sha256":  "65B2C4772A7C49F53BE7C14FF798A18332566C2D261E3D947F44B30FC7389EE4",
+                           "parsed_legacy_version":  "20260626",
+                           "git_introduction_commit":  "5c4785495e04a4cf47c33b3e231036f255a4ac48",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  19,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Proposal/catalog evolution cohort; corresponding objects largely present in production snapshot.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260626_020_create_proposal_delivery_attempts.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260626_020_create_proposal_delivery_attempts.sql",
+                           "sha256":  "D945F084C8874ADC3DC7C63938952579789A5B57573A8A2ED3E6B08D0BB1DD51",
+                           "parsed_legacy_version":  "20260626",
+                           "git_introduction_commit":  "57786caa35d8f2fba3703d531b043aa4c4a135b9",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  20,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "idx_proposal_delivery_attempts_company_idempotency",
+                                                    "idx_proposal_delivery_attempts_company_proposal_created",
+                                                    "idx_proposal_delivery_attempts_company_proposal_status",
+                                                    "idx_proposal_delivery_attempts_company_version",
+                                                    "idx_proposal_delivery_attempts_provider_message",
+                                                    "idx_proposal_delivery_attempts_token_prefix",
+                                                    "proposal_delivery_attempt_forbidden_metadata_keys",
+                                                    "proposal_delivery_attempt_row_guard",
+                                                    "proposal_delivery_attempts",
+                                                    "proposal_delivery_attempts_delete_company_scope",
+                                                    "proposal_delivery_attempts_insert_company_scope",
+                                                    "proposal_delivery_attempts_row_guard",
+                                                    "proposal_delivery_attempts_select_company_scope",
+                                                    "proposal_delivery_attempts_set_updated_at",
+                                                    "proposal_delivery_attempts_update_company_scope"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Proposal/catalog evolution cohort; corresponding objects largely present in production snapshot.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260716_021_add_quantity_resolution_fields.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260716_021_add_quantity_resolution_fields.sql",
+                           "sha256":  "FA7ED0EA2C3DA3859E03071687EB854DCD10C78BB65D58ACB0B49C860757C4B9",
+                           "parsed_legacy_version":  "20260716",
+                           "git_introduction_commit":  "e3c973642d7b5ec2017101639f421021e6feedf5",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  21,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "catalog_items",
+                                                    "proposal_line_items"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Proposal/catalog evolution cohort; corresponding objects largely present in production snapshot.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260716_022_include_quantity_resolution_echo_in_draft_rpcs.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260716_022_include_quantity_resolution_echo_in_draft_rpcs.sql",
+                           "sha256":  "757DDFC19DF9E8B64E605137FD50DDF0F902B70A16CA07D0447386E08197A629",
+                           "parsed_legacy_version":  "20260716",
+                           "git_introduction_commit":  "daf526867b218535a21b478d90703a6f9bc7a4cc",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  22,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "persist_draft_pricing_refresh_v1",
+                                                    "persist_draft_proposal_create_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Proposal/catalog evolution cohort; corresponding objects largely present in production snapshot.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260716_023_allow_raw_plus_waste_policy_mode.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260716_023_allow_raw_plus_waste_policy_mode.sql",
+                           "sha256":  "08E1FDDCC06E9E3F6DB0E9A7157783412530774CE2C4B70F8A5D021611A23D92",
+                           "parsed_legacy_version":  "20260716",
+                           "git_introduction_commit":  "c80759cae728a7284347b33176bb82075dda0432",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  23,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "company_pricing_policies"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Proposal/catalog evolution cohort; corresponding objects largely present in production snapshot.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260717_024_add_catalog_items_coverage_basis.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260717_024_add_catalog_items_coverage_basis.sql",
+                           "sha256":  "9C9E923DA14067434A3FA2FC973AFF6BF53B192C4C2C45942298185EA60150AD",
+                           "parsed_legacy_version":  "20260717",
+                           "git_introduction_commit":  "fb7b9a93d9f85d54b95cad2e0f65b493a3628439",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  24,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "catalog_items"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Proposal/catalog evolution cohort; corresponding objects largely present in production snapshot.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260717_025_add_catalog_items_tax_rate_fields.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260717_025_add_catalog_items_tax_rate_fields.sql",
+                           "sha256":  "CCC9F5520C2DE5198D061A677050529D75A2CD1AE46DBEC2B88F03EA096BE513",
+                           "parsed_legacy_version":  "20260717",
+                           "git_introduction_commit":  "5d17467abbf67b5e1ece6fc2c14f45869facf8b9",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  25,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "catalog_items"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Proposal/catalog evolution cohort; corresponding objects largely present in production snapshot.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260717_026_add_catalog_items_supplier_sku_fields.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260717_026_add_catalog_items_supplier_sku_fields.sql",
+                           "sha256":  "43996BA997A4955933C886F8AF59DB0E23A591A15A699A164B8B7211A874DABF",
+                           "parsed_legacy_version":  "20260717",
+                           "git_introduction_commit":  "d716edd39ef5d183ca098c034afe8acc6935567a",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  26,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "catalog_items"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Proposal/catalog evolution cohort; corresponding objects largely present in production snapshot.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260721_027_optional_upgrade_truth.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260721_027_optional_upgrade_truth.sql",
+                           "sha256":  "3A70AF1E504B50AF6F3889F5E50C2C8FA3F867F4B6905591624EAE4EF23D1702",
+                           "parsed_legacy_version":  "20260721",
+                           "git_introduction_commit":  "32964d676a26431c4dcf93080e61391b11ceb0f4",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  27,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "idx_proposal_option_upgrade_choices_company_option",
+                                                    "idx_proposal_option_upgrade_choices_company_proposal",
+                                                    "idx_proposal_option_upgrade_choices_company_version",
+                                                    "proposal_line_items",
+                                                    "proposal_option_upgrade_choices",
+                                                    "proposal_option_upgrade_choices_delete_company_scope",
+                                                    "proposal_option_upgrade_choices_insert_company_scope",
+                                                    "proposal_option_upgrade_choices_select_company_scope",
+                                                    "proposal_option_upgrade_choices_update_company_scope",
+                                                    "proposal_template_items"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Proposal/catalog evolution cohort; corresponding objects largely present in production snapshot.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260721_028_optional_upgrade_truth_rpc_alignment.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260721_028_optional_upgrade_truth_rpc_alignment.sql",
+                           "sha256":  "9DEDCCE8074E3239E27A3EA9BE862371C26AAD6E68F2CD60D8ADC0D6B18F4686",
+                           "parsed_legacy_version":  "20260721",
+                           "git_introduction_commit":  "a28224c7036f83acad8d34062f6f02912b34118a",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  28,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "persist_draft_pricing_refresh_v1",
+                                                    "persist_draft_proposal_create_v1",
+                                                    "persist_proposal_send_freeze_v1",
+                                                    "proposal_immutable_version_child_guard",
+                                                    "proposal_option_upgrade_choices_immutable_version_guard"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Proposal/catalog evolution cohort; corresponding objects largely present in production snapshot.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260722_029_add_proposal_option_description.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260722_029_add_proposal_option_description.sql",
+                           "sha256":  "5602996D912E76AF375FE909274389D45434E54C389709729B223E8A473D8B06",
+                           "parsed_legacy_version":  "20260722",
+                           "git_introduction_commit":  "ab3a776e4e38081dbb7356f4113e33abe80d989b",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  29,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "proposal_options"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Proposal/catalog evolution cohort; corresponding objects largely present in production snapshot.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260722_030_align_proposal_option_description_rpcs.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260722_030_align_proposal_option_description_rpcs.sql",
+                           "sha256":  "A94DE8D09FCBD2C7B5185615192C415DA23EF48E4EA53BAB116EFF491AC1F5CC",
+                           "parsed_legacy_version":  "20260722",
+                           "git_introduction_commit":  "a28224c7036f83acad8d34062f6f02912b34118a",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  30,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "persist_draft_proposal_create_v1",
+                                                    "persist_proposal_send_freeze_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Proposal/catalog evolution cohort; corresponding objects largely present in production snapshot.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260722_031_add_proposal_template_option_removed_at.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260722_031_add_proposal_template_option_removed_at.sql",
+                           "sha256":  "CDF30CAAEF4863B4FAAD07C1A8BBDA1A2208832C78EF39FF16A09E3D87040C35",
+                           "parsed_legacy_version":  "20260722",
+                           "git_introduction_commit":  "6e1253f069496de7c073d59f56d066a3643e013c",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  31,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "idx_proposal_template_options_template_active_sort",
+                                                    "idx_proposal_template_options_template_removed_at",
+                                                    "proposal_template_options"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Proposal/catalog evolution cohort; corresponding objects largely present in production snapshot.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260722_032_create_company_template_preferences.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260722_032_create_company_template_preferences.sql",
+                           "sha256":  "B79196D97C898DEEAC93D6925804F9E6B433136F56A9147D707A22CBF5DCCFA3",
+                           "parsed_legacy_version":  "20260722",
+                           "git_introduction_commit":  "928a21d82a0752e66f0da7ef51756d8def077f21",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  32,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "company_template_preferences",
+                                                    "company_template_preferences_delete_company_scope",
+                                                    "company_template_preferences_insert_company_scope",
+                                                    "company_template_preferences_select_company_scope",
+                                                    "company_template_preferences_set_updated_at",
+                                                    "company_template_preferences_update_company_scope",
+                                                    "idx_company_template_preferences_company_id",
+                                                    "idx_company_template_preferences_template_id"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Proposal/catalog evolution cohort; corresponding objects largely present in production snapshot.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260723_033_create_proposal_customer_requests.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260723_033_create_proposal_customer_requests.sql",
+                           "sha256":  "0AC2AE62614396F54DDE1C821E465C19792CD9071FAF54CCF8320D2C169BA2DB",
+                           "parsed_legacy_version":  "20260723",
+                           "git_introduction_commit":  "de61b35824009f257f18579bef844dbb1d460162",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  33,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "idx_proposal_customer_requests_company_proposal_created",
+                                                    "idx_proposal_customer_requests_company_status_created",
+                                                    "idx_proposal_customer_requests_company_version_created",
+                                                    "idx_proposal_customer_requests_token_created",
+                                                    "proposal_customer_requests",
+                                                    "proposal_customer_requests_delete_company_scope",
+                                                    "proposal_customer_requests_insert_company_scope",
+                                                    "proposal_customer_requests_row_guard",
+                                                    "proposal_customer_requests_select_company_scope",
+                                                    "proposal_customer_requests_update_company_scope",
+                                                    "record_proposal_customer_request_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Proposal/catalog evolution cohort; corresponding objects largely present in production snapshot.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260723_034_update_proposal_customer_request_status_rpc.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260723_034_update_proposal_customer_request_status_rpc.sql",
+                           "sha256":  "3CB3AF8E4F2570A708979796EA43F0C53FFF547E2655543A0E41E76FC6146C71",
+                           "parsed_legacy_version":  "20260723",
+                           "git_introduction_commit":  "ed50768ec8f9c445da117472fdf0a9d0adeda1ce",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  34,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "update_proposal_customer_request_status_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Proposal/catalog evolution cohort; corresponding objects largely present in production snapshot.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260723_035_create_job_attention_foundation.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260723_035_create_job_attention_foundation.sql",
+                           "sha256":  "98527E75D1BF8010383596780FAA35CB9179861097261A1FDE23559BE2B6E323",
+                           "parsed_legacy_version":  "20260723",
+                           "git_introduction_commit":  "246eec467c7caec1043f4e3c30be2ea1b095a6a1",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  35,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "idx_job_attention_items_company_active",
+                                                    "idx_job_attention_items_company_job_active",
+                                                    "idx_job_attention_items_company_proposal",
+                                                    "idx_job_attention_items_company_version",
+                                                    "idx_job_attention_user_state_attention",
+                                                    "idx_job_attention_user_state_user_unread",
+                                                    "idx_jobs_id_company_unique",
+                                                    "idx_proposal_customer_requests_token_submission_key",
+                                                    "job_attention_items",
+                                                    "job_attention_items_row_guard",
+                                                    "job_attention_items_select_company_scope",
+                                                    "job_attention_items_set_updated_at",
+                                                    "job_attention_user_state",
+                                                    "job_attention_user_state_select_own",
+                                                    "job_attention_user_state_set_updated_at",
+                                                    "mark_job_attention_read_v1",
+                                                    "project_proposal_customer_request_attention_v1",
+                                                    "proposal_customer_requests",
+                                                    "proposal_customer_requests_row_guard",
+                                                    "record_proposal_customer_request_v1",
+                                                    "update_proposal_customer_request_status_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Proposal/catalog evolution cohort; corresponding objects largely present in production snapshot.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260815_036_add_composition_role_and_slot.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260815_036_add_composition_role_and_slot.sql",
+                           "sha256":  "72F6385CFAAC2BBD4B8E877F60884E9CFDCF65F9BDF4DB083B170CA8AC0BB13F",
+                           "parsed_legacy_version":  "20260815",
+                           "git_introduction_commit":  "a28224c7036f83acad8d34062f6f02912b34118a",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  36,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "catalog_items",
+                                                    "persist_draft_pricing_refresh_v1",
+                                                    "persist_draft_proposal_create_v1",
+                                                    "persist_proposal_send_freeze_v1",
+                                                    "proposal_line_items",
+                                                    "proposal_template_items"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Proposal/catalog evolution cohort; corresponding objects largely present in production snapshot.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260815_037_add_token_category_and_email_send_supersede_rpc.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260815_037_add_token_category_and_email_send_supersede_rpc.sql",
+                           "sha256":  "16CEDEB11C35CC7DDFD36652AA19206C555D816D58831E1A7741FEADF941E13B",
+                           "parsed_legacy_version":  "20260815",
+                           "git_introduction_commit":  "8bdb046bc3c3d6aacee2b52c20ceb6b0f3c2257f",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  37,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "idx_proposal_public_access_tokens_category_status",
+                                                    "mint_and_supersede_proposal_public_access_token_v1",
+                                                    "mint_proposal_public_access_token_v1",
+                                                    "proposal_public_access_token_row_guard",
+                                                    "proposal_public_access_tokens"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Proposal/catalog evolution cohort; corresponding objects largely present in production snapshot.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "likely-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260816_038_job_lifecycle_foundation.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260816_038_job_lifecycle_foundation.sql",
+                           "sha256":  "46027DF3711A52814234D551ED9E5A08661EEB8CEBE377CE4E58C694A95FD40B",
+                           "parsed_legacy_version":  "20260816",
+                           "git_introduction_commit":  "7510abdbb6ff8ceb5d9c56b4d1fc5c20eba4025c",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  38,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "canonical_job_stage_from_row",
+                                                    "change_job_disposition_v1",
+                                                    "idx_job_activity_events_company_occurred",
+                                                    "idx_job_activity_events_job_occurred",
+                                                    "idx_jobs_company_stage_entered_at",
+                                                    "job_activity_events",
+                                                    "job_activity_events_select_company_scope",
+                                                    "job_lifecycle_has_proposal_truth",
+                                                    "job_lifecycle_insert_activity",
+                                                    "jobs",
+                                                    "jobs_lifecycle_after_insert",
+                                                    "jobs_lifecycle_after_update",
+                                                    "jobs_lifecycle_before_insert",
+                                                    "jobs_lifecycle_before_update",
+                                                    "record_job_activity_v1",
+                                                    "transition_job_stage_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Lifecycle/proposal objects from this cohort appear in production schema snapshot; not exact-file proof.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "structurally-confirmed-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260816_040_proposal_formal_acceptance.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260816_040_proposal_formal_acceptance.sql",
+                           "sha256":  "0C9929393E1662626357E72521792FA0A805E169DE242073F43C5BD75BE81256",
+                           "parsed_legacy_version":  "20260816",
+                           "git_introduction_commit":  "d1514a1d6b1311817d89438f9abe1dc5a628c120",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  39,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "acknowledge_proposal_acceptance_attention_v1",
+                                                    "classify_proposal_acceptance_guard_v1",
+                                                    "confirm_proposal_acceptance_v1",
+                                                    "idx_proposal_acceptances_company_job_accepted",
+                                                    "idx_proposal_acceptances_company_proposal_version",
+                                                    "idx_proposal_acceptances_token",
+                                                    "idx_proposal_acceptances_unconfirmed",
+                                                    "job_attention_items",
+                                                    "job_attention_items_row_guard",
+                                                    "job_lifecycle_apply_proposal_approved_from_acceptance_v1",
+                                                    "mark_job_attention_read_v1",
+                                                    "project_proposal_acceptance_attention_v1",
+                                                    "proposal_acceptance_frozen_selected_option_v1",
+                                                    "proposal_acceptances",
+                                                    "proposal_acceptances_delete_company_scope",
+                                                    "proposal_acceptances_insert_company_scope",
+                                                    "proposal_acceptances_row_guard",
+                                                    "proposal_acceptances_select_company_scope",
+                                                    "proposal_acceptances_update_company_scope",
+                                                    "record_proposal_acceptance_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Lifecycle/proposal objects from this cohort appear in production schema snapshot; not exact-file proof.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "structurally-confirmed-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260816_041_proposal_draft_content_changed_at.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260816_041_proposal_draft_content_changed_at.sql",
+                           "sha256":  "FC5F394C67F7B4D8E5417DB4BF2C63D0FB8FF79088F15B0C816BDC5C7409C883",
+                           "parsed_legacy_version":  "20260816",
+                           "git_introduction_commit":  "ef2559fe14b9dc4f5904cd26e091e9c030622d6e",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  40,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "classify_proposal_acceptance_guard_v1",
+                                                    "persist_draft_pricing_refresh_v1",
+                                                    "persist_draft_proposal_create_v1",
+                                                    "proposal_apply_draft_content_changed_at_backfill_v1",
+                                                    "proposal_draft_content_backfill_package_key_v1",
+                                                    "proposal_draft_content_changed_at_backfill_stamp_v1",
+                                                    "proposal_draft_content_identity_echo_slice_v1",
+                                                    "proposal_draft_vs_sent_graph_outcome_v1",
+                                                    "proposal_line_items_touch_draft_content",
+                                                    "proposal_line_items_touch_draft_content_v1",
+                                                    "proposal_options_touch_draft_content",
+                                                    "proposal_options_touch_draft_content_v1",
+                                                    "proposal_pages_touch_draft_content",
+                                                    "proposal_pages_touch_draft_content_v1",
+                                                    "proposal_scope_decisions_touch_draft_content",
+                                                    "proposal_scope_decisions_touch_draft_content_v1",
+                                                    "proposal_touch_draft_content_changed_at_internal_v1",
+                                                    "proposal_touch_draft_content_from_version_id_v1",
+                                                    "proposal_upgrade_choices_touch_draft_content",
+                                                    "proposal_upgrade_choices_touch_draft_content_v1",
+                                                    "proposal_version_is_current_mutable_draft_v1",
+                                                    "proposal_versions_touch_draft_content",
+                                                    "proposal_versions_touch_draft_content_v1",
+                                                    "proposals",
+                                                    "proposals_guard_draft_content_changed_at",
+                                                    "proposals_guard_draft_content_changed_at_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Lifecycle/proposal objects from this cohort appear in production schema snapshot; not exact-file proof.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "structurally-confirmed-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260816_042_proposal_freeze_timestamp_authority.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260816_042_proposal_freeze_timestamp_authority.sql",
+                           "sha256":  "2D0D7210B0E8002E027B4F5C1B2BF167FAC434DF26DFE2B76F357668AAE1EE20",
+                           "parsed_legacy_version":  "20260816",
+                           "git_introduction_commit":  "1a6de401cd0553a5df6dd4d574d411e9dd472c02",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  41,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "persist_proposal_send_freeze_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Lifecycle/proposal objects from this cohort appear in production schema snapshot; not exact-file proof.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "structurally-confirmed-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260816_043_proposal_signatures.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260816_043_proposal_signatures.sql",
+                           "sha256":  "2B7D86548ECB20365F83B8B0882B7F2C4F17A4C6EB7F77A3B30D47FD73BDEF60",
+                           "parsed_legacy_version":  "20260816",
+                           "git_introduction_commit":  "0d06ad8fa7329eb2b674b9539cf415a2a4ec5310",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  42,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "idx_proposal_signatures_acceptance",
+                                                    "idx_proposal_signatures_company_job_signed",
+                                                    "idx_proposal_signatures_company_proposal_version",
+                                                    "proposal_signature_mark_error_v1",
+                                                    "proposal_signatures",
+                                                    "proposal_signatures_delete_company_scope",
+                                                    "proposal_signatures_insert_company_scope",
+                                                    "proposal_signatures_row_guard",
+                                                    "proposal_signatures_select_company_scope",
+                                                    "proposal_signatures_update_company_scope",
+                                                    "record_proposal_signature_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Lifecycle/proposal objects from this cohort appear in production schema snapshot; not exact-file proof.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "structurally-confirmed-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260816_044_job_payments.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260816_044_job_payments.sql",
+                           "sha256":  "9E098700C57228442B28C44E6177C5630456912A207CA55B1A5DCB1F7CBDB09F",
+                           "parsed_legacy_version":  "20260816",
+                           "git_introduction_commit":  "f6c1301e12f4c8337ea5aa14adcd89b5e1bc866e",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  43,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "bind_job_payment_checkout_session_v1",
+                                                    "cancel_job_payment_request_v1",
+                                                    "company_payment_accounts",
+                                                    "company_payment_accounts_row_guard",
+                                                    "company_payment_accounts_select_company_scope",
+                                                    "company_payment_settings",
+                                                    "company_payment_settings_row_guard",
+                                                    "company_payment_settings_select_company_scope",
+                                                    "create_job_payment_request_v1",
+                                                    "ensure_company_payment_settings_v1",
+                                                    "idx_company_payment_accounts_company",
+                                                    "idx_job_payment_requests_acceptance",
+                                                    "idx_job_payment_requests_checkout_session",
+                                                    "idx_job_payment_requests_company_job",
+                                                    "idx_job_payment_requests_one_active_per_kind",
+                                                    "idx_job_payment_transactions_request",
+                                                    "job_attention_items",
+                                                    "job_attention_items_row_guard",
+                                                    "job_payment_kind_net_paid_cents_v1",
+                                                    "job_payment_net_paid_cents_v1",
+                                                    "job_payment_open_failed_attention_v1",
+                                                    "job_payment_open_not_connected_attention_v1",
+                                                    "job_payment_requests",
+                                                    "job_payment_requests_row_guard",
+                                                    "job_payment_requests_select_company_scope",
+                                                    "job_payment_resolve_attention_v1",
+                                                    "job_payment_snapshot_stage_v1",
+                                                    "job_payment_transactions",
+                                                    "job_payment_transactions_row_guard",
+                                                    "job_payment_transactions_select_company_scope",
+                                                    "record_job_payment_provider_event_v1",
+                                                    "resolve_public_job_payment_checkout_v1",
+                                                    "upsert_company_payment_account_from_provider_v1",
+                                                    "upsert_company_payment_settings_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Objects from this cohort are present in authoritative production schema snapshot; does NOT prove this exact file was executed.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "structurally-confirmed-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260817_045_job_schedules.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260817_045_job_schedules.sql",
+                           "sha256":  "B8413017602A0E3B7AE477D9FA18A03DBE7B22B52CA8128A42AFF1D2A3446C32",
+                           "parsed_legacy_version":  "20260817",
+                           "git_introduction_commit":  "f876ed9bd1320b95104952a200504e48a935c754",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  44,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "companies",
+                                                    "companies_timezone_guard",
+                                                    "job_activity_events",
+                                                    "job_lifecycle_apply_approved_from_unschedule_v1",
+                                                    "job_lifecycle_apply_scheduled_from_work_v1",
+                                                    "job_schedule_derive_range",
+                                                    "job_schedule_is_iana_timezone",
+                                                    "job_schedule_row_json",
+                                                    "job_schedule_validate_window",
+                                                    "job_schedule_window_json",
+                                                    "job_schedule_windows_equal",
+                                                    "job_schedules",
+                                                    "job_schedules_before_write",
+                                                    "job_schedules_company_job_created",
+                                                    "job_schedules_company_status_range",
+                                                    "job_schedules_one_active_work",
+                                                    "job_schedules_select_company_scope",
+                                                    "record_job_activity_v1",
+                                                    "reschedule_job_v1",
+                                                    "schedule_job_v1",
+                                                    "set_company_timezone_v1",
+                                                    "unschedule_job_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Objects from this cohort are present in authoritative production schema snapshot; does NOT prove this exact file was executed.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "structurally-confirmed-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260817_046_job_production_start.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260817_046_job_production_start.sql",
+                           "sha256":  "4B7E94158F6FA375678F2E6CDDBDB4E51256D66DB911B519E63FDC0D22E3928E",
+                           "parsed_legacy_version":  "20260817",
+                           "git_introduction_commit":  "a175814e36a37b326eee17c020594d6066824443",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  45,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "job_activity_events",
+                                                    "jobs",
+                                                    "jobs_production_start_guard",
+                                                    "record_job_activity_v1",
+                                                    "start_job_work_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Objects from this cohort are present in authoritative production schema snapshot; does NOT prove this exact file was executed.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "structurally-confirmed-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260823_047_job_work_complete.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260823_047_job_work_complete.sql",
+                           "sha256":  "FFE33FDD562742519BB92568CD5C55528537EA756540D1C6C906F8694B974979",
+                           "parsed_legacy_version":  "20260823",
+                           "git_introduction_commit":  "a175814e36a37b326eee17c020594d6066824443",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  46,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "complete_job_work_v1",
+                                                    "job_activity_events",
+                                                    "jobs",
+                                                    "jobs_job_complete_guard",
+                                                    "record_job_activity_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Objects from this cohort are present in authoritative production schema snapshot; does NOT prove this exact file was executed.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "structurally-confirmed-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260826_048_proposal_payment_terms_and_job_ledger.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260826_048_proposal_payment_terms_and_job_ledger.sql",
+                           "sha256":  "72B46B61050287B094478485986772898BB0753FC0F1712D2825D9581A4BDCF0",
+                           "parsed_legacy_version":  "20260826",
+                           "git_introduction_commit":  "e168d88bde56eb24a34676222c8e606ce27c091a",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  47,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "create_job_payment_request_v1",
+                                                    "idx_proposal_version_payment_terms_company_proposal",
+                                                    "job_payment_additional_deposit_cents_v1",
+                                                    "job_payment_current_contractual_total_cents_v1",
+                                                    "job_payment_gross_received_cents_v1",
+                                                    "job_payment_net_received_cents_v1",
+                                                    "job_payment_refunded_cents_v1",
+                                                    "job_payment_remaining_cents_v1",
+                                                    "job_payment_requests",
+                                                    "job_payment_resolve_deposit_obligation_cents_v1",
+                                                    "open_job_deposit_from_acceptance_v1",
+                                                    "proposal_payment_terms_guard_immutable_v1",
+                                                    "proposal_payment_terms_on_version_insert_v1",
+                                                    "proposal_payment_terms_seed_from_settings_v1",
+                                                    "proposal_version_payment_terms",
+                                                    "proposal_version_payment_terms_select_company_scope",
+                                                    "proposal_version_payment_terms_write_deny",
+                                                    "resolve_public_job_payment_checkout_v1",
+                                                    "set_job_payment_settled_method_v1",
+                                                    "trg_proposal_payment_terms_immutable",
+                                                    "trg_proposal_payment_terms_on_version_insert",
+                                                    "upsert_draft_proposal_payment_terms_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "handoff §6CG: migration 048 LIVE",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "documented-manual-live",
+                           "confidence":  "high",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260826_049_proposal_customer_option_choice.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260826_049_proposal_customer_option_choice.sql",
+                           "sha256":  "36337F5F0032F2CBD6CC43DB6CC708C6FF82BBC78CF010FE5E8992F76FC6E2B4",
+                           "parsed_legacy_version":  "20260826",
+                           "git_introduction_commit":  "a19f13c0aca20805df6776e336e0c43307a173c5",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  48,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "idx_proposal_acceptances_customer_choice",
+                                                    "open_job_deposit_from_acceptance_v1",
+                                                    "proposal_acceptance_contract_option_v1",
+                                                    "proposal_acceptances",
+                                                    "proposal_acceptances_row_guard",
+                                                    "proposal_resolve_customer_chosen_option_v1",
+                                                    "record_proposal_acceptance_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "handoff §6CK: 049 committed as live historical",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "documented-manual-live",
+                           "confidence":  "high",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260827_050_job_payment_request_customer_choice_binding.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260827_050_job_payment_request_customer_choice_binding.sql",
+                           "sha256":  "719673DCE6147C1899E760AADAE0CEC22333D48E2F2C5855AFCB442D0A43162D",
+                           "parsed_legacy_version":  "20260827",
+                           "git_introduction_commit":  "714e766e6197d5b0b43eef1a9109ee4270037f0c",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  49,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "job_payment_requests_row_guard"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "handoff §6CK: 050 committed as live historical",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "documented-manual-live",
+                           "confidence":  "high",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260827_051_public_deposit_created_by_user.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260827_051_public_deposit_created_by_user.sql",
+                           "sha256":  "7384BB14759A4D7C8AA6E7728E71286F5A0D614C3FA383F1D3A18E3F0EF31783",
+                           "parsed_legacy_version":  "20260827",
+                           "git_introduction_commit":  "714e766e6197d5b0b43eef1a9109ee4270037f0c",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  50,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "open_job_deposit_from_acceptance_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "handoff §6CK: 051 committed as live historical",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "documented-manual-live",
+                           "confidence":  "high",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260827_052_proposal_public_option_choice_persistence.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260827_052_proposal_public_option_choice_persistence.sql",
+                           "sha256":  "B5EC89909B1C593E2F5DFD122FB2C40F037EE42B32D7249CF9D754E1158C62ED",
+                           "parsed_legacy_version":  "20260827",
+                           "git_introduction_commit":  "714e766e6197d5b0b43eef1a9109ee4270037f0c",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  51,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "idx_proposal_public_option_choices_version",
+                                                    "proposal_public_option_choice_current_v1",
+                                                    "proposal_public_option_choices",
+                                                    "proposal_public_option_choices_delete_company_scope",
+                                                    "proposal_public_option_choices_insert_company_scope",
+                                                    "proposal_public_option_choices_row_guard",
+                                                    "proposal_public_option_choices_select_company_scope",
+                                                    "proposal_public_option_choices_update_company_scope",
+                                                    "record_proposal_public_option_choice_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "handoff §6CK: 052 LIVE (Cohesion A recovery)",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "documented-manual-live",
+                           "confidence":  "high",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260827_053_canonical_stripe_settlement_and_contract_total.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260827_053_canonical_stripe_settlement_and_contract_total.sql",
+                           "sha256":  "1800F3C89648EB87F9B428A700ECC9F8EE26932BFB70E3CE9A8CAD4AB0B5D29B",
+                           "parsed_legacy_version":  "20260827",
+                           "git_introduction_commit":  "d393b907cd20ae97b798e5bbef2836298f2b062c",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  52,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "idx_job_payment_transactions_canonical_capture_pi",
+                                                    "job_payment_canonical_capture_identity_v1",
+                                                    "job_payment_current_contractual_total_cents_v1",
+                                                    "job_payment_gross_received_cents_v1",
+                                                    "proposal_acceptance_contract_total_cents_v1",
+                                                    "record_job_payment_provider_event_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "handoff §6CK: 053 LIVE/HISTORICAL/IMMUTABLE statement-split on production",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "documented-manual-live",
+                           "confidence":  "high",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260827_054_job_payment_balance_request_lifecycle.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260827_054_job_payment_balance_request_lifecycle.sql",
+                           "sha256":  "5BBDCBD4394CF9538DA6B941C12E4865CBF3882FE1562281C387DC80ACCF2004",
+                           "parsed_legacy_version":  "20260827",
+                           "git_introduction_commit":  "559ea71b5fb16daee6e74946abaa6e56cf3d81d4",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  53,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "create_job_payment_request_v1",
+                                                    "job_payment_collectible_cents_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "handoff §6CN: 054 LIVE/HISTORICAL/IMMUTABLE",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "documented-manual-live",
+                           "confidence":  "high",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260827_055_payment_domain_invariants.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260827_055_payment_domain_invariants.sql",
+                           "sha256":  "25199B71D913D02E4F02B9F4FC6855E370F797600D9E89B88C395CDD9C25F5A2",
+                           "parsed_legacy_version":  "20260827",
+                           "git_introduction_commit":  "ce4c1390ccc14167fef24721b719fd333511a79e",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  54,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "cancel_job_payment_request_v1",
+                                                    "create_job_payment_request_v1",
+                                                    "idx_job_payment_requests_one_active_per_job",
+                                                    "idx_job_payment_requests_one_active_per_kind",
+                                                    "job_payment_uncovered_deposit_cents_v1",
+                                                    "open_job_deposit_from_acceptance_v1",
+                                                    "proposal_payment_terms_on_version_insert_v1",
+                                                    "resolve_public_job_payment_checkout_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Objects from this cohort are present in authoritative production schema snapshot; does NOT prove this exact file was executed.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "structurally-confirmed-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260827_056_flexible_collect_payment.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260827_056_flexible_collect_payment.sql",
+                           "sha256":  "9A60B1AA495EEB88206580A9BB8C0F54BAD65399CCA4F86B9D77FEF78C2E3351",
+                           "parsed_legacy_version":  "20260827",
+                           "git_introduction_commit":  "aeb83f7cf77a0182d3a9d99e094aa337c943f38b",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  55,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "collect_job_payment_v1",
+                                                    "job_payment_requests"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Objects from this cohort are present in authoritative production schema snapshot; does NOT prove this exact file was executed.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "structurally-confirmed-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260828_057_job_attachments.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260828_057_job_attachments.sql",
+                           "sha256":  "EE5520AB0BC05E96C9A72EA30D26F142D75C80D77A1083BAD5A2CD4A7E774C46",
+                           "parsed_legacy_version":  "20260828",
+                           "git_introduction_commit":  "869d0a416e483b7e32d222d849db03f6f80c1fb6",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  56,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "idx_job_attachments_company_id",
+                                                    "idx_job_attachments_job_created",
+                                                    "idx_job_attachments_job_gallery",
+                                                    "idx_job_attachments_storage_path",
+                                                    "job_attachments",
+                                                    "job_attachments_before_write",
+                                                    "job_attachments_insert_company_scope",
+                                                    "job_attachments_select_company_scope",
+                                                    "job_attachments_set_updated_at",
+                                                    "job_attachments_storage_delete",
+                                                    "job_attachments_storage_insert",
+                                                    "job_attachments_storage_select",
+                                                    "job_attachments_storage_update",
+                                                    "job_attachments_update_company_scope"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Objects from this cohort are present in authoritative production schema snapshot; does NOT prove this exact file was executed.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "structurally-confirmed-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260828_058_job_tasks.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260828_058_job_tasks.sql",
+                           "sha256":  "A705AE8416A29F74658A9D3CCE06B65F231E7A2719984465ED538181CB39E4C4",
+                           "parsed_legacy_version":  "20260828",
+                           "git_introduction_commit":  "7841ccc9ee99b29bbfdd5ce80e87131284ef087c",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  57,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "idx_job_tasks_company_id",
+                                                    "idx_job_tasks_job_active",
+                                                    "job_tasks",
+                                                    "job_tasks_before_write",
+                                                    "job_tasks_insert_company_scope",
+                                                    "job_tasks_select_company_scope",
+                                                    "job_tasks_set_updated_at",
+                                                    "job_tasks_update_company_scope"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Objects from this cohort are present in authoritative production schema snapshot; does NOT prove this exact file was executed.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "structurally-confirmed-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260828_059_job_payment_refunds.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260828_059_job_payment_refunds.sql",
+                           "sha256":  "F14E5EEAA5D407F8D8011D4CA246DD49644C1421985A17BE80B987DF57DA412B",
+                           "parsed_legacy_version":  "20260828",
+                           "git_introduction_commit":  "2da27ac87b7efc4fa7f88690987177908666c7f8",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  58,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "idx_job_payment_refund_events_company",
+                                                    "idx_job_payment_refund_events_refund",
+                                                    "idx_job_payment_refunds_capture_status",
+                                                    "idx_job_payment_refunds_company_job",
+                                                    "idx_job_payment_refunds_idempotency",
+                                                    "idx_job_payment_refunds_payment_intent",
+                                                    "idx_job_payment_refunds_provider_refund",
+                                                    "job_payment_capture_refundable_cents_v1",
+                                                    "job_payment_legacy_refund_review_v1",
+                                                    "job_payment_net_received_cents_v1",
+                                                    "job_payment_refund_event_receipts",
+                                                    "job_payment_refund_events_row_guard",
+                                                    "job_payment_refund_events_row_guard_v1",
+                                                    "job_payment_refund_events_select_company_scope",
+                                                    "job_payment_refund_status_rank_v1",
+                                                    "job_payment_refunded_cents_v1",
+                                                    "job_payment_refunds",
+                                                    "job_payment_refunds_row_guard",
+                                                    "job_payment_refunds_row_guard_v1",
+                                                    "job_payment_refunds_select_company_scope",
+                                                    "job_payment_transactions",
+                                                    "reconcile_job_payment_refund_result_v1",
+                                                    "record_job_payment_refund_event_v1",
+                                                    "reserve_job_payment_refund_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Objects from this cohort are present in authoritative production schema snapshot; does NOT prove this exact file was executed.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "structurally-confirmed-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260830_060_customers_tenant_isolation.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260830_060_customers_tenant_isolation.sql",
+                           "sha256":  "63273D0B4924E187D273B4D2010592B4C84BD34DFA5D4F28B0C62736EF78865C",
+                           "parsed_legacy_version":  "20260830",
+                           "git_introduction_commit":  "1dea317ae4f159926ad2e2122ee974e562760345",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  59,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "customers",
+                                                    "customers_delete_company_scope",
+                                                    "customers_insert_company_scope",
+                                                    "customers_prevent_company_id_change",
+                                                    "customers_select_company_scope",
+                                                    "customers_update_company_scope"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "handoff §6DD/§6DE: 060 LIVE on production",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "documented-manual-live",
+                           "confidence":  "high",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260830_061_search_company_jobs.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260830_061_search_company_jobs.sql",
+                           "sha256":  "E2E3383D5B792A57DD0CCFC8576BB264457A635FDBAD8B58E803213E600CF214",
+                           "parsed_legacy_version":  "20260830",
+                           "git_introduction_commit":  "44a96375fafe2e3fba68f394951d41deb23f46dc",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  60,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "search_company_jobs_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Objects from this cohort are present in authoritative production schema snapshot; does NOT prove this exact file was executed.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "structurally-confirmed-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260830_062_legacy_billing_tenant_isolation.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260830_062_legacy_billing_tenant_isolation.sql",
+                           "sha256":  "1C21262F40BD3D9807302E04FCEA747E65E0A21D3FA6E374D2194D664A5301D6",
+                           "parsed_legacy_version":  "20260830",
+                           "git_introduction_commit":  "38d3c858ead113ffbf1670da03671b0db2406dd7",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  61,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "payments",
+                                                    "payments_insert_company_scope",
+                                                    "payments_prevent_company_id_change",
+                                                    "payments_select_company_scope",
+                                                    "subscriptions"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Objects from this cohort are present in authoritative production schema snapshot; does NOT prove this exact file was executed.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "structurally-confirmed-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260830_063_search_company_customers.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260830_063_search_company_customers.sql",
+                           "sha256":  "46C91BE779739EAC8340B2D6479A3596A2653873C85D67B3F50838A810B3C8B9",
+                           "parsed_legacy_version":  "20260830",
+                           "git_introduction_commit":  "c71560e3141d0e55544386b30f059cd325ad75f8",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  62,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "idx_customers_company_id_email_lower",
+                                                    "idx_customers_company_id_name_lower",
+                                                    "search_company_customers_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "Objects from this cohort are present in authoritative production schema snapshot; does NOT prove this exact file was executed.",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "structurally-confirmed-live",
+                           "confidence":  "medium",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       },
+                       {
+                           "original_filename":  "20260830_064_properties_and_typed_search.sql",
+                           "archived_path":  "supabase/history/legacy-migrations/20260830_064_properties_and_typed_search.sql",
+                           "sha256":  "39A44580D52B12EC2A2453A6EA97836AE620D047CB5FEED2EE8880AE319ED450",
+                           "parsed_legacy_version":  "20260830",
+                           "git_introduction_commit":  "ea18173300f0f403809f4b608dc109902206c06b",
+                           "relevant_later_commit_docs_references":  [
+
+                                                                     ],
+                           "intended_ordinal":  63,
+                           "dependencies":  [
+
+                                            ],
+                           "objects_affected":  [
+                                                    "idx_jobs_property_id",
+                                                    "idx_properties_company_id",
+                                                    "idx_properties_company_normalized",
+                                                    "idx_properties_company_updated",
+                                                    "jobs",
+                                                    "normalize_property_address_v1",
+                                                    "normalize_property_line_v1",
+                                                    "normalize_property_token_v1",
+                                                    "properties",
+                                                    "properties_delete_company_scope",
+                                                    "properties_insert_company_scope",
+                                                    "properties_prevent_company_id_change",
+                                                    "properties_select_company_scope",
+                                                    "properties_set_updated_at",
+                                                    "properties_update_company_scope",
+                                                    "search_company_properties_v1",
+                                                    "search_company_workspace_v1"
+                                                ],
+                           "superseded_by":  null,
+                           "documented_environment_evidence":  "handoff Wave C: 064 LIVE on production with backfill",
+                           "original_ledger_evidence":  "production schema_migrations contains only 20260531; four filenames collide under that parsed version so no colliding file is ledger-confirmed.",
+                           "status":  "documented-manual-live",
+                           "confidence":  "high",
+                           "notes":  "Parsed legacy version is date-only segment before first underscore; filename sequence is intended order."
+                       }
+                   ]
+}
