@@ -236,7 +236,7 @@ describe("Wave B â€” Places boundary", () => {
   test("Places is server-gated; no hardcoded key; manual address path remains", () => {
     const config = read("app/lib/placesConfig.ts");
     assert.match(config, /GOOGLE_PLACES_API_KEY/);
-    assert.match(config, /GOOGLE_MAPS_API_KEY/);
+    assert.doesNotMatch(config, /GOOGLE_MAPS_API_KEY/);
     assert.doesNotMatch(config, /AIza[0-9A-Za-z_-]{20,}/);
     const client = read("app/lib/placesClient.ts");
     assert.match(client, /places\.googleapis\.com\/v1/);
@@ -259,7 +259,7 @@ describe("Wave B â€” Places boundary", () => {
     assert.match(roofing, /job_address1_field/);
     assert.equal(
       isGooglePlacesConfigured(),
-      Boolean(process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY)
+      Boolean(process.env.GOOGLE_PLACES_API_KEY)
     );
   });
 
@@ -269,7 +269,7 @@ describe("Wave B â€” Places boundary", () => {
     assert.equal(normalizePlacesPlaceId("ChIJ_test"), "ChIJ_test");
     assert.equal(normalizePlacesPlaceId("  "), "");
     // When key absent in process, available=false and empty suggestions (manual intake continues).
-    if (!process.env.GOOGLE_PLACES_API_KEY && !process.env.GOOGLE_MAPS_API_KEY) {
+    if (!process.env.GOOGLE_PLACES_API_KEY) {
       const result = await fetchPlacesAutocomplete("123 Main");
       assert.equal(result.available, false);
       assert.deepEqual(result.suggestions, []);
