@@ -36,10 +36,17 @@ BEGIN
     RAISE EXCEPTION 'REFUSE: expected all 3 exact audited job pointers, found %', v_count;
   END IF;
 
-  SELECT count(DISTINCT selected_measurement_id), min(selected_measurement_id)
-    INTO v_count, v_foreign_measurement
+  SELECT count(DISTINCT selected_measurement_id)
+    INTO v_count
   FROM a1_targets;
-  IF v_count <> 1 OR v_foreign_measurement <> '5153d06c-a4cd-442d-b03f-7fd0728dfc4a'::uuid THEN
+  IF v_count <> 1 THEN
+    RAISE EXCEPTION 'REFUSE: selected measurement differs from audited production truth';
+  END IF;
+  SELECT selected_measurement_id
+    INTO v_foreign_measurement
+  FROM a1_targets
+  LIMIT 1;
+  IF v_foreign_measurement <> '5153d06c-a4cd-442d-b03f-7fd0728dfc4a'::uuid THEN
     RAISE EXCEPTION 'REFUSE: selected measurement differs from audited production truth';
   END IF;
 
