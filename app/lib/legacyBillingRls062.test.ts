@@ -1,5 +1,5 @@
-/**
- * 062 — legacy payments + subscriptions tenant isolation (SECURITY P0).
+﻿/**
+ * 062 â€” legacy payments + subscriptions tenant isolation (SECURITY P0).
  * Run: npx tsx --test app/lib/legacyBillingRls062.test.ts
  */
 
@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 
 const ROOT = process.cwd();
-const MIGRATIONS = join(ROOT, "supabase/migrations");
+const MIGRATIONS = join(ROOT, "supabase/history/legacy-migrations");
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 const sha = (path: string) =>
   createHash("sha256").update(readFileSync(path)).digest("hex").toUpperCase();
@@ -21,7 +21,7 @@ const SQL_062 = join(MIGRATIONS, "20260830_062_legacy_billing_tenant_isolation.s
 const SHA_060 = "63273D0B4924E187D273B4D2010592B4C84BD34DFA5D4F28B0C62736EF78865C";
 const SHA_061 = "E2E3383D5B792A57DD0CCFC8576BB264457A635FDBAD8B58E803213E600CF214";
 
-describe("062 — historical files stay locked", () => {
+describe("062 â€” historical files stay locked", () => {
   test("060 and 061 SHA unchanged; 062 is additive", () => {
     assert.equal(existsSync(SQL_062), true);
     assert.equal(sha(SQL_060), SHA_060);
@@ -40,7 +40,7 @@ describe("062 — historical files stay locked", () => {
   });
 });
 
-describe("062 — payments security contract", () => {
+describe("062 â€” payments security contract", () => {
   const sql = readFileSync(SQL_062, "utf8");
 
   test("enables RLS with membership SELECT/INSERT only", () => {
@@ -74,7 +74,7 @@ describe("062 — payments security contract", () => {
   });
 });
 
-describe("062 — subscriptions closed by default", () => {
+describe("062 â€” subscriptions closed by default", () => {
   const sql = readFileSync(SQL_062, "utf8");
 
   test("RLS on; no authenticated policies or grants", () => {
@@ -87,29 +87,51 @@ describe("062 — subscriptions closed by default", () => {
   });
 });
 
-describe("062 — accepted legacy payment code paths stay company-scoped", () => {
-  test("paymentsTable and status routes filter by company_id", () => {
+describe("A2 â€” legacy payment authority is contained without rewriting 062", () => {
+  const a2 = read("supabase/migrations/20260910190000_contain_legacy_payments_authority.sql");
+
+  test("historical reader remains company-scoped but live status routes are tombstoned", () => {
     const table = read("app/lib/paymentsTable.ts");
     const status = read("app/api/payments/status/route.ts");
     const batch = read("app/api/payments/status-batch/route.ts");
     assert.match(table, /\.from\("payments"\)/);
     assert.match(table, /\.eq\("company_id", companyId\)/);
-    assert.match(status, /getUserCompanyId/);
-    assert.match(status, /getDerivedPaymentStateFromSupabase/);
-    assert.match(batch, /getUserCompanyId/);
-    assert.match(batch, /getDerivedPaymentStateFromSupabase/);
+    assert.match(status, /legacy_payment_status_retired/);
+    assert.match(status, /status: 410/);
+    assert.match(batch, /legacy_payment_status_retired/);
+    assert.match(batch, /status: 410/);
+    assert.doesNotMatch(status + batch, /getDerivedPaymentStateFromSupabase|\.from\("payments"\)/);
   });
 
-  test("record-offline inserts with membership company_id; webhook uses admin", () => {
+  test("all reachable legacy mutation endpoints are tombstoned", () => {
     const offline = read("app/api/payments/record-offline/route.ts");
     const webhook = read("app/api/payments/webhook/route.ts");
     const checkout = read("app/api/payments/create-checkout/route.ts");
-    assert.match(offline, /getUserCompanyId/);
-    assert.match(offline, /\.from\("payments"\)\.insert/);
-    assert.match(offline, /company_id: companyId/);
-    assert.match(webhook, /createAdminClient/);
-    assert.match(webhook, /\.from\("payments"\)\.insert/);
-    assert.match(checkout, /getDerivedPaymentStateFromSupabase/);
+    assert.match(offline, /legacy_offline_payments_retired/);
+    assert.match(offline, /status: 410/);
+    assert.doesNotMatch(offline, /createClient|getUserCompanyId|\.from\(/);
+    assert.match(webhook, /legacy_payments_webhook_disabled/);
+    assert.match(webhook, /status: 410/);
+    assert.doesNotMatch(webhook, /createAdminClient|STRIPE_|constructEvent|\.from\(/);
+    assert.match(checkout, /legacy_checkout_disabled/);
+    assert.match(checkout, /status:\s*410/);
+    assert.doesNotMatch(checkout, /getDerivedPaymentStateFromSupabase|new Stripe|STRIPE_SECRET_KEY/);
+  });
+
+  test("authenticated inserts are denied by privileges and RLS while retained SELECT survives", () => {
+    assert.match(a2, /drop policy if exists "payments_insert_company_scope"/i);
+    assert.match(a2, /revoke insert on table public\.payments from authenticated/i);
+    assert.match(a2, /revoke insert on table public\.payments from anon/i);
+    assert.match(a2, /create policy "payments_select_company_scope"[\s\S]*for select[\s\S]*to authenticated/i);
+    assert.match(a2, /grant select on table public\.payments to authenticated/i);
+    assert.doesNotMatch(a2, /delete from public\.payments|update public\.payments|truncate/i);
+    assert.doesNotMatch(a2, /(alter|insert into|update|delete from) public\.job_payment_/i);
+  });
+
+  test("Board has no live legacy status, checkout, or offline-recording caller", () => {
+    const board = read("app/tools/roofing/saved/SavedClient.tsx");
+    assert.doesNotMatch(board, /\/api\/payments\/(status|status-batch|create-checkout|record-offline)/);
+    assert.match(board, /Payment collection and payment[\s\S]*canonical Job Card job_payment_\*/);
   });
 
   test("no product references to public.subscriptions table", () => {
