@@ -79,15 +79,11 @@ describe("R3H-PERF-1 stabilization contracts", () => {
     );
   });
 
-  test("F-G: Board payment batch replaces N-per-estimate preload storm", () => {
-    assert.match(PAYMENT_BATCH_ROUTE, /getDerivedPaymentStateFromSupabase/);
-    assert.match(SAVED_CLIENT, /fetchPaymentStatesBatch/);
-    assert.match(SAVED_CLIENT, /\/api\/payments\/status-batch\?estimateIds=/);
-    assert.match(SAVED_CLIENT, /const batchPayments = await fetchPaymentStatesBatch\(fetchIds\)/);
-    assert.doesNotMatch(
-      SAVED_CLIENT,
-      /missing\.map\(async \(id\) =>[\s\S]*fetchPaymentState\(id\)/
-    );
+  test("F-G: Board performs no estimate-era payment hydration", () => {
+    assert.match(PAYMENT_BATCH_ROUTE, /legacy_payment_status_retired/);
+    assert.match(PAYMENT_BATCH_ROUTE, /status: 410/);
+    assert.doesNotMatch(SAVED_CLIENT, /\/api\/payments\/status/);
+    assert.doesNotMatch(SAVED_CLIENT, /fetchPaymentStatesBatch/);
   });
 
   test("H-J: server Job seed + schedule/timezone split + Job Aâ†’B protection remain", () => {
@@ -113,10 +109,10 @@ describe("R3H-PERF-1 stabilization contracts", () => {
     assert.match(ROOFING_CLIENT, /\/api\/jobs\/complete-work/);
   });
 
-  test("N: payment mutation path unchanged; batch is read-only", () => {
-    assert.match(SAVED_CLIENT, /\/api\/payments\/status\?estimateId=/);
+  test("N: retired batch route has no provider or persistence side effects", () => {
     assert.doesNotMatch(PAYMENT_BATCH_ROUTE, /stripe/);
     assert.doesNotMatch(PAYMENT_BATCH_ROUTE, /webhook/);
+    assert.doesNotMatch(PAYMENT_BATCH_ROUTE, /\.from\(/);
   });
 
   test("Job Card boundary defers heavy secondary hydration", () => {

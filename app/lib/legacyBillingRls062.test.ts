@@ -87,32 +87,51 @@ describe("062 â€” subscriptions closed by default", () => {
   });
 });
 
-describe("062 â€” accepted legacy payment code paths stay company-scoped", () => {
-  test("paymentsTable and status routes filter by company_id", () => {
+describe("A2 â€” legacy payment authority is contained without rewriting 062", () => {
+  const a2 = read("supabase/migrations/20260910190000_contain_legacy_payments_authority.sql");
+
+  test("historical reader remains company-scoped but live status routes are tombstoned", () => {
     const table = read("app/lib/paymentsTable.ts");
     const status = read("app/api/payments/status/route.ts");
     const batch = read("app/api/payments/status-batch/route.ts");
     assert.match(table, /\.from\("payments"\)/);
     assert.match(table, /\.eq\("company_id", companyId\)/);
-    assert.match(status, /getUserCompanyId/);
-    assert.match(status, /getDerivedPaymentStateFromSupabase/);
-    assert.match(batch, /getUserCompanyId/);
-    assert.match(batch, /getDerivedPaymentStateFromSupabase/);
+    assert.match(status, /legacy_payment_status_retired/);
+    assert.match(status, /status: 410/);
+    assert.match(batch, /legacy_payment_status_retired/);
+    assert.match(batch, /status: 410/);
+    assert.doesNotMatch(status + batch, /getDerivedPaymentStateFromSupabase|\.from\("payments"\)/);
   });
 
-  test("record-offline stays scoped; legacy Stripe endpoints are tombstoned", () => {
+  test("all reachable legacy mutation endpoints are tombstoned", () => {
     const offline = read("app/api/payments/record-offline/route.ts");
     const webhook = read("app/api/payments/webhook/route.ts");
     const checkout = read("app/api/payments/create-checkout/route.ts");
-    assert.match(offline, /getUserCompanyId/);
-    assert.match(offline, /\.from\("payments"\)\.insert/);
-    assert.match(offline, /company_id: companyId/);
+    assert.match(offline, /legacy_offline_payments_retired/);
+    assert.match(offline, /status: 410/);
+    assert.doesNotMatch(offline, /createClient|getUserCompanyId|\.from\(/);
     assert.match(webhook, /legacy_payments_webhook_disabled/);
     assert.match(webhook, /status: 410/);
     assert.doesNotMatch(webhook, /createAdminClient|STRIPE_|constructEvent|\.from\(/);
     assert.match(checkout, /legacy_checkout_disabled/);
     assert.match(checkout, /status:\s*410/);
     assert.doesNotMatch(checkout, /getDerivedPaymentStateFromSupabase|new Stripe|STRIPE_SECRET_KEY/);
+  });
+
+  test("authenticated inserts are denied by privileges and RLS while retained SELECT survives", () => {
+    assert.match(a2, /drop policy if exists "payments_insert_company_scope"/i);
+    assert.match(a2, /revoke insert on table public\.payments from authenticated/i);
+    assert.match(a2, /revoke insert on table public\.payments from anon/i);
+    assert.match(a2, /create policy "payments_select_company_scope"[\s\S]*for select[\s\S]*to authenticated/i);
+    assert.match(a2, /grant select on table public\.payments to authenticated/i);
+    assert.doesNotMatch(a2, /delete from public\.payments|update public\.payments|truncate/i);
+    assert.doesNotMatch(a2, /(alter|insert into|update|delete from) public\.job_payment_/i);
+  });
+
+  test("Board has no live legacy status, checkout, or offline-recording caller", () => {
+    const board = read("app/tools/roofing/saved/SavedClient.tsx");
+    assert.doesNotMatch(board, /\/api\/payments\/(status|status-batch|create-checkout|record-offline)/);
+    assert.match(board, /Payment collection and payment[\s\S]*canonical Job Card job_payment_\*/);
   });
 
   test("no product references to public.subscriptions table", () => {

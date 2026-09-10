@@ -145,9 +145,6 @@ const ARRIVAL_WINDOWS = [
 const ROOFING_SAVED_RETURN_STATUS_FILTER = "roofing_saved_return_status_filter";
 const ROOFING_SAVED_RETURN_SCHEDULED_VIEW = "roofing_saved_return_scheduled_view";
 const ROOFING_SAVED_RETURN_QUERY = "roofing_saved_return_query";
-// Legacy estimate Checkout charged the platform account and is not an approved
-// beta path. Canonical Connect collection lives on DB-backed job/payment flows.
-const LEGACY_PLATFORM_CHECKOUT_ENABLED = false;
 
 function arrivalLabelFromValue(v: string) {
   const found = ARRIVAL_WINDOWS.find((x) => x.value === v);
@@ -591,108 +588,22 @@ function getClientBaseUrl() {
   return "";
 }
 
-async function fetchPaymentState(estimateId: string) {
-  const res = await fetch(`/api/payments/status?estimateId=${encodeURIComponent(estimateId)}`, {
-    cache: "no-store",
-  });
-  if (!res.ok) return null;
-  const data = await res.json().catch(() => null);
-  return data?.payment ?? null;
-}
-
-type BoardPaymentStatusRow = {
-  status?: string;
-  depositAmountCents?: number;
-  fullAmountCents?: number;
-  offlinePaidCents?: number;
-  offlineTransactions?: Array<{ stage?: string; amountCents?: number }>;
-};
-
-async function fetchPaymentStatesBatch(estimateIds: string[]) {
-  const ids = estimateIds.map((id) => String(id ?? "").trim()).filter(Boolean);
-  if (ids.length === 0) return {} as Record<string, BoardPaymentStatusRow | null>;
-  const res = await fetch(
-    `/api/payments/status-batch?estimateIds=${encodeURIComponent(ids.join(","))}`,
-    { cache: "no-store" }
-  );
-  if (!res.ok) return {} as Record<string, BoardPaymentStatusRow | null>;
-  const data = await res.json().catch(() => null);
-  if (!data?.ok || !data?.payments || typeof data.payments !== "object") {
-    return {} as Record<string, BoardPaymentStatusRow | null>;
-  }
-  return data.payments as Record<string, BoardPaymentStatusRow | null>;
+// Legacy Board money helpers are inert during the A2 compatibility window.
+// Their call sites are no longer rendered; keeping the signatures temporarily
+// avoids coupling this containment slice to the broader A3 Board refactor.
+async function fetchPaymentState(_estimateId: string) {
+  return null;
 }
 
 async function startCheckout(
-  estimateId: string,
-  paymentType: "deposit" | "full" | "balance",
-  estimateOrOpts: { totalContractPrice?: number; suggestedPrice?: number; estimateTotalCents?: number; customDepositCents?: number },
-  setCheckoutLoading: (fn: (m: Record<string, "deposit" | "full" | "balance" | null>) => Record<string, "deposit" | "full" | "balance" | null>) => void,
-  remainingCentsForFull?: number,
-  returnContext?: { statusFilter?: string; scheduledView?: string; query?: string }
+  _estimateId: string,
+  _paymentType: "deposit" | "full" | "balance",
+  _estimateOrOpts: { totalContractPrice?: number; suggestedPrice?: number; estimateTotalCents?: number; customDepositCents?: number },
+  _setCheckoutLoading: (fn: (m: Record<string, "deposit" | "full" | "balance" | null>) => Record<string, "deposit" | "full" | "balance" | null>) => void,
+  _remainingCentsForFull?: number,
+  _returnContext?: { statusFilter?: string; scheduledView?: string; query?: string }
 ) {
-  const estimateTotalCents =
-    typeof estimateOrOpts.estimateTotalCents === "number"
-      ? estimateOrOpts.estimateTotalCents
-      : toEstimateTotalCents(estimateOrOpts);
-
-  const customDepositCents =
-    paymentType === "deposit" && typeof estimateOrOpts.customDepositCents === "number"
-      ? Math.floor(estimateOrOpts.customDepositCents)
-      : undefined;
-
-  if (paymentType === "full") {
-    const amountCents =
-      typeof remainingCentsForFull === "number" && Number.isFinite(remainingCentsForFull) && remainingCentsForFull > 0
-        ? Math.floor(remainingCentsForFull)
-        : 0;
-    if (amountCents <= 0) return;
-  } else if (paymentType === "balance") {
-    const amountCents =
-      typeof remainingCentsForFull === "number" && Number.isFinite(remainingCentsForFull) && remainingCentsForFull > 0
-        ? Math.floor(remainingCentsForFull)
-        : 0;
-    if (amountCents <= 0) return;
-  } else if (paymentType === "deposit" && customDepositCents != null && (!Number.isFinite(customDepositCents) || customDepositCents <= 0)) {
-    return;
-  }
-
-  setCheckoutLoading((m) => ({ ...m, [estimateId]: paymentType }));
-  try {
-    const body: Record<string, unknown> = {
-      estimateId,
-      paymentType,
-      estimateTotalCents,
-    };
-    if (paymentType === "deposit" && customDepositCents != null) body.customDepositCents = customDepositCents;
-    if (paymentType === "full" && typeof remainingCentsForFull === "number" && remainingCentsForFull > 0) {
-      body.amountCents = Math.floor(remainingCentsForFull);
-    }
-    if (paymentType === "balance" && typeof remainingCentsForFull === "number" && remainingCentsForFull > 0) {
-      body.amountCents = Math.floor(remainingCentsForFull);
-    }
-
-    const res = await fetch("/api/payments/create-checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const json = await res.json();
-    if (!json?.ok || !json?.url) {
-      alert(json?.error || "Could not start checkout");
-      return;
-    }
-    if (typeof window !== "undefined" && returnContext) {
-      if (returnContext.statusFilter != null) sessionStorage.setItem(ROOFING_SAVED_RETURN_STATUS_FILTER, returnContext.statusFilter);
-      if (returnContext.scheduledView != null) sessionStorage.setItem(ROOFING_SAVED_RETURN_SCHEDULED_VIEW, returnContext.scheduledView);
-      if (returnContext.query != null) sessionStorage.setItem(ROOFING_SAVED_RETURN_QUERY, returnContext.query);
-    }
-    window.location.href = json.url;
-  } catch {
-    alert("Checkout failed. Please try again.");
-  } finally {
-    setCheckoutLoading((m) => ({ ...m, [estimateId]: null }));
-  }
+  return;
 }
 
 function toNumberSafe(v: any) {
@@ -1582,7 +1493,7 @@ function isDueSince(baseIso: string | undefined | null, hours: number): boolean 
 
 function getFollowUpInfo(
   est: any,
-  paymentState?: { depositAmountCents?: number; fullAmountCents?: number; offlinePaidCents?: number } | null,
+  _paymentState?: { depositAmountCents?: number; fullAmountCents?: number; offlinePaidCents?: number } | null,
   batchStatuses?: any
 ): { due: boolean; reason: string; kind: "confirm" | "questions" | "deposit" | "none" } {
   const viewedAt = getEffectiveViewedAt(est, batchStatuses);
@@ -1601,8 +1512,6 @@ function getFollowUpInfo(
   }
 
   const isSent = !!sentAt || status === "sent" || status === "sent_pending";
-  const isApproved = status === "approved";
-  const depositPaid = (paymentState?.depositAmountCents ?? 0) + ((paymentState as any)?.offlinePaidCents ?? 0);
 
   if (isSent && !viewedAt && isDueSince(sentAt, 36)) {
     return { due: true, reason: "Confirm they received it", kind: "confirm" };
@@ -1610,10 +1519,6 @@ function getFollowUpInfo(
 
   if (viewedAt && status !== "approved" && status !== "deposit_paid" && isDueSince(viewedAt, 48)) {
     return { due: true, reason: "Follow-up needed", kind: "questions" };
-  }
-
-  if (isApproved && depositPaid === 0 && isDueSince(approvedAt ?? lastSavedAt ?? sentAt ?? "", 48)) {
-    return { due: true, reason: "Collect deposit to lock schedule", kind: "deposit" };
   }
 
   return { due: false, reason: "", kind: "none" };
@@ -1750,16 +1655,12 @@ function SavedEstimateCard({
   const hasRemaining = remainingCents > 0;
   const isFinalPayment = hasAnyPayment && hasRemaining;
 
-  const hasPaymentState = !!paymentState;
-  const fallbackDepositPaid =
-    estimate?.status === "deposit_paid" ||
-    estimate?.status === "paid" ||
-    estimate?.status === "completed";
-  const fallbackPaid =
-    estimate?.status === "paid" || estimate?.status === "completed";
-  const showPaid = hasPaymentState ? isFullyPaid : fallbackPaid;
-  const showDepositPaid = hasPaymentState ? isDepositPaid : fallbackDepositPaid;
-  const isCompletedWithBalance = resolvedStatus === "paid" && hasRemaining;
+  // The Board has no canonical job-payment presenter. It may show operational
+  // completion, but it must not infer Paid, deposit, or balance state from an
+  // estimate status or retained legacy payments.
+  const showPaid = false;
+  const showDepositPaid = false;
+  const isCompletedWithBalance = false;
   const pillStatus = (
     showPaid
       ? "paid"
@@ -2172,7 +2073,7 @@ function SavedEstimateCard({
                 })()}
               </span>
             </div>
-            {(() => {
+            {false && (() => {
               const depositPaidCents = paymentState?.depositAmountCents || 0;
               const fullPaidCents = paymentState?.fullAmountCents || 0;
               const offlineTx = ((paymentState as { offlineTransactions?: Array<{ stage?: string; amountCents?: number; method?: string; notes?: string }> } | undefined)?.offlineTransactions || []) as { stage?: string; amountCents?: number; method?: string; notes?: string }[];
@@ -2307,7 +2208,7 @@ function SavedEstimateCard({
             )}
 
             {/* ===== PAYMENT ACTIONS ===== */}
-            {LEGACY_PLATFORM_CHECKOUT_ENABLED && !isFullyPaid && totalCents > 0 && (
+            {false && !isFullyPaid && totalCents > 0 && (
               <div className="flex flex-wrap items-center gap-2">
                 {!showDepositPaid && collectedCents === 0 && !isFullyPaid && (
                   <button
@@ -2413,26 +2314,6 @@ function SavedEstimateCard({
 
               {openMoreFor === estimate.id && (
                 <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-white/10 bg-[#0f172a] shadow-2xl z-50 overflow-hidden backdrop-blur-xl">
-                  <button
-                    onClick={() => {
-                      setOpenMoreFor(null);
-                      onOpenTransactions?.(estimate);
-                    }}
-                    className="block w-full text-left px-4 py-3 text-sm text-white/90 hover:bg-white/10"
-                  >
-                    View transactions
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setOpenMoreFor(null);
-                      onOpenOfflineModal?.(estimate);
-                    }}
-                    className="block w-full text-left px-4 py-3 text-sm text-white/90 hover:bg-white/10"
-                  >
-                    Record offline payment
-                  </button>
-
                   <button
                     onClick={() => {
                       setOpenMoreFor(null);
@@ -2781,67 +2662,6 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       setFlashBanner(null);
     }, 3500);
     return () => clearTimeout(t);
-  }, [searchParams, router]);
-
-  useEffect(() => {
-    const paid = searchParams.get("paid");
-    const id = searchParams.get("id");
-    if (paid !== "1" || !id) return;
-
-    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-    (async () => {
-      try {
-        allowPaymentStatusFetch(id);
-        let payment: { status?: string; depositAmountCents?: number; fullAmountCents?: number; [k: string]: unknown } | null = null;
-        for (let attempt = 0; attempt < 6; attempt++) {
-          const res = await fetch(`/api/payments/status?estimateId=${encodeURIComponent(id)}`, {
-            cache: "no-store",
-          });
-          const json = await res.json();
-          if (json?.ok && json?.payment?.status) {
-            const status = json.payment.status;
-            if (status === "deposit_paid" || status === "paid") {
-              payment = json.payment;
-              break;
-            }
-          }
-          if (attempt < 5) await wait(1500);
-        }
-
-        if (payment) {
-          const paymentStatus = payment.status as "deposit_paid" | "paid";
-          const current = getSavedEstimateById(id);
-          if (paymentStatus === "paid") {
-            markSavedEstimateStatus(id, "paid");
-            setEstimates(getNormalizedEstimates());
-          } else if (paymentStatus === "deposit_paid") {
-            if (!current || (current.status !== "scheduled" && current.status !== "in_progress" && current.status !== "paid")) {
-              markSavedEstimateStatus(id, "deposit_paid");
-              setEstimates(getNormalizedEstimates());
-            }
-          }
-          setPaymentStates((prev) => ({
-            ...prev,
-            [id]: {
-              depositAmountCents: payment.depositAmountCents ?? undefined,
-              fullAmountCents: payment.fullAmountCents ?? undefined,
-              offlinePaidCents: (payment as { offlinePaidCents?: number }).offlinePaidCents ?? undefined,
-              offlineTransactions: (payment as { offlineTransactions?: Array<{ stage?: string; amountCents?: number }> }).offlineTransactions ?? undefined,
-            },
-          }));
-          lastStatusFetchRef.current[id] = Date.now();
-        }
-
-        const url = new URL(window.location.href);
-        url.searchParams.delete("paid");
-        url.searchParams.delete("id");
-        url.searchParams.delete("kind");
-        router.replace(url.pathname + url.search);
-      } catch {
-        // ignore
-      }
-    })();
   }, [searchParams, router]);
 
   function handleSendFromSaved(savedId: string) {
@@ -3472,123 +3292,6 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     };
   }, [hydrated, runApprovalSync]);
 
-  useEffect(() => {
-    if (!hydrated || !estimates?.length) return;
-    let cancelled = false;
-
-    async function syncPaymentStatuses() {
-      let didMutate = false;
-      const candidates = estimates.filter((e) => e?.status !== "paid");
-      const batchIds: string[] = [];
-      for (const est of estimates) {
-        if (est?.supabaseBacked !== true) continue;
-        const id = String(est?.id ?? "").trim();
-        if (!id) continue;
-        if (!shouldFetchPaymentStatus(id)) continue;
-        batchIds.push(id);
-      }
-
-      const batchPayments =
-        batchIds.length > 0 ? await fetchPaymentStatesBatch(batchIds) : {};
-
-      for (const est of estimates) {
-        if (est?.supabaseBacked !== true) continue;
-        const id = String(est?.id ?? "").trim();
-        if (!id) continue;
-        const payment = batchIds.includes(id)
-          ? (batchPayments[id] ?? null)
-          : null;
-        if (cancelled) return;
-        if (payment) {
-          setPaymentStates((prev) => ({
-            ...prev,
-            [id]: {
-              depositAmountCents: payment.depositAmountCents ?? undefined,
-              fullAmountCents: payment.fullAmountCents ?? undefined,
-              offlinePaidCents: payment.offlinePaidCents ?? undefined,
-              offlineTransactions: payment.offlineTransactions ?? undefined,
-            },
-          }));
-        }
-        if (!candidates.includes(est)) continue;
-        const rawStatus = String(est?.status ?? "");
-        if (payment?.status === "paid" && rawStatus !== "paid" && rawStatus !== "completed") {
-          markSavedEstimateStatus(id, "paid");
-          didMutate = true;
-        } else if (payment?.status === "deposit_paid" && rawStatus !== "deposit_paid") {
-          if (rawStatus !== "scheduled" && rawStatus !== "in_progress" && rawStatus !== "paid") {
-            markSavedEstimateStatus(id, "deposit_paid");
-            didMutate = true;
-          }
-        }
-        const totalCents = toEstimateTotalCents(est);
-        const collected =
-          (payment?.depositAmountCents ?? 0) +
-          (payment?.fullAmountCents ?? 0) +
-          (Array.isArray((payment as any)?.offlineTransactions)
-            ? (payment as any).offlineTransactions.reduce(
-                (s: number, t: any) => s + (Number(t?.amountCents) || 0),
-                0
-              )
-            : 0);
-        if (
-          totalCents > 0 &&
-          collected >= totalCents &&
-          rawStatus !== "paid" &&
-          rawStatus !== "completed"
-        ) {
-          markSavedEstimateStatus(id, "paid");
-          didMutate = true;
-        }
-      }
-      if (!cancelled && didMutate) {
-        setEstimates(getNormalizedEstimates());
-      }
-    }
-
-    syncPaymentStatuses();
-    return () => {
-      cancelled = true;
-    };
-  }, [hydrated, estimates]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function preload() {
-      const ids = (estimates || []).filter((e) => e?.supabaseBacked === true).map((e) => e?.id).filter(Boolean) as string[];
-      const missing = ids.filter((id) => !paymentStates?.[id]);
-      const fetchIds = missing.filter((id) => shouldFetchPaymentStatus(id));
-      if (fetchIds.length === 0) return;
-
-      try {
-        const batchPayments = await fetchPaymentStatesBatch(fetchIds);
-        if (cancelled) return;
-        setPaymentStates((prev) => {
-          const next = { ...(prev || {}) };
-          for (const id of fetchIds) {
-            const ps = batchPayments[id];
-            if (!ps) continue;
-            next[id] = {
-              depositAmountCents: (ps as BoardPaymentStatusRow).depositAmountCents ?? undefined,
-              fullAmountCents: (ps as BoardPaymentStatusRow).fullAmountCents ?? undefined,
-              offlinePaidCents: (ps as BoardPaymentStatusRow).offlinePaidCents ?? undefined,
-              offlineTransactions: (ps as BoardPaymentStatusRow).offlineTransactions ?? undefined,
-            };
-          }
-          return next;
-        });
-      } catch {
-        // ignore - badge fallback will cover it
-      }
-    }
-
-    preload();
-    return () => {
-      cancelled = true;
-    };
-  }, [estimates]);
-
   const searchFiltered = useMemo(
     () => searchBoardEntries(estimates, query),
     [estimates, query]
@@ -3715,8 +3418,10 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   const currentList =
     statusFilter === "all" ? (searchFiltered || []) : (estimateLaneFiltered || []);
   const sentDueJobs = getSentDueJobs(currentList, batchStatuses);
-  const approvedDueJobs = getApprovedDueJobs(currentList, paymentStates ?? {});
-  const depositReadyJobs = getDepositReadyJobs(currentList, paymentStates ?? {});
+  // Board work queues are operational only. Payment collection and payment
+  // readiness belong to canonical Job Card job_payment_* presenters.
+  const approvedDueJobs: RoofingEstimate[] = [];
+  const depositReadyJobs: RoofingEstimate[] = [];
 
   const boardFilteredJobs = useMemo(
     () =>
@@ -5363,8 +5068,8 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       </FieldDiveAppShell>
 
       {/* Deposit picker modal */}
-      {depositModal.open && depositModal.estimateId && (() => {
-        const ps = paymentStates[depositModal.estimateId] ?? null;
+      {false && depositModal.open && depositModal.estimateId && (() => {
+        const ps = paymentStates[depositModal.estimateId!] ?? null;
         const stripeCollected = (ps?.depositAmountCents ?? 0) + (ps?.fullAmountCents ?? 0);
         const offlineCollected = (ps as { offlinePaidCents?: number })?.offlinePaidCents ?? 0;
         const hasAnyPayment =
@@ -5485,7 +5190,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       })()}
 
       {/* Remaining balance modal (Collect Final: full or custom amount) */}
-      {remainingModal.open && remainingModal.estimateId && remainingModal.remainingCents > 0 && (
+      {false && remainingModal.open && remainingModal.estimateId && remainingModal.remainingCents > 0 && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0b1220] p-5 shadow-xl">
             <div className="flex items-center justify-between">
@@ -5575,7 +5280,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       )}
 
       {/* Offline payment modal */}
-      {offlineModal.open && offlineModal.estimateId && (
+      {false && offlineModal.open && offlineModal.estimateId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0b1220] p-5 shadow-xl">
             <div className="flex items-center justify-between">
@@ -5661,67 +5366,8 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
               </button>
 
               <button
-                onClick={async () => {
-                  const estimateTotalCents = Math.round((offlineModal.estimateTotal || 0) * 100);
-                  const ps = paymentStates[offlineModal.estimateId ?? ""];
-                  const totalCollected =
-                    (ps?.depositAmountCents ?? 0) +
-                    (ps?.fullAmountCents ?? 0) +
-                    ((ps as { offlinePaidCents?: number })?.offlinePaidCents ?? sumOfflineCents(ps ?? undefined) ?? 0);
-                  const remainingCents = Math.max(estimateTotalCents - totalCollected, 0);
-
-                  let enteredCents = Math.round(Number(offlineModal.amount || 0) * 100);
-                  if (enteredCents > remainingCents) {
-                    enteredCents = remainingCents;
-                  }
-
-                  const res = await fetch("/api/payments/record-offline", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      estimateId: offlineModal.estimateId,
-                      amountCents: enteredCents,
-                      method: offlineModal.method,
-                      notes: offlineModal.notes,
-                      estimateTotalCents,
-                      stage: offlineModal.stage,
-                    }),
-                  });
-
-                  const json = await res.json().catch(() => null);
-
-                  if (!res.ok || !json?.ok) {
-                    alert(json?.error || "Failed to record offline payment");
-                    return;
-                  }
-
-                  const id = offlineModal.estimateId;
-                  if (!id) return;
-
-                  allowPaymentStatusFetch(id);
-                  const payment = await fetchPaymentState(id);
-                  if (payment) {
-                    setPaymentStates((prev) => ({
-                      ...prev,
-                      [id]: {
-                        depositAmountCents: payment.depositAmountCents ?? undefined,
-                        fullAmountCents: payment.fullAmountCents ?? undefined,
-                        offlinePaidCents: (payment as { offlinePaidCents?: number }).offlinePaidCents ?? undefined,
-                        offlineTransactions: (payment as { offlineTransactions?: Array<{ stage?: string; amountCents?: number }> }).offlineTransactions ?? undefined,
-                      },
-                    }));
-                  }
-                  if (json?.status === "paid") {
-                    markSavedEstimateStatus(id, "paid");
-                  } else if (json?.status === "deposit_paid") {
-                    const est = estimates.find((e) => e.id === id);
-                    if (est && est.status !== "scheduled" && est.status !== "in_progress" && est.status !== "paid") {
-                      markSavedEstimateStatus(id, "deposit_paid");
-                    }
-                  }
-                  lastStatusFetchRef.current[id] = Date.now();
-                  setEstimates(getNormalizedEstimates());
-                  setOfflineModal((s) => ({ ...s, open: false }));
+                onClick={() => {
+                  alert("Offline payment recording has moved to the Job Card payment workflow.");
                 }}
                 className="flex-1 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-500"
               >
@@ -5733,7 +5379,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       )}
 
       {/* Transactions modal */}
-      {txModal.open && (
+      {false && txModal.open && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
           onMouseDown={(e) => {
@@ -5834,7 +5480,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       )}
 
       {/* Payment modal */}
-      {isPaymentOpen ? (
+      {false && isPaymentOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
           <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0b1220] p-5 shadow-2xl">
             <div className="flex items-center justify-between">

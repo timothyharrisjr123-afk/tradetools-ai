@@ -337,8 +337,14 @@ describe("legacy Checkout containment and regression boundaries", () => {
 
   test("legacy initiating UI is disabled while canonical Connect remains", () => {
     const saved = read("app/tools/roofing/saved/SavedClient.tsx");
-    assert.match(saved, /const LEGACY_PLATFORM_CHECKOUT_ENABLED = false/);
-    assert.match(saved, /LEGACY_PLATFORM_CHECKOUT_ENABLED && !isFullyPaid/);
+    assert.doesNotMatch(
+      saved,
+      /\/api\/payments\/(create-checkout|record-offline|status|status-batch)/
+    );
+    assert.match(
+      saved,
+      /Payment collection and payment[\s\S]*canonical Job Card job_payment_\*/
+    );
 
     const canonical = read("app/lib/jobPaymentStripe.server.ts");
     assert.match(canonical, /stripeAccount: input\.connectedAccountId/);
