@@ -2,16 +2,97 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-10 — WHOLE-SYSTEM DEEP TRUTH AUDIT COMPLETE + FOUNDATION REMEDIATION REGISTER
+
+- **Checkpoint:** canonical development HEAD at audit close **`594eb5103deaad83646e1ea59e24e8a37faa5b4a`**. Production app remains selective Places release **`e206dc9887735bb1f2c460cf17196cd8782339c8`** / **`dpl_8DSkazcKPxE3qYQhU4ittE4J7o3b`**. Production DB **`rhquhnujjnzjhweypavd`**. Staging **`tjtrhdckinjtorgbkirm`**. Phase 0 property/Places foundation **COMPLETE** (see section below). This audit is **ADDITIVE** — it does not replace the product roadmap.
+- **Audit method:** DATABASE ↔ schema/RLS/RPC ↔ routes/stores ↔ UI ↔ providers ↔ deploy/env ↔ historical snapshots ↔ contractor workflow. Judge: paid multi-tenant contractor SaaS readiness.
+- **Map:** **14** domains traced. **7** with ambiguous canonical truth (customers, jobs/estimates, measurements, catalog vs service_items, payments, schedule-vs-stage residue, tip-vs-prod release). **~6** competing writer clusters. **≥3** dangerous legacy writers (legacy `payments` offline insert; `estimateStore` upsert; admin `service_items`).
+- **Production data-shape (sanitized aggregates):** property dups **0**; orphan property/customer FKs **0**; jobs null `property_id` **61** / null `customer_id` **74**; customer email dup groups **5** (largest cluster **328** rows); measurement multi-selected **0**; **3** jobs with `selected_measurement_id` pointing at a measurement owned by another job; **1** stage=`scheduled` without active schedule; **15** active `work`/`scheduled` rows on complete/production stages; multi-open payment requests **0**.
+- **Severity rollup:** P0 **2** · P1 **8** · P2 **~10** · P3 **~4**.
+- **Category A — MUST FIX BEFORE MORE FEATURES (locked order):**  
+  **A1** FD-P0-02 → **A2** FD-P0-01 + FD-P1-08 → **A3** FD-P1-02 → **A4** FD-P1-06 → **A5** FD-P1-04 → **A6** FD-P1-07.  
+  Dependencies: A1 independent; A2 before A3 money/estimate cleanup; A3 after A2; A4 lifecycle/schedule separate; A5 small DB hardening after higher-risk data truth; A6 release/env gate before normal roadmap.
+- **Category B — BEFORE PAID BETA:** customer identity policy (FD-P1-01); catalog vs service_items (FD-P1-03); accept→deposit recoverability (FD-P1-05); remaining Places surfaces; legacy estimate/KV isolation; null-FK backfill strategy; tip dependency/security debt; GCP billing/rename; representative staging fixtures.
+- **Category C — TECH HARDENING BEFORE BETA:** middleware→proxy; fetch AbortSignal/timeouts; multi-company membership model; SECURITY DEFINER `search_path` CI gate.
+- **Category D — POST-BETA / NORMAL ROADMAP:** Delivery Completeness and later commercial/tech-currency work after foundation exit.
+- **Finite foundation exit:** Category **A** all **CLOSED**. Not “every P2/P3 gone.”
+- **Exact roadmap resume after Category A:** remaining Google Places integration → Delivery Completeness (Wave D). Do **not** advance that roadmap until A is closed.
+- **First remediation slice:** A1 / **FD-P0-02** (measurement selection atomicity + same-job enforcement + remediate 3 production cross-job pointers). Architecture plan recorded in register status **PLANNED**; implementation not started in this docs checkpoint.
+- **Permanent register:** see **Foundation Remediation Register** below. Significant findings must not live only in chat.
+
+### Foundation Remediation Register
+
+Status values: `OPEN` | `PLANNED` | `IMPLEMENTING` | `VERIFYING` | `CLOSED` | `DEFERRED`  
+MUST_FIX_BY: `BEFORE_MORE_FEATURES` | `BEFORE_PAID_BETA` | `NORMAL_ROADMAP` | `TECH_HARDENING` | `POST_BETA`
+
+#### CLOSED — Phase 0 property / Places foundation (do not reopen without new evidence)
+
+| ID | DOMAIN | SEVERITY | TITLE | STATUS | MUST_FIX_BY | NOTES |
+|----|--------|----------|-------|--------|-------------|-------|
+| FD-CLOSED-P0-PROP-DEDUP | PROPERTY | P0 | Production duplicate property remediation | CLOSED | BEFORE_MORE_FEATURES | Phase 0A: 13 retirees, 12 relinks, dups 0 |
+| FD-CLOSED-P0-PROP-RESOLVER | PROPERTY | P0 | Canonical `resolve_company_property_v1` cutover | CLOSED | BEFORE_MORE_FEATURES | Migration `20260909215532` live once |
+| FD-CLOSED-P0-PROP-UNIQUE | PROPERTY | P0 | Canonical normalized-address unique index | CLOSED | BEFORE_MORE_FEATURES | `properties_company_address_normalized_uidx` valid |
+| FD-CLOSED-P0-OPS-GUARD | PROPERTY | P1 | Temporary ops_guard retirement | CLOSED | BEFORE_MORE_FEATURES | Dropped after 0B2B runtime proof |
+| FD-CLOSED-P0-PLACES-PROD | PROPERTY/PLACES | P0 | Production Places A+B+C selective release + matrix | CLOSED | BEFORE_MORE_FEATURES | Live `e206dc9` / `dpl_8DSkazc…` |
+
+#### Category A — OPEN/PLANNED
+
+| ID | DOMAIN | SEVERITY | TITLE | SYMPTOM | ROOT_CAUSE | CANONICAL_TRUTH | DATA_WORK | SCHEMA_WORK | APP_WORK | UI_WORK | DEPLOY_ORDER | VERIFICATION | STATUS | DEPENDENCIES | MUST_FIX_BY |
+|----|--------|----------|-------|---------|------------|-----------------|-----------|-------------|----------|---------|--------------|--------------|--------|--------------|-------------|
+| FD-P0-02 | MEASUREMENTS | P0 | Measurement selection dual authority + cross-job pointers | Live Job Card/prepare can disagree; **3** prod jobs point `selected_measurement_id` at meas owned by another job | Non-atomic client clear/set of `is_selected` + separate `updateJob(selected_measurement_id)`; **no FK / same-job check** on job pointer | One atomic selection: same-job only; ≤1 selected per job; readers share one resolver | Remediate 3 job pointers (prefer NULL when job has no local meas); do **not** rewrite sent version echoes | Same-job enforcement + atomic select RPC; keep one-selected index | Replace dual writes with RPC; stop raw pointer writes | Error/state only if required; no redesign | DB enforcement + ops remediate, then app (see A1 plan) | Multi-session + prod preflight | **PLANNED** | A1 first | BEFORE_MORE_FEATURES |
+| FD-P0-01 | PAYMENTS | P0 | Dual money ledger still writable | Board Collect vs Job Card money; legacy `payments` still inserted | Legacy estimate money path never fully tombstoned | `job_payment_*` only for live money | Inventory/migrate or isolate legacy rows | Optional later | Tombstone offline; remove dead Collect callers | Board Collect UX | App-first tombstone | Board+Job Card money matrix | OPEN | Before A3 | BEFORE_MORE_FEATURES |
+| FD-P1-08 | PAYMENTS/UI | P1 | Jobs Board dead Collect UX | Board still POSTs `/api/payments/create-checkout` (410) | UI not retargeted after tombstone | Job Card / job payment APIs | None | None | Remove/retarget Board Collect | Board payments chrome | App-first | Visual+API | OPEN | With FD-P0-01 | BEFORE_MORE_FEATURES |
+| FD-P1-02 | JOBS/ESTIMATES | P1 | Estimate/job dual birth | `estimateStore` + `getOrCreateJobForEstimate` still create/link beside New Job | Legacy estimate pipeline retained | New Job / job identity canonical | None initially | None | Quarantine estimate birth from critical path | Saved/legacy section | App-first | New Job vs Saved | OPEN | After A2 | BEFORE_MORE_FEATURES |
+| FD-P1-06 | SCHEDULE/LIFECYCLE | P1 | Schedule/stage data drift | 1 scheduled w/o schedule; 15 active schedules on complete/production | Lifecycle advance does not always retire active schedule | `job_schedules` + stage RPCs aligned | Remediate 16 rows | Maybe cancel-on-complete/start | Sync writers | Minimal | Coordinated | Lifecycle matrix | OPEN | A4 | BEFORE_MORE_FEATURES |
+| FD-P1-04 | TENANCY | P1 | `jobs.company_id` mutable | UPDATE granted; no immutability trigger | Asymmetry vs customers/properties/payments | Immutable job company_id | None | Trigger + revoke UPDATE | None/tests | None | DB-first | Adversarial update | OPEN | A5 after data truths | BEFORE_MORE_FEATURES |
+| FD-P1-07 | RELEASE | P1 | Tip vs production deploy skew | Tip has Stripe/`FIELDDIVE_ENV`/Next 16.3; live Places release does not | Selective Phase 0 release vs full tip | Explicit release packages + env gates | None | None | Docs/process gates | None | Process | Deploy dry-run checklist | OPEN | A6 last | BEFORE_MORE_FEATURES |
+
+#### Category B — BEFORE PAID BETA
+
+| ID | DOMAIN | SEVERITY | TITLE | STATUS | MUST_FIX_BY | DEPENDENCIES |
+|----|--------|----------|-------|--------|-------------|--------------|
+| FD-P1-01 | CUSTOMERS | P1 | Customer identity dual writers (create vs findOrCreate vs admin email) | OPEN | BEFORE_PAID_BETA | After A |
+| FD-P1-03 | CATALOG | P1 | `catalog_items` vs admin `service_items` | OPEN | BEFORE_PAID_BETA | After A |
+| FD-P1-05 | PROPOSALS/PAYMENTS | P1 | Accept commits before deposit; HTTP can fail after durable accept | OPEN | BEFORE_PAID_BETA | After A2 money clarity |
+| FD-P2-PLACES-SURFACES | PLACES | P2 | Places still New-Job-only; property edit / Board / reload-search-history unfinished | OPEN | NORMAL_ROADMAP | After Category A; first roadmap slice |
+| FD-P2-NULL-JOB-FKS | JOBS | P2 | Legacy jobs missing property/customer FKs with snapshot text | OPEN | BEFORE_PAID_BETA | After A |
+| FD-P2-EMAIL-CLUSTER | CUSTOMERS | P2 | Large shared-email customer cluster (328) from always-insert | OPEN | BEFORE_PAID_BETA | With FD-P1-01 |
+| FD-P2-TIP-AUDIT-SKEW | DEPENDENCY | P2 | Prod release lockfile HIGH4/CRIT1 vs tip clean | OPEN | BEFORE_PAID_BETA | With A6 |
+| FD-P2-STAGING-FIXTURES | QA | P2 | Staging too clean vs production legacy shapes | OPEN | BEFORE_PAID_BETA | Before restrictive migrations |
+| FD-P2-GCP-OPS | OPS | P2 | GCP display-name + trial→full billing | OPEN | BEFORE_PAID_BETA | Ops |
+
+#### Category C / D — hardening & later
+
+| ID | DOMAIN | SEVERITY | TITLE | STATUS | MUST_FIX_BY |
+|----|--------|----------|-------|--------|-------------|
+| FD-P2-SCHEDULE-LOADING | UI | P2 | Job Card schedule fetch lacks AbortSignal; “Loading schedule” can hang | OPEN | TECH_HARDENING |
+| FD-P2-SEND-EMAIL-PARTIAL | DELIVERY | P2 | Freeze/mint without provider_accepted recoverable but half-complete | OPEN | TECH_HARDENING |
+| FD-P2-LEGACY-SURFACES | ROUTES | P2 | `/tools/roofing-v2`, AI localStorage, KV approve, `estimate/send` still reachable | OPEN | BEFORE_PAID_BETA |
+| FD-P2-SINGLE-MEMBERSHIP | TENANCY | P2 | `.maybeSingle()` membership assumption | OPEN | TECH_HARDENING |
+| FD-P3-MIDDLEWARE-PROXY | PLATFORM | P3 | Next middleware→proxy migration not started | OPEN | TECH_HARDENING |
+| FD-P3-SEARCH-PATH-CI | SECURITY | P3 | SECURITY DEFINER search_path process gate (schema mostly pinned) | OPEN | TECH_HARDENING |
+
+### A1 architecture plan summary (FD-P0-02) — planning complete; implementation NOT started
+
+- **Writers (active):** `selectMeasurementRecord` (`measurementStore.ts`); `updateJob({selected_measurement_id})` from `RoofingClient.tsx` + `useJobCardPrepareProposal.ts`; `jobStore.updateJob` passthrough. No selection RPC today.
+- **Readers:** `resolveCanonicalJobMeasurement` prefers `is_selected` then job pointer; Job Card hydrate uses `jobs.selected_measurement_id`; proposal create/refresh stamps `proposals.measurement_record_id` + version `context_echo` (frozen historical).
+- **Schema today:** `idx_measurement_records_one_selected_per_job` exists; **`jobs.selected_measurement_id` has no FK and no same-job check**.
+- **Prod reconfirm:** jobs `b8635f31…`, `662e8ed3…`, `6fb015e6…` (estimating) all point at meas `5153d06c…` owned by job `c3a26242…`; each bad job has **0** local measurements → remediate pointer to **NULL**. Draft/sent proposal echoes on those jobs already reference foreign meas — **do not rewrite frozen echoes** in A1; clear live job pointer (and optionally live draft header pointer) only.
+- **Canonical end state:** Atomic RPC selects measurement for a job: validate same job+company → clear/set `is_selected` → set `jobs.selected_measurement_id` in one transaction. Retain both columns: `is_selected` = row flag (unique per job); job pointer = synchronized current pointer. Add same-job enforcement on pointer writes.
+- **Cutover:** Enforce same-job on DB (blocks bad writes from old app — fail closed, safe); remediate data; then switch app to RPC. Not blind “DB-first migration that old app cannot tolerate” — validation is compatible with old app’s *valid* writes.
+- **UI:** Backend/truth correction; no Measurements redesign unless fail-closed error copy required. Visual only if error/state becomes visible.
+- **Next:** hand exact Codex package after review; do not implement in this docs task.
+
 ## 2026-09-10 — PHASE 0 COMPLETE: property Places foundation live in production
 
-- **Foundation exit:** Phase 0A (DB) + Phase 0B2A (Google readiness + selective release construction) + Phase 0B2B (exact production deploy + runtime proof + ops_guard retirement) are **COMPLETE**. Normal roadmap may resume under separate authorization. Do **not** push `main` from this docs checkpoint alone.
+- **Foundation exit:** Phase 0A (DB) + Phase 0B2A (Google readiness + selective release construction) + Phase 0B2B (exact production deploy + runtime proof + ops_guard retirement) are **COMPLETE**. Normal roadmap may resume under separate authorization **only after Category A foundation remediation closes** (see Whole-System Deep Truth Audit section above). Do **not** push `main` from this docs checkpoint alone.
 - **Production app (exact selective release):** Vercel deployment **`dpl_8DSkazcKPxE3qYQhU4ittE4J7o3b`** READY on aliases `www.fielddive.com` / `fielddive.com`. Artifact SHA **`e206dc9887735bb1f2c460cf17196cd8782339c8`** from temporary branch `release/phase0-property-places` (base **`0b9a90c`**, cherry-picks only Places A+B+C equivalents of `60567cc` → `284c20f` → `39cd18a`). **Not** canonical local tip; **not** Stripe modernization; **no** `FIELDDIVE_ENV` dependency in the release.
 - **Google provider:** dedicated FieldDive production server key; API restriction Places API (New) only; `GOOGLE_PLACES_API_KEY` present in Vercel Production (server-only; no `NEXT_PUBLIC_*`); KV REST present; provider + authenticated proxy + Places autocomplete E2E PASS; no key exposure in browser responses.
 - **Production runtime matrix PASS:** new/existing customer × new/existing property; Google-selected address (`places_place_id` persisted as provider metadata); manual address; repeated normalized reuse (single canonical property); unit/subpremise separation; Job Card reload + property workspace navigation; incomplete-address Create disabled fail-closed. Desktop visual PASS; true 390px PASS. Screenshots: `tmp/fielddive-ui-review/phase0b2b-production/`. Controlled `P0B2B*` fixtures cleaned (soft-deleted jobs; unused fixture customers/properties removed).
 - **Database final invariants (`rhquhnujjnzjhweypavd`):** ledger `20260909130000` + `20260909130935` + `20260909215532` exactly once; canonical unique index `properties_company_address_normalized_uidx` valid; places index live; `resolve_company_property_v1` live; normalized duplicate groups **0**; orphan `jobs.property_id` **0**; temporary `properties_company_address_normalized_uidx_ops_guard` **removed** via `scripts/ops/20260910_remove_property_ops_guard.sql` after runtime gates (ops commit on canonical `main`).
 - **Rollback target (app only):** redeploy **`0b9a90ceb19ff4c3ed0e7e37fd47763aa7b1d6c1`** if needed. Keep DB forward. Do **not** roll DB backward or restore duplicate property rows. Canonical uniqueness remains after ops_guard retirement.
-- **Inherited debt (not introduced by Places):** production-baseline npm audit on release lockfile **HIGH 4 / CRITICAL 1**; GCP display-name cleanup (“My First Project”); Google free-trial → full billing upgrade as pre-beta operational readiness. Remaining confirmed foundation/paid-beta P1s remain mandatory before paid beta.
-- **Canonical repo checkpoint:** ops script commit + this docs commit on development `main`. Temporary release branch retained for deployment provenance (do not merge into canonical history; A+B+C already exist on `main`). **No push.**
+- **Inherited debt (not introduced by Places):** production-baseline npm audit on release lockfile **HIGH 4 / CRITICAL 1**; GCP display-name cleanup (“My First Project”); Google free-trial → full billing upgrade as pre-beta operational readiness. Remaining confirmed foundation/paid-beta P1s remain mandatory before paid beta — now tracked in Foundation Remediation Register.
+- **Canonical repo checkpoint:** ops script commit + Phase 0 docs + this audit/register docs commit on development `main`. Temporary release branch retained for deployment provenance (do not merge into canonical history; A+B+C already exist on `main`). **No push.**
 
 ## 2026-09-09 — Phase 0A COMPLETE: production property dedupe + Slice C schema cutover
 
@@ -270,7 +351,7 @@
 
 **When to read related docs:**
 
-- Read the top **Phase 0 COMPLETE** section first for current production property/Places foundation truth: live app **`e206dc9`** / **`dpl_8DSkazcKPxE3qYQhU4ittE4J7o3b`** on `www.fielddive.com`; canonical uniqueness live; ops_guard retired; selective A+B+C release (not full `main` tip). Then **§6DF** / **§6DG** for Commercial Wedge + Beta Trust Ops history. Then **§6DE** for **WHOLE-APP VALIDATION COMPLETE / ARCHITECTURE MASTER ROADMAP**. Phases 1–8 PASS. Active P0 count = **0**. Customer RLS P0 CLOSED (**§6DD**, pushed). **Wave A FULLY CLOSED** (**§6DE.10** + **§6DE.12**). Legacy billing RLS P0 CLOSED (**§6DE.11**, **062 LIVE**). **Wave B FULLY CLOSED** (**§6DE.13** + **§6DE.13.3**). **Wave C FULLY CLOSED** (**§6DE.14** — Property identity + typed search + light Customer/Property workspaces). Jobs Board is the daily command surface. **Wave D — Delivery completeness** remains **not started** until separately authorized. Then **§6DE.13** / **§6DD** / **§6DC** as needed.
+- Read the top **Whole-System Deep Truth Audit + Foundation Remediation Register** first for Category A order and A1 plan status. Then **Phase 0 COMPLETE** for live Places production truth (`e206dc9` / `dpl_8DSkazc…`). Then **§6DF** / **§6DG** for Commercial Wedge + Beta Trust Ops history. Then **§6DE** for **WHOLE-APP VALIDATION COMPLETE / ARCHITECTURE MASTER ROADMAP**. Phases 1–8 PASS. Active product P0 count from roadmap phases remains **0**, but **foundation remediation P0/P1s are OPEN in the register** until Category A closes. Customer RLS P0 CLOSED (**§6DD**, pushed). **Wave A FULLY CLOSED** (**§6DE.10** + **§6DE.12**). Legacy billing RLS P0 CLOSED (**§6DE.11**, **062 LIVE**). **Wave B FULLY CLOSED** (**§6DE.13** + **§6DE.13.3**). **Wave C FULLY CLOSED** (**§6DE.14** — Property identity + typed search + light Customer/Property workspaces). Jobs Board is the daily command surface. **Wave D — Delivery Completeness** remains **not started** until Category A closes and is separately authorized. Then **§6DE.13** / **§6DD** / **§6DC** as needed.
 - Read **`docs/fielddive-flow-map.md`** when changing routes, IA, screen flow, or Job Board / Job Card navigation — but **§6CU / §6BO.13 / §6AL / §6AM / §6AN / §6AO supersede** older flow-map terminology where they conflict (e.g. Job Board vs Command Center — **no separate Command Center** per §6BO.13).
 - Read **`docs/competitive-architecture-audit.md`** when adding modules, changing dashboard/Job Board architecture, or comparing against Roofr/competitor-style workflow.
 - Read **§6AL** before any recovery or template/Builder/lifecycle work — **mandatory stage order**.
