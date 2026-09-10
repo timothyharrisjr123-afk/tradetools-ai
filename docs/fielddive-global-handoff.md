@@ -2,6 +2,17 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-10 — FD-P1-10 CLOSED: residual flag/pointer divergence remediated + write guard
+
+- **FD-P1-10 status:** `CLOSED`. **FD-P0-02** remains `CLOSED`. **FD-P1-09** remains `OPEN`.
+- Inventory: exactly **6** same-job `flag_without_pointer` rows (company `e1fd48bb…`). Each job had **exactly one** measurement, already `is_selected=true`, often referenced by live draft proposals — classified **A (LEGITIMATE CURRENT SELECTION)** for all six. None ambiguous.
+- Root cause: pre-A1 dual-write selection (`is_selected` cleared/set separately from `jobs.selected_measurement_id`). Flag set; pointer never written/failed. Not imports/fixtures.
+- Architecture gap after A1: app writers converged on RPC, but DB still allowed raw `measurement_records.is_selected` updates (RLS UPDATE). Adversarial TX proved flag-only writes could recreate divergence. Fixed before data mutation.
+- Migrations applied to staging + production: `20260910174500_guard_measurement_is_selected_writes.sql` (reject raw `is_selected` unless `fielddive.allow_measurement_selection=1`) and `20260910180200_fix_measurement_selection_allow_gate.sql` (jobs trigger arms gate only around flag updates, then clears it — prevents job-insert GUC leak).
+- Remediation: `scripts/ops/20260910_production_fd_p1_10_flag_pointer_remediation.sql` restored `jobs.selected_measurement_id` to the audited selected measurement for exactly those **6** jobs via A1 pointer-sync trigger. **No** proposal_versions / frozen history / measurement identity changes.
+- Final invariants: flag_without_pointer **0**; pointer_without_flag **0**; cross-job **0**; missing **0**; multi-selected **0**; FK valid. Runtime proof: insert-selected rejected; flag-only rejected; after-sync flag-only rejected; pointer sync / RPC switch / clear / cross-job reject PASS.
+- Current app+DB cannot recreate flag_without_pointer through reachable selection paths. A2 **not** started. Main **not** pushed. No app deploy required (DB-only + already-live A1 writers).
+
 ## 2026-09-10 — Foundation remediation A1 PRODUCTION CUTOVER COMPLETE; FD-P0-02 CLOSED
 
 - **FD-P0-02 status:** `CLOSED`.
@@ -77,7 +88,7 @@ MUST_FIX_BY: `BEFORE_MORE_FEATURES` | `BEFORE_PAID_BETA` | `NORMAL_ROADMAP` | `T
 | FD-P2-STAGING-FIXTURES | QA | P2 | Staging too clean vs production legacy shapes | OPEN | BEFORE_PAID_BETA | Before restrictive migrations |
 | FD-P2-GCP-OPS | OPS | P2 | GCP display-name + trial→full billing | OPEN | BEFORE_PAID_BETA | Ops |
 | FD-P1-09 | PROPOSALS/MEASUREMENTS | P1 | Sent historical versions contain foreign measurement identity | OPEN | BEFORE_PAID_BETA | After A1 current-state correction; classify fixture vs legitimate history without rewriting frozen records |
-| FD-P1-10 | MEASUREMENTS | P1 | Residual same-job `is_selected` without `jobs.selected_measurement_id` | OPEN | BEFORE_PAID_BETA | **6** prod jobs (inventoried at A1 preflight). Outside A1 3-pointer remediation. New writes synchronized via RPC+trigger; optional bounded backfill later |
+| FD-P1-10 | MEASUREMENTS | P1 | Residual same-job `is_selected` without `jobs.selected_measurement_id` | **CLOSED** | BEFORE_PAID_BETA | 6 jobs restored via pointer sync; raw `is_selected` writes guarded (`20260910174500` + `20260910180200`). FD-P0-02 remains CLOSED |
 
 #### Category C / D — hardening & later
 
