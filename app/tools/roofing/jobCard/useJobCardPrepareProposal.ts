@@ -44,7 +44,7 @@ import {
   resolveManualMeasurementEditMode,
   resolveManualMeasurementSaveMode,
 } from "@/app/lib/jobCardMeasurementReportModel";
-import { updateJob } from "@/app/lib/jobStore";
+import { getJobById } from "@/app/lib/jobStore";
 import type { JobRecord } from "@/app/lib/jobTypes";
 import { deriveEstimateReadiness, formatSourceTypeLabel, hasRoofSize } from "@/app/lib/measurementReadiness";
 import {
@@ -387,14 +387,18 @@ export function useJobCardPrepareProposal({
   const persistSelected = useCallback(
     async (record: MeasurementRecord) => {
       if (!jid || !isUuidLike(jid)) return record;
-      const selectedRecord = await selectMeasurementRecord(record.id, { jobId: jid });
-      const next = selectedRecord ?? record;
-      const linked = await updateJob(jid, { selected_measurement_id: next.id });
+      const selectedRecord = await selectMeasurementRecord(record.id, {
+        companyId: cid,
+        jobId: jid,
+      });
+      if (!selectedRecord) throw new Error("Could not select measurement.");
+      const next = selectedRecord;
+      const linked = await getJobById(jid);
       if (linked) onJobUpdated?.(linked);
       setSelected(next);
       return next;
     },
-    [jid, onJobUpdated]
+    [cid, jid, onJobUpdated]
   );
 
   const saveMeasurement = useCallback(
