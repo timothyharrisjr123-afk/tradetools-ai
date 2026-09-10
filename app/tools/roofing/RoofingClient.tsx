@@ -10705,7 +10705,7 @@ Thanks,`;
             </div>
           )}
 
-        {entryMode === "manual" && legacyEstimateMode ? (
+        {legacyEstimateMode ? (
           renderLegacyEstimateWorkspace()
         ) : entryMode === "job-card" ? (
           renderJobCardShell()
