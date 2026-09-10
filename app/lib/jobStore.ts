@@ -300,57 +300,6 @@ export function jobDraftToInsertRow(draft: JobDraft | Partial<JobDraft>): Partia
   return compactObject(row as Record<string, unknown>) as Partial<JobRow>;
 }
 
-export function estimateSnapshotToJobDraft(
-  estimate: EstimateSnapshotForJob,
-  companyId: string
-): JobDraft {
-  const line1 =
-    normalizeNullableString(estimate.jobAddress1) ??
-    normalizeNullableString(estimate.address);
-  const city = normalizeNullableString(estimate.jobCity);
-  const state = normalizeNullableString(estimate.jobState);
-  const zip =
-    normalizeNullableString(estimate.jobZip) ?? normalizeNullableString(estimate.zip);
-
-  const address: JobAddress = {
-    line1,
-    city,
-    state,
-    zip,
-    country: "US",
-    formatted: buildFormattedAddress({ line1, city, state, zip, country: "US" }),
-  };
-
-  const customerName = normalizeNullableString(estimate.customerName);
-  const jobName =
-    line1 ??
-    (customerName ? `${customerName} — roofing` : null) ??
-    "Roofing job";
-
-  return {
-    company_id: companyId,
-    customer_id: estimate.customer_id ?? null,
-    job_name: jobName,
-    stage: "intake",
-    status: "active",
-    source: "intake",
-    priority: "normal",
-    contact: {
-      customer_id: estimate.customer_id ?? null,
-      customer_name: customerName,
-      customer_email: normalizeNullableString(estimate.customerEmail),
-      customer_phone: normalizeNullableString(estimate.customerPhone),
-    },
-    address,
-    latest_estimate_id: normalizeNullableString(estimate.id),
-    source_metadata: {
-      source: "estimate_snapshot",
-      estimate_status: estimate.status ?? null,
-    },
-    archived: false,
-  };
-}
-
 // ---------------------------------------------------------------------------
 // Supabase reads / writes
 // ---------------------------------------------------------------------------
@@ -486,42 +435,6 @@ export async function updateJob(
   }
 }
 
-export async function linkEstimateToJob(
-  estimateId: string,
-  jobId: string
-): Promise<boolean> {
-  const supabase = getSupabaseClient();
-  if (!supabase) {
-    console.error("[jobStore] linkEstimateToJob: Supabase client unavailable");
-    return false;
-  }
-  const estId = String(estimateId || "").trim();
-  const jId = String(jobId || "").trim();
-  if (!isUuidLike(estId) || !isUuidLike(jId)) {
-    console.error("[jobStore] linkEstimateToJob: invalid estimate or job id");
-    return false;
-  }
-
-  try {
-    const { error } = await supabase
-      .from("estimates")
-      .update({ job_id: jId })
-      .eq("id", estId);
-
-    if (error) {
-      console.error("[jobStore] linkEstimateToJob failed:", error.message, {
-        estimateId: estId,
-        jobId: jId,
-      });
-      return false;
-    }
-    return true;
-  } catch (err) {
-    console.error("[jobStore] linkEstimateToJob error:", err);
-    return false;
-  }
-}
-
 async function fetchJobByLatestEstimateId(
   estimateId: string,
   companyId: string
@@ -555,7 +468,10 @@ async function fetchJobByLatestEstimateId(
   }
 }
 
-async function fetchEstimateJobIdFromDb(estimateId: string): Promise<string | null> {
+async function fetchEstimateJobIdFromDb(
+  estimateId: string,
+  companyId: string
+): Promise<string | null> {
   const supabase = getSupabaseClient();
   if (!supabase) return null;
   try {
@@ -563,6 +479,7 @@ async function fetchEstimateJobIdFromDb(estimateId: string): Promise<string | nu
       .from("estimates")
       .select("job_id")
       .eq("id", estimateId)
+      .eq("company_id", companyId)
       .maybeSingle();
 
     if (error) {
@@ -576,58 +493,47 @@ async function fetchEstimateJobIdFromDb(estimateId: string): Promise<string | nu
   }
 }
 
-export async function getOrCreateJobForEstimate(
+export type EstimateJobResolution =
+  | { status: "linked"; job: JobRecord }
+  | { status: "unlinked"; job: null; reason: "invalid" | "not_found" | "link_failed" };
+
+/** Resolve an estimate's existing job without making estimates a job-birth path. */
+export async function resolveJobForEstimate(
   estimate: EstimateSnapshotForJob,
   companyId: string
-): Promise<JobRecord | null> {
+): Promise<EstimateJobResolution> {
   const estId = normalizeNullableString(estimate.id);
   if (!estId || !isUuidLike(estId)) {
-    console.error("[jobStore] getOrCreateJobForEstimate: invalid estimate id");
-    return null;
+    console.error("[jobStore] resolveJobForEstimate: invalid estimate id");
+    return { status: "unlinked", job: null, reason: "invalid" };
   }
-  if (!normalizeNullableString(companyId)) {
-    console.error("[jobStore] getOrCreateJobForEstimate: company_id is required");
-    return null;
+  const cid = normalizeNullableString(companyId);
+  if (!cid || !isUuidLike(cid)) {
+    console.error("[jobStore] resolveJobForEstimate: valid company_id is required");
+    return { status: "unlinked", job: null, reason: "invalid" };
   }
 
   const fromEstimate =
     normalizeNullableString(estimate.job_id) ?? normalizeNullableString(estimate.jobId);
   if (fromEstimate && isUuidLike(fromEstimate)) {
     const existing = await getJobById(fromEstimate);
-    if (existing) return existing;
+    if (existing?.company_id === cid) return { status: "linked", job: existing };
   }
 
-  const fromDb = await fetchEstimateJobIdFromDb(estId);
+  const fromDb = await fetchEstimateJobIdFromDb(estId, cid);
   if (fromDb) {
     const existing = await getJobById(fromDb);
-    if (existing) return existing;
+    if (existing?.company_id === cid) return { status: "linked", job: existing };
   }
 
-  const fromLatestEstimate = await fetchJobByLatestEstimateId(estId, companyId);
+  const fromLatestEstimate = await fetchJobByLatestEstimateId(estId, cid);
   if (fromLatestEstimate) {
-    const linked = await linkEstimateToJob(estId, fromLatestEstimate.id);
-    if (!linked) {
-      console.warn("[jobStore] getOrCreateJobForEstimate: reused job but estimate link failed", {
-        estimateId: estId,
-        jobId: fromLatestEstimate.id,
-      });
-    }
-    return fromLatestEstimate;
+    // Soft historical claim may identify an existing job, but opening must not
+    // mutate estimates.job_id (duplicate soft claims can point at the wrong twin).
+    return { status: "linked", job: fromLatestEstimate };
   }
 
-  const draft = estimateSnapshotToJobDraft(estimate, companyId);
-  const created = await createJob(draft);
-  if (!created) return null;
-
-  const linked = await linkEstimateToJob(estId, created.id);
-  if (!linked) {
-    console.warn("[jobStore] getOrCreateJobForEstimate: job created but estimate link failed", {
-      estimateId: estId,
-      jobId: created.id,
-    });
-  }
-
-  return created;
+  return { status: "unlinked", job: null, reason: "not_found" };
 }
 
 export async function getJobsByCompany(companyId: string): Promise<JobSummary[]> {

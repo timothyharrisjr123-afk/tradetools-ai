@@ -4318,7 +4318,8 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                   </>
                 ) : null}
 
-                {!companyJobSearch.active && hasLegacyEstimates ? (
+                {/* A3: Legacy estimates Board section retired — prototype drafts are inert; use New Job. */}
+                {false && !companyJobSearch.active && hasLegacyEstimates ? (
                   <JobsBoardLegacySection
                     count={legacyBoardEntries.length}
                     jobs={legacySearchFiltered}

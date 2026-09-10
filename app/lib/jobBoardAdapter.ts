@@ -408,7 +408,8 @@ export function getLinkedJobIdFromLegacyEstimate(entry: RoofingEstimate): string
 
 /**
  * Canonical open href for a board row.
- * DB rows and linked legacy estimates open job=; legacy-only rows open loadSaved=.
+ * DB rows and linked legacy estimates open job=.
+ * Unlinked prototype estimates are retired: no loadSaved workspace (Board only).
  */
 export function resolveBoardEntryOpenHref(entry: RoofingEstimate): string {
   if (isDbBoardJobEntry(entry)) {
@@ -419,7 +420,8 @@ export function resolveBoardEntryOpenHref(entry: RoofingEstimate): string {
   const linkedJobId = getLinkedJobIdFromLegacyEstimate(entry);
   if (linkedJobId) return buildDbJobCardHref(linkedJobId);
 
-  return `/tools/roofing?loadSaved=${encodeURIComponent(entry.id)}`;
+  // A3: unlinked estimate workspace retired — do not mint a job or open fake Job Workspace.
+  return "/tools/roofing/saved";
 }
 
 /**
