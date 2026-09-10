@@ -310,7 +310,7 @@ describe("jobBoardAdapter", () => {
     assert.doesNotMatch(href, /loadSaved/);
   });
 
-  test("legacy estimate without jobId resolves open href to loadSaved=", () => {
+  test("legacy estimate without jobId is retired to Jobs Board (no loadSaved workspace)", () => {
     const legacy: RoofingEstimate = {
       id: ESTIMATE_ID,
       createdAt: "2026-01-01T00:00:00.000Z",
@@ -322,7 +322,8 @@ describe("jobBoardAdapter", () => {
       suggestedPrice: 10000,
     };
     const href = resolveBoardEntryOpenHref(legacy);
-    assert.match(href, /loadSaved=/);
+    assert.equal(href, "/tools/roofing/saved");
+    assert.doesNotMatch(href, /loadSaved=/);
     assert.doesNotMatch(href, /from=board/);
   });
 
@@ -334,7 +335,7 @@ describe("jobBoardAdapter", () => {
     assert.doesNotMatch(href, /from=board/);
   });
 
-  test("invalid jobId on legacy estimate falls back to loadSaved=", () => {
+  test("invalid jobId on legacy estimate is retired to Jobs Board (no loadSaved)", () => {
     const legacy: RoofingEstimate = {
       id: ESTIMATE_ID,
       jobId: "not-a-uuid",
@@ -348,7 +349,8 @@ describe("jobBoardAdapter", () => {
     };
     assert.equal(getLinkedJobIdFromLegacyEstimate(legacy), null);
     const href = resolveBoardEntryOpenHref(legacy);
-    assert.match(href, /loadSaved=/);
+    assert.equal(href, "/tools/roofing/saved");
+    assert.doesNotMatch(href, /loadSaved=/);
     assert.doesNotMatch(href, /[?&]job=/);
   });
 

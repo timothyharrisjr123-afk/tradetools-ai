@@ -32,7 +32,7 @@ import {
   transitionJobStageViaRpc,
 } from "./jobLifecyclePersistence";
 import { JOB_LIFECYCLE_SCHEDULED_TRANSITIONS_ENABLED, AUTHENTICATED_MANUAL_JOB_ACTIVITY_EVENT_TYPES, SYSTEM_RESERVED_JOB_ACTIVITY_EVENT_TYPES } from "./jobLifecycleTypes";
-import { estimateSnapshotToJobDraft, jobDraftToInsertRow } from "./jobStore";
+import { jobDraftToInsertRow } from "./jobStore";
 import {
   mapDbJobStageToBoardColumnKey,
   mapDbJobToBoardEstimate,
@@ -219,19 +219,15 @@ describe("time in stage", () => {
 });
 
 describe("new job create paths", () => {
-  test("estimate bridge no longer writes measurement stage", () => {
-    const draft = estimateSnapshotToJobDraft(
-      {
-        id: JOB_ID,
-        customerName: "Pat",
-        roofAreaSqFt: 2400,
-        address: "1 Main",
-      },
-      COMPANY_ID
-    );
-    assert.equal(draft.stage, "intake");
-    const row = jobDraftToInsertRow(draft);
+  test("canonical New Job writes intake without an estimate claim", () => {
+    const row = jobDraftToInsertRow({
+      company_id: COMPANY_ID,
+      stage: "intake",
+      source: "intake",
+      source_metadata: { source: "job_packet" },
+    });
     assert.equal(row.stage, "intake");
+    assert.equal(row.latest_estimate_id, undefined);
   });
 });
 

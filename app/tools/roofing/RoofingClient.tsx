@@ -65,7 +65,7 @@ import type {
 } from "@/app/lib/measurementTypes";
 import {
   createJob,
-  getOrCreateJobForEstimate,
+  resolveJobForEstimate,
   isUuidLike,
   buildFormattedAddress,
   getJobById,
@@ -1186,13 +1186,13 @@ export default function RoofingClient({
   const jobParam = searchParams.get("job");
   const attentionParam = searchParams.get("attention");
   const focusedRequestParam = searchParams.get("request");
-  const legacyManual = searchParams.get("legacy") === "1";
-  const entryMode: "packet" | "manual" | "instant" | "job-card" = loadSavedId
-    ? "job-card"
-    : entryParam === "manual"
-      ? legacyManual
-        ? "manual"
-        : "job-card"
+  // A3: unlinked legacy estimate workspace retired. loadSaved= only resolves to an
+  // existing Job Card (linked) or redirects to the Jobs Board (unlinked) — never
+  // mounts the prototype Job Workspace / Create job surface.
+  const legacyEstimateMode = false;
+  const entryMode: "packet" | "manual" | "instant" | "job-card" =
+    entryParam === "manual"
+      ? "job-card"
       : entryParam === "instant"
         ? "instant"
         : entryParam === "job-card"
@@ -1211,9 +1211,6 @@ export default function RoofingClient({
   const [showV2Preview, setShowV2Preview] = useState(false);
   const hasSeededV2PreviewDefaultsRef = useRef(false);
   const loadAppliedRef = useRef(false);
-  const jobLinkAppliedRef = useRef<string | null>(null);
-  const jobLinkInFlightRef = useRef<string | null>(null);
-  const linkedJobIdByEstimateRef = useRef<Record<string, string>>({});
   const isRestoringRef = useRef(false);
   const restoreTimerRef = useRef<number | null>(null);
   const autoSendFiredRef = useRef(false);
@@ -1534,199 +1531,37 @@ export default function RoofingClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [laborCost, laborMode]);
 
+  // A3: loadSaved no longer hydrates the prototype estimator (workspace retired).
   useEffect(() => {
-    if (!loadSavedId || loadAppliedRef.current) return;
-
-    const list = getSavedEstimates();
-    const match = list.find((e) => e.id === loadSavedId);
-    if (!match) return;
-
-    beginRestoreWindow(loadSavedId);
-
-    console.groupCollapsed("🟦 RESTORE apply", loadSavedId);
-    console.log("match keys:", Object.keys(match as any));
-    console.log("snapshot keys:", Object.keys(((match as any).snapshot ?? match) as any));
-    console.log("snapshot:", (match as any).snapshot ?? match);
-    console.groupEnd();
-
-    const s: any = (match as any)?.snapshot ?? (match as any)?.inputs ?? (match as any);
-    const normalized: any = {
-      ...s,
-      laborMode:
-        (s as any).laborMode ??
-        ((s as any).laborPerSquare != null ? "perSquare" : undefined),
-      manualLaborCost:
-        (s as any).manualLaborCost ??
-        ((s as any).manualLabor != null ? (s as any).manualLabor : undefined) ??
-        ((s as any).laborCost != null ? (s as any).laborCost : undefined),
-      dumpFeePerTon:
-        (s as any).dumpFeePerTon ??
-        ((s as any).dumpFee != null ? (s as any).dumpFee : undefined),
-      tearOffEnabled:
-        (s as any).tearOffEnabled ??
-        ((s as any).tearOff != null ? (s as any).tearOff : undefined),
-      removalType:
-        (s as any).removalType ??
-        ((s as any).removal != null ? (s as any).removal : undefined),
-    };
-    setCustomerName(match.customerName || "");
-    setCustomerEmail(match.customerEmail || "");
-    setCustomerPhone(match.customerPhone || "");
-    setJobAddress1(match.jobAddress1 || "");
-    setJobCity(match.jobCity || "");
-    setJobState(match.jobState || "");
-    setJobZip(match.jobZip || match.zip || "");
-    setArea(match.area ?? String(Number(match.roofAreaSqFt || 0)));
-    setWaste(match.waste ?? "");
-    setBundlesPerSquare(match.bundlesPerSquare ?? "");
-    if (typeof s?.bundleCost === "number") setBundleCost(String(s.bundleCost));
-    else if (typeof s?.bundleCost === "string" && s.bundleCost.trim() !== "") setBundleCost(s.bundleCost);
-    else setBundleCost(match.bundleCost ?? "");
-    setLaborPerSquare(match.laborPerSquare ?? "");
-    const savedLabor = Number(match.laborCost ?? 0) || 0;
-    setLaborCost(savedLabor);
-    setLaborCostRaw(savedLabor ? String(Math.round(savedLabor)) : "");
-    if (s?.laborMode === "manual" || s?.laborMode === "guided") setLaborMode(s.laborMode);
-    const manualLabor =
-      (typeof s?.manualLaborCost === "number" ? s.manualLaborCost : null) ??
-      (typeof s?.laborCostManual === "number" ? s.laborCostManual : null) ??
-      (typeof s?.manualLabor === "number" ? s.manualLabor : null) ??
-      null;
-    if (manualLabor != null) {
-      try { setLaborMode("manual"); } catch { /* ignore */ }
-      setLaborCost(manualLabor);
-      setLaborCostRaw(String(Math.round(manualLabor)));
-    }
-    const fee =
-      (typeof s?.dumpFeePerTon === "number" ? s.dumpFeePerTon : null) ??
-      (typeof s?.landfillFeePerTon === "number" ? s.landfillFeePerTon : null) ??
-      (typeof s?.disposalFeePerTon === "number" ? s.disposalFeePerTon : null) ??
-      null;
-    if (fee != null) {
-      setDumpFeePerTon(typeof fee === "number" ? String(fee) : String(fee ?? ""));
-    }
-    const savedBasePerSq = Number(match.laborPerSquare ?? 0) || 0;
-    if (savedBasePerSq > 0) setGuidedLaborBasePerSquare(savedBasePerSq);
-    setMargin(match.margin ?? "");
-    setPricingMode(((match as any).pricingMode === "direct" ? "direct" : "markup"));
-
-    if (match.selectedTier === "Core") setRoofingTier("standard");
-    if (match.selectedTier === "Enhanced") setRoofingTier("enhanced");
-    if (match.selectedTier === "Premium") setRoofingTier("premium");
-
-    if ((normalized as any).laborMode != null) {
-      const mode = (normalized as any).laborMode === "perSquare" ? "guided" : (normalized as any).laborMode;
-      if (mode === "manual" || mode === "guided") setLaborMode(mode);
-    }
-    if ((normalized as any).manualLaborCost != null) {
-      const val = Number((normalized as any).manualLaborCost);
-      if (Number.isFinite(val)) {
-        setLaborCost(val);
-        setLaborCostRaw(String(Math.round(val)));
-      }
-    }
-    if ((normalized as any).dumpFeePerTon != null) {
-      const v = (normalized as any).dumpFeePerTon;
-      setDumpFeePerTon(typeof v === "number" ? String(v) : String(v ?? ""));
-    }
-    if ((normalized as any).tearOffEnabled != null) {
-      setIncludeDebrisRemoval(Boolean((normalized as any).tearOffEnabled));
-    }
-    if ((normalized as any).removalType != null) {
-      setRemovalType((normalized as any).removalType as DebrisRemovalType);
-    }
-    if (s?.pitch === "walkable" || s?.pitch === "moderate" || s?.pitch === "steep") {
-      setPitch(s.pitch as PitchKey);
-    }
-    if (s?.stories === "1" || s?.stories === "2" || s?.stories === "3") {
-      setStories(s.stories as StoriesKey);
-    }
-    if (s?.complexity === "simple" || s?.complexity === "moderate" || s?.complexity === "complex") {
-      setComplexity(s.complexity as ComplexityKey);
-    }
-    if (s?.guidedStories === "one" || s?.guidedStories === "two" || s?.guidedStories === "threePlus") {
-      setGuidedStories(s.guidedStories as GuidedStories);
-    }
-    if (s?.guidedWalkable === "walkable" || s?.guidedWalkable === "steep") {
-      setGuidedWalkable(s.guidedWalkable as GuidedWalkable);
-    }
-
-    setCurrentLoadedSavedId(loadSavedId);
-
-    loadAppliedRef.current = true;
-  }, [loadSavedId, router, beginRestoreWindow]);
-
-  const applyJobToSession = useCallback((jobId: string, estimateId?: string | null) => {
-    if (!isUuidLike(jobId)) return;
-    if (estimateId) {
-      linkedJobIdByEstimateRef.current[estimateId] = jobId;
-    }
-    setCurrentJobId(jobId);
-    if (typeof window === "undefined") return;
-    const targetPath = `/tools/roofing?entry=job-card&job=${encodeURIComponent(jobId)}`;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("entry") === "job-card" && params.get("job") === jobId) return;
-    window.history.replaceState({}, "", targetPath);
-  }, []);
-
-  useEffect(() => {
-    const activeEstimateId = loadSavedId ?? getCurrentLoadedSavedId();
-    if (jobLinkAppliedRef.current && jobLinkAppliedRef.current !== activeEstimateId) {
-      jobLinkAppliedRef.current = null;
-    }
-    if (jobLinkInFlightRef.current && jobLinkInFlightRef.current !== activeEstimateId) {
-      jobLinkInFlightRef.current = null;
-    }
+    if (!loadSavedId) return;
+    // Resolve effect redirects linked → Job Card / unlinked → Board.
   }, [loadSavedId]);
 
+  // Linked legacy estimates open the existing Job Card. Unlinked loadSaved is retired
+  // to the Jobs Board — never mint a job and never open the prototype workspace.
   useEffect(() => {
     const cid = (companyId ?? "").trim();
-    if (!cid || entryMode !== "job-card") return;
-    if (!isJobCardBoardContext) return;
-
-    const estimateId = loadSavedId ?? getCurrentLoadedSavedId() ?? null;
-    if (!estimateId) return;
-
-    const cachedJobId = linkedJobIdByEstimateRef.current[estimateId];
-    if (cachedJobId && isUuidLike(cachedJobId)) {
-      applyJobToSession(cachedJobId, estimateId);
-      return;
-    }
+    if (!loadSavedId || !cid || !isUuidLike(cid)) return;
 
     const match =
-      getSavedEstimateById(estimateId) ??
-      getSavedEstimates().find((e) => e.id === estimateId);
-
-    if (match?.jobId && isUuidLike(match.jobId)) {
-      applyJobToSession(match.jobId, estimateId);
-      return;
-    }
-
-    if (jobLinkInFlightRef.current === estimateId) return;
-
-    if (!match) return;
-
-    jobLinkInFlightRef.current = estimateId;
+      getSavedEstimateById(loadSavedId) ??
+      getSavedEstimates().find((e) => e.id === loadSavedId);
 
     void (async () => {
-      try {
-        const job = await getOrCreateJobForEstimate({ ...match, id: match.id }, cid);
-        if (job?.id) {
-          jobLinkAppliedRef.current = estimateId;
-          applyJobToSession(job.id, estimateId);
-          if (!match.jobId) {
-            patchSavedEstimate(estimateId, { jobId: job.id });
-          }
-        } else {
-          console.warn("[RoofingClient] job link failed for estimate", estimateId);
-        }
-      } finally {
-        if (jobLinkInFlightRef.current === estimateId) {
-          jobLinkInFlightRef.current = null;
-        }
+      if (!match) {
+        router.replace("/tools/roofing/saved");
+        return;
       }
+      const resolved = await resolveJobForEstimate({ ...match, id: match.id }, cid);
+      if (resolved.status === "linked" && resolved.job?.id) {
+        const jobId = resolved.job.id;
+        setCurrentJobId(jobId);
+        router.replace(`/tools/roofing?entry=job-card&job=${encodeURIComponent(jobId)}`);
+        return;
+      }
+      router.replace("/tools/roofing/saved");
     })();
-  }, [loadSavedId, companyId, entryMode, applyJobToSession, isJobCardBoardContext]);
+  }, [loadSavedId, companyId, router]);
 
   useEffect(() => {
     if (entryMode !== "job-card") return;
@@ -1734,75 +1569,18 @@ export default function RoofingClient({
     if (typeof window === "undefined") return;
 
     const params = new URLSearchParams(window.location.search);
-    const legacyFromSuffix = loadSavedId && isJobCardBoardContext ? "&from=board" : "";
-    const loadSavedSuffix = loadSavedId
-      ? `&loadSaved=${encodeURIComponent(loadSavedId)}`
-      : "";
-    const targetPath = `/tools/roofing?entry=job-card&job=${encodeURIComponent(currentJobId)}${loadSavedSuffix}${legacyFromSuffix}`;
-    if (
-      params.get("entry") === "job-card" &&
-      params.get("job") === currentJobId &&
-      (params.get("loadSaved") ?? null) === (loadSavedId ?? null) &&
-      (params.get("from") === "board") === Boolean(loadSavedId && isJobCardBoardContext)
-    ) {
+    // Clean Job Card URLs only — never retain loadSaved= / from=board on operational routes.
+    const targetPath = `/tools/roofing?entry=job-card&job=${encodeURIComponent(currentJobId)}`;
+    if (params.get("entry") === "job-card" && params.get("job") === currentJobId && !params.get("loadSaved") && params.get("from") !== "board") {
       return;
     }
     window.history.replaceState({}, "", targetPath);
-  }, [entryMode, currentJobId, isJobCardBoardContext, loadSavedId]);
+  }, [entryMode, currentJobId]);
 
+  // A3: retired — unlinked loadSaved no longer syncs estimator state or keeps a legacy URL.
   useEffect(() => {
     if (!loadSavedId) return;
-
-    const list = getSavedEstimates();
-    const match = list.find((e) => e.id === loadSavedId);
-    if (!match) return;
-
-    const targetArea = match.area ?? String(Number(match.roofAreaSqFt || 0));
-    const targetWaste = match.waste ?? "";
-    const targetBundlesPerSquare = match.bundlesPerSquare ?? "";
-    const targetBundleCost = match.bundleCost ?? "";
-    const targetLaborPerSquare = match.laborPerSquare ?? "";
-    const targetMargin = match.margin ?? "";
-    const targetPricingMode = (match as any).pricingMode === "direct" ? "direct" : "markup";
-
-    const areaOk = String(area ?? "") === targetArea;
-    const wasteOk = String(waste ?? "") === targetWaste;
-    const bundlesPerSquareOk = String(bundlesPerSquare ?? "") === targetBundlesPerSquare;
-    const bundleCostOk = String(bundleCost ?? "") === targetBundleCost;
-    const laborPerSquareOk = String(laborPerSquare ?? "") === targetLaborPerSquare;
-    const marginOk = String(margin ?? "") === targetMargin;
-    const pricingModeOk = pricingMode === targetPricingMode;
-
-    if (!areaOk || !wasteOk || !bundlesPerSquareOk || !bundleCostOk || !laborPerSquareOk || !marginOk || !pricingModeOk) {
-      if (!areaOk) setArea(targetArea);
-      if (!wasteOk) setWaste(targetWaste);
-      if (!bundlesPerSquareOk) setBundlesPerSquare(targetBundlesPerSquare);
-      if (!bundleCostOk) setBundleCost(targetBundleCost);
-      if (!laborPerSquareOk) setLaborPerSquare(targetLaborPerSquare);
-      if (!marginOk) setMargin(targetMargin);
-      if (!pricingModeOk) setPricingMode(targetPricingMode);
-      return;
-    }
-
-    // Only once all values "stick", clean the URL without remounting.
-    if (typeof window !== "undefined") {
-      const jobQuery =
-        currentJobId && isUuidLike(currentJobId)
-          ? `&job=${encodeURIComponent(currentJobId)}`
-          : "";
-      window.history.replaceState({}, "", `/tools/roofing?entry=job-card${jobQuery}&from=board`);
-    }
-  }, [
-    loadSavedId,
-    area,
-    waste,
-    bundlesPerSquare,
-    bundleCost,
-    laborPerSquare,
-    margin,
-    pricingMode,
-    currentJobId,
-  ]);
+  }, [loadSavedId]);
 
   const [gptReviewComment, setGptReviewComment] = useState("");
   const [showEmailTemplate, setShowEmailTemplate] = useState(false);
@@ -10927,7 +10705,7 @@ Thanks,`;
             </div>
           )}
 
-        {entryMode === "manual" && legacyManual ? (
+        {entryMode === "manual" && legacyEstimateMode ? (
           renderLegacyEstimateWorkspace()
         ) : entryMode === "job-card" ? (
           renderJobCardShell()
