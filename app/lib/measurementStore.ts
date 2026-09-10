@@ -371,7 +371,8 @@ function measurementDraftToInsertRowFields(
     created_by: draft.created_by ?? null,
     updated_by: draft.updated_by ?? null,
     status: draft.status ?? "draft",
-    is_selected: draft.is_selected ?? false,
+    // Selection flag is owned by select_job_measurement_v1; inserts start unselected.
+    is_selected: false,
     source_type: draft.source_type ?? "manual",
     source_provider: normalizeNullableString(draft.source_provider),
     source_report_id: normalizeNullableString(draft.source_report_id),
@@ -834,6 +835,9 @@ export async function updateMeasurementRecord(
   delete (row as { id?: string }).id;
   delete (row as { created_at?: string }).created_at;
   delete (row as { company_id?: string }).company_id;
+  // Selection is a cross-row/job invariant and is writable only through
+  // select_job_measurement_v1. Ordinary measurement edits cannot change it.
+  delete (row as { is_selected?: boolean }).is_selected;
 
   if (Object.keys(row).length === 0) {
     return getMeasurementById(measurementId);
@@ -862,15 +866,14 @@ export async function updateMeasurementRecord(
 }
 
 export type SelectMeasurementScope = {
-  jobId?: string | null;
-  estimateId?: string | null;
+  companyId: string;
+  jobId: string;
 };
 
 /**
- * Mark one measurement record as selected for its job and/or estimate scope.
- *
- * Staged client two-step clear + set. A future Postgres RPC/transaction would be
- * better for race-proof single-selected enforcement.
+ * Atomically select one measurement for its job. The database validates
+ * membership, company/job ownership, selectability, and synchronizes the row
+ * flag with jobs.selected_measurement_id in one transaction.
  */
 export async function selectMeasurementRecord(
   id: string,
@@ -882,68 +885,47 @@ export async function selectMeasurementRecord(
     return null;
   }
   const measurementId = String(id || "").trim();
-  if (!isUuidLike(measurementId)) {
-    console.error("[measurementStore] selectMeasurementRecord: invalid measurement id");
+  const companyId = String(scope?.companyId || "").trim();
+  const jobId = String(scope?.jobId || "").trim();
+  if (!isUuidLike(measurementId) || !isUuidLike(companyId) || !isUuidLike(jobId)) {
+    console.error("[measurementStore] selectMeasurementRecord: invalid selection identity");
     return null;
   }
-
-  const target = await getMeasurementById(measurementId);
-  if (!target) {
-    console.error("[measurementStore] selectMeasurementRecord: record not found", {
-      id: measurementId,
-    });
-    return null;
-  }
-
-  const effectiveJobId =
-    normalizeNullableString(scope?.jobId) ?? normalizeNullableString(target.job_id);
-  const effectiveEstimateId =
-    normalizeNullableString(scope?.estimateId) ?? normalizeNullableString(target.estimate_id);
 
   try {
-    if (effectiveJobId) {
-      const { error } = await supabase
-        .from("measurement_records")
-        .update({ is_selected: false })
-        .eq("job_id", effectiveJobId);
-
-      if (error) {
-        console.error("[measurementStore] selectMeasurementRecord clear job scope failed:", error.message, {
-          jobId: effectiveJobId,
-        });
-        return null;
-      }
-    } else if (effectiveEstimateId) {
-      const { error } = await supabase
-        .from("measurement_records")
-        .update({ is_selected: false })
-        .eq("estimate_id", effectiveEstimateId);
-
-      if (error) {
-        console.error(
-          "[measurementStore] selectMeasurementRecord clear estimate scope failed:",
-          error.message,
-          { estimateId: effectiveEstimateId }
-        );
-        return null;
-      }
-    }
-
-    const { error: selectError } = await supabase
-      .from("measurement_records")
-      .update({ is_selected: true, updated_at: new Date().toISOString() })
-      .eq("id", measurementId);
-
-    if (selectError) {
-      console.error("[measurementStore] selectMeasurementRecord set selected failed:", selectError.message, {
+    const { data, error } = await supabase.rpc("select_job_measurement_v1", {
+      p_company_id: companyId,
+      p_job_id: jobId,
+      p_measurement_id: measurementId,
+    });
+    if (error || !Array.isArray(data) || data[0]?.measurement_id !== measurementId) {
+      console.error("[measurementStore] selectMeasurementRecord failed", {
         id: measurementId,
+        jobId,
+        code: error?.code ?? "invalid_response",
       });
       return null;
     }
-
     return getMeasurementById(measurementId);
   } catch (err) {
     console.error("[measurementStore] selectMeasurementRecord error:", err);
     return null;
+  }
+}
+
+export async function clearJobMeasurementSelection(scope: SelectMeasurementScope): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  const companyId = String(scope?.companyId || "").trim();
+  const jobId = String(scope?.jobId || "").trim();
+  if (!supabase || !isUuidLike(companyId) || !isUuidLike(jobId)) return false;
+  try {
+    const { data, error } = await supabase.rpc("select_job_measurement_v1", {
+      p_company_id: companyId,
+      p_job_id: jobId,
+      p_measurement_id: null,
+    });
+    return !error && Array.isArray(data) && data[0]?.measurement_id == null;
+  } catch {
+    return false;
   }
 }

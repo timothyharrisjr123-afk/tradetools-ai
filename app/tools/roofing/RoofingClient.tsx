@@ -68,6 +68,7 @@ import {
   getOrCreateJobForEstimate,
   isUuidLike,
   buildFormattedAddress,
+  getJobById,
   updateJob,
 } from "@/app/lib/jobStore";
 import {
@@ -4591,8 +4592,8 @@ Thanks,`;
           throw new Error("Could not create measurement record");
         }
         record = await selectMeasurementRecord(created.id, {
+          companyId: cid,
           jobId,
-          estimateId: isUuidLike(currentLoadedSavedId) ? currentLoadedSavedId : null,
         });
       } else {
         const { is_selected: _isSelected, ...updatePatch } = draft;
@@ -4605,7 +4606,7 @@ Thanks,`;
 
       setPersistedSelectedMeasurement(record);
 
-      const linkedJob = await updateJob(jobId, { selected_measurement_id: record.id });
+      const linkedJob = await getJobById(jobId);
       if (!linkedJob) {
         console.warn("[RoofingClient] could not set jobs.selected_measurement_id", {
           jobId,

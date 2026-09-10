@@ -281,9 +281,8 @@ export function jobDraftToInsertRow(draft: JobDraft | Partial<JobDraft>): Partia
   if (draft.stage_entered_at !== undefined) row.stage_entered_at = draft.stage_entered_at ?? null;
   if (draft.archived !== undefined) row.archived = draft.archived ?? false;
   if (draft.deleted_at !== undefined) row.deleted_at = draft.deleted_at ?? null;
-  if (draft.selected_measurement_id !== undefined) {
-    row.selected_measurement_id = draft.selected_measurement_id ?? null;
-  }
+  // Measurement selection is written only through select_job_measurement_v1.
+  // Generic job updates must not mutate selected_measurement_id.
   if (draft.active_proposal_id !== undefined) {
     row.active_proposal_id = draft.active_proposal_id ?? null;
   }
