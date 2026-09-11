@@ -2,9 +2,23 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-11 — Foundation remediation A6 COMPLETE; FD-P1-07 CLOSED; Category A CLOSED
+
+- **FD-P1-07 status:** `CLOSED`. A6 local hardening + non-production dry-run **PASS**. No production mutation for A6. Main **not** pushed. A7 **not** started. Dependency modernization **not** started.
+- **Root causes / incidents closed:** (A) selective-release `npm install` colliding with main `node_modules`/`.next` (Next mismatch, corrupt `.next`, routes-manifest / webpack / `VAR_MODULE_GLOBAL_ERROR`); (B) wrong Supabase/Vercel/DATABASE_URL targeting; (C) release provenance drift; (D) `origin/main` behind canonical local main while prod ships selective SHAs; (E) agents managing user-owned `npm run dev`/port 3000; (F) DB-forward vs app-deploy ordering; (G) env/secret discipline.
+- **Canonical contract:** `docs/fielddive-release-discipline.md`.
+- **Isolated release rule:** selective production builds/installs only in sibling `git worktree`; never mutate main checkout `node_modules` or `.next`. Helpers: `scripts/release-worktree.ps1`, `scripts/release-preflight.ps1`.
+- **Environment confirmation:** keep `scripts/supabase-target-guard.ps1` + staging wrapper; preflight wires SHA/clean/isolation/Node engines/package-lock/Supabase ref; DATABASE_URL **classification only** (never printed).
+- **Migration discipline:** one authorized version; ledger once; prefer forward fix; never rewrite applied history.
+- **Selective release provenance:** always record release SHA, `dpl_…`, branch/worktree, migration versions in handoff (current production app: `ad2da50…` / `dpl_HAkJeFxp7XY5QARn6onWsGQT3Tf5` from A5).
+- **Main/origin strategy:** do **not** blindly push or deploy tip main; continue selective releases until authorized full-main cutover; every selective cherry-pick must land on canonical local main in the same program.
+- **Agent runtime rules:** `.cursor/rules/fielddive-release-ops.mdc` (alwaysApply) — user owns dev server; no push/deploy without auth; Windows Codex OS 206 loop → stop + hand to Cursor.
+- **Verification:** `scripts/test-release-discipline.ps1` PASS (wrong-env deny, SHA mismatch deny, dirty deny, worktree-on-main deny, isolated marker absent from main, main Next untouched, no secret echo, cleanup). `scripts/test-supabase-target-guard.ps1` PASS.
+- **Category A:** A1–A6 **CLOSED**. Safe to resume product roadmap only under separate authorization. Technology Currency Audit remains later/separate.
+
 ## 2026-09-11 — Foundation remediation A5 PRODUCTION CUTOVER COMPLETE; FD-P1-04 CLOSED
 
-- **FD-P1-04 status:** `CLOSED`. A5 production cutover **PASS**. A6 **not** started. Main **not** pushed.
+- **FD-P1-04 status:** `CLOSED`. A5 production cutover **PASS**. A6 **CLOSED** (see A6 section above). Main **not** pushed.
 - **Root cause / P0-class tenant risk:** `jobs.company_id` was mutable after INSERT (column UPDATE granted to authenticated + service_role; no immutability trigger). Ownership transfer A→B / A→NULL / stale UPSERT / dual-company membership could rewrite tenant parent identity. No product feature supports job transfer/merge/reassignment.
 - **Production data:** clean before apply — `jobs.company_id` **NOT NULL**; NULL rows **0**; missing-company FK rows **0**; ownership remediation **not** required. Live jobs **133**.
 - **Canonical invariant:** a job receives exactly one non-NULL `company_id` at INSERT; that value is immutable for the job lifetime. Same-value assignment allowed. Distinct values (including NULL) rejected.
@@ -16,7 +30,7 @@
 - **Staging proofs PASS:** canonical INSERT; same-owner; normal update; A→B; A→NULL; childless; UPSERT; stale client; dual-company; service_role; raw Data API; concurrency; lifecycle disposition RPC; post-priv revoke.
 - **Production proofs PASS:** same matrix (trigger immutable reject for privileged paths; permission denied for authenticated/service_role column revoke paths); fixtures cleaned; leftover synthetic jobs **0**.
 - **Application release (selective, not tip/main):** worktree `release/a5-jobs-company-immutability` from live A4 tip `0359765` + A5 impl cherry-pick → release SHA **`ad2da50d500d245ca22b6c40d2675407e973d171`**. GitHub branch push + `vercel promote`. Deployment **`dpl_HAkJeFxp7XY5QARn6onWsGQT3Tf5`** READY; aliases `www.fielddive.com` / `fielddive.com`. Tip Stripe/Next modernization **not** deployed.
-- Implementation on main: **`79f226309c7974a664f9f849f0e6a4b36feb36c3`**. Docs closeout follows. Do **not** start A6 without separate authorization. Do **not** push main.
+- Implementation on main: **`79f226309c7974a664f9f849f0e6a4b36feb36c3`**. Docs closeout recorded. A6 subsequently **CLOSED** (see A6 section). Do **not** push main.
 
 ## 2026-09-10 — Foundation remediation A4 PRODUCTION CUTOVER COMPLETE; FD-P1-06 CLOSED
 
@@ -137,7 +151,7 @@ MUST_FIX_BY: `BEFORE_MORE_FEATURES` | `BEFORE_PAID_BETA` | `NORMAL_ROADMAP` | `T
 | FD-P1-02 | JOBS/ESTIMATES | P1 | Estimate/job dual birth | Was: estimate auto-birth beside New Job | Legacy estimate pipeline + soft claims | New Job / `jobs.id` sole operational identity; estimate birth retired | Clear losing soft claim only (ops script) | Phase-one birth quarantine + phase-two identity/FK | Resolver read-only; unlinked workspace retired | Legacy Board section gated off | **DB-first then app** | Staging proofs + New Job visual + quarantine tests | **CLOSED** | After A2 CLOSED; before A4 | BEFORE_MORE_FEATURES |
 | FD-P1-06 | SCHEDULE/LIFECYCLE | P1 | Schedule/stage data drift | Was: 1 scheduled w/o schedule; 15 Production/Complete retained planned schedules mislabeled as anomalies | No final-state stage↔planned-schedule invariant; Board stale schedule reads | `jobs.stage` + planned `job_schedules` aligned; Production/Complete retain one read-only planned window | Remediate 1 orphan scheduled→intake | Deferrable cardinality invariant + write guard | Board fail-closed LOADING/ERROR; planned-schedule copy | Minimal | Coordinated | Lifecycle + stale-read + staging/prod proofs | **CLOSED** | A4 | BEFORE_MORE_FEATURES |
 | FD-P1-04 | TENANCY | P1 | `jobs.company_id` mutable | UPDATE granted; no immutability trigger | Asymmetry vs customers/properties/payments | Immutable job company_id | None | Trigger + revoke UPDATE | jobStore facade | None | DB-first | Adversarial update | **CLOSED** | A5 | BEFORE_MORE_FEATURES |
-| FD-P1-07 | RELEASE | P1 | Tip vs production deploy skew | Tip has Stripe/`FIELDDIVE_ENV`/Next 16.3; live Places release does not | Selective Phase 0 release vs full tip | Explicit release packages + env gates | None | None | Docs/process gates | None | Process | Deploy dry-run checklist | OPEN | A6 last | BEFORE_MORE_FEATURES |
+| FD-P1-07 | RELEASE | P1 | Tip vs production deploy skew | Tip has Stripe/`FIELDDIVE_ENV`/Next 16.3; live selective releases do not | Selective release vs full tip; env/worktree collisions | Explicit release packages + env gates + isolated worktree | None | Guard scripts | Docs/process gates | Cursor alwaysApply ops rule | Process | Deploy dry-run checklist | **CLOSED** | A6 | BEFORE_MORE_FEATURES |
 
 #### Category B — BEFORE PAID BETA
 

@@ -99,3 +99,7 @@ Target: `supabase/migrations/20260909130935_durable_stripe_account_recovery.sql`
 
 7. Run catalog, index, constraint, trigger, function, `search_path`, ACL, backfill, retained-history, uniqueness, replacement, retry, cross-tenant, concurrency, new-money, historical-webhook, refund, rollback, advisor, and application regression checks.
 8. Prepare a separate production plan. Staging authorization never authorizes production.
+
+## Production / selective release (A6)
+
+For production app/DB cutovers, isolated release worktrees, and provenance recording, follow `docs/fielddive-release-discipline.md`. Staging success never authorizes production.
