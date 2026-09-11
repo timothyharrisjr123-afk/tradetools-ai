@@ -74,9 +74,11 @@ describe("proposalJobCardSentHistory", () => {
   });
 
   test("compact delivery labels omit prepared and stay contractor-safe", () => {
-    assert.equal(formatJobCardCompactDeliveryStatusLabel("delivered"), "Delivered");
-    assert.equal(formatJobCardCompactDeliveryStatusLabel("failed"), "Failed");
-    assert.equal(formatJobCardCompactDeliveryStatusLabel("bounced"), "Bounced");
+    assert.equal(formatJobCardCompactDeliveryStatusLabel("delivered"), null);
+    assert.equal(formatJobCardCompactDeliveryStatusLabel("failed"), "Couldn't deliver");
+    assert.equal(formatJobCardCompactDeliveryStatusLabel("bounced"), "Couldn't deliver");
+    assert.equal(formatJobCardCompactDeliveryStatusLabel("delayed"), null);
+    assert.equal(formatJobCardCompactDeliveryStatusLabel("provider_accepted"), "Emailed");
     assert.equal(formatJobCardCompactDeliveryStatusLabel("attempted"), "Sending");
     assert.equal(formatJobCardCompactDeliveryStatusLabel("provider_accepted"), "Emailed");
     assert.equal(formatJobCardCompactDeliveryStatusLabel("prepared"), null);

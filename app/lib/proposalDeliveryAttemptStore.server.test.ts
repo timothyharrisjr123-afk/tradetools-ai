@@ -80,6 +80,7 @@ function baseAttemptRow(overrides: Record<string, unknown> = {}) {
     attempted_at: ATTEMPTED_AT,
     provider_accepted_at: null,
     failed_at: null,
+    delayed_at: null,
     delivered_at: null,
     bounced_at: null,
     complained_at: null,

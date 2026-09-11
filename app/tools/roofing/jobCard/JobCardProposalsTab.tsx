@@ -1,6 +1,7 @@
 "use client";
 
 import CustomerRequestReviewCard from "@/app/components/proposals/CustomerRequestReviewCard";
+import { PROPOSAL_DELIVERY_ACTION_HINT } from "@/app/lib/proposalDeliveryAttemptViewModel";
 import { useJobProposalCustomerRequests } from "@/app/lib/useProposalCustomerRequests";
 import type {
   JobCardProposalActionView,
@@ -265,7 +266,14 @@ function ProposalListRow({
                   </span>
                 ) : null}
                 {entry.deliveryStatusLabel ? (
-                  <span data-jobcard-sent-history-delivery>
+                  <span
+                    data-jobcard-sent-history-delivery
+                    className={
+                      entry.deliveryStatusLabel === "Couldn't deliver"
+                        ? "font-medium text-red-700"
+                        : undefined
+                    }
+                  >
                     {entry.deliveryStatusLabel}
                   </span>
                 ) : null}
@@ -280,6 +288,17 @@ function ProposalListRow({
               </li>
             ))}
           </ul>
+          {row.sentHistory.some(
+            (entry) =>
+              entry.isCurrent && entry.deliveryStatusLabel === "Couldn't deliver"
+          ) ? (
+            <p
+              className="mt-1 text-[12px] font-medium text-red-700"
+              data-jobcard-delivery-action-hint
+            >
+              {PROPOSAL_DELIVERY_ACTION_HINT}
+            </p>
+          ) : null}
         </details>
       ) : null}
       {primaryRequest ? (

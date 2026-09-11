@@ -40,7 +40,7 @@ function emptyHistoryVm(): ProposalDeliveryHistoryViewModel {
 
 function acceptedHistoryVm(): ProposalDeliveryHistoryViewModel {
   const latest = {
-    statusLabel: "Accepted by email provider",
+    statusLabel: "Emailed",
     statusTone: "success" as const,
     resultCategory: "accepted" as const,
     shortExplanation: PROPOSAL_DELIVERY_ATTEMPT_SHORT_EXPLANATIONS.provider_accepted,
@@ -119,11 +119,8 @@ describe("proposalDeliveryHistoryClient helpers", () => {
     assert.equal(parsed.ok, true);
     if (!parsed.ok) return;
 
-    assert.equal(parsed.history.latest?.statusLabel, "Accepted by email provider");
-    assert.match(
-      parsed.history.latest?.shortExplanation ?? "",
-      /does not confirm the customer received or opened/i
-    );
+    assert.equal(parsed.history.latest?.statusLabel, "Emailed");
+    assert.equal(parsed.history.latest?.shortExplanation, "Proposal emailed.");
     assert.doesNotMatch(parsed.history.latest?.shortExplanation ?? "", /Sent to customer/i);
     assert.doesNotMatch(parsed.history.latest?.shortExplanation ?? "", /Customer opened/i);
   });
@@ -204,7 +201,7 @@ describe("proposalDeliveryHistoryClient helpers", () => {
 
     assert.equal(result.ok, true);
     if (!result.ok) return;
-    assert.equal(result.history.latest?.statusLabel, "Accepted by email provider");
+    assert.equal(result.history.latest?.statusLabel, "Emailed");
   });
 
   test("mocked safe history response does not contain forbidden serialized fields", () => {

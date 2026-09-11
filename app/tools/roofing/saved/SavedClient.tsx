@@ -3063,7 +3063,11 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       });
       const json = await res.json();
       if (!res.ok || !json?.success) {
-        setToast(json?.error || "Failed to send follow-up");
+        setToast(
+          res.status === 410
+            ? json?.error || "Follow-up email is retired. Use proposal Preview to send."
+            : json?.error || "Failed to send follow-up"
+        );
         setTimeout(() => setToast(null), 3000);
         return;
       }

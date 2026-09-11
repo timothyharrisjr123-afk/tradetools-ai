@@ -15,34 +15,37 @@ export const PROPOSAL_DELIVERY_ATTEMPT_STATUS_LABELS: Record<
 > = {
   prepared: "Prepared",
   attempted: "Sending",
-  provider_accepted: "Accepted by email provider",
-  failed: "Failed",
+  provider_accepted: "Emailed",
+  delayed: "Sending",
+  failed: "Couldn't deliver",
   delivered: "Delivered",
-  bounced: "Bounced",
-  complained: "Complaint received",
+  bounced: "Couldn't deliver",
+  complained: "Complaint",
 };
-
-export const PROPOSAL_DELIVERY_ATTEMPT_BODY_PREVIEW_MAX_LENGTH = 120;
 
 export const PROPOSAL_DELIVERY_HISTORY_EMPTY_TITLE = "No emails sent yet";
 
 export const PROPOSAL_DELIVERY_HISTORY_EMPTY_EXPLANATION =
   "Send a proposal by email above to create a delivery record.";
 
+export const PROPOSAL_DELIVERY_ACTION_HINT =
+  "Check the customer's email and resend.";
+
 export const PROPOSAL_DELIVERY_ATTEMPT_SHORT_EXPLANATIONS: Record<
   ProposalDeliveryAttemptStatus,
   string
 > = {
   prepared: "Delivery attempt prepared but not yet sent.",
-  attempted:
-    "Email handoff in progress. If this persists, try again or contact support.",
-  provider_accepted:
-    "Resend accepted the send request. This does not confirm the customer received or opened the email.",
-  failed: "The email provider could not accept the send request.",
-  delivered: "Reported delivered by email provider.",
-  bounced: "Email provider reported a bounce.",
-  complained: "Email provider reported a spam complaint.",
+  attempted: "Email handoff in progress.",
+  provider_accepted: "Proposal emailed.",
+  delayed: "Email is still being delivered.",
+  failed: PROPOSAL_DELIVERY_ACTION_HINT,
+  delivered: "Delivered to the customer's mail server.",
+  bounced: PROPOSAL_DELIVERY_ACTION_HINT,
+  complained: "The recipient marked the email as spam.",
 };
+
+export const PROPOSAL_DELIVERY_ATTEMPT_BODY_PREVIEW_MAX_LENGTH = 120;
 
 export type ProposalDeliveryAttemptStatusTone =
   | "neutral"
@@ -90,9 +93,10 @@ const STATUS_TONES: Record<ProposalDeliveryAttemptStatus, ProposalDeliveryAttemp
   prepared: "neutral",
   attempted: "pending",
   provider_accepted: "success",
+  delayed: "pending",
   failed: "error",
   delivered: "success",
-  bounced: "warning",
+  bounced: "error",
   complained: "warning",
 };
 
@@ -103,10 +107,11 @@ const RESULT_CATEGORIES: Record<
   prepared: "pending",
   attempted: "pending",
   provider_accepted: "accepted",
+  delayed: "pending",
   failed: "failed",
-  delivered: "future_tracking",
-  bounced: "future_tracking",
-  complained: "future_tracking",
+  delivered: "accepted",
+  bounced: "failed",
+  complained: "failed",
 };
 
 export function getProposalDeliveryAttemptStatusLabel(
@@ -138,6 +143,8 @@ export function resolveProposalDeliveryAttemptDisplayTimestamp(
     case "attempted":
     case "prepared":
       return row.attempted_at ?? row.created_at;
+    case "delayed":
+      return row.delayed_at ?? row.provider_accepted_at ?? row.created_at;
     case "delivered":
       return row.delivered_at ?? row.provider_accepted_at ?? row.created_at;
     case "bounced":

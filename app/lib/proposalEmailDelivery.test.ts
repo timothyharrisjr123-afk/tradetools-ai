@@ -204,6 +204,7 @@ function attemptRow(overrides: Partial<ProposalDeliveryAttemptRow> = {}): Propos
     attempted_at: "2026-06-26T12:00:00.000Z",
     provider_accepted_at: null,
     failed_at: null,
+    delayed_at: null,
     delivered_at: null,
     bounced_at: null,
     complained_at: null,

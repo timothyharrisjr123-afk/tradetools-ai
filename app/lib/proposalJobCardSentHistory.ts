@@ -30,12 +30,13 @@ export type JobCardSentHistoryView = {
 };
 
 const COMPACT_DELIVERY_LABELS: Record<string, string | null> = {
-  delivered: "Delivered",
-  failed: "Failed",
-  bounced: "Bounced",
+  delivered: null, // quiet — history detail only
+  failed: "Couldn't deliver",
+  bounced: "Couldn't deliver",
   attempted: "Sending",
+  delayed: null, // under the hood
   provider_accepted: "Emailed",
-  complained: "Complaint",
+  complained: null, // support/history
   prepared: null,
 };
 

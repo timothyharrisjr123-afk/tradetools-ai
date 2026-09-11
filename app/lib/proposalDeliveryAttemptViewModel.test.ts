@@ -52,6 +52,7 @@ function baseRow(
     attempted_at: "2026-06-26T12:00:00.000Z",
     provider_accepted_at: null,
     failed_at: null,
+    delayed_at: null,
     delivered_at: null,
     bounced_at: null,
     complained_at: null,
@@ -84,21 +85,19 @@ describe("proposalDeliveryAttemptViewModel status labels", () => {
   test("all status labels match contractor-safe copy", () => {
     assert.equal(PROPOSAL_DELIVERY_ATTEMPT_STATUS_LABELS.prepared, "Prepared");
     assert.equal(PROPOSAL_DELIVERY_ATTEMPT_STATUS_LABELS.attempted, "Sending");
-    assert.equal(
-      PROPOSAL_DELIVERY_ATTEMPT_STATUS_LABELS.provider_accepted,
-      "Accepted by email provider"
-    );
-    assert.equal(PROPOSAL_DELIVERY_ATTEMPT_STATUS_LABELS.failed, "Failed");
+    assert.equal(PROPOSAL_DELIVERY_ATTEMPT_STATUS_LABELS.provider_accepted, "Emailed");
+    assert.equal(PROPOSAL_DELIVERY_ATTEMPT_STATUS_LABELS.delayed, "Sending");
+    assert.equal(PROPOSAL_DELIVERY_ATTEMPT_STATUS_LABELS.failed, "Couldn't deliver");
     assert.equal(PROPOSAL_DELIVERY_ATTEMPT_STATUS_LABELS.delivered, "Delivered");
-    assert.equal(PROPOSAL_DELIVERY_ATTEMPT_STATUS_LABELS.bounced, "Bounced");
-    assert.equal(PROPOSAL_DELIVERY_ATTEMPT_STATUS_LABELS.complained, "Complaint received");
+    assert.equal(PROPOSAL_DELIVERY_ATTEMPT_STATUS_LABELS.bounced, "Couldn't deliver");
+    assert.equal(PROPOSAL_DELIVERY_ATTEMPT_STATUS_LABELS.complained, "Complaint");
   });
 
-  test("provider_accepted label is not sent to customer wording", () => {
+  test("provider_accepted label is quiet emailed wording", () => {
     const label = getProposalDeliveryAttemptStatusLabel("provider_accepted");
+    assert.equal(label, "Emailed");
     assert.notEqual(label, "Sent to customer");
-    assert.notEqual(label.toLowerCase(), "sent to customer");
-    assert.match(label, /email provider/i);
+    assert.doesNotMatch(label, /email provider/i);
   });
 });
 
@@ -137,8 +136,8 @@ describe("proposalDeliveryAttemptViewModel output", () => {
       vm.shortExplanation,
       PROPOSAL_DELIVERY_ATTEMPT_SHORT_EXPLANATIONS.provider_accepted
     );
-    assert.match(vm.shortExplanation, /Resend accepted the send request/i);
-    assert.match(vm.shortExplanation, /does not confirm the customer received or opened/i);
+    assert.equal(vm.shortExplanation, "Proposal emailed.");
+    assert.doesNotMatch(vm.shortExplanation, /Resend/i);
     assert.doesNotMatch(vm.shortExplanation, /customer opened/i);
     assert.doesNotMatch(vm.shortExplanation, /sent to customer/i);
     assert.equal(vm.displayTimestamp, "2026-06-26T12:00:01.000Z");
@@ -181,33 +180,41 @@ describe("proposalDeliveryAttemptViewModel output", () => {
     assert.equal(attemptedVm.resultCategory, "pending");
   });
 
-  test("delivered, bounced, and complained map to future_tracking without open/view claims", () => {
-    for (const status of ["delivered", "bounced", "complained"] as const) {
+  test("delivered is quiet success; bounce/complaint are actionable failures without open/view claims", () => {
+    const delivered = buildProposalDeliveryAttemptViewModel(
+      baseRow({
+        status: "delivered",
+        delivered_at: "2026-06-26T12:00:03.000Z",
+      })
+    );
+    assert.equal(delivered.resultCategory, "accepted");
+    assert.equal(delivered.statusLabel, "Delivered");
+
+    for (const status of ["bounced", "complained"] as const) {
       const vm = buildProposalDeliveryAttemptViewModel(
         baseRow({
           status,
-          delivered_at: status === "delivered" ? "2026-06-26T12:00:03.000Z" : null,
           bounced_at: status === "bounced" ? "2026-06-26T12:00:04.000Z" : null,
           complained_at: status === "complained" ? "2026-06-26T12:00:05.000Z" : null,
         })
       );
-      assert.equal(vm.resultCategory, "future_tracking");
+      assert.equal(vm.resultCategory, "failed");
+      assert.doesNotMatch(vm.shortExplanation, /email provider/i);
       assert.doesNotMatch(vm.shortExplanation, /customer opened/i);
       assert.doesNotMatch(vm.shortExplanation, /viewed/i);
-      assert.doesNotMatch(vm.shortExplanation, /delivered to inbox/i);
     }
 
     assert.equal(
       getProposalDeliveryAttemptShortExplanation(baseRow({ status: "delivered" })),
-      "Reported delivered by email provider."
+      "Delivered to the customer's mail server."
     );
     assert.equal(
       getProposalDeliveryAttemptShortExplanation(baseRow({ status: "bounced" })),
-      "Email provider reported a bounce."
+      "Check the customer's email and resend."
     );
     assert.equal(
       getProposalDeliveryAttemptShortExplanation(baseRow({ status: "complained" })),
-      "Email provider reported a spam complaint."
+      "The recipient marked the email as spam."
     );
   });
 
@@ -324,7 +331,7 @@ describe("proposalDeliveryHistoryViewModel", () => {
     assert.equal(history.totalCount, 1);
     assert.equal(history.latest?.resultCategory, "accepted");
     assert.equal(history.history.length, 1);
-    assert.equal(history.history[0]?.statusLabel, "Accepted by email provider");
+    assert.equal(history.history[0]?.statusLabel, "Emailed");
   });
 
   test("multiple attempts sorted newest first in history", () => {
