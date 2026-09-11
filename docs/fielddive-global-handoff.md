@@ -29,7 +29,7 @@
 - **Board stale-read fix:** `r3fSchedulesLoadStatus` LOADING/ERROR fail-closed (map cleared; actions blocked; integrity banner). SUCCESS empty ≠ error. Job Card eligibility also consumes schedule read status.
 - **Application release (selective, not tip/main):** worktree `release/a4-schedule-stage-convergence` from live A3 tip `0287ff88` + A4 impl → release SHA **`0359765f330001de1af9b1ce8e52328db23d3b15`**. Deploy via GitHub branch push + `vercel promote`. Deployment **`dpl_CRVQpFCA7x6hcpVydTuW5MGnFKb8`** READY; aliases `www.fielddive.com` / `fielddive.com`. Tip Stripe/Next modernization **not** deployed.
 - **Visuals:** desktop + 390 Board / Job Card / Calendar under `tmp/fielddive-ui-review/a4/` (planned-schedule wording; Production/Complete read-only planned retention).
-- Implementation on main: **`f1781b1692b96adc731b65f4759b5c4325d262e1`**. Docs closeout follows. Do **not** start A5 without separate authorization. Do **not** push main.
+- Implementation on main: **`f1781b1692b96adc731b65f4759b5c4325d262e1`**. Docs closeout recorded. A5 subsequently **CLOSED** (see A5 section). Do **not** push main.
 
 ## 2026-09-10 — Foundation remediation A3 PRODUCTION CUTOVER COMPLETE; FD-P1-02 CLOSED
 
