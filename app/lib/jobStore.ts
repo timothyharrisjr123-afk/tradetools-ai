@@ -93,6 +93,11 @@ export type EstimateSnapshotForJob = {
   jobId?: string | null;
 };
 
+/** Mutable job patch. company_id is assigned at INSERT only (A5 / FD-P1-04). */
+export type JobUpdatePatch = Omit<Partial<JobDraft>, "company_id"> & {
+  company_id?: never;
+};
+
 const JOB_SELECT_COLUMNS =
   "id, company_id, customer_id, property_id, job_name, stage, status, source, priority, customer_name, customer_email, customer_phone, address_line1, address_line2, address_city, address_state, address_zip, address_country, address_formatted, assigned_to, created_by, updated_by, notes, summary, last_activity_at, stage_entered_at, production_started_at, completed_at, archived, deleted_at, selected_measurement_id, active_proposal_id, latest_estimate_id, latest_proposal_id, source_metadata, custom_fields, created_at, updated_at";
 
@@ -385,7 +390,7 @@ export async function getJobById(jobId: string): Promise<JobRecord | null> {
 
 export async function updateJob(
   jobId: string,
-  patch: Partial<JobDraft>
+  patch: JobUpdatePatch
 ): Promise<JobRecord | null> {
   const supabase = getSupabaseClient();
   if (!supabase) {
@@ -405,6 +410,7 @@ export async function updateJob(
   });
   delete (row as { id?: string }).id;
   delete (row as { created_at?: string }).created_at;
+  delete (row as { company_id?: string }).company_id;
   delete (row as { stage?: string }).stage;
   delete (row as { status?: string }).status;
   delete (row as { stage_entered_at?: string | null }).stage_entered_at;
