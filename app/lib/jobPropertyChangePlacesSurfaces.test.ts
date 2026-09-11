@@ -24,6 +24,12 @@ const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 const MIGRATION = read(
   "supabase/migrations/20260911160551_change_job_property_atomic.sql"
 );
+const MIGRATION_DEFINER = read(
+  "supabase/migrations/20260911172000_change_job_property_security_definer.sql"
+);
+const MIGRATION_SELECTED_FIX = read(
+  "supabase/migrations/20260911173500_change_job_property_selected_path_fix.sql"
+);
 const FACADE = read("app/lib/jobPropertyChange.ts");
 const JOB_STORE = read("app/lib/jobStore.ts");
 const PLACES = read("app/lib/placesClient.ts");
@@ -35,7 +41,6 @@ const PROPERTY_STORE = read("app/lib/propertyStore.ts");
 describe("FD-P2 dedicated atomic property-change RPC", () => {
   test("migration defines change_job_property_v1 with membership + same-company lock", () => {
     assert.match(MIGRATION, /create or replace function public\.change_job_property_v1\(p_payload jsonb\)/i);
-    assert.match(MIGRATION, /security invoker/i);
     assert.match(MIGRATION, /company_memberships/);
     assert.match(MIGRATION, /j\.company_id = v_company_id/);
     assert.match(MIGRATION, /p\.company_id = v_company_id/);
@@ -45,30 +50,65 @@ describe("FD-P2 dedicated atomic property-change RPC", () => {
     assert.match(MIGRATION, /revoke all[\s\S]*anon/i);
   });
 
+  test("follow-up migration makes RPC SECURITY DEFINER without granting property_id UPDATE", () => {
+    assert.match(MIGRATION_DEFINER, /security definer/i);
+    assert.match(MIGRATION_DEFINER, /set search_path = pg_catalog, public/i);
+    assert.match(MIGRATION_DEFINER, /company_memberships/);
+    assert.match(MIGRATION_DEFINER, /p\.company_id = v_company_id/);
+    assert.doesNotMatch(
+      MIGRATION_DEFINER,
+      /grant update\s*\(\s*property_id\s*\)/i
+    );
+    assert.match(
+      MIGRATION_DEFINER,
+      /Does not grant authenticated UPDATE\(property_id\)/i
+    );
+  });
+
+  test("selected-property path fix avoids unread v_resolved access", () => {
+    assert.match(MIGRATION_SELECTED_FIX, /v_resolution text/);
+    assert.match(MIGRATION_SELECTED_FIX, /v_resolution := 'selected'/);
+    assert.match(
+      MIGRATION_SELECTED_FIX,
+      /v_resolution := coalesce\(v_resolved\.resolution, 'resolved'\)/
+    );
+    assert.match(
+      MIGRATION_SELECTED_FIX,
+      /'resolution', coalesce\(v_resolution, 'resolved'\)/
+    );
+    assert.doesNotMatch(
+      MIGRATION_SELECTED_FIX,
+      /when v_existing_property_id is not null then 'selected'[\s\S]*v_resolved\.resolution/
+    );
+  });
+
   test("RPC attaches property_id and refreshes operational snapshot only", () => {
-    assert.match(MIGRATION, /property_id = v_property\.id/);
-    assert.match(MIGRATION, /address_line1 = v_property\.address_line1/);
-    assert.match(MIGRATION, /address_line2 = v_property\.address_line2/);
-    assert.match(MIGRATION, /address_formatted =/);
-    assert.doesNotMatch(MIGRATION, /update\s+public\.(proposal_versions|proposal_deliveries|customers)\b/i);
-    assert.doesNotMatch(MIGRATION, /context_echo\s*=/i);
+    assert.match(MIGRATION_DEFINER, /property_id = v_property\.id/);
+    assert.match(MIGRATION_DEFINER, /address_line1 = v_property\.address_line1/);
+    assert.match(MIGRATION_DEFINER, /address_line2 = v_property\.address_line2/);
+    assert.match(MIGRATION_DEFINER, /address_formatted =/);
+    assert.doesNotMatch(
+      MIGRATION_DEFINER,
+      /update\s+public\.(proposal_versions|proposal_deliveries|customers)\b/i
+    );
+    assert.doesNotMatch(MIGRATION_DEFINER, /context_echo\s*=/i);
   });
 
   test("shared property is never mutated for one job address change", () => {
     assert.match(
-      MIGRATION,
-      /Never mutates shared property rows for one job/i
+      MIGRATION_DEFINER,
+      /Does not mutate the shared properties row for one job/i
     );
     assert.doesNotMatch(
-      MIGRATION,
+      MIGRATION_DEFINER,
       /update\s+public\.properties[\s\S]*address_line1/i
     );
   });
 
   test("cross-company property select fails closed", () => {
-    assert.match(MIGRATION, /property_not_found/);
+    assert.match(MIGRATION_DEFINER, /property_not_found/);
     assert.match(
-      MIGRATION,
+      MIGRATION_DEFINER,
       /where p\.id = v_existing_property_id[\s\S]*p\.company_id = v_company_id/
     );
   });
