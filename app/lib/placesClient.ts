@@ -22,6 +22,7 @@ export type PlacesAutocompleteSuggestion = {
 export type PlacesResolvedAddress = {
   formatted: string;
   line1: string;
+  line2?: string;
   city: string;
   state: string;
   zip: string;
@@ -236,6 +237,7 @@ export async function fetchPlacesDetails(
     const streetNumber = component(comps, "street_number");
     const route = component(comps, "route");
     const line1 = [streetNumber, route].filter(Boolean).join(" ").trim();
+    const line2 = component(comps, "subpremise") || "";
     const city =
       component(comps, "locality") ||
       component(comps, "sublocality") ||
@@ -253,8 +255,9 @@ export async function fetchPlacesDetails(
     return {
       available: true,
       address: {
-        formatted: formatted || [line1, city, state, zip].filter(Boolean).join(", "),
+        formatted: formatted || [line1, line2, city, state, zip].filter(Boolean).join(", "),
         line1: line1 || formatted,
+        ...(line2 ? { line2 } : {}),
         city,
         state,
         zip,

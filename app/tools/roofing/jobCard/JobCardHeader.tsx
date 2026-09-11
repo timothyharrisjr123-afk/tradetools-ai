@@ -12,6 +12,7 @@ type JobCardHeaderProps = {
   email?: string;
   customerHref?: string | null;
   propertyHref?: string | null;
+  onChangeProperty?: (() => void) | null;
   actions?: ReactNode;
   dispositionNote?: string | null;
 };
@@ -23,6 +24,7 @@ export default function JobCardHeader({
   email = "",
   customerHref = null,
   propertyHref = null,
+  onChangeProperty = null,
   actions,
   dispositionNote = null,
 }: JobCardHeaderProps) {
@@ -55,12 +57,22 @@ export default function JobCardHeader({
           <div className="mt-1.5 flex min-w-0 items-start gap-1.5 text-sm text-slate-600">
             <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" strokeWidth={1.75} aria-hidden />
             {propertyHref ? (
-              <Link href={propertyHref} className="truncate hover:underline" data-jobcard-property-link>
+              <Link href={propertyHref} className="min-w-0 truncate hover:underline" data-jobcard-property-link>
                 {display.address}
               </Link>
             ) : (
-              <span className="truncate">{display.address}</span>
+              <span className="min-w-0 truncate">{display.address}</span>
             )}
+            {onChangeProperty ? (
+              <button
+                type="button"
+                onClick={onChangeProperty}
+                className="shrink-0 text-xs font-medium text-slate-500 hover:text-slate-800"
+                data-jobcard-change-property
+              >
+                Change
+              </button>
+            ) : null}
           </div>
           {phoneValue || emailValue ? (
             <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm">

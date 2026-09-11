@@ -93,9 +93,14 @@ export type EstimateSnapshotForJob = {
   jobId?: string | null;
 };
 
-/** Mutable job patch. company_id is assigned at INSERT only (A5 / FD-P1-04). */
-export type JobUpdatePatch = Omit<Partial<JobDraft>, "company_id"> & {
+/** Mutable job patch. Ownership and property/address use dedicated writers (A5 / FD-P2). */
+export type JobUpdatePatch = Omit<
+  Partial<JobDraft>,
+  "company_id" | "property_id" | "address"
+> & {
   company_id?: never;
+  property_id?: never;
+  address?: never;
 };
 
 const JOB_SELECT_COLUMNS =
@@ -411,6 +416,14 @@ export async function updateJob(
   delete (row as { id?: string }).id;
   delete (row as { created_at?: string }).created_at;
   delete (row as { company_id?: string }).company_id;
+  delete (row as { property_id?: string }).property_id;
+  delete (row as { address_line1?: string }).address_line1;
+  delete (row as { address_line2?: string }).address_line2;
+  delete (row as { address_city?: string }).address_city;
+  delete (row as { address_state?: string }).address_state;
+  delete (row as { address_zip?: string }).address_zip;
+  delete (row as { address_country?: string }).address_country;
+  delete (row as { address_formatted?: string }).address_formatted;
   delete (row as { stage?: string }).stage;
   delete (row as { status?: string }).status;
   delete (row as { stage_entered_at?: string | null }).stage_entered_at;

@@ -158,6 +158,27 @@ test("details verifies identity and returns only normalized address fields", asy
   assert.equal("reviews" in (result.address ?? {}), false);
 });
 
+test("details maps subpremise into address line2", async () => {
+  process.env.GOOGLE_PLACES_API_KEY = "dedicated-key";
+  globalThis.fetch = async () =>
+    Response.json({
+      id: "ChIJ_unit",
+      formattedAddress: "123 Main St Unit 4, Tulsa, OK 74104, USA",
+      addressComponents: [
+        { longText: "123", types: ["street_number"] },
+        { longText: "Main Street", types: ["route"] },
+        { longText: "4", types: ["subpremise"] },
+        { longText: "Tulsa", types: ["locality"] },
+        { longText: "Oklahoma", shortText: "OK", types: ["administrative_area_level_1"] },
+        { longText: "74104", shortText: "74104", types: ["postal_code"] },
+        { longText: "United States", shortText: "US", types: ["country"] },
+      ],
+    });
+  const result = await fetchPlacesDetails("ChIJ_unit", VALID_TOKEN);
+  assert.equal(result.address?.line2, "4");
+  assert.equal(result.address?.line1, "123 Main Street");
+});
+
 test("timeout and malformed responses are safely classified", async () => {
   process.env.GOOGLE_PLACES_API_KEY = "dedicated-key";
   console.error = () => undefined;
