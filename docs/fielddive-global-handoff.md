@@ -2,9 +2,62 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-11 — Delivery Completeness CLOSED (D1 + D2 + D3)
+
+- **Status:** `CLOSED`. Full Delivery Completeness cycle complete. Main **not** pushed. Stage 3 Deferred/Unfinished/Prototype Inventory **not** started. Stage 4 Astra / Technology Currency **not** started. No Delivery Center / SMS / marketing email / payment-link email / FieldDive receipt email / accept-sign notification email built.
+- **Product principle locked:** UNDER THE HOOD by default → QUIETLY VISIBLE when useful → PROMINENT only on failure or required action.
+- **Starting checkpoint:** `727279208b97ba50626da768131067567b12764d` (FD-P2-PLACES-SURFACES CLOSED). Foundation A1–A6 CLOSED.
+
+### D1 — Canonical proposal delivery truth (CLOSED)
+
+- **Canonical path (unchanged commercial):** `POST /api/proposals/send` → public token → Resend → `proposal_delivery_attempts` (one row per send attempt). Webhooks do **not** mutate proposals / acceptance / payment commercial state.
+- **Webhook:** `POST /api/webhooks/resend` — raw body + `svix-id` / `svix-timestamp` / `svix-signature`; `RESEND_WEBHOOK_SECRET` server-only. Events: `email.sent`, `email.delivered`, `email.delivery_delayed`, `email.bounced`, `email.failed`, `email.complained`.
+- **Svix note:** `svix@2.x` `Webhook.verify` validates signature only (returns `undefined`); payload is `JSON.parse(rawBody)` after verify.
+- **Durable inbox:** `proposal_delivery_provider_events` — unique `svix_id`, `provider_email_id`, normalized `event_type`, `provider_created_at`, `safe_metadata`, nullable `delivery_attempt_id`+`company_id` (from matched attempt only), `apply_state` (`received`/`applied`/`ignored`/`unresolved`/`duplicate`). Service-role only; no client company authority; no raw tokens/secrets.
+- **Correlation:** `provider email_id` → `proposal_delivery_attempts.provider_message_id`. Unknown IDs retained `unresolved` (never attach to tenant). Webhook-before-accept race reconciled exactly once when attempt receives `provider_message_id` (`markProviderAccepted` → reconcile).
+- **Normalized attempt states:** `attempted` → `provider_accepted` → (`delayed`|`delivered`|`bounced`|`failed`|`complained`); `delayed` → (`delivered`|`bounced`|`failed`|`complained`); `delivered` → `complained` only. Monotonic / no weaker regression. Inbox preserves history even when attempt stores current state.
+- **Contractor UX:** quiet **Emailed** + datetime; **Delivered**/delayed under the hood (Job Card compact hides delivered/delayed/complaint); hard fail/bounce **Couldn't deliver** + **Check the customer's email and resend.** (Job Card history prominent). No Delivery Center / provider jargon / success badge noise.
+- **Migration:** `20260911190000_proposal_delivery_webhook_truth.sql` — staging applied + SQL proof PASS (`tmp/fielddive-db-audit/delivery-d1-staging-proof.sql`).
+- **Visual:** `tmp/fielddive-ui-review/delivery-d1/` desktop + 390 (Preview quiet Emailed; Job Card failure + action hint). Review harness route restored: `/dev-harness/v2f-complete` (not a product screen).
+
+### D2 — Legacy send path closure (CLOSED)
+
+| Route | Classification | Disposition |
+|-------|----------------|------------|
+| `POST /api/proposals/send` | KEEP | Canonical audited proposal email |
+| `POST /api/estimate/send` | TOMBSTONE | **410** — no Resend |
+| `POST /api/email/send` | TOMBSTONE | **410** — no Resend |
+| `POST /api/email/followup` | TOMBSTONE | **410** — no Resend |
+| `POST /api/approve/confirm` | TOMBSTONE | **410** — legacy KV approve+email retired |
+
+- Remaining production-reachable proposal email sender: `app/lib/proposalEmailDelivery.server.ts` (fetch to Resend API) via canonical send only.
+- UI callers of retired paths still may invoke them but receive clear **410** errors (no email bypass).
+
+### D3 — Delivery policy closeout (CLOSED)
+
+- **Payment-link email:** **NOT built.** Launch = payment request/link creation + copy/share. Payment-link email = **Stage 4 product-audit decision** unless a concrete launch dependency reopens it. Do not create a second payment truth.
+- **Receipts:** Prefer **Stripe-owned** customer receipt behavior. **No** FieldDive duplicate receipt email. Payment success remains payment success regardless of email delivery.
+- **Accept/sign email:** **NOT built** in Delivery Completeness. Classify for Stage 4 if product-choice rather than missing reliability. Legacy `/api/approve/confirm` confirmation emails retired with the route.
+- **Visibility matrix locked:**
+  - UNDER THE HOOD: provider accepted internals, webhook details, unknown-event reconciliation, complaints/support diagnostics, most successful delivery detail
+  - QUIET: Sent/Emailed, Delivered in detail/history, relevant datetime
+  - PROMINENT: bounce, hard fail, invalid email, send-provider outage, action-required delivery failure
+  - No Delivery Center
+
+### Production cutover (A6)
+
+- **Production RO preflight:** `attempt_count=4`, `provider_accepted=4`, `fail_bounce=0`, inbox absent pre-apply.
+- **Migration applied once:** `20260911190000_proposal_delivery_webhook_truth.sql` on `rhquhnujjnzjhweypavd`. Post: `has_d1_migration=true`, `has_inbox_table=true`, `has_delayed_at=true`; attempts unchanged (4 / 0 fail). Ordinary CLI link restored to staging `tjtrhdckinjtorgbkirm`.
+- **Selective app release:** worktree `C:\dev\tradetools-ai-release-delivery`, branch `release/delivery-completeness`, base Places tip `c1e77359…` + delivery cherry-pick (Places Stripe `^17.5.0` retained; direct `svix@^2.4.0` added). Release SHA **`917f1ce0eb08535ef48aebae24dbefe659016950`**.
+- **Deployment:** promote of preview `dpl_95jQhFsMi5KW38vduEk5J8Zjv3Bq` → production deployment **`dpl_BFyv2mSo3AbkwYgYEyDawbfXuPgY`** READY; aliases `www.fielddive.com` / `fielddive.com`.
+- **Production smoke:** `/` + `/login` **200**; legacy `/api/estimate/send`, `/api/email/send`, `/api/email/followup`, `/api/approve/confirm` **410**; `/api/webhooks/resend` **503** `webhook_not_configured` (expected until secret set).
+- **Resend production webhook registration:** **NOT completed in this cutover.** Local/prod `RESEND_API_KEY` is **send-only restricted** (cannot create webhooks via API). `RESEND_WEBHOOK_SECRET` is **not** present in Vercel env list. **Required human step:** Resend dashboard → create webhook → `https://www.fielddive.com/api/webhooks/resend` (events: sent/delivered/delivery_delayed/bounced/failed/complained) → add signing secret to Vercel Production as `RESEND_WEBHOOK_SECRET` → redeploy/promote → verify endpoint accepts signed fixtures (no longer 503). Do **not** enable webhook traffic until secret is live.
+- **Payment-link / Stripe receipt:** unchanged (copy/share; Stripe-owned receipts).
+- **Next (separate auth only):** (1) complete Resend webhook secret registration + signed production smoke; then Stage 3 Deferred/Unfinished/Prototype Inventory. Do **not** push main.
+
 ## 2026-09-11 — FD-P2-PLACES-SURFACES CLOSED (Job Card property change)
 
-- **Status:** `CLOSED`. Places completion for existing-job property change. Main **not** pushed. Delivery Completeness **not** started. Stage 3 inventory / Stage 4 Astra / Technology Currency **not** started. **FD-P2-NULL-JOB-FKS** remains Category B (~56–61 active null `property_id` jobs; no mass backfill).
+- **Status:** `CLOSED`. Places completion for existing-job property change. Main **not** pushed. Delivery Completeness **CLOSED** (see section above). Stage 3 inventory / Stage 4 Astra / Technology Currency **not** started. **FD-P2-NULL-JOB-FKS** remains Category B (~56–61 active null `property_id` jobs; no mass backfill).
 - **Architecture (unchanged):** `properties` = company-scoped service location; identity `(company_id, address_normalized)`; `places_place_id` optional non-unique metadata; `resolve_company_property_v1` canonical create/reuse; `jobs.property_id` + operational address snapshot; customers.address independent mailing; proposal/PDF/email `context_echo` frozen historical truth; manual entry first-class; Google Places optional assist; US-only.
 - **Dedicated contract:** `change_job_property_v1(jsonb)` — choose/search/manual → resolve/reuse same-company property → attach to job → refresh operational snapshot → single atomic commit. **`updateJob` is not property/address authority** (`JobUpdatePatch` excludes `property_id`/address; strips those columns).
 - **Atomicity:** one `UPDATE jobs` sets `property_id` + all snapshot fields from the chosen property row. Cannot commit split pointer/snapshot. Shared property rows are **never** overwritten for one job’s location change (resolve/swap only).
@@ -16,7 +69,7 @@
 - **Visual:** `tmp/fielddive-ui-review/places-completion/` (desktop + 390 New Job / Job Card Change / Board). Quiet hierarchy; no Google banners / boxes-in-boxes.
 - **Production:** RO preflight clean (`dup_addr=0`, `dup_place=0`, `xcompany=0`, `orphans=0`, `divergence=0`). Live property change PASS (manual SYNTH → snapshot sync → reload Job Card + Board); proposal `context_echo` retained old Jason address (`echo_has_synth=false`); customer mailing unchanged; fixture restored to property `8936f1be-…` / `7777 Jason St.`; SYNTH property cleaned. Final invariants still clean; null-property active count left untouched.
 - **App release (selective A6):** worktree release SHA **`c1e77359cc1cf038848b263484f1aeb6fc4fd3c0`**, deployment **`dpl_Ae38Fzo3TKyQNLhSeLcat4JosPiu`** (`www.fielddive.com`). DB follow-ups DEFINER + selected-path fix applied after app release (no app redeploy required for those SQL-only fixes). Impl on main tip includes Places surfaces + hotfix migrations.
-- **Next (separate auth only):** Delivery Completeness. Do **not** push main.
+- **Superseded next:** Delivery Completeness is now **CLOSED** (see section above).
 
 ## 2026-09-11 — Foundation remediation A6 COMPLETE; FD-P1-07 CLOSED; Category A CLOSED
 
