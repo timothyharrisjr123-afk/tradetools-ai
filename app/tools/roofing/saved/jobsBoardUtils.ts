@@ -664,6 +664,8 @@ export type JobsBoardCardModel = {
   /** Operational attention is separate from tasks, activity, and stage. */
   attention?: JobAttentionSummary | null;
   scheduleLabel?: string | null;
+  /** Fail-safe integrity copy when stage/schedule cardinality is broken or unread. */
+  scheduleIntegrityLabel?: string | null;
   productionStartedLabel?: string | null;
   completedAtLabel?: string | null;
   showScheduleAction?: boolean;

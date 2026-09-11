@@ -291,19 +291,15 @@ export function parseChangeJobDispositionResult(
 }
 
 export async function transitionJobStageViaRpc(
-  supabase: Pick<SupabaseClient, "rpc">,
-  input: TransitionJobStageInput
+  _supabase: Pick<SupabaseClient, "rpc">,
+  _input: TransitionJobStageInput
 ): Promise<TransitionJobStageResult> {
-  const payload = buildTransitionJobStagePayload(input);
-  const { data, error } = await supabase.rpc(TRANSITION_JOB_STAGE_RPC_V1, {
-    p_payload: payload,
-  });
-  if (error) {
-    throw new JobLifecyclePersistenceError(
-      `${TRANSITION_JOB_STAGE_RPC_V1} failed: ${error.message}`
-    );
-  }
-  return parseTransitionJobStageResult(data);
+  // A4: generic client stage writer is quarantined. Specialized lifecycle RPCs
+  // (schedule / unschedule / start-work / complete / approve) own all reachable
+  // stage transitions. Do not re-enable without a proven product caller.
+  throw new JobLifecyclePersistenceError(
+    `${TRANSITION_JOB_STAGE_RPC_V1} is quarantined; use specialized lifecycle RPCs.`
+  );
 }
 
 export async function changeJobDispositionViaRpc(

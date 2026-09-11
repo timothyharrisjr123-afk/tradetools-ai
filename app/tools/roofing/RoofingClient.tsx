@@ -8335,7 +8335,7 @@ Thanks,`;
             code === "disposition_blocks_start_work"
               ? "This Job must be Active before work can start."
               : code === "start_work_schedule_integrity_error"
-                ? "Work cannot start because the active schedule is inconsistent."
+                ? "Work cannot start because the planned schedule is inconsistent."
                 : code === "illegal_stage"
                   ? "This Job is no longer ready to start."
                   : "Work could not be started. Refresh and try again.";

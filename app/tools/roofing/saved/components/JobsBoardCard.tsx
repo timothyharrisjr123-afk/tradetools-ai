@@ -248,6 +248,14 @@ export default function JobsBoardCard({
             {model.scheduleLabel}
           </p>
         ) : null}
+        {model.scheduleIntegrityLabel ? (
+          <p
+            className="mt-1.5 text-xs font-semibold text-amber-800"
+            data-board-schedule-integrity
+          >
+            {model.scheduleIntegrityLabel}
+          </p>
+        ) : null}
         {model.productionStartedLabel ? (
           <p
             className="mt-1.5 text-xs font-semibold text-emerald-700"

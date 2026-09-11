@@ -13,6 +13,10 @@ import type {
   CanonicalJobStage,
   JobLifecycleMapperInput,
 } from "@/app/lib/jobLifecycleTypes";
+import {
+  plannedScheduleReadIsAuthoritative,
+  type PlannedScheduleReadStatus,
+} from "@/app/lib/jobScheduleStageCoherence";
 import type { JobSchedule } from "@/app/lib/jobScheduleTypes";
 
 export type CanonicalJobActionEligibilityInput = {
@@ -21,6 +25,11 @@ export type CanonicalJobActionEligibilityInput = {
   dispositionActive: boolean;
   /** Active planned work schedule (kind=work, status=scheduled). */
   hasActivePlannedSchedule: boolean;
+  /**
+   * Board/API schedule read authority. LOADING/ERROR fail closed for every
+   * schedule-dependent action — stale maps are never current truth.
+   */
+  scheduleReadStatus?: PlannedScheduleReadStatus;
   /** Contractor Approve job attention context (acceptance pending approval). */
   approvalAcceptancePending?: boolean;
 };
@@ -63,6 +72,7 @@ export function buildCanonicalJobActionEligibilityInput(input: {
   stage: string | null | undefined;
   disposition: string | null | undefined;
   schedule: Pick<JobSchedule, "kind" | "status"> | null | undefined;
+  scheduleReadStatus?: PlannedScheduleReadStatus;
   approvalAcceptancePending?: boolean;
   lifecycleFacts?: JobLifecycleMapperInput;
 }): CanonicalJobActionEligibilityInput {
@@ -70,10 +80,14 @@ export function buildCanonicalJobActionEligibilityInput(input: {
     stage: input.stage ?? "intake",
     status: input.disposition ?? "active",
   };
+  const scheduleReadStatus = input.scheduleReadStatus ?? "ready";
+  const scheduleTrusted = plannedScheduleReadIsAuthoritative(scheduleReadStatus);
   return {
     stage: resolveCanonicalJobStageFromFacts(facts),
     dispositionActive: isActiveJobDisposition(input.disposition),
-    hasActivePlannedSchedule: hasActivePlannedWorkSchedule(input.schedule),
+    hasActivePlannedSchedule:
+      scheduleTrusted && hasActivePlannedWorkSchedule(input.schedule),
+    scheduleReadStatus,
     approvalAcceptancePending: input.approvalAcceptancePending,
   };
 }
@@ -83,20 +97,38 @@ export function resolveCanonicalJobActionEligibility(
 ): CanonicalJobActionEligibility {
   const { stage, dispositionActive, hasActivePlannedSchedule } = input;
   const approvalPending = input.approvalAcceptancePending === true;
+  const scheduleTrusted = plannedScheduleReadIsAuthoritative(
+    input.scheduleReadStatus ?? "ready"
+  );
 
   return {
     canApproveJob:
       dispositionActive && stage === "proposal" && approvalPending,
     canSchedule:
-      dispositionActive && stage === "approved" && !hasActivePlannedSchedule,
+      scheduleTrusted &&
+      dispositionActive &&
+      stage === "approved" &&
+      !hasActivePlannedSchedule,
     canReschedule:
-      dispositionActive && stage === "scheduled" && hasActivePlannedSchedule,
+      scheduleTrusted &&
+      dispositionActive &&
+      stage === "scheduled" &&
+      hasActivePlannedSchedule,
     canUnschedule:
-      dispositionActive && stage === "scheduled" && hasActivePlannedSchedule,
+      scheduleTrusted &&
+      dispositionActive &&
+      stage === "scheduled" &&
+      hasActivePlannedSchedule,
     canStartWork:
-      dispositionActive && stage === "scheduled" && hasActivePlannedSchedule,
+      scheduleTrusted &&
+      dispositionActive &&
+      stage === "scheduled" &&
+      hasActivePlannedSchedule,
     canCompleteJob:
-      dispositionActive && stage === "production" && hasActivePlannedSchedule,
+      scheduleTrusted &&
+      dispositionActive &&
+      stage === "production" &&
+      hasActivePlannedSchedule,
   };
 }
 
@@ -104,6 +136,7 @@ export function resolveCanonicalJobActionEligibilityFromFacts(input: {
   stage: string | null | undefined;
   disposition: string | null | undefined;
   schedule: Pick<JobSchedule, "kind" | "status"> | null | undefined;
+  scheduleReadStatus?: PlannedScheduleReadStatus;
   approvalAcceptancePending?: boolean;
   lifecycleFacts?: JobLifecycleMapperInput;
 }): CanonicalJobActionEligibility {
@@ -120,7 +153,10 @@ export function resolveCanonicalJobActionEligibilityFromFacts(input: {
 export function resolveDbBoardJobActionEligibility(
   entry: RoofingEstimate,
   schedule: Pick<JobSchedule, "kind" | "status"> | null | undefined,
-  opts?: { approvalAcceptancePending?: boolean }
+  opts?: {
+    approvalAcceptancePending?: boolean;
+    scheduleReadStatus?: PlannedScheduleReadStatus;
+  }
 ): CanonicalJobActionEligibility | null {
   if (!isDbBoardJobEntry(entry)) return null;
 
@@ -140,6 +176,7 @@ export function resolveDbBoardJobActionEligibility(
     stage: stageFromEntry ?? lifecycleFacts.stage,
     disposition: extended.jobDisposition,
     schedule,
+    scheduleReadStatus: opts?.scheduleReadStatus,
     approvalAcceptancePending: opts?.approvalAcceptancePending,
     lifecycleFacts,
   });

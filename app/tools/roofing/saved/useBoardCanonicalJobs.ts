@@ -25,6 +25,7 @@ import {
   parseCompanyTimezoneGetResult,
 } from "@/app/lib/jobScheduleMapper";
 import type { JobSchedule } from "@/app/lib/jobScheduleTypes";
+import type { PlannedScheduleReadStatus } from "@/app/lib/jobScheduleStageCoherence";
 import type { CompanyTimezoneLoadStatus } from "@/app/lib/jobScheduleMapper";
 
 export type UseBoardCanonicalJobsResult = {
@@ -33,6 +34,7 @@ export type UseBoardCanonicalJobsResult = {
   dbJobsStatus: BoardCanonicalJobsReadStatus;
   dbJobsRefreshError: boolean;
   r3fSchedulesByJobId: Record<string, JobSchedule>;
+  r3fSchedulesLoadStatus: PlannedScheduleReadStatus;
   r3fTimezone: string | null;
   r3fTimezoneLoadStatus: CompanyTimezoneLoadStatus;
   refreshDbJobs: () => void;
@@ -61,6 +63,14 @@ export function useBoardCanonicalJobs(input: {
   const [r3fSchedulesByJobId, setR3fSchedulesByJobId] = useState<
     Record<string, JobSchedule>
   >({});
+  const [r3fSchedulesLoadStatus, setR3fSchedulesLoadStatus] =
+    useState<PlannedScheduleReadStatus>("loading");
+  const [scheduleCompanyId, setScheduleCompanyId] = useState(input.companyId);
+  if (scheduleCompanyId !== input.companyId) {
+    setScheduleCompanyId(input.companyId);
+    setR3fSchedulesByJobId({});
+    setR3fSchedulesLoadStatus("loading");
+  }
   const [r3fTimezone, setR3fTimezone] = useState<string | null>(null);
   const [r3fTimezoneLoadStatus, setR3fTimezoneLoadStatus] =
     useState<CompanyTimezoneLoadStatus>("loading");
@@ -163,8 +173,18 @@ export function useBoardCanonicalJobs(input: {
   useEffect(() => {
     if (!input.enabled || !input.companyId || !dbJobsLoaded) return;
     let cancelled = false;
+    /* eslint-disable react-hooks/set-state-in-effect -- schedule truth gates lifecycle actions */
+    setR3fSchedulesLoadStatus("loading");
+    setR3fSchedulesByJobId({});
+    /* eslint-enable react-hooks/set-state-in-effect */
     void fetch("/api/jobs/schedules?active=1", { cache: "no-store" })
-      .then((res) => res.json())
+      .then(async (res) => {
+        const schedulesJson = await res.json().catch(() => null);
+        if (!res.ok || schedulesJson?.ok !== true) {
+          throw new Error("planned_schedule_read_failed");
+        }
+        return schedulesJson;
+      })
       .then((schedulesJson) => {
         if (cancelled) return;
         const rows = Array.isArray(schedulesJson?.schedules)
@@ -175,8 +195,14 @@ export function useBoardCanonicalJobs(input: {
           if (row?.job_id) next[row.job_id] = row;
         }
         setR3fSchedulesByJobId(next);
+        setR3fSchedulesLoadStatus("ready");
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (cancelled) return;
+        // ERROR must not leave a prior map as current schedule authority.
+        setR3fSchedulesByJobId({});
+        setR3fSchedulesLoadStatus("error");
+      });
     return () => {
       cancelled = true;
     };
@@ -216,6 +242,7 @@ export function useBoardCanonicalJobs(input: {
     dbJobsStatus: snapshot.status,
     dbJobsRefreshError: snapshot.refreshError,
     r3fSchedulesByJobId,
+    r3fSchedulesLoadStatus,
     r3fTimezone,
     r3fTimezoneLoadStatus,
     refreshDbJobs,

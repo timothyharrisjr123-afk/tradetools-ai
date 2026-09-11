@@ -83,6 +83,12 @@ import {
   isActiveJobDisposition,
   resolveDbBoardJobActionEligibility,
 } from "@/app/lib/jobLifecycleActionEligibility";
+import {
+  boardScheduleLoadBanner,
+  plannedScheduleIntegrityLabel,
+  plannedScheduleReadIsAuthoritative,
+  resolvePlannedScheduleCoherence,
+} from "@/app/lib/jobScheduleStageCoherence";
 import { formatJobCompletedAt } from "@/app/lib/jobCompleteTypes";
 import { formatProductionStartedAt } from "@/app/lib/jobProductionTypes";
 import {
@@ -106,6 +112,7 @@ import {
   BOARD_APPROVE_CONFIRM_TITLE,
   BOARD_COMPLETE_CONFIRM_TITLE,
   BOARD_MOVEMENT_ACCEPTANCE_REQUIRED_COPY,
+  BOARD_MOVEMENT_SCHEDULE_UNAVAILABLE_COPY,
   BOARD_START_WORK_CONFIRM_TITLE,
   BOARD_UNSCHEDULE_CONFIRM_BODY,
   BOARD_UNSCHEDULE_CONFIRM_TITLE,
@@ -2360,6 +2367,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     dbJobsStatus,
     dbJobsRefreshError,
     r3fSchedulesByJobId,
+    r3fSchedulesLoadStatus,
     r3fTimezone,
     r3fTimezoneLoadStatus,
     refreshDbJobs,
@@ -2370,6 +2378,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     enabled: hydrated,
     companyId,
   });
+  const scheduleLoadBanner = boardScheduleLoadBanner(r3fSchedulesLoadStatus);
   const coreBoardReady = hydrated && dbJobsStatus === "ready";
   const companySetupReadiness = useCompanySetupReadiness(companyId, {
     enabled: coreBoardReady,
@@ -2878,6 +2887,11 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     if (action === "schedule") {
       const dbJobId = getDbJobIdFromBoardEntry(est);
       if (dbJobId) {
+        if (!plannedScheduleReadIsAuthoritative(r3fSchedulesLoadStatus)) {
+          setToast(BOARD_MOVEMENT_SCHEDULE_UNAVAILABLE_COPY);
+          setTimeout(() => setToast(null), 2500);
+          return;
+        }
         setR3fScheduleError(null);
         setR3fScheduleModal({
           mode: r3fSchedulesByJobId[dbJobId] ? "reschedule" : "schedule",
@@ -2972,6 +2986,11 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       if (est && isDbBoardJobEntry(est)) {
         const dbJobId = getDbJobIdFromBoardEntry(est);
         if (dbJobId) {
+          if (!plannedScheduleReadIsAuthoritative(r3fSchedulesLoadStatus)) {
+            setToast(BOARD_MOVEMENT_SCHEDULE_UNAVAILABLE_COPY);
+            setTimeout(() => setToast(null), 2500);
+            return;
+          }
           setR3fScheduleError(null);
           setR3fScheduleModal({
             mode: r3fSchedulesByJobId[dbJobId] ? "reschedule" : "schedule",
@@ -3457,7 +3476,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
             code === "disposition_blocks_start_work"
               ? "This Job must be Active before work can start."
               : code === "start_work_schedule_integrity_error"
-                ? "Work cannot start because the active schedule is inconsistent."
+                ? "Work cannot start because the planned schedule is inconsistent."
                 : "Work could not be started. Refresh and try again."
           );
         } else {
@@ -3515,6 +3534,10 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     (job: RoofingEstimate) => {
       const jobId = getDbJobIdFromBoardEntry(job);
       if (!jobId) return;
+      if (!plannedScheduleReadIsAuthoritative(r3fSchedulesLoadStatus)) {
+        setToast(BOARD_MOVEMENT_SCHEDULE_UNAVAILABLE_COPY);
+        return;
+      }
       setR3fScheduleError(null);
       setR3fScheduleModal({
         mode: "schedule",
@@ -3523,7 +3546,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
         depositNotReceived: r3fDepositDueByJobId[jobId] === true,
       });
     },
-    [r3fDepositDueByJobId]
+    [r3fDepositDueByJobId, r3fSchedulesLoadStatus]
   );
 
   const resolveBoardMovementFacts = useCallback(
@@ -3540,7 +3563,11 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
         approvalAcceptancePending: approvalPendingFromAttentionType(
           attention?.primaryType
         ),
+        scheduleReadStatus: r3fSchedulesLoadStatus,
       });
+      const scheduleTrusted = plannedScheduleReadIsAuthoritative(
+        r3fSchedulesLoadStatus
+      );
       return {
         jobId,
         fromStage,
@@ -3549,11 +3576,13 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           (job as { jobDisposition?: string | null }).jobDisposition
         ),
         canApproveJob: eligibility?.canApproveJob ?? false,
-        hasActivePlannedSchedule: hasActivePlannedWorkSchedule(schedule),
+        hasActivePlannedSchedule:
+          scheduleTrusted && hasActivePlannedWorkSchedule(schedule),
+        scheduleReadStatus: r3fSchedulesLoadStatus,
         schedule,
       };
     },
-    [attentionByJobId, r3fSchedulesByJobId]
+    [attentionByJobId, r3fSchedulesByJobId, r3fSchedulesLoadStatus]
   );
 
   const closeBoardMovementConfirm = useCallback(() => {
@@ -3730,6 +3759,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
         dispositionActive: facts.dispositionActive,
         canApproveJob: facts.canApproveJob,
         hasActivePlannedSchedule: facts.hasActivePlannedSchedule,
+        scheduleReadStatus: facts.scheduleReadStatus,
       });
       if (!resolution.allowed) {
         if (resolution.message) setToast(resolution.message);
@@ -3755,11 +3785,32 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       const jobId = getDbJobIdFromBoardEntry(job);
       const schedule = jobId ? r3fSchedulesByJobId[jobId] ?? null : null;
       const attention = jobId ? attentionByJobId[jobId] ?? null : null;
+      const fromStage: CanonicalJobStage =
+        (job as { canonicalJobStage?: CanonicalJobStage }).canonicalJobStage ??
+        mapBoardColumnKeyToCanonicalStage(columnKey) ??
+        "intake";
+      const scheduleTrusted = plannedScheduleReadIsAuthoritative(
+        r3fSchedulesLoadStatus
+      );
       const canonicalActions = resolveDbBoardJobActionEligibility(job, schedule, {
         approvalAcceptancePending: approvalPendingFromAttentionType(
           attention?.primaryType
         ),
+        scheduleReadStatus: r3fSchedulesLoadStatus,
       });
+      const coherence = resolvePlannedScheduleCoherence({
+        stage: fromStage,
+        plannedScheduleCount:
+          scheduleTrusted && hasActivePlannedWorkSchedule(schedule) ? 1 : 0,
+        readStatus: r3fSchedulesLoadStatus,
+      });
+      const integrityLabel =
+        columnKey === "scheduled" ||
+        columnKey === "in_progress" ||
+        columnKey === "paid" ||
+        columnKey === "approved"
+          ? plannedScheduleIntegrityLabel(coherence)
+          : null;
       return {
         ...buildJobsBoardCardModel(job, batchStatuses, { columnKey }),
         sourceBadge: isLegacyBoardEstimateEntry(job) ? "Legacy" : null,
@@ -3767,24 +3818,30 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           (job as { jobDisposition?: string | null }).jobDisposition
         ),
         attention,
-        scheduleLabel: schedule
-          ? columnKey === "in_progress" || columnKey === "paid"
-            ? `Planned · ${formatScheduleBoardMeta(schedule)}`
-            : formatScheduleBoardMeta(schedule)
-          : null,
+        scheduleLabel:
+          scheduleTrusted && schedule
+            ? columnKey === "in_progress" || columnKey === "paid"
+              ? `Planned · ${formatScheduleBoardMeta(schedule)}`
+              : formatScheduleBoardMeta(schedule)
+            : null,
+        scheduleIntegrityLabel: integrityLabel,
         productionStartedLabel:
           columnKey === "in_progress" || columnKey === "paid"
             ? formatProductionStartedAt(
                 (job as { productionStartedAt?: string | null })
                   .productionStartedAt,
-                schedule?.timezone ?? r3fTimezone
+                scheduleTrusted
+                  ? schedule?.timezone ?? r3fTimezone
+                  : r3fTimezone
               )
             : null,
         completedAtLabel:
           columnKey === "paid"
             ? formatJobCompletedAt(
                 (job as { completedAt?: string | null }).completedAt,
-                schedule?.timezone ?? r3fTimezone
+                scheduleTrusted
+                  ? schedule?.timezone ?? r3fTimezone
+                  : r3fTimezone
               )
             : null,
         showScheduleAction: canonicalActions?.canSchedule ?? false,
@@ -3800,6 +3857,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       attentionByJobId,
       batchStatuses,
       r3fSchedulesByJobId,
+      r3fSchedulesLoadStatus,
       r3fTimezone,
       r3gStartingJobId,
       r3hCompletingJobId,
@@ -4188,6 +4246,16 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                   />
                 ) : !companyJobSearch.active ? (
                   <>
+                {scheduleLoadBanner ? (
+                  <p
+                    className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+                    data-board-schedule-load-banner
+                    data-board-schedule-load-status={r3fSchedulesLoadStatus}
+                  >
+                    {scheduleLoadBanner}
+                  </p>
+                ) : null}
+
                 {boardFilterZeroMatch ? (
                   <p className="rounded-md border border-slate-200/80 bg-slate-50 px-3 py-2 text-sm text-slate-600">
                     No jobs match your search or filter.
@@ -4288,6 +4356,8 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                                               boardDragFacts.canApproveJob,
                                             hasActivePlannedSchedule:
                                               boardDragFacts.hasActivePlannedSchedule,
+                                            scheduleReadStatus:
+                                              boardDragFacts.scheduleReadStatus,
                                           });
                                           return validity === "none"
                                             ? null
