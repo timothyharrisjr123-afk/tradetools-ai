@@ -1,0 +1,41 @@
+---
+description: FieldDive release/environment ops — isolated releases, env guards, user-owned dev server
+alwaysApply: true
+---
+
+# FieldDive release & agent runtime rules (A6 / FD-P1-07)
+
+## User-owned local runtime
+
+- The user owns `npm run dev`, port 3000, and the live Next.js process.
+- Do **not** kill Node, restart Next, clear/overwrite main `.next`, or manage port 3000 unless the user explicitly authorizes it.
+- Prefer external/main browser for runtime proof; store screenshots under `tmp/fielddive-ui-review/…`.
+
+## Selective release isolation
+
+- Selective production builds/installs run only in an **isolated git worktree** (sibling path), never in the main checkout.
+- Never run `npm ci` / `npm install` for a selective release inside `C:\dev\tradetools-ai` (main) when a release worktree exists for that purpose.
+- Never mutate main `node_modules` or main `.next` to satisfy a release.
+- Use `docs/fielddive-release-discipline.md` and `scripts/release-preflight.ps1` / `scripts/release-worktree.ps1`.
+
+## Environment targeting
+
+- Production Supabase: `rhquhnujjnzjhweypavd`. Staging: `tjtrhdckinjtorgbkirm`.
+- Run `scripts/supabase-target-guard.ps1` before any Supabase mutation.
+- Ordinary CLI link should remain staging unless a production task explicitly re-links and restores staging afterward.
+- Never print `DATABASE_URL`, service keys, Stripe secrets, or JWTs. Classification only (`PRODUCTION`/`STAGING`/`LOCAL`).
+
+## Git / deploy
+
+- Do not `git push` (especially `main`) unless explicitly authorized.
+- Do not deploy tip `main` while production uses selective release SHAs unless a full-main cutover is explicitly authorized.
+- Promote an **exact** Vercel deployment id/url; do not rely on ambiguous “latest”.
+
+## Windows Codex fallback
+
+- If Codex Windows sandbox / apply-patch enters a repeated OS error 206 / path-length loop: **stop retrying**, do not burn usage, hand the bounded slice to Cursor.
+- Do not alter Windows / npm / system configuration unless separately approved.
+
+## Scope
+
+- A6 is release discipline only — not dependency modernization, not Technology Currency Audit.
