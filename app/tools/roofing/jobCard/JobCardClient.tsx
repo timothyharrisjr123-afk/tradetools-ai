@@ -591,6 +591,12 @@ export default function JobCardClient({
     stage: hydratedJobRecord?.stage,
     disposition: hydratedJobRecord?.status,
     schedule: jobCardSchedule.active,
+    scheduleReadStatus:
+      jobCardSchedule.loadStatus === "error"
+        ? "error"
+        : jobCardSchedule.ready
+          ? "ready"
+          : "loading",
     approvalAcceptancePending: Boolean(
       findApproveJobAcceptanceItem(jobAttention.items)
     ),

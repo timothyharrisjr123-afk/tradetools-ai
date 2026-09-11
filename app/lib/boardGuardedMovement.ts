@@ -6,6 +6,10 @@
 import { mapCanonicalStageToBoardColumnKey } from "@/app/lib/jobBoardAdapter";
 import type { JobAttentionSafeItem } from "@/app/lib/jobAttentionReadModel";
 import type { CanonicalJobStage } from "@/app/lib/jobLifecycleTypes";
+import {
+  plannedScheduleReadIsAuthoritative,
+  type PlannedScheduleReadStatus,
+} from "@/app/lib/jobScheduleStageCoherence";
 import type { BoardColumnKey } from "@/app/tools/roofing/saved/jobsBoardUtils";
 import { isUuidLike } from "@/app/lib/uuid";
 
@@ -17,7 +21,9 @@ export const BOARD_MOVEMENT_REACTIVATE_COPY = "Reactivate to continue.";
 export const BOARD_MOVEMENT_ACCEPTANCE_REQUIRED_COPY =
   "Customer acceptance is required before this job can be approved.";
 export const BOARD_MOVEMENT_MISSING_SCHEDULE_COPY =
-  "This job cannot move without an active schedule.";
+  "This job cannot move without a planned schedule.";
+export const BOARD_MOVEMENT_SCHEDULE_UNAVAILABLE_COPY =
+  "Planned schedule status is unavailable. Refresh and try again.";
 export const BOARD_MOVEMENT_TERMINAL_COPY = "Completed jobs cannot be moved.";
 export const BOARD_MOVEMENT_BLOCKED_COPY = "That move is not available.";
 export const BOARD_MOVEMENT_UNKNOWN_TARGET_COPY = "That stage is not available.";
@@ -27,7 +33,7 @@ export const BOARD_START_WORK_CONFIRM_TITLE = "Start work?";
 export const BOARD_COMPLETE_CONFIRM_TITLE = "Complete job?";
 export const BOARD_UNSCHEDULE_CONFIRM_TITLE = "Unschedule job?";
 export const BOARD_UNSCHEDULE_CONFIRM_BODY =
-  "The active schedule will be removed from the calendar and the job will return to Approved.";
+  "The planned schedule will be removed from the calendar and the job will return to Approved.";
 
 export type BoardMovementIntentKind =
   | "proposal_create"
@@ -48,6 +54,7 @@ export type BoardMovementRejectReason =
   | "disposition"
   | "missing_acceptance"
   | "missing_schedule"
+  | "schedule_unavailable"
   | "unknown_target";
 
 export type BoardMovementResolution =
@@ -64,6 +71,7 @@ export type BoardGuardedMovementInput = {
   dispositionActive: boolean;
   canApproveJob: boolean;
   hasActivePlannedSchedule: boolean;
+  scheduleReadStatus?: PlannedScheduleReadStatus;
 };
 
 const ALLOWED_FORWARD: ReadonlyArray<
@@ -179,6 +187,8 @@ export function movementRejectMessage(
       return BOARD_MOVEMENT_ACCEPTANCE_REQUIRED_COPY;
     case "missing_schedule":
       return BOARD_MOVEMENT_MISSING_SCHEDULE_COPY;
+    case "schedule_unavailable":
+      return BOARD_MOVEMENT_SCHEDULE_UNAVAILABLE_COPY;
     case "terminal":
       return BOARD_MOVEMENT_TERMINAL_COPY;
     case "unknown_target":
@@ -195,6 +205,9 @@ export function resolveBoardGuardedMovement(
   input: BoardGuardedMovementInput
 ): BoardMovementResolution {
   const { fromStage, toStage, dispositionActive } = input;
+  const scheduleTrusted = plannedScheduleReadIsAuthoritative(
+    input.scheduleReadStatus ?? "ready"
+  );
 
   if (!toStage) {
     return {
@@ -225,6 +238,13 @@ export function resolveBoardGuardedMovement(
   }
 
   if (fromStage === "scheduled" && toStage === "approved") {
+    if (!scheduleTrusted) {
+      return {
+        allowed: false,
+        reason: "schedule_unavailable",
+        message: movementRejectMessage("schedule_unavailable"),
+      };
+    }
     if (!input.hasActivePlannedSchedule) {
       return {
         allowed: false,
@@ -253,6 +273,25 @@ export function resolveBoardGuardedMovement(
       allowed: false,
       reason: "missing_acceptance",
       message: movementRejectMessage("missing_acceptance"),
+    };
+  }
+
+  if (kind === "open_schedule_workspace" && !scheduleTrusted) {
+    return {
+      allowed: false,
+      reason: "schedule_unavailable",
+      message: movementRejectMessage("schedule_unavailable"),
+    };
+  }
+
+  if (
+    (kind === "start_work" || kind === "complete_job") &&
+    !scheduleTrusted
+  ) {
+    return {
+      allowed: false,
+      reason: "schedule_unavailable",
+      message: movementRejectMessage("schedule_unavailable"),
     };
   }
 

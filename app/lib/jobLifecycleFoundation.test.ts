@@ -542,7 +542,7 @@ describe("RPC payload guards", () => {
     }
   });
 
-  test("transition RPC uses guarded function only", async () => {
+  test("transition RPC client writer is quarantined (A4)", async () => {
     let rpcName = "";
     const supabase = {
       rpc: async (name: string) => {
@@ -561,14 +561,17 @@ describe("RPC payload guards", () => {
         };
       },
     };
-    const result = await transitionJobStageViaRpc(supabase as never, {
-      company_id: COMPANY_ID,
-      job_id: JOB_ID,
-      to_stage: "proposal",
-      mode: "auto",
-    });
-    assert.equal(rpcName, TRANSITION_JOB_STAGE_RPC_V1);
-    assert.equal(result.ok, true);
+    await assert.rejects(
+      () =>
+        transitionJobStageViaRpc(supabase as never, {
+          company_id: COMPANY_ID,
+          job_id: JOB_ID,
+          to_stage: "proposal",
+          mode: "auto",
+        }),
+      /quarantined/i
+    );
+    assert.equal(rpcName, "");
   });
 });
 

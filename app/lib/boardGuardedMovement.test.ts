@@ -42,6 +42,7 @@ function move(
     dispositionActive?: boolean;
     canApproveJob?: boolean;
     hasActivePlannedSchedule?: boolean;
+    scheduleReadStatus?: "loading" | "ready" | "error";
   }
 ) {
   return resolveBoardGuardedMovement({
@@ -50,6 +51,7 @@ function move(
     dispositionActive: opts?.dispositionActive ?? true,
     canApproveJob: opts?.canApproveJob ?? false,
     hasActivePlannedSchedule: opts?.hasActivePlannedSchedule ?? false,
+    scheduleReadStatus: opts?.scheduleReadStatus ?? "ready",
   });
 }
 
@@ -271,6 +273,22 @@ describe("proposal create href and approve attention", () => {
     ];
     const found = findApproveJobAcceptanceItem(items);
     assert.equal(found?.acceptance?.acceptanceId, items[0].acceptance?.acceptanceId);
+  });
+  test("Approved → Scheduled fails closed while schedule read is loading", () => {
+    const result = move("approved", "scheduled", {
+      scheduleReadStatus: "loading",
+    });
+    assert.equal(result.allowed, false);
+    if (!result.allowed) assert.equal(result.reason, "schedule_unavailable");
+  });
+
+  test("Scheduled → Production fails closed on schedule read error", () => {
+    const result = move("scheduled", "production", {
+      hasActivePlannedSchedule: true,
+      scheduleReadStatus: "error",
+    });
+    assert.equal(result.allowed, false);
+    if (!result.allowed) assert.equal(result.reason, "schedule_unavailable");
   });
 });
 

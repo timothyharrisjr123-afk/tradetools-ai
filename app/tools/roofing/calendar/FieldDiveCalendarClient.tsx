@@ -55,7 +55,7 @@ function scheduleErrorCopy(code: string): string {
   if (code === "company_timezone_required") return "Set company timezone to schedule work.";
   if (code === "schedule_stale") return "This schedule changed in another session. Current schedule reloaded.";
   if (code === "disposition_blocks_schedule") return "This job cannot be scheduled while on hold or closed.";
-  if (code === "already_scheduled") return "This job already has an active schedule.";
+  if (code === "already_scheduled") return "This job already has a planned schedule.";
   if (code === "invalid_window") return "Choose a valid date or time window.";
   return "Could not save the schedule.";
 }
@@ -592,7 +592,9 @@ export default function FieldDiveCalendarClient({
                               ) : null}
                             </div>
                             <p className="text-xs text-slate-500">
-                              {formatScheduleWindowLabel(event.schedule)}
+                              {event.stage === "production" || event.stage === "complete"
+                                ? `Planned schedule · ${formatScheduleWindowLabel(event.schedule)}`
+                                : formatScheduleWindowLabel(event.schedule)}
                             </p>
                             {event.address ? (
                               <p className="text-xs text-slate-500">{event.address}</p>
@@ -612,7 +614,7 @@ export default function FieldDiveCalendarClient({
         <div className="fixed inset-0 z-40 flex items-end justify-center bg-slate-900/40 p-3 sm:items-center">
           <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl">
             <h2 className="text-base font-semibold text-slate-900">Schedule a job</h2>
-            <p className="mt-1 text-sm text-slate-500">Approved jobs without an active schedule</p>
+            <p className="mt-1 text-sm text-slate-500">Approved jobs without a planned schedule</p>
             <div className="mt-3 max-h-72 space-y-2 overflow-y-auto">
               {candidates.length === 0 ? (
                 <p className="text-sm text-slate-500">No Approved jobs are ready to schedule.</p>
