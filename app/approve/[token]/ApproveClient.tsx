@@ -36,7 +36,11 @@ export default function ApproveClient(props: Props) {
       });
       const data = await res.json().catch(() => null);
       if (!res.ok || !data?.ok) {
-        setError(data?.error || "Approval failed");
+        setError(
+          res.status === 410
+            ? data?.error || "This legacy approval path is retired."
+            : data?.error || "Approval failed"
+        );
         return;
       }
       setApprovedAt(data.approvedAt || new Date().toISOString());

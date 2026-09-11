@@ -175,16 +175,19 @@ describe("contractor capability API auth", () => {
     assert.equal(owned.ok, true);
   });
 
-  test("legacy contractor endpoints gate session before Resend/OpenAI", () => {
-    authBeforeCost(EMAIL_SEND, "new Resend");
+  test("legacy contractor email endpoints are tombstoned (410, no Resend)", () => {
+    for (const source of [EMAIL_SEND, ESTIMATE_SEND, EMAIL_FOLLOWUP]) {
+      assert.match(source, /status:\s*410/);
+      assert.doesNotMatch(source, /new Resend/);
+      assert.doesNotMatch(source, /from ["']resend["']/);
+      assert.doesNotMatch(source, /body\.companyId|json\.companyId/);
+    }
+    assert.match(ESTIMATE_SEND, /legacyDeliveryRouteGoneBody|legacy_delivery_route_retired|retired/i);
+  });
+
+  test("proposal generate still gates session before OpenAI cost", () => {
     authBeforeCost(EMAIL_GENERATE, "new OpenAI");
-    authBeforeCost(ESTIMATE_SEND, "new Resend");
     authBeforeCost(PROPOSAL_GENERATE, "openai.chat.completions.create");
-    authBeforeCost(EMAIL_FOLLOWUP, "new Resend");
-    assert.match(ESTIMATE_SEND, /resolveOwnedJobCompany/);
-    assert.match(ESTIMATE_SEND, /contractorNotFoundJson/);
-    assert.doesNotMatch(EMAIL_SEND, /body\.companyId|json\.companyId/);
-    assert.doesNotMatch(ESTIMATE_SEND, /body\.companyId/);
   });
 
   test("public-by-design routes stay off contractor session auth", () => {

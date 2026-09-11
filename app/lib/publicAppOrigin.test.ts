@@ -220,12 +220,11 @@ describe("Group A wiring guardrails", () => {
     assert.match(source, /sk_live_/);
   });
 
-  test("estimate/send uses shared origin before Resend", () => {
+  test("estimate/send is tombstoned (no Resend, no host-derived origin)", () => {
     const source = readFileSync(join(ROOT, "app/api/estimate/send/route.ts"), "utf8");
-    assert.match(source, /resolvePublicAppOrigin/);
+    assert.match(source, /status:\s*410/);
+    assert.doesNotMatch(source, /new Resend/);
     assert.doesNotMatch(source, /getStableOrigin|x-forwarded-host/);
-    const originIdx = source.indexOf("resolvePublicAppOrigin");
-    const resendIdx = source.indexOf("new Resend");
-    assert.ok(originIdx > 0 && resendIdx > originIdx);
+    assert.doesNotMatch(source, /resolvePublicAppOrigin/);
   });
 });

@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "tradetools-ai",
   "version": "0.1.0",
   "private": true,
@@ -23,6 +23,7 @@
     "resend": "^6.9.2",
     "server-only": "^0.0.1",
     "stripe": "^17.5.0",
+    "svix": "^2.4.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {

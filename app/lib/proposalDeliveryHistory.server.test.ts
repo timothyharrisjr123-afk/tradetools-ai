@@ -76,6 +76,7 @@ function deliveryRow(
     attempted_at: "2026-06-26T12:00:00.000Z",
     provider_accepted_at: "2026-06-26T12:05:00.000Z",
     failed_at: null,
+    delayed_at: null,
     delivered_at: null,
     bounced_at: null,
     complained_at: null,
@@ -188,15 +189,12 @@ describe("getProposalDeliveryHistory", () => {
     assert.equal(result.history.isEmpty, false);
     assert.equal(result.history.totalCount, 1);
     assert.equal(result.history.latest?.resultCategory, "accepted");
-    assert.equal(result.history.latest?.statusLabel, "Accepted by email provider");
+    assert.equal(result.history.latest?.statusLabel, "Emailed");
     assert.equal(
       result.history.latest?.shortExplanation,
       PROPOSAL_DELIVERY_ATTEMPT_SHORT_EXPLANATIONS.provider_accepted
     );
-    assert.match(
-      result.history.latest?.shortExplanation ?? "",
-      /does not confirm the customer received or opened/i
-    );
+    assert.equal(result.history.latest?.shortExplanation, "Proposal emailed.");
   });
 
   test("failed attempt returns safe error only", async () => {

@@ -73,6 +73,7 @@ function mapRow(row: Record<string, unknown>): ProposalDeliveryAttemptRow {
     provider_accepted_at:
       row.provider_accepted_at == null ? null : String(row.provider_accepted_at),
     failed_at: row.failed_at == null ? null : String(row.failed_at),
+    delayed_at: row.delayed_at == null ? null : String(row.delayed_at),
     delivered_at: row.delivered_at == null ? null : String(row.delivered_at),
     bounced_at: row.bounced_at == null ? null : String(row.bounced_at),
     complained_at: row.complained_at == null ? null : String(row.complained_at),
@@ -178,7 +179,23 @@ export async function markProposalDeliveryAttemptProviderAcceptedWithClient(
     throw new ProposalDeliveryAttemptPersistenceError("Update returned no row");
   }
 
-  return mapRow(data as Record<string, unknown>);
+  const row = mapRow(data as Record<string, unknown>);
+
+  // D1: reconcile webhook-before-accept race (unresolved inbox → attempt).
+  try {
+    const { reconcileUnresolvedEventsForProviderMessageIdWithClient } = await import(
+      "@/app/lib/proposalDeliveryWebhookPersistence"
+    );
+    await reconcileUnresolvedEventsForProviderMessageIdWithClient(
+      supabase,
+      input.provider_message_id,
+      now
+    );
+  } catch {
+    // Non-fatal: attempt remains provider_accepted; unresolved events retry later.
+  }
+
+  return row;
 }
 
 export async function markProposalDeliveryAttemptFailedWithClient(

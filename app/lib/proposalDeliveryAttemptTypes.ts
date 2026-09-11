@@ -15,6 +15,7 @@ export const PROPOSAL_DELIVERY_ATTEMPT_STATUSES = [
   "prepared",
   "attempted",
   "provider_accepted",
+  "delayed",
   "failed",
   "delivered",
   "bounced",
@@ -52,6 +53,7 @@ export type ProposalDeliveryAttemptRow = {
   attempted_at: string | null;
   provider_accepted_at: string | null;
   failed_at: string | null;
+  delayed_at: string | null;
   delivered_at: string | null;
   bounced_at: string | null;
   complained_at: string | null;
