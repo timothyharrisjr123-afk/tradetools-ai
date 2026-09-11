@@ -5454,6 +5454,7 @@ Thanks,`;
       if (resolved) {
         setSelectedPlacesAddress(resolved);
         setJobAddress1(resolved.address.line1 || suggestion.primaryText);
+        if (resolved.address.line2) setJobAddress2(resolved.address.line2);
         if (resolved.address.city) setJobCity(resolved.address.city);
         if (resolved.address.state) setJobState(resolved.address.state);
         if (resolved.address.zip) {

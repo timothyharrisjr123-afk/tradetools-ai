@@ -141,10 +141,17 @@ export async function findPropertiesByNormalizedKey({
 
 /**
  * Always insert. Never collapse onto an existing Property.
- * Used when the contractor explicitly continues as a new Property.
+ * @deprecated FD-P2: unused by production New Job / Job Card paths.
+ * Canonical identity uses resolveCompanyProperty / resolve_company_property_v1.
+ * Retained only so historical tests can assert absence of callers.
  */
-export async function createPropertyExplicit(params: PropertyWriteParams): Promise<string | null> {
-  return createProperty(params);
+export async function createPropertyExplicit(
+  _params: PropertyWriteParams
+): Promise<string | null> {
+  console.error(
+    "[propertyStore] createPropertyExplicit is retired; use resolveCompanyProperty"
+  );
+  return null;
 }
 
 /** Atomic canonical resolver. The database derives tenancy from authenticated membership. */

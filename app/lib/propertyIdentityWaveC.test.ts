@@ -109,12 +109,13 @@ describe("Wave C â€” Property identity", () => {
   test("intake resolution is explicit and company-scoped", () => {
     const store = read("app/lib/propertyStore.ts");
     assert.match(store, /createPropertyExplicit/);
+    assert.match(store, /is retired/);
     assert.doesNotMatch(store, /findOrCreateProperty/);
-    assert.match(store, /Always insert/);
     const intake = read("app/tools/roofing/RoofingClient.tsx");
     assert.match(intake, /resolveCompanyProperty/);
     assert.match(intake, /selectedPropertyId/);
     assert.match(intake, /JobPacketPropertyCandidates/);
+    assert.doesNotMatch(intake, /createPropertyExplicit\(/);
     const searchApi = read("app/api/properties/search/route.ts");
     assert.match(searchApi, /findPropertiesByNormalizedKey/);
     assert.match(searchApi, /exact normalized key only/);

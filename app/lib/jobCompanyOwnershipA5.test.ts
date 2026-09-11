@@ -44,7 +44,6 @@ function isDistinctFrom(
 
 const validPatch: JobUpdatePatch = {
   customer_id: null,
-  property_id: null,
   notes: "normal update",
   selected_measurement_id: null,
   active_proposal_id: null,
@@ -55,8 +54,14 @@ const invalidOwnerPatch: JobUpdatePatch = {
   company_id: COMPANY_B,
 };
 
+const invalidPropertyPatch: JobUpdatePatch = {
+  // @ts-expect-error FD-P2: property_id is not a mutable Job patch field.
+  property_id: COMPANY_A,
+};
+
 void validPatch;
 void invalidOwnerPatch;
+void invalidPropertyPatch;
 
 describe("A5 migration preflight", () => {
   test("proves jobs.company_id column is NOT NULL", () => {
@@ -188,12 +193,12 @@ describe("A5 jobStore facade", () => {
   test("unrelated update fields remain on JobUpdatePatch", () => {
     const ok: JobUpdatePatch = {
       customer_id: COMPANY_A,
-      property_id: COMPANY_B,
       notes: "ok",
       selected_measurement_id: COMPANY_A,
       active_proposal_id: COMPANY_B,
     };
     assert.equal(Object.keys(ok).includes("company_id"), false);
+    assert.equal(Object.keys(ok).includes("property_id"), false);
   });
 });
 

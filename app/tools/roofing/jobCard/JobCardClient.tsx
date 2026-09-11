@@ -97,6 +97,7 @@ import {
   JOB_CARD_PROPOSALS_TAB_SUBTITLE,
 } from "@/app/tools/roofing/jobCard/jobCardProposalsTabModel";
 import JobCardHeader from "@/app/tools/roofing/jobCard/JobCardHeader";
+import { JobCardChangePropertyPanel } from "@/app/tools/roofing/jobCard/JobCardChangePropertyPanel";
 import JobCardDispositionControl from "@/app/tools/roofing/jobCard/JobCardDispositionControl";
 import JobCardNextActionPanel from "@/app/tools/roofing/jobCard/JobCardNextActionPanel";
 import JobCardTabs, { type JobCardTabId } from "@/app/tools/roofing/jobCard/JobCardTabs";
@@ -208,6 +209,7 @@ export default function JobCardClient({
   const [startWorkBusy, setStartWorkBusy] = useState(false);
   const [startWorkError, setStartWorkError] = useState<string | null>(null);
   const [completeJobBusy, setCompleteJobBusy] = useState(false);
+  const [changePropertyOpen, setChangePropertyOpen] = useState(false);
   const [completeJobError, setCompleteJobError] = useState<string | null>(null);
   const [scheduleActivityTick, setScheduleActivityTick] = useState(0);
   const [scheduleHydrateRetryTick, setScheduleHydrateRetryTick] = useState(0);
@@ -863,6 +865,11 @@ export default function JobCardClient({
                   ? buildPropertyWorkspaceHref(hydratedJobRecord.property_id)
                   : null
               }
+              onChangeProperty={
+                hydratedJobRecord && companyId && currentJobId
+                  ? () => setChangePropertyOpen((open) => !open)
+                  : null
+              }
               dispositionNote={dispositionBlockedWorkCopy(
                 hydratedJobRecord?.status
               )}
@@ -899,6 +906,18 @@ export default function JobCardClient({
                 />
               }
             />
+            {companyId && currentJobId ? (
+              <JobCardChangePropertyPanel
+                open={changePropertyOpen}
+                jobId={currentJobId}
+                companyId={companyId}
+                currentAddressLabel={display.address}
+                onClose={() => setChangePropertyOpen(false)}
+                onSaved={async () => {
+                  await refreshHydratedJobRecord(currentJobId);
+                }}
+              />
+            ) : null}
             <JobCardNextActionPanel
               items={workspaceAttentionItems}
               selectedItem={workspaceSelectedAttention}

@@ -16,6 +16,7 @@ export type PlacesSuggestion = {
 export type PlacesResolvedAddress = {
   formatted: string;
   line1: string;
+  line2?: string;
   city: string;
   state: string;
   zip: string;
