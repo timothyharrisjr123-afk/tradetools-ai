@@ -85,6 +85,44 @@ describe("composeProposalAcceptanceActivityItems", () => {
     assert.equal(items[1]?.acceptanceId, ACCEPTANCE_B);
     assert.equal(items[0]?.note, items[1]?.note);
   });
+
+  test("contractor-facing note uses Version N, not UUID prefix", () => {
+    const VERSION_ID = "5b41c1c3-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    const items = composeProposalAcceptanceActivityItems([
+      {
+        id: ACCEPTANCE_A,
+        proposal_version_id: VERSION_ID,
+        version_number: 2,
+        accepted_at: "2026-08-16T14:31:20.000Z",
+        accepted_option_label: "Premium",
+        confirmed_at: null,
+        confirmed_by_user_id: null,
+        guard_result: "valid_clean",
+      },
+    ]);
+    assert.equal(items[0]?.note, "Premium package · Version 2");
+    assert.equal(items[0]?.proposalVersionId, VERSION_ID);
+    assert.doesNotMatch(items[0]?.note ?? "", /5b41c1c3/);
+    assert.doesNotMatch(items[0]?.note ?? "", /version 5b/i);
+  });
+
+  test("without version_number, omits UUID-style version label", () => {
+    const VERSION_ID = "5b41c1c3-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    const items = composeProposalAcceptanceActivityItems([
+      {
+        id: ACCEPTANCE_A,
+        proposal_version_id: VERSION_ID,
+        accepted_at: "2026-08-16T14:31:20.000Z",
+        accepted_option_label: "Premium",
+        confirmed_at: null,
+        confirmed_by_user_id: null,
+        guard_result: "valid_clean",
+      },
+    ]);
+    assert.equal(items[0]?.note, "Premium package");
+    assert.equal(items[0]?.proposalVersionId, VERSION_ID);
+    assert.doesNotMatch(items[0]?.note ?? "", /5b41c1c3/);
+  });
 });
 
 describe("acceptance Activity through Job Card composer", () => {

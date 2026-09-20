@@ -61,7 +61,12 @@ export default function ProposalPreviewHeader({
 }: ProposalPreviewHeaderProps) {
   const packageLabel = compactPackageLabel(selectedPackageLabel);
   const isSentRecord = Boolean(sentRecordChrome);
-  const statusLabel = sentRecordChrome?.statusLabel ?? sentFrozenChrome.statusLabel;
+  const statusLabel =
+    sentFrozenChrome.kind === "accepted" ||
+    sentFrozenChrome.kind === "signed" ||
+    sentFrozenChrome.kind === "superseded_previous"
+      ? sentFrozenChrome.statusLabel
+      : sentRecordChrome?.statusLabel ?? sentFrozenChrome.statusLabel;
   const showPdfActions =
     isSentRecord &&
     pdfDownload != null &&

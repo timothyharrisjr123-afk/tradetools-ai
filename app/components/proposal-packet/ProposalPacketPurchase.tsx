@@ -7,7 +7,8 @@ import {
   PUBLIC_PAYMENT_HISTORY_HEADING,
 } from "@/app/lib/jobPaymentTypes";
 import {
-  PROPOSAL_CUSTOMER_PACKET_CONFIRMED_TITLE,
+  PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUCCESS_NEXT,
+  PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUCCESS_TITLE,
   PROPOSAL_CUSTOMER_PACKET_YOUR_PACKAGE_LABEL,
   formatProposalCustomerAcceptedOnSentence,
   proposalCustomerAmountLabel,
@@ -231,10 +232,13 @@ export default function ProposalPacketPurchase({
         <>
           <div className={PROPOSAL_PACKET_PURCHASE_DIVIDER} />
           <p className="text-[14px] font-semibold text-[#0b1f33]">
-            {PROPOSAL_CUSTOMER_PACKET_CONFIRMED_TITLE}
+            {PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUCCESS_TITLE}
           </p>
           <p className="mt-0.5 text-[13px] text-[#64748b]">
             {formatProposalCustomerAcceptedOnSentence(acceptedOnLabel)}
+          </p>
+          <p className="mt-1 text-[13px] leading-relaxed text-[#64748b]">
+            {PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUCCESS_NEXT}
           </p>
         </>
       ) : null}

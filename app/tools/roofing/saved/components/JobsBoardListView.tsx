@@ -111,15 +111,32 @@ export default function JobsBoardListView({
                     </div>
                     {model?.attention ? (
                       <span
-                        className="mt-1 inline-flex max-w-full items-center gap-1.5 text-[11px] font-semibold text-amber-800"
+                        className={
+                          model.showApproveAction
+                            ? "mt-1 inline-flex max-w-full items-center gap-1.5 text-[11px] font-semibold text-slate-700"
+                            : "mt-1 inline-flex max-w-full items-center gap-1.5 text-[11px] font-semibold text-amber-800"
+                        }
                         aria-label={model.attention.accessibleLabel}
                         data-jobs-list-attention
+                        data-attention-treatment={
+                          model.showApproveAction ? "normal" : "warning"
+                        }
                       >
-                        <CircleAlert className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        {model.showApproveAction ? null : (
+                          <CircleAlert className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        )}
                         <span className="truncate">{model.attention.label}</span>
-                        <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 tabular-nums">
-                          {model.attention.activeCount}
-                        </span>
+                        {model.attention.activeCount > 1 ? (
+                          <span
+                            className={
+                              model.showApproveAction
+                                ? "shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 tabular-nums text-slate-600"
+                                : "shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 tabular-nums"
+                            }
+                          >
+                            {model.attention.activeCount}
+                          </span>
+                        ) : null}
                       </span>
                     ) : null}
                   </td>

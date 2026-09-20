@@ -32,6 +32,11 @@ type JobCardProposalsTabProps = {
   /** Gate for Block 3 Continue — measurement/template/package ready. */
   createReadyForBlock3?: boolean;
   onAddProposal: () => void;
+  /**
+   * When false, hide + Proposal / Create proposal. Used after a canonical
+   * accepted agreement so ordinary add cannot supersede contractual truth.
+   */
+  allowAddProposal?: boolean;
   onProposalAction: (action: JobCardProposalActionView, proposalId: string) => void;
   focusedRequestId?: string | null;
   sentHistoryDefaultOpen?: boolean;
@@ -330,6 +335,7 @@ export default function JobCardProposalsTab({
   jobId = null,
   createReadyForBlock3 = false,
   onAddProposal,
+  allowAddProposal = true,
   onProposalAction,
   focusedRequestId = null,
   sentHistoryDefaultOpen = false,
@@ -476,10 +482,12 @@ export default function JobCardProposalsTab({
             {JOB_CARD_PROPOSALS_EMPTY_BODY}
           </p>
           <div className="mt-4 flex justify-center">
-            <AddProposalButton
-              onClick={onAddProposal}
-              label={JOB_CARD_PROPOSALS_CREATE_LABEL}
-            />
+            {allowAddProposal ? (
+              <AddProposalButton
+                onClick={onAddProposal}
+                label={JOB_CARD_PROPOSALS_CREATE_LABEL}
+              />
+            ) : null}
           </div>
         </div>
       ) : null}
@@ -490,9 +498,13 @@ export default function JobCardProposalsTab({
 export function JobCardProposalsAddHeaderButton({
   onClick,
   quiet = false,
+  hidden = false,
 }: {
   onClick: () => void;
   quiet?: boolean;
+  /** Hide after canonical acceptance — ordinary + Proposal cannot supersede. */
+  hidden?: boolean;
 }) {
+  if (hidden) return null;
   return <AddProposalButton onClick={onClick} compact quiet={quiet} />;
 }

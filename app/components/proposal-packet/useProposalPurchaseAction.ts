@@ -6,6 +6,7 @@ import {
   type PublicPaymentViewModel,
 } from "@/app/lib/jobPaymentCustomerPresenter";
 import {
+  PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUPERSEDED_MESSAGE,
   PROPOSAL_CUSTOMER_PACKET_CONFIRM_PROPOSAL_CTA,
   PROPOSAL_CUSTOMER_PACKET_CONFIRM_PROPOSAL_BUSY,
 } from "@/app/lib/proposalCustomerPacketViewModel";
@@ -96,11 +97,17 @@ export function useProposalPurchaseAction({
           body: JSON.stringify(body),
         });
         const data = (await response.json().catch(() => null)) as
-          | { ok?: boolean; url?: string }
+          | { ok?: boolean; url?: string; code?: string }
           | null;
 
         if (!response.ok || data?.ok !== true) {
-          setError(kind === "pay" ? PROPOSAL_PURCHASE_PAY_ERROR : PROPOSAL_PURCHASE_CONFIRM_ERROR);
+          if (kind === "pay") {
+            setError(PROPOSAL_PURCHASE_PAY_ERROR);
+          } else if (data?.code === "superseded") {
+            setError(PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUPERSEDED_MESSAGE);
+          } else {
+            setError(PROPOSAL_PURCHASE_CONFIRM_ERROR);
+          }
           setBusy(false);
           return;
         }

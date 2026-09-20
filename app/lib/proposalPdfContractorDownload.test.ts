@@ -253,6 +253,56 @@ describe("generateContractorProposalPdf", () => {
     assert.equal(signed.ok, true);
   });
 
+  test("accepted unsigned (acceptance-only overlay) cannot generate signed_final", async () => {
+    const result = await generateContractorProposalPdf({
+      companyId: COMPANY_ID,
+      proposalId: PROPOSAL_ID,
+      versionId: VERSION_V1,
+      artifactType: PROPOSAL_PDF_ARTIFACT_SIGNED_FINAL,
+      deps: {
+        getVersionGraph: async () => fakeGraph(),
+        readPaymentTerms: async () => null,
+        loadSignatureOverlay: async () => ({
+          status: "accepted",
+          signerPrintedName: null,
+          acceptedOnLabel: "August 15, 2026",
+          signedOnLabel: null,
+          drawnMark: null,
+        }),
+        render: async () => okRender(),
+      },
+    });
+    assert.deepEqual(result, { ok: false, code: "signed_unavailable" });
+  });
+
+  test("accepted signed overlay allows signed_final generation", async () => {
+    const result = await generateContractorProposalPdf({
+      companyId: COMPANY_ID,
+      proposalId: PROPOSAL_ID,
+      versionId: VERSION_V1,
+      artifactType: PROPOSAL_PDF_ARTIFACT_SIGNED_FINAL,
+      deps: {
+        getVersionGraph: async () => fakeGraph(),
+        readPaymentTerms: async () => null,
+        loadSignatureOverlay: async () => ({
+          status: "signed",
+          signerPrintedName: "Jane Homeowner",
+          acceptedOnLabel: "August 15, 2026",
+          signedOnLabel: "August 15, 2026",
+          drawnMark: null,
+        }),
+        render: async (input) => {
+          assert.equal(input.signatureOverlay?.status, "signed");
+          return okRender({
+            artifactType: PROPOSAL_PDF_ARTIFACT_SIGNED_FINAL,
+            filename: "signed.pdf",
+          });
+        },
+      },
+    });
+    assert.equal(result.ok, true);
+  });
+
   test("sent artifact never loads signature overlay", async () => {
     let overlayCalled = false;
     const result = await generateContractorProposalPdf({
@@ -380,6 +430,10 @@ describe("contractor PDF UI locks", () => {
       "app/tools/roofing/proposals/preview/ProposalPreviewPdfActions.tsx",
       "utf8"
     );
+    const probe = readFileSync(
+      "app/lib/proposalPdfContractorDownload.ts",
+      "utf8"
+    );
     assert.match(header, /ProposalPreviewPdfActions/);
     assert.match(header, /showPdfActions/);
     assert.match(client, /pdfDownload=/);
@@ -390,6 +444,10 @@ describe("contractor PDF UI locks", () => {
     assert.match(pdfActions, /PROPOSAL_PDF_ARTIFACT_SENT/);
     assert.match(pdfActions, /PROPOSAL_PDF_ARTIFACT_SIGNED_FINAL/);
     assert.match(pdfActions, /hasContractorProposalPdfSignedFinal/);
+    // Probe must require proposal_signatures — never infer from acceptance alone.
+    assert.match(probe, /from\("proposal_signatures"\)/);
+    assert.match(probe, /Acceptance alone is not signature/);
+    assert.match(probe, /signatureOverlay\.status !== "signed"/);
   });
 
   test("Job Card proposals tab does not add a separate PDF control", () => {

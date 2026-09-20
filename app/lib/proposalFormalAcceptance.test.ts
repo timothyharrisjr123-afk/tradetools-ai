@@ -47,9 +47,14 @@ const MIGRATION_039 = join(
   ROOT,
   "supabase/history/legacy-migrations/20260816_039_proposal_formal_acceptance.sql"
 );
+const MIGRATION_PHASE1_SUPERSEDE = join(
+  ROOT,
+  "supabase/migrations/20260920180000_phase1_reject_superseded_acceptance.sql"
+);
 
 const sql040 = readFileSync(MIGRATION_040, "utf8");
 const sql038 = readFileSync(MIGRATION_038, "utf8");
+const sqlPhase1Supersede = readFileSync(MIGRATION_PHASE1_SUPERSEDE, "utf8");
 const recordFn = sql040.slice(
   sql040.indexOf("create or replace function public.record_proposal_acceptance_v1"),
   sql040.indexOf("create or replace function public.confirm_proposal_acceptance_v1")
@@ -125,7 +130,7 @@ describe("R3C classifier", () => {
     );
   });
 
-  test("OLDER sent version is VALID_REVIEW_REQUIRED and stays bound to that version", () => {
+  test("OLDER sent version is INVALID superseded for NEW acceptance attempts", () => {
     assert.deepEqual(
       classifyProposalAcceptanceGuard(
         cleanInput({
@@ -134,9 +139,15 @@ describe("R3C classifier", () => {
         })
       ),
       {
-        result: "valid_review_required",
-        reason: "older_sent_version",
+        result: "invalid",
+        reason: "superseded",
       }
+    );
+    assert.match(sqlPhase1Supersede, /reason', 'superseded'/);
+    assert.match(sqlPhase1Supersede, /result', 'invalid'/);
+    assert.match(
+      sqlPhase1Supersede,
+      /latest_sent_version_id is distinct from p_proposal_version_id/
     );
   });
 
@@ -350,7 +361,7 @@ describe("R3C migration 040 schema and ownership", () => {
     assert.doesNotMatch(sql040, /auto_approve/i);
     assert.doesNotMatch(sql040, /confirm_required/);
     assert.doesNotMatch(recordFn, /stage = 'approved'/);
-    assert.match(sql040, /There is no automatic Proposal â†’ Approved/);
+    assert.match(sql040, /There is no automatic Proposal → Approved/);
   });
 });
 
@@ -375,7 +386,8 @@ describe("R3C request vs acceptance and contractor UX", () => {
       join(ROOT, "app/components/proposal-packet/ProposalPacketAcceptModal.tsx"),
       "utf8"
     );
-    assert.match(purchase, /PROPOSAL_CUSTOMER_PACKET_CONFIRMED_TITLE/);
+    assert.match(purchase, /PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUCCESS_TITLE/);
+    assert.match(purchase, /PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUCCESS_NEXT/);
     assert.doesNotMatch(purchase, /ambiguous|Waiting for contractor|Pending approval|job stage/i);
     assert.doesNotMatch(modal, /ambiguous|Waiting for contractor|Review required/i);
     assert.equal(
@@ -423,7 +435,7 @@ describe("R3C request vs acceptance and contractor UX", () => {
         packageLabel: "Premium",
         acceptedTotalCents: 1850000,
       }),
-      "Premium Â· $18,500"
+      "Premium · $18,500"
     );
     assert.equal(
       formatProposalAcceptanceAttentionDetail({
@@ -534,7 +546,7 @@ describe("R3C request vs acceptance and contractor UX", () => {
         acceptedTotalCents: 1850000,
         acceptedAt: "2026-08-16T12:00:00.000Z",
       }),
-      "Premium Â· $18,500 Â· Aug 16, 2026"
+      "Premium · $18,500 · Aug 16, 2026"
     );
   });
 

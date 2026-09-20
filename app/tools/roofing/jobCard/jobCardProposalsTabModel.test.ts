@@ -16,6 +16,8 @@ import {
   JOB_CARD_PROPOSALS_EMPTY_TITLE,
   JOB_CARD_PROPOSALS_ENTRY_PLACEHOLDER,
   JOB_CARD_PROPOSALS_PRIMARY_BUTTON_CLASS,
+  JOB_CARD_PROPOSALS_VIEW_ACCEPTED_LABEL,
+  buildJobCardProposalActions,
   buildJobCardProposalRowMetaLine,
   buildJobCardProposalRowView,
   buildJobCardProposalRowViews,
@@ -27,6 +29,7 @@ import {
   formatJobCardProposalRowTitle,
   formatJobCardProposalStatusLabel,
   formatJobCardProposalUpdatedShort,
+  jobHasCanonicalAcceptedAgreement,
   partitionJobCardProposalRows,
   JOB_CARD_PROPOSAL_ACTIVITY_CREATED_LABEL,
   JOB_CARD_PROPOSAL_ACTIVITY_CREATED_NOTE,
@@ -287,6 +290,12 @@ describe("jobCardProposalsTab helpers", () => {
       summary: sent,
       sentFacts: facts,
       customerAccepted: true,
+      hrefs: {
+        builderHref: (id) => `/builder/${id}`,
+        previewHref: (id) => `/preview/${id}`,
+        sentRecordHref: (id, versionId) =>
+          `/preview/${id}/sent/${versionId}`,
+      },
     });
     const signedRow = buildJobCardProposalRowView({
       summary: sent,
@@ -296,6 +305,15 @@ describe("jobCardProposalsTab helpers", () => {
     });
     assert.equal(acceptedRow.statusLabel, "Accepted");
     assert.equal(signedRow.statusLabel, "Signed");
+    assert.equal(
+      acceptedRow.primaryAction.label,
+      JOB_CARD_PROPOSALS_VIEW_ACCEPTED_LABEL
+    );
+    assert.equal(acceptedRow.secondaryActions.length, 0);
+    assert.equal(
+      acceptedRow.secondaryActions.some((a) => a.id === "revise_proposal"),
+      false
+    );
     assert.equal(
       formatJobCardContractorProposalStatusLabel({
         visibleSummaries: [sent],
@@ -326,6 +344,46 @@ describe("jobCardProposalsTab helpers", () => {
         customerAccepted: true,
       }),
       "Accepted"
+    );
+  });
+
+  test("accepted agreement blocks ordinary Revise and + Proposal gate", () => {
+    assert.equal(
+      jobHasCanonicalAcceptedAgreement({ "prop-1": true }),
+      true
+    );
+    assert.equal(jobHasCanonicalAcceptedAgreement({ "prop-1": false }), false);
+    assert.equal(jobHasCanonicalAcceptedAgreement({}), false);
+
+    const actions = buildJobCardProposalActions({
+      kind: "sent",
+      editingAllowed: true,
+      builderHref: "/builder/x",
+      previewHref: "/preview/x",
+      sentRecordHref: "/preview/x/sent/v1",
+      customerAccepted: true,
+    });
+    assert.equal(actions.primaryAction.label, "View accepted proposal");
+    assert.equal(actions.secondaryActions.length, 0);
+    assert.equal(
+      actions.secondaryActions.some((a) => a.id === "revise_proposal"),
+      false
+    );
+
+    const revisionInProgress = buildJobCardProposalActions({
+      kind: "revision_in_progress",
+      editingAllowed: true,
+      builderHref: "/builder/x",
+      previewHref: "/preview/x",
+      sentRecordHref: "/preview/x/sent/v1",
+      customerAccepted: true,
+    });
+    assert.equal(revisionInProgress.primaryAction.id, "view_sent");
+    assert.equal(
+      revisionInProgress.secondaryActions.some(
+        (a) => a.id === "continue_revision" || a.id === "revise_proposal"
+      ),
+      false
     );
   });
 

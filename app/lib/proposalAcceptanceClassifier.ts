@@ -1,9 +1,12 @@
 /**
  * R3C — Pure acceptance classifier.
  *
- * Live write ownership is classify_proposal_acceptance_guard_v1 in migration 040.
+ * Live write ownership is classify_proposal_acceptance_guard_v1
+ * (Phase 1 migration rejects superseded non-latest sent versions as invalid).
  * This mirror exists for tests and contractor copy. It does not move Job stage.
  * valid_clean and valid_review_required both record acceptance and create Attention.
+ * NEW acceptance of a non-latest sent version is invalid/superseded (not recorded).
+ * Historical valid_review_required / older_sent_version rows remain classified in place.
  * Later-stage jobs (Approved/Scheduled/Production/Complete) classify as
  * valid_review_required / job_already_approved — never invalid merely because
  * the Job has progressed. Only explicit contractor Approve job may move
@@ -98,8 +101,11 @@ export function classifyProposalAcceptanceGuard(
     return { result: "valid_review_required", reason: "job_not_in_proposal" };
   }
 
+  // Phase 1 race: supersession first → NEW acceptance of an older sent version
+  // is rejected. Historical rows already stored as valid_review_required /
+  // older_sent_version remain classified in place and are never rewritten here.
   if (!latestSentVersionId || acceptedVersionId !== latestSentVersionId) {
-    return { result: "valid_review_required", reason: "older_sent_version" };
+    return { result: "invalid", reason: "superseded" };
   }
 
   if (

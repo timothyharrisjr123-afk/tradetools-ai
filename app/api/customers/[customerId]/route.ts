@@ -3,6 +3,7 @@ import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
 import { buildDbJobCardHref } from "@/app/lib/jobBoardAdapter";
 import { resolveCanonicalJobStageLabel } from "@/app/lib/jobLifecycleMapper";
 import type { JobStage } from "@/app/lib/jobTypes";
+import { formatCustomerWorkspaceStageWithAgreement } from "@/app/lib/proposalAgreementProjection";
 import {
   buildPropertyWorkspaceHref,
   formatPropertyDisplayAddress,
@@ -61,6 +62,38 @@ export async function GET(
     .limit(40);
 
   const jobRows = Array.isArray(jobs) ? jobs : [];
+  const jobIds = jobRows
+    .map((job) => String(job.id ?? "").trim())
+    .filter((id) => isUuidLike(id));
+
+  const acceptedJobIds = new Set<string>();
+  const signedJobIds = new Set<string>();
+  if (jobIds.length > 0) {
+    const { data: acceptances } = await supabase
+      .from("proposal_acceptances")
+      .select("job_id, id")
+      .eq("company_id", companyId)
+      .in("job_id", jobIds);
+    const acceptanceIds: string[] = [];
+    for (const row of Array.isArray(acceptances) ? acceptances : []) {
+      const jobId = String(row.job_id ?? "").trim();
+      if (jobId) acceptedJobIds.add(jobId);
+      const acceptanceId = String(row.id ?? "").trim();
+      if (acceptanceId) acceptanceIds.push(acceptanceId);
+    }
+    if (acceptanceIds.length > 0) {
+      const { data: signatures } = await supabase
+        .from("proposal_signatures")
+        .select("job_id, proposal_acceptance_id")
+        .eq("company_id", companyId)
+        .in("proposal_acceptance_id", acceptanceIds);
+      for (const row of Array.isArray(signatures) ? signatures : []) {
+        const jobId = String(row.job_id ?? "").trim();
+        if (jobId) signedJobIds.add(jobId);
+      }
+    }
+  }
+
   const propertyIds = [
     ...new Set(
       jobRows
@@ -100,22 +133,34 @@ export async function GET(
       phone: customer.phone ?? null,
       address: customer.address ?? null,
     },
-    jobs: jobRows.map((job) => ({
-      id: job.id,
-      primary: String(job.job_name || job.customer_name || "Job").trim(),
-      address:
-        String(job.address_formatted || "").trim() ||
-        formatPropertyDisplayAddress({
-          line1: job.address_line1,
-          city: job.address_city,
-          state: job.address_state,
-          zip: job.address_zip,
+    jobs: jobRows.map((job) => {
+      const jobId = String(job.id);
+      const baseStage = resolveCanonicalJobStageLabel({
+        stage: job.stage as JobStage,
+      });
+      return {
+        id: job.id,
+        primary: String(job.job_name || job.customer_name || "Job").trim(),
+        address:
+          String(job.address_formatted || "").trim() ||
+          formatPropertyDisplayAddress({
+            line1: job.address_line1,
+            city: job.address_city,
+            state: job.address_state,
+            zip: job.address_zip,
+          }),
+        stage: job.stage,
+        stageLabel: formatCustomerWorkspaceStageWithAgreement({
+          stageLabel: baseStage,
+          accepted: acceptedJobIds.has(jobId),
+          signed: signedJobIds.has(jobId),
         }),
-      stage: job.stage,
-      stageLabel: resolveCanonicalJobStageLabel({ stage: job.stage as JobStage }),
-      href: buildDbJobCardHref(String(job.id)),
-      propertyId: job.property_id ?? null,
-    })),
+        customerAccepted: acceptedJobIds.has(jobId),
+        customerSigned: signedJobIds.has(jobId),
+        href: buildDbJobCardHref(String(job.id)),
+        propertyId: job.property_id ?? null,
+      };
+    }),
     properties: [...propertiesById.values()].map((property) => {
       const jobCount = jobRows.filter((job) => String(job.property_id ?? "") === property.id)
         .length;

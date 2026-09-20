@@ -46,6 +46,9 @@ export const JOB_CARD_PROPOSALS_PREVIEW_REVISION_LABEL = "Preview revision" as c
 export const JOB_CARD_PROPOSALS_REVISE_LABEL = "Revise proposal" as const;
 export const JOB_CARD_PROPOSALS_CONTINUE_REVISION_LABEL = "Continue revision" as const;
 export const JOB_CARD_PROPOSALS_VIEW_SENT_LABEL = "View sent proposal" as const;
+/** Accepted agreement primary — not ordinary “sent” wording. */
+export const JOB_CARD_PROPOSALS_VIEW_ACCEPTED_LABEL =
+  "View accepted proposal" as const;
 export const JOB_CARD_PROPOSALS_VIEW_LAST_SENT_LABEL = "View last sent" as const;
 export const JOB_CARD_PROPOSALS_SENT_HISTORY_LABEL = "Sent history" as const;
 export const JOB_CARD_PROPOSALS_CURRENT_SENT_MARKER = "Current" as const;
@@ -259,20 +262,36 @@ function action(
   };
 }
 
+/** True when any proposal on the job has durable acceptance truth. */
+export function jobHasCanonicalAcceptedAgreement(
+  acceptedProposalIds:
+    | Readonly<Record<string, boolean | undefined>>
+    | null
+    | undefined
+): boolean {
+  if (!acceptedProposalIds) return false;
+  return Object.values(acceptedProposalIds).some((value) => value === true);
+}
+
 export function buildJobCardProposalActions(input: {
   kind: ContractorProposalLifecycleKind;
   editingAllowed: boolean;
   builderHref: string;
   previewHref: string;
   sentRecordHref?: string | null;
+  /** Durable acceptance on this proposal — blocks ordinary revise/supersede. */
+  customerAccepted?: boolean;
 }): {
   primaryAction: JobCardProposalActionView;
   secondaryActions: JobCardProposalActionView[];
 } {
   const sentHref = (input.sentRecordHref ?? "").trim() || null;
+  const accepted = input.customerAccepted === true;
   const viewSent = action({
     id: "view_sent",
-    label: JOB_CARD_PROPOSALS_VIEW_SENT_LABEL,
+    label: accepted
+      ? JOB_CARD_PROPOSALS_VIEW_ACCEPTED_LABEL
+      : JOB_CARD_PROPOSALS_VIEW_SENT_LABEL,
     enabled: Boolean(sentHref),
     href: sentHref,
     unavailableReason: sentHref
@@ -288,6 +307,14 @@ export function buildJobCardProposalActions(input: {
       ? null
       : JOB_CARD_PROPOSALS_VIEW_SENT_UNAVAILABLE_REASON,
   });
+
+  // Accepted agreement: view only — ordinary Revise/Continue cannot supersede.
+  if (accepted) {
+    return {
+      primaryAction: viewSent,
+      secondaryActions: [],
+    };
+  }
 
   if (!input.editingAllowed || input.kind === "signed") {
     return {
@@ -661,6 +688,7 @@ export function buildJobCardProposalRowView(input: {
     builderHref: builderHref ?? "",
     previewHref: previewHref ?? "",
     sentRecordHref,
+    customerAccepted: input.customerAccepted === true,
   });
   const sentHistory = (input.sentFacts?.history ?? []).map((row) => ({
     ...row,

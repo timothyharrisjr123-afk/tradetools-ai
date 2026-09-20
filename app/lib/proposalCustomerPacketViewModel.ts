@@ -296,7 +296,8 @@ export const PROPOSAL_CUSTOMER_PACKET_ACCEPT_MODAL_TITLE = "Accept this proposal
 export const PROPOSAL_CUSTOMER_PACKET_ACCEPT_MODAL_ACK =
   "You are accepting this proposal as shown, including the selected package and total.";
 
-export const PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUCCESS_TITLE = "Proposal accepted";
+export const PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUCCESS_TITLE =
+  "Your acceptance is recorded.";
 
 export const PROPOSAL_CUSTOMER_PACKET_CONFIRM_PROPOSAL_CTA = "Confirm this proposal";
 
@@ -308,8 +309,10 @@ export const PROPOSAL_CUSTOMER_PACKET_CONFIRM_PROPOSAL_SHORT_CTA = "Confirm prop
 export const PROPOSAL_CUSTOMER_PACKET_CONFIRMED_TITLE = "Proposal confirmed";
 
 export const PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUCCESS_NEXT =
-  "The contractor has your acceptance.";
+  "The contractor will confirm scheduling.";
 
+export const PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUPERSEDED_MESSAGE =
+  "A newer proposal is available. Open the current proposal to continue.";
 export function formatProposalCustomerAcceptedOnLabel(
   acceptedAt: string | null | undefined
 ): string | null {

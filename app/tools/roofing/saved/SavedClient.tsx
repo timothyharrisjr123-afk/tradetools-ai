@@ -28,6 +28,7 @@ import { useWorkspaceSearch } from "./useWorkspaceSearch";
 import { restoreCanonicalBoardFromReturnStatus } from "@/app/lib/boardCanonicalSurface";
 import { useCompanySetupReadiness } from "./useCompanySetupReadiness";
 import { useBoardCanonicalJobs } from "./useBoardCanonicalJobs";
+import { AGREEMENT_BOARD_ACCEPTED_AWAITING_LABEL } from "@/app/lib/proposalAgreementProjection";
 import {
   applyBoardDispositionFilter,
   applyBoardUpdatedDateFilter,
@@ -3815,13 +3816,23 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
         columnKey === "approved"
           ? plannedScheduleIntegrityLabel(coherence)
           : null;
+      const canApprove = canonicalActions?.canApproveJob ?? false;
+      const boardAttention =
+        attention &&
+        attention.primaryType === "acceptance_confirmation_required" &&
+        canApprove
+          ? {
+              ...attention,
+              label: AGREEMENT_BOARD_ACCEPTED_AWAITING_LABEL,
+            }
+          : attention;
       return {
         ...buildJobsBoardCardModel(job, batchStatuses, { columnKey }),
         sourceBadge: isLegacyBoardEstimateEntry(job) ? "Legacy" : null,
         dispositionLabel: visibleDispositionLabel(
           (job as { jobDisposition?: string | null }).jobDisposition
         ),
-        attention,
+        attention: boardAttention,
         scheduleLabel:
           scheduleTrusted && schedule
             ? columnKey === "in_progress" || columnKey === "paid"

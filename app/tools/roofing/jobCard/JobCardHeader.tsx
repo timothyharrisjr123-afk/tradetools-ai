@@ -45,7 +45,7 @@ export default function JobCardHeader({
 
       <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-2xl font-semibold tracking-tight text-slate-900 sm:text-[1.65rem]">
+          <h1 className="break-words text-2xl font-semibold tracking-tight text-slate-900 sm:truncate sm:text-[1.65rem]">
             {customerHref ? (
               <Link href={customerHref} className="hover:underline">
                 {display.customerName}
@@ -57,11 +57,15 @@ export default function JobCardHeader({
           <div className="mt-1.5 flex min-w-0 items-start gap-1.5 text-sm text-slate-600">
             <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" strokeWidth={1.75} aria-hidden />
             {propertyHref ? (
-              <Link href={propertyHref} className="min-w-0 truncate hover:underline" data-jobcard-property-link>
+              <Link
+                href={propertyHref}
+                className="min-w-0 break-words hover:underline sm:truncate"
+                data-jobcard-property-link
+              >
                 {display.address}
               </Link>
             ) : (
-              <span className="min-w-0 truncate">{display.address}</span>
+              <span className="min-w-0 break-words sm:truncate">{display.address}</span>
             )}
             {onChangeProperty ? (
               <button
@@ -75,7 +79,7 @@ export default function JobCardHeader({
             ) : null}
           </div>
           {phoneValue || emailValue ? (
-            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm">
+            <div className="mt-3 flex flex-col gap-1.5 text-sm sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-5">
               {phoneValue ? (
                 <span className="inline-flex items-center gap-1.5 text-slate-700">
                   <Phone className="h-3.5 w-3.5 text-slate-400" strokeWidth={1.75} aria-hidden />
@@ -83,9 +87,9 @@ export default function JobCardHeader({
                 </span>
               ) : null}
               {emailValue ? (
-                <span className="inline-flex min-w-0 items-center gap-1.5 text-slate-700">
-                  <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" strokeWidth={1.75} aria-hidden />
-                  <span className="truncate">{emailValue}</span>
+                <span className="inline-flex min-w-0 items-start gap-1.5 text-slate-700">
+                  <Mail className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" strokeWidth={1.75} aria-hidden />
+                  <span className="min-w-0 break-all sm:break-words">{emailValue}</span>
                 </span>
               ) : null}
             </div>

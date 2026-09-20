@@ -220,6 +220,12 @@ describe("Phase 1 — one canonical action", () => {
     assert.match(purchase, /disabled=\{action\.busy\}/);
   });
 
+  test("superseded confirm rejection surfaces newer-proposal copy", () => {
+    const hook = read(`${PACKET_DIR}/useProposalPurchaseAction.ts`);
+    assert.match(hook, /data\?\.code === "superseded"/);
+    assert.match(hook, /PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUPERSEDED_MESSAGE/);
+  });
+
   test("payment method stays provider-owned in the CTA", () => {
     const hook = read(`${PACKET_DIR}/useProposalPurchaseAction.ts`);
     for (const banned of ["Pay by card", "Pay by debit", "Cash App", "ACH"]) {

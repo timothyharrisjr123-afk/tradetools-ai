@@ -2,9 +2,147 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-20 — PHASE 1 COMPLETE: Agreement truth + action consistency
+
+==================================================
+PHASE 1 — AGREEMENT TRUTH + ACTION CONSISTENCY  
+STATUS: **COMPLETE**
+==================================================
+
+- **Base checkpoint:** `5a97317ceb3a87d6042f89d718d6086919c1633e`
+- **Final code checkpoint:** this commit (message: `feat(proposals): complete agreement truth phase 1`)
+- **Production migration:** `20260920180000_phase1_reject_superseded_acceptance`
+- **Production project:** `rhquhnujjnzjhweypavd`
+- **Migration status:** **LIVE / VERIFIED** (dry-run after apply: remote up to date)
+- **Main:** **not** pushed. **No** deploy from this checkpoint. Phase 2 **not** started.
+
+### Locked product truth
+
+- Acceptance is commercial truth.
+- Acceptance does **not** auto-approve.
+- Acceptance does **not** schedule.
+- Acceptance does **not** create payment truth.
+- Contractor approval remains explicit.
+- Proposal → Approved remains a contractor action.
+- Signature is **OPTIONAL** for approval in current launch architecture.
+- **Signed** appears only with durable `proposal_signatures` evidence.
+- Accepted agreements cannot be ordinarily superseded/revised.
+- Future accepted-scope modifications belong to later approved scope-change architecture.
+
+### New version / race law
+
+- **Supersession-first:** older-version acceptance rejected server-side (`invalid` / `superseded`).
+- **Acceptance-first:** accepted agreement remains immutable (frozen sent version + app revise/+Proposal gating).
+- Historical `valid_review_required` / `older_sent_version` rows preserved.
+- No historical rewrite.
+- **FD-P1-09** unchanged.
+
+### Surface result
+
+| Surface | Result |
+|--------|--------|
+| Board | Proposal lane · `Customer accepted · Awaiting approval` · normal/slate treatment · Approve action |
+| Job Card | `Customer accepted proposal` · `Awaiting contractor approval` · Approve job · no warning banner for normal acceptance |
+| Proposals | accepted version explicit · View accepted proposal · no ordinary Revise / + Proposal after canonical acceptance |
+| Preview | `Accepted proposal · Version N` · no ordinary Send · unsigned accepted agreement does **not** expose signed PDF · signed evidence only when durable signature row exists |
+| Customer workspace | operational stage and Customer accepted shown separately |
+| Activity | human `Version N` label rather than UUID prefix |
+| Public | `Your acceptance is recorded` · truthful next step · stale/superseded version rejected and newer proposal surfaced |
+| 390px | job identity/address/email readable · accepted state and Approve action visible · broader mobile hierarchy deferred |
+
+### Live proof
+
+| Proof | Result |
+|-------|--------|
+| Supersession-first | **PASS** |
+| Acceptance-first | **PASS** |
+| Historical preservation | **PASS** |
+| Public current acceptance | **PASS** |
+| Public stale/superseded acceptance | **PASS** |
+| Cross-surface agreement | **PASS** |
+
+### Tests
+
+- Focused Phase 1: **134 pass / 0 fail**
+- Bounded regression: **328 pass / 0 fail**
+- `jobSchedules045.test.ts` contains a **PRE-EXISTING** corrupted UTF-8 expected string (`"Aug 25 Â· All day"`). Not introduced by Phase 1; not weakened or changed; remains follow-up debt; do **not** rediscover as a Phase 1 regression.
+
+### Remaining non-blocking unproven
+
+- Real signed runtime chrome: **UNPROVEN** because no safe signed fixture exists.
+- Automated signed gating is covered; unsigned runtime behavior is proven.
+- Does **not** block Phase 1 closure.
+
+### Visual review
+
+- **PASS**
+- Phase 1 screenshots (ephemeral): `tmp/fielddive-ui-review/phase1-agreement-truth/` — do **not** treat tmp screenshots as durable repo truth; conclusions live in this handoff.
+
+### NEXT
+
+**PHASE 2 — RECOVERY + FINANCIAL PROJECTION**  
+Phase 2 is **NOT** started.
+
+Future mapping scope (do not implement from this checkpoint):
+
+- uncertain consequential outcomes
+- lost HTTP/browser responses
+- send reconciliation
+- delayed provider/webhook states
+- payment unknown vs zero vs open vs processing vs paid
+- duplicate command safety
+- stale client recovery
+- accepted→deposit continuation/recovery
+- durable operation reconciliation
+
+### Execution model (every remaining phase)
+
+1. ASTRA DESIGN  
+2. REPO-TRUTH MAPPING  
+3. BOUNDED IMPLEMENTATION  
+4. AUTOMATED VERIFICATION  
+5. RUNTIME PROOF  
+6. DESKTOP + TRUE 390 VISUAL REVIEW  
+7. GPT/USER REVIEW  
+8. CORRECTION PASS IF NEEDED  
+9. FINAL TRUTH GATE  
+10. CHECKPOINT  
+
+No vague phase implementation prompts.
+
+### Controlling launch posture
+
+FieldDive is preparing for a **PROMOTED CONTROLLED-ACCESS LAUNCH**. Users cannot depend on founder coaching. Pre-launch product must be self-explanatory, trustworthy, recoverable, visually complete, mobile-usable, coherent across surfaces, and free of visible prototype/legacy leakage.
+
+### Current roadmap order
+
+1. Agreement truth + action consistency — **COMPLETE**
+2. Recovery + financial projection — **NEXT**
+3. Canonical product cutover + legacy retirement
+4. Semantic UI system — continuous across phases
+5. First-use + first-proposal activation
+6. Jobs + identity reuse + search + repeat work
+7. Small-team responsibility + field handoff
+8. Job Card + mobile operational hierarchy
+9. Lifecycle/disposition recovery
+10. Minimal approved scope changes
+11. Collection communication
+12. Customer-facing agreement/payment/closeout proof
+13. Promoted-launch experience refinement
+14. Whole-product launch audit
+
+Then (separate later programs): tiers/pricing/packaging → commercial homepage → subscription/legal → support/recovery readiness → technology currency audit → final release audit → controlled promoted launch.
+
+### Prior foundation context (unchanged)
+
+- Delivery Completeness D1–D3 **CLOSED** (residual: Resend production webhook secret registration — see Delivery section below).
+- Stage 3 Deferred/Unfinished/Prototype Inventory: **COMPLETE** (inventory only; does not reopen Delivery).
+- Stage 4 Astra audit: **COMPLETE + RATIFIED** with amendments (design authority for later phases; Technology Currency Audit remains later/separate).
+- Foundation A1–A6 **CLOSED**. Selective production releases remain the deploy path until authorized full-main cutover.
+
 ## 2026-09-11 — Delivery Completeness CLOSED (D1 + D2 + D3)
 
-- **Status:** `CLOSED` with one residual ops follow-up (Resend webhook secret registration — see production cutover). Full Delivery Completeness cycle complete for D1/D2/D3 code+DB+app. Main **not** pushed. Stage 3 Deferred/Unfinished/Prototype Inventory **not** started. Stage 4 Astra / Technology Currency **not** started. No Delivery Center / SMS / marketing email / payment-link email / FieldDive receipt email / accept-sign notification email built.
+- **Status:** `CLOSED` with one residual ops follow-up (Resend webhook secret registration — see production cutover). Full Delivery Completeness cycle complete for D1/D2/D3 code+DB+app. Main **not** pushed. Stage 3 Deferred/Unfinished/Prototype Inventory and Stage 4 Astra audit were completed later (see Phase 1 COMPLETE section above for current roadmap). Technology Currency Audit remains later/separate. No Delivery Center / SMS / marketing email / payment-link email / FieldDive receipt email / accept-sign notification email built.
 - **Product principle locked:** UNDER THE HOOD by default → QUIETLY VISIBLE when useful → PROMINENT only on failure or required action.
 - **Starting checkpoint:** `727279208b97ba50626da768131067567b12764d` (FD-P2-PLACES-SURFACES CLOSED). Foundation A1–A6 CLOSED.
 
@@ -53,11 +191,11 @@
 - **Production smoke:** `/` + `/login` **200**; legacy `/api/estimate/send`, `/api/email/send`, `/api/email/followup`, `/api/approve/confirm` **410**; `/api/webhooks/resend` **503** `webhook_not_configured` (expected until secret set).
 - **Resend production webhook registration:** **NOT completed in this cutover.** Local/prod `RESEND_API_KEY` is **send-only restricted** (cannot create webhooks via API). `RESEND_WEBHOOK_SECRET` is **not** present in Vercel env list. **Required human step:** Resend dashboard → create webhook → `https://www.fielddive.com/api/webhooks/resend` (events: sent/delivered/delivery_delayed/bounced/failed/complained) → add signing secret to Vercel Production as `RESEND_WEBHOOK_SECRET` → redeploy/promote → verify endpoint accepts signed fixtures (no longer 503). Do **not** enable webhook traffic until secret is live.
 - **Payment-link / Stripe receipt:** unchanged (copy/share; Stripe-owned receipts).
-- **Next (separate auth only):** (1) complete Resend webhook secret registration + signed production smoke; then Stage 3 Deferred/Unfinished/Prototype Inventory. Do **not** push main.
+- **Residual ops (separate auth only):** complete Resend webhook secret registration + signed production smoke when authorized. Stage 3 inventory and Stage 4 Astra are already complete; current product roadmap resume is **Phase 2 — Recovery + financial projection** (mapping only — see Phase 1 COMPLETE section). Do **not** push main from historical Delivery closeout alone.
 
 ## 2026-09-11 — FD-P2-PLACES-SURFACES CLOSED (Job Card property change)
 
-- **Status:** `CLOSED`. Places completion for existing-job property change. Main **not** pushed. Delivery Completeness **CLOSED** (see section above). Stage 3 inventory / Stage 4 Astra / Technology Currency **not** started. **FD-P2-NULL-JOB-FKS** remains Category B (~56–61 active null `property_id` jobs; no mass backfill).
+- **Status:** `CLOSED`. Places completion for existing-job property change. Main **not** pushed. Delivery Completeness **CLOSED** (see section above). Stage 3 inventory / Stage 4 Astra later completed (see Phase 1 COMPLETE section); Technology Currency remains later/separate. **FD-P2-NULL-JOB-FKS** remains Category B (~56–61 active null `property_id` jobs; no mass backfill).
 - **Architecture (unchanged):** `properties` = company-scoped service location; identity `(company_id, address_normalized)`; `places_place_id` optional non-unique metadata; `resolve_company_property_v1` canonical create/reuse; `jobs.property_id` + operational address snapshot; customers.address independent mailing; proposal/PDF/email `context_echo` frozen historical truth; manual entry first-class; Google Places optional assist; US-only.
 - **Dedicated contract:** `change_job_property_v1(jsonb)` — choose/search/manual → resolve/reuse same-company property → attach to job → refresh operational snapshot → single atomic commit. **`updateJob` is not property/address authority** (`JobUpdatePatch` excludes `property_id`/address; strips those columns).
 - **Atomicity:** one `UPDATE jobs` sets `property_id` + all snapshot fields from the chosen property row. Cannot commit split pointer/snapshot. Shared property rows are **never** overwritten for one job’s location change (resolve/swap only).

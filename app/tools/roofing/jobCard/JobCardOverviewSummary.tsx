@@ -27,12 +27,20 @@ export default function JobCardOverviewSummary({
   return (
     <div className="space-y-3" data-jobcard-overview-truth>
       {operationalStateLabel ? (
-        <p
-          className="text-sm font-medium text-slate-900"
-          data-jobcard-overview-operational
-        >
-          {operationalStateLabel}
-        </p>
+        <div data-jobcard-overview-operational className="space-y-1">
+          {operationalStateLabel.split("\n").map((line, index) => (
+            <p
+              key={`${index}-${line}`}
+              className={
+                index === 0
+                  ? "text-base font-semibold text-slate-950"
+                  : "text-sm font-medium text-slate-700"
+              }
+            >
+              {line}
+            </p>
+          ))}
+        </div>
       ) : null}
       <div className="space-y-2">
         <Row label="Proposal" value={proposalLabel} />

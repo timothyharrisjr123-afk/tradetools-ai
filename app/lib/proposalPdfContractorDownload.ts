@@ -178,7 +178,7 @@ export async function loadContractorProposalPdfSignatureOverlay(
   });
 }
 
-/** Client-safe probe: does this exact version have acceptance/signature truth? */
+/** Client-safe probe: durable signature evidence for this exact version? */
 export async function hasContractorProposalPdfSignedFinal(
   input: {
     companyId: string;
@@ -188,8 +188,30 @@ export async function hasContractorProposalPdfSignedFinal(
 ): Promise<boolean> {
   const supabase = getSupabaseClient();
   if (!supabase) return false;
-  const overlay = await loadContractorProposalPdfSignatureOverlay(supabase, input);
-  return overlay != null;
+  const companyId = input.companyId.trim();
+  const proposalId = input.proposalId.trim();
+  const proposalVersionId = input.proposalVersionId.trim();
+  if (
+    !isUuidLike(companyId) ||
+    !isUuidLike(proposalId) ||
+    !isUuidLike(proposalVersionId)
+  ) {
+    return false;
+  }
+
+  // Acceptance alone is not signature. Require a proposal_signatures row.
+  const { data: signature, error } = await supabase
+    .from("proposal_signatures")
+    .select("id")
+    .eq("company_id", companyId)
+    .eq("proposal_id", proposalId)
+    .eq("proposal_version_id", proposalVersionId)
+    .eq("signer_slot", "customer_primary")
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !signature?.id) return false;
+  return true;
 }
 
 export function buildDefaultContractorProposalPdfDeps(
@@ -275,7 +297,8 @@ export async function generateContractorProposalPdf(input: {
       proposalId,
       proposalVersionId: versionId,
     });
-    if (!signatureOverlay) {
+    // Signed PDF requires durable signature evidence — acceptance alone is not enough.
+    if (!signatureOverlay || signatureOverlay.status !== "signed") {
       return { ok: false, code: "signed_unavailable" };
     }
   }

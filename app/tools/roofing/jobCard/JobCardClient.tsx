@@ -94,6 +94,7 @@ import { updateProposalCustomerRequestStatus } from "@/app/lib/proposalCustomerR
 import { formatJobCardContractorProposalStatusLabel } from "@/app/tools/roofing/jobCard/jobCardProposalsTabModel";
 import {
   buildJobCardProposalRowViews,
+  jobHasCanonicalAcceptedAgreement,
   JOB_CARD_PROPOSALS_TAB_SUBTITLE,
 } from "@/app/tools/roofing/jobCard/jobCardProposalsTabModel";
 import JobCardHeader from "@/app/tools/roofing/jobCard/JobCardHeader";
@@ -699,6 +700,10 @@ export default function JobCardClient({
     ]
   );
 
+  const allowAddProposal = !jobHasCanonicalAcceptedAgreement(
+    jobAcceptedProposalIds
+  );
+
   const measurementProposalRefs = useMemo(
     () =>
       pickMeasurementProposalRefs({
@@ -1007,6 +1012,12 @@ export default function JobCardClient({
               onReviewPayment={() => setJobCardTab("payments")}
               canonicalJobStage={canonicalJobStage}
               jobDisposition={hydratedJobRecord?.status ?? null}
+              hasSignatureEvidence={Boolean(
+                workspaceSelectedAttention?.proposalId &&
+                  jobSignedProposalIds[
+                    workspaceSelectedAttention.proposalId
+                  ] === true
+              )}
             />
             <JobCardTabs activeTab={jobCardTab} onTabChange={setJobCardTab} />
             <div className="grid min-h-[min(520px,calc(100vh-14rem))] grid-cols-1 xl:grid-cols-[minmax(0,1fr)_300px]">
@@ -1025,7 +1036,17 @@ export default function JobCardClient({
                     }
                     operationalStateLabel={
                       jobCardActionEligibility.canApproveJob
-                        ? JOB_CARD_AWAITING_CONTRACTOR_APPROVAL
+                        ? (() => {
+                            const proposalId = String(
+                              hydratedJobRecord?.active_proposal_id ?? ""
+                            ).trim();
+                            const signed =
+                              proposalId.length > 0 &&
+                              jobSignedProposalIds[proposalId] === true;
+                            return signed
+                              ? `Customer accepted proposal\nSigned\n${JOB_CARD_AWAITING_CONTRACTOR_APPROVAL}`
+                              : `Customer accepted proposal\n${JOB_CARD_AWAITING_CONTRACTOR_APPROVAL}`;
+                          })()
                         : null
                     }
                     paymentStatusLabel={
@@ -1144,6 +1165,7 @@ export default function JobCardClient({
                     <JobCardProposalsAddHeaderButton
                       onClick={prepare.openModal}
                       quiet={jobCardProposalRows.length > 0}
+                      hidden={!allowAddProposal}
                     />
                   }
                 >
@@ -1153,6 +1175,7 @@ export default function JobCardClient({
                     listStatus={listedJobDraftStatus}
                     listError={listedJobDraftError}
                     onAddProposal={prepare.openModal}
+                    allowAddProposal={allowAddProposal}
                     focusedRequestId={focusedRequestParam}
                     onProposalAction={(action, proposalId) => {
                       if (!action.enabled || !action.href) return;

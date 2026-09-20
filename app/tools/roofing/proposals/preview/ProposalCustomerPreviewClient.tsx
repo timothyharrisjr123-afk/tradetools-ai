@@ -56,6 +56,9 @@ import {
   parseProposalPreviewSentRecordRequest,
   validateProposalSentRecordGraph,
 } from "@/app/lib/proposalPreviewSentRecord";
+import { listJobProposalAcceptances } from "@/app/lib/proposalAcceptanceActivity";
+import { listJobProposalSignatures } from "@/app/lib/proposalSignatureActivity";
+import type { AgreementAcceptanceFact, AgreementSignatureFact } from "@/app/lib/proposalAgreementProjection";
 import { isMutableDraftDirtyAfterSentFreeze } from "@/app/lib/proposalContractorLifecycle";
 import { resolveSendGateRecipientEmail } from "@/app/lib/proposalSendGateReadiness";
 import { deriveProposalPricingStale } from "@/app/lib/proposalStaleness";
@@ -132,6 +135,13 @@ export default function ProposalCustomerPreviewClient({
   );
   const [sendSharingOpen, setSendSharingOpen] = useState(false);
   const [lastSentFrozenAt, setLastSentFrozenAt] = useState<string | null>(null);
+  const [latestSentVersionNumber, setLatestSentVersionNumber] = useState<
+    number | null
+  >(null);
+  const [agreementAcceptance, setAgreementAcceptance] =
+    useState<AgreementAcceptanceFact | null>(null);
+  const [agreementSignature, setAgreementSignature] =
+    useState<AgreementSignatureFact | null>(null);
   const [comparisonGraph, setComparisonGraph] = useState<ProposalVersionGraph | null>(null);
   const [paymentTerms, setPaymentTerms] = useState<ProposalPaymentTerms | null>(null);
   const loadGenerationRef = useRef(0);
@@ -155,6 +165,9 @@ export default function ProposalCustomerPreviewClient({
     setGraphRead(createIndependentRead());
     setCatalogRead(createIndependentRead());
     setLastSentFrozenAt(null);
+    setLatestSentVersionNumber(null);
+    setAgreementAcceptance(null);
+    setAgreementSignature(null);
     setComparisonGraph(null);
 
     if (!routeSpineLaunch.allowed) {
@@ -246,9 +259,22 @@ export default function ProposalCustomerPreviewClient({
           applyIndependentReadSuccess(asCustomerPreviewGraphFromSentRecord(validated.graph))
         );
         setLastSentFrozenAt(validated.graph.version.frozen_at ?? null);
+        setLatestSentVersionNumber(
+          validated.graph.proposal.latest_sent_version_id ===
+            validated.graph.version.id
+            ? Number(validated.graph.version.version_number) || null
+            : null
+        );
         try {
           const lineage = await listSentProposalVersionLineage(companyId, proposalId);
           if (!stillCurrent()) return;
+          const latestId = String(
+            validated.graph.proposal.latest_sent_version_id ?? ""
+          ).trim();
+          const latestRow = lineage.find((row) => row.id === latestId);
+          if (latestRow?.version_number != null) {
+            setLatestSentVersionNumber(Number(latestRow.version_number));
+          }
           const previousId = resolvePreviousSentVersionId({
             currentSentVersionId: sentRequest.versionId,
             sentVersions: lineage.map((row) => ({
@@ -271,6 +297,62 @@ export default function ProposalCustomerPreviewClient({
         } catch (lineageErr) {
           if (!stillCurrent()) return;
           console.warn("[ProposalCustomerPreviewClient] sent lineage error:", lineageErr);
+        }
+        try {
+          const [acceptances, signatures] = await Promise.all([
+            listJobProposalAcceptances(jobId),
+            listJobProposalSignatures(jobId),
+          ]);
+          if (!stillCurrent()) return;
+          const forProposal = acceptances.filter(
+            (row) => String(row.proposal_id ?? "").trim() === proposalId
+          );
+          const latestAcceptance =
+            forProposal.length > 0 ? forProposal[forProposal.length - 1]! : null;
+          if (latestAcceptance) {
+            const guard = String(latestAcceptance.guard_result ?? "").trim();
+            setAgreementAcceptance({
+              id: latestAcceptance.id,
+              proposalId,
+              proposalVersionId: String(
+                latestAcceptance.proposal_version_id ?? ""
+              ).trim(),
+              optionId: latestAcceptance.proposal_option_id ?? null,
+              optionLabel: latestAcceptance.accepted_option_label,
+              acceptedTotalCents: latestAcceptance.accepted_total_cents ?? null,
+              acceptedAt: latestAcceptance.accepted_at,
+              acceptedByName: latestAcceptance.accepted_by_name ?? null,
+              acceptedByEmail: latestAcceptance.accepted_by_email ?? null,
+              guardResult:
+                guard === "valid_review_required"
+                  ? "valid_review_required"
+                  : "valid_clean",
+              ambiguityReason: latestAcceptance.ambiguity_reason ?? null,
+              confirmedAt: latestAcceptance.confirmed_at,
+            });
+            const matchingSig = signatures.find(
+              (row) =>
+                String(row.proposal_id ?? "").trim() === proposalId &&
+                String(row.proposal_version_id ?? "").trim() ===
+                  String(latestAcceptance.proposal_version_id ?? "").trim()
+            );
+            setAgreementSignature(
+              matchingSig
+                ? {
+                    id: matchingSig.id,
+                    acceptanceId: latestAcceptance.id,
+                    proposalId,
+                    signedAt: matchingSig.signed_at,
+                  }
+                : null
+            );
+          }
+        } catch (agreementErr) {
+          if (!stillCurrent()) return;
+          console.warn(
+            "[ProposalCustomerPreviewClient] sent agreement chrome error:",
+            agreementErr
+          );
         }
         return;
       }
@@ -300,6 +382,11 @@ export default function ProposalCustomerPreviewClient({
           );
           if (!stillCurrent()) return;
           setLastSentFrozenAt(sentGraph?.version.frozen_at ?? null);
+          setLatestSentVersionNumber(
+            sentGraph?.version.version_number != null
+              ? Number(sentGraph.version.version_number)
+              : null
+          );
           setComparisonGraph(sentGraph);
         } catch (sentErr) {
           if (!stillCurrent()) return;
@@ -307,7 +394,68 @@ export default function ProposalCustomerPreviewClient({
         }
       } else {
         setLastSentFrozenAt(null);
+        setLatestSentVersionNumber(null);
         setComparisonGraph(null);
+      }
+
+      try {
+        const [acceptances, signatures] = await Promise.all([
+          listJobProposalAcceptances(jobId),
+          listJobProposalSignatures(jobId),
+        ]);
+        if (!stillCurrent()) return;
+        const forProposal = acceptances.filter(
+          (row) => String(row.proposal_id ?? "").trim() === proposalId
+        );
+        const latestAcceptance =
+          forProposal.length > 0 ? forProposal[forProposal.length - 1]! : null;
+        if (latestAcceptance) {
+          const guard = String(latestAcceptance.guard_result ?? "").trim();
+          setAgreementAcceptance({
+            id: latestAcceptance.id,
+            proposalId,
+            proposalVersionId: String(
+              latestAcceptance.proposal_version_id ?? ""
+            ).trim(),
+            optionId: latestAcceptance.proposal_option_id ?? null,
+            optionLabel: latestAcceptance.accepted_option_label,
+            acceptedTotalCents: latestAcceptance.accepted_total_cents ?? null,
+            acceptedAt: latestAcceptance.accepted_at,
+            acceptedByName: latestAcceptance.accepted_by_name ?? null,
+            acceptedByEmail: latestAcceptance.accepted_by_email ?? null,
+            guardResult:
+              guard === "valid_review_required"
+                ? "valid_review_required"
+                : "valid_clean",
+            ambiguityReason: latestAcceptance.ambiguity_reason ?? null,
+            confirmedAt: latestAcceptance.confirmed_at,
+          });
+          const matchingSig = signatures.find(
+            (row) =>
+              String(row.proposal_id ?? "").trim() === proposalId &&
+              String(row.proposal_version_id ?? "").trim() ===
+                String(latestAcceptance.proposal_version_id ?? "").trim()
+          );
+          setAgreementSignature(
+            matchingSig
+              ? {
+                  id: matchingSig.id,
+                  acceptanceId: latestAcceptance.id,
+                  proposalId,
+                  signedAt: matchingSig.signed_at,
+                }
+              : null
+          );
+        } else {
+          setAgreementAcceptance(null);
+          setAgreementSignature(null);
+        }
+      } catch (agreementErr) {
+        if (!stillCurrent()) return;
+        console.warn(
+          "[ProposalCustomerPreviewClient] agreement chrome error:",
+          agreementErr
+        );
       }
 
       try {
@@ -484,8 +632,40 @@ export default function ProposalCustomerPreviewClient({
       buildProposalPreviewSentFrozenChrome({
         latestSentVersionId: persistedGraph?.proposal.latest_sent_version_id ?? null,
         lastSentFrozenAt,
+        latestSentVersionNumber,
+        draftContentChangedAt:
+          persistedGraph?.proposal.draft_content_changed_at ?? null,
+        viewingVersionId:
+          isSentRecord && sentRequest.mode === "sent_record"
+            ? sentRequest.versionId
+            : null,
+        viewingVersionNumber: isSentRecord
+          ? persistedGraph &&
+            "version" in persistedGraph &&
+            (persistedGraph as { version?: { version_number?: number } }).version
+              ?.version_number != null
+            ? Number(
+                (persistedGraph as { version?: { version_number?: number } })
+                  .version!.version_number
+              )
+            : null
+          : null,
+        acceptance: agreementAcceptance,
+        signature: agreementSignature,
+        canonicalJobStage: job?.stage ?? "proposal",
+        jobDisposition: job?.status ?? "active",
       }),
-    [lastSentFrozenAt, persistedGraph?.proposal.latest_sent_version_id]
+    [
+      agreementAcceptance,
+      agreementSignature,
+      isSentRecord,
+      job?.stage,
+      job?.status,
+      lastSentFrozenAt,
+      latestSentVersionNumber,
+      persistedGraph,
+      sentRequest,
+    ]
   );
 
   const changeSummary = useMemo(
@@ -576,7 +756,9 @@ export default function ProposalCustomerPreviewClient({
               sentFrozenChrome={sentFrozenChrome}
               sentRecordChrome={sentRecordChrome}
               onSendSharing={() => openSendSharing()}
-              showSendSharing={!isSentRecord}
+              showSendSharing={
+                !isSentRecord && sentFrozenChrome.suppressOrdinarySend !== true
+              }
               pdfDownload={
                 isSentRecord && sentRequest.mode === "sent_record"
                   ? {

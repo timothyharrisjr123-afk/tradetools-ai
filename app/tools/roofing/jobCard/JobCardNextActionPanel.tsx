@@ -4,6 +4,12 @@ import {
   attentionHeadline,
   type JobAttentionSafeItem,
 } from "@/app/lib/jobAttentionReadModel";
+import {
+  AGREEMENT_JOB_CARD_ACCEPTED_HEADING,
+  AGREEMENT_JOB_CARD_AWAITING_APPROVAL,
+  AGREEMENT_JOB_CARD_RECONCILE_HEADING,
+  projectProposalAgreement,
+} from "@/app/lib/proposalAgreementProjection";
 import { resolveCanonicalJobActionEligibilityFromFacts } from "@/app/lib/jobLifecycleActionEligibility";
 import type { CanonicalJobStage } from "@/app/lib/jobLifecycleTypes";
 import { ChevronDown, Mail, Phone } from "lucide-react";
@@ -31,10 +37,12 @@ type JobCardNextActionPanelProps = {
   canonicalJobStage?: CanonicalJobStage | null;
   /** jobs.status disposition for lifecycle action eligibility. */
   jobDisposition?: string | null;
+  /** Optional signature evidence for the selected acceptance. */
+  hasSignatureEvidence?: boolean;
 };
 
 const PRIMARY_BUTTON =
-  "inline-flex min-h-9 items-center justify-center rounded-md bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60";
+  "inline-flex min-h-11 items-center justify-center rounded-md bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60";
 const QUIET_BUTTON =
   "inline-flex min-h-9 items-center justify-center px-1 text-xs font-semibold text-slate-500 transition hover:text-slate-800 disabled:opacity-60";
 const CONTACT_LINK =
@@ -82,6 +90,7 @@ export default function JobCardNextActionPanel({
   onReviewPayment,
   canonicalJobStage = null,
   jobDisposition = null,
+  hasSignatureEvidence = false,
 }: JobCardNextActionPanelProps) {
   const panelRef = useRef<HTMLElement>(null);
   const focusedAttentionRef = useRef<string | null>(null);
@@ -128,6 +137,41 @@ export default function JobCardNextActionPanel({
   const others = items.filter((item) => item.id !== selectedItem.id);
   const pending = pendingAttentionId === selectedItem.id;
   const acceptanceAction = selectedItem.acceptance?.attentionAction ?? null;
+  const isAcceptanceAttention =
+    selectedItem.attentionType === "acceptance_confirmation_required";
+
+  const agreement = isAcceptanceAttention
+    ? projectProposalAgreement({
+        canonicalJobStage: canonicalJobStage ?? "intake",
+        jobDisposition,
+        acceptance: selectedItem.acceptance
+          ? {
+              id: selectedItem.acceptance.acceptanceId,
+              proposalId: selectedItem.proposalId ?? "",
+              proposalVersionId: selectedItem.proposalVersionId ?? "",
+              optionLabel: selectedItem.acceptance.packageLabel,
+              acceptedTotalCents: selectedItem.acceptance.acceptedTotalCents,
+              acceptedAt: selectedItem.acceptance.acceptedAt,
+              acceptedByName: selectedItem.acceptance.acceptedByName,
+              acceptedByEmail: selectedItem.acceptance.acceptedByEmail,
+              guardResult: selectedItem.acceptance.reviewRequired
+                ? "valid_review_required"
+                : "valid_clean",
+              ambiguityReason: selectedItem.acceptance.ambiguityReason,
+              confirmedAt: null,
+            }
+          : null,
+        signature:
+          hasSignatureEvidence && selectedItem.acceptance
+            ? {
+                id: "evidence",
+                acceptanceId: selectedItem.acceptance.acceptanceId,
+              }
+            : null,
+        classifyHistoricalOnly: selectedItem.acceptance?.reviewRequired === true,
+      })
+    : null;
+
   const approveLifecycleEligible = resolveCanonicalJobActionEligibilityFromFacts(
     {
       stage: canonicalJobStage ?? "intake",
@@ -136,21 +180,31 @@ export default function JobCardNextActionPanel({
       approvalAcceptancePending: true,
     }
   ).canApproveJob;
+
   const showApproveJob =
-    selectedItem.attentionType === "acceptance_confirmation_required" &&
+    isAcceptanceAttention &&
     acceptanceAction === "approve_job" &&
     Boolean(onConfirmAcceptance) &&
-    approveLifecycleEligible;
+    (agreement?.jobCardShowApprove ?? approveLifecycleEligible) &&
+    agreement?.jobCardTreatment !== "warning";
   const showAcknowledge =
-    selectedItem.attentionType === "acceptance_confirmation_required" &&
+    isAcceptanceAttention &&
     acceptanceAction === "acknowledge" &&
     Boolean(onAcknowledgeAcceptance);
   const showConnectPayments =
     selectedItem.attentionType === "payments_not_connected";
   const showPaymentFailed = selectedItem.attentionType === "payment_failed";
   const showReviewAcceptedVersion =
-    selectedItem.attentionType === "acceptance_confirmation_required" &&
+    isAcceptanceAttention &&
     (showAcknowledge || selectedItem.acceptance?.reviewRequired === true);
+
+  const normalAcceptance =
+    isAcceptanceAttention &&
+    (agreement?.jobCardTreatment === "normal" ||
+      agreement?.jobCardTreatment === "signed_support") &&
+    !showAcknowledge;
+  const warningAcceptance =
+    isAcceptanceAttention && agreement?.jobCardTreatment === "warning";
 
   const openContact = async (href: string) => {
     await settleReadWithoutBlocking(onMarkRead(selectedItem.id));
@@ -164,44 +218,79 @@ export default function JobCardNextActionPanel({
       .catch(() => undefined);
   };
 
+  const heading = normalAcceptance
+    ? AGREEMENT_JOB_CARD_ACCEPTED_HEADING
+    : warningAcceptance
+      ? AGREEMENT_JOB_CARD_RECONCILE_HEADING
+      : attentionHeadline(selectedItem);
+
+  const supportingLines = normalAcceptance
+    ? (agreement?.jobCardSupporting ?? AGREEMENT_JOB_CARD_AWAITING_APPROVAL)
+        .split("\n")
+        .filter(Boolean)
+    : warningAcceptance
+      ? [selectedItem.acceptance?.contractorReason].filter(Boolean)
+      : selectedItem.attentionType === "acceptance_confirmation_required"
+        ? [selectedItem.acceptance?.contractorReason].filter(Boolean)
+        : [selectedItem.request?.messagePreview].filter(Boolean);
+
+  const sectionClass = warningAcceptance
+    ? "border-b border-amber-200/80 bg-amber-50/70 px-4 py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-400 sm:px-6"
+    : normalAcceptance
+      ? "border-b border-slate-200/80 bg-white px-4 py-3 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-400 sm:px-6"
+      : "border-b border-amber-200/80 bg-amber-50/70 px-4 py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-400 sm:px-6";
+
   return (
     <section
       ref={panelRef}
       tabIndex={-1}
       aria-labelledby="job-card-next-action-heading"
-      className="border-b border-amber-200/80 bg-amber-50/70 px-4 py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-400 sm:px-6"
+      className={sectionClass}
       data-jobcard-next-action
       data-jobcard-next-action-compact
+      data-jobcard-agreement-treatment={
+        agreement?.jobCardTreatment ?? "attention"
+      }
       data-attention-id={selectedItem.id}
       data-attention-status={selectedItem.status}
     >
-      <h2 id="job-card-next-action-heading" className="sr-only">
-        Needs attention
+      <h2
+        id="job-card-next-action-heading"
+        className={
+          normalAcceptance
+            ? "text-base font-semibold text-slate-950"
+            : "sr-only"
+        }
+      >
+        {normalAcceptance ? heading : "Needs attention"}
       </h2>
       {detailStatus === "error" ? (
-        <p className="mb-1 text-[11px] text-amber-900/80" data-attention-detail-error>
-          {detailError?.trim() || "Attention could not be refreshed."} Showing last known items.
+        <p
+          className={`mb-1 text-[11px] ${
+            normalAcceptance ? "text-slate-600" : "text-amber-900/80"
+          }`}
+          data-attention-detail-error
+        >
+          {detailError?.trim() || "Attention could not be refreshed."} Showing
+          last known items.
         </p>
       ) : null}
       <div className="mx-auto flex max-w-[96rem] flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-slate-950">
-            {attentionHeadline(selectedItem)}
-          </p>
-          {(() => {
-            const preview =
-              selectedItem.attentionType === "acceptance_confirmation_required"
-                ? selectedItem.acceptance?.contractorReason
-                : selectedItem.request?.messagePreview;
-            return preview ? (
-              <p
-                className="mt-0.5 max-w-3xl text-xs leading-relaxed text-slate-700"
-                data-attention-message-preview
-              >
-                {preview}
-              </p>
-            ) : null;
-          })()}
+          {normalAcceptance ? null : (
+            <p className="text-sm font-semibold text-slate-950">{heading}</p>
+          )}
+          {supportingLines.map((line) => (
+            <p
+              key={line}
+              className={`max-w-3xl text-sm leading-relaxed text-slate-700 ${
+                normalAcceptance ? "mt-1" : "mt-0.5 text-xs"
+              }`}
+              data-attention-message-preview
+            >
+              {line}
+            </p>
+          ))}
         </div>
 
         <div
@@ -267,7 +356,7 @@ export default function JobCardNextActionPanel({
             >
               Review payment
             </button>
-          ) : (
+          ) : normalAcceptance ? null : (
             <button
               type="button"
               className={PRIMARY_BUTTON}
@@ -289,7 +378,9 @@ export default function JobCardNextActionPanel({
           ) : null}
           {phoneHref && emailHref ? (
             <details className="relative" data-attention-contact>
-              <summary className={`${QUIET_BUTTON} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
+              <summary
+                className={`${QUIET_BUTTON} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
+              >
                 Contact customer
               </summary>
               <div className="absolute right-0 z-10 mt-1 min-w-[9.5rem] rounded-md border border-slate-200 bg-white p-1.5 shadow-sm">
@@ -327,7 +418,7 @@ export default function JobCardNextActionPanel({
               Contact customer
             </button>
           ) : null}
-          {selectedItem.attentionType === "acceptance_confirmation_required" ||
+          {isAcceptanceAttention ||
           selectedItem.attentionType === "payments_not_connected" ||
           selectedItem.attentionType === "payment_failed" ? null : (
             <button
@@ -351,7 +442,11 @@ export default function JobCardNextActionPanel({
         <div className="mx-auto mt-1.5 max-w-[96rem]">
           <button
             type="button"
-            className="inline-flex min-h-8 items-center gap-1 rounded-md px-1 text-xs font-semibold text-amber-900 hover:bg-amber-100"
+            className={`inline-flex min-h-8 items-center gap-1 rounded-md px-1 text-xs font-semibold ${
+              normalAcceptance
+                ? "text-slate-700 hover:bg-slate-100"
+                : "text-amber-900 hover:bg-amber-100"
+            }`}
             aria-expanded={showMore}
             onClick={() => setShowMore((value) => !value)}
           >
@@ -370,7 +465,11 @@ export default function JobCardNextActionPanel({
                 <button
                   key={item.id}
                   type="button"
-                  className="min-w-0 rounded-md px-2 py-1.5 text-left hover:bg-amber-100/80"
+                  className={`min-w-0 rounded-md px-2 py-1.5 text-left ${
+                    normalAcceptance
+                      ? "hover:bg-slate-100"
+                      : "hover:bg-amber-100/80"
+                  }`}
                   onClick={() => {
                     onSelect(item.id);
                     window.requestAnimationFrame(() => {

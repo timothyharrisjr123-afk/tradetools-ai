@@ -1,27 +1,35 @@
 /**
- * V2C4 — Pure Preview sent/frozen chrome helpers.
+ * V2C4 / Phase 1 — Preview chrome for draft / sent / accepted / revision truth.
  *
- * Preview always renders the current editable draft document.
- * When latest_sent_version_id exists, chrome must not look "Draft-only".
- * Delivery attempt status is NOT a proxy for sent/frozen truth.
+ * Preview draft document remains editable until acceptance suppresses ordinary
+ * Send. Status labels are version-aware and must not collapse into vague
+ * "Draft — last sent" wording after acceptance.
  */
 
 import { isUuidLike } from "@/app/lib/uuid";
 import {
-  CUSTOMER_PREVIEW_DRAFT_STATUS,
-  CUSTOMER_PREVIEW_LAST_SENT_PREFIX,
-} from "@/app/lib/proposalBuilderDocumentIa";
+  formatAgreementPreviewStatusLabel,
+  projectProposalAgreement,
+  type AgreementAcceptanceFact,
+  type AgreementPreviewChromeKind,
+  type AgreementSignatureFact,
+} from "@/app/lib/proposalAgreementProjection";
 
-export type ProposalPreviewSentFrozenChromeKind = "unsent_draft" | "draft_after_sent";
+export type ProposalPreviewSentFrozenChromeKind =
+  | "unsent_draft"
+  | "draft_after_sent"
+  | AgreementPreviewChromeKind;
 
 export type ProposalPreviewSentFrozenChrome = {
   kind: ProposalPreviewSentFrozenChromeKind;
-  /** Primary command-bar status (e.g. "Draft" or "Draft — last sent Jul 22, 4:31 PM"). */
+  /** Primary command-bar status. */
   statusLabel: string;
   /** True when a frozen sent version pointer exists. */
   hasLatestSentVersion: boolean;
   /** Formatted freeze timestamp when known; null if presence-only. */
   lastSentAtLabel: string | null;
+  /** Phase 1: suppress ordinary Send / revision send for accepted agreements. */
+  suppressOrdinarySend?: boolean;
 };
 
 export function hasLatestSentProposalVersionId(
@@ -49,31 +57,73 @@ export function formatProposalPreviewLastSentAt(
 
 /**
  * Build contractor Preview command-bar status.
- * Document is always the editable draft — never claim "Sent version" here.
+ * Prefer agreement projection when acceptance/signature facts are supplied.
  */
 export function buildProposalPreviewSentFrozenChrome(input: {
   latestSentVersionId: string | null | undefined;
   lastSentFrozenAt: string | null | undefined;
+  latestSentVersionNumber?: number | null;
+  draftContentChangedAt?: string | null;
+  viewingVersionId?: string | null;
+  viewingVersionNumber?: number | null;
+  acceptance?: AgreementAcceptanceFact | null;
+  signature?: AgreementSignatureFact | null;
+  canonicalJobStage?: string | null;
+  jobDisposition?: string | null;
 }): ProposalPreviewSentFrozenChrome {
-  const hasLatestSentVersion = hasLatestSentProposalVersionId(input.latestSentVersionId);
-  if (!hasLatestSentVersion) {
+  const hasLatestSentVersion = hasLatestSentProposalVersionId(
+    input.latestSentVersionId
+  );
+  const lastSentAtLabel = formatProposalPreviewLastSentAt(
+    input.lastSentFrozenAt
+  );
+
+  if (
+    input.acceptance ||
+    input.signature ||
+    input.viewingVersionId ||
+    input.latestSentVersionNumber != null ||
+    input.draftContentChangedAt
+  ) {
+    const projection = projectProposalAgreement({
+      canonicalJobStage: input.canonicalJobStage ?? "proposal",
+      jobDisposition: input.jobDisposition ?? "active",
+      latestSentVersionId: input.latestSentVersionId,
+      latestSentVersionNumber: input.latestSentVersionNumber,
+      latestSentFrozenAt: input.lastSentFrozenAt,
+      draftContentChangedAt: input.draftContentChangedAt,
+      viewingVersionId: input.viewingVersionId,
+      viewingVersionNumber: input.viewingVersionNumber,
+      acceptance: input.acceptance,
+      signature: input.signature,
+    });
     return {
-      kind: "unsent_draft",
-      statusLabel: CUSTOMER_PREVIEW_DRAFT_STATUS,
-      hasLatestSentVersion: false,
-      lastSentAtLabel: null,
+      kind: projection.previewChromeKind,
+      statusLabel: projection.previewStatusLabel,
+      hasLatestSentVersion,
+      lastSentAtLabel,
+      suppressOrdinarySend: projection.suppressOrdinarySend,
     };
   }
 
-  const lastSentAtLabel = formatProposalPreviewLastSentAt(input.lastSentFrozenAt);
-  const statusLabel = lastSentAtLabel
-    ? `${CUSTOMER_PREVIEW_DRAFT_STATUS} — ${CUSTOMER_PREVIEW_LAST_SENT_PREFIX} ${lastSentAtLabel}`
-    : `${CUSTOMER_PREVIEW_DRAFT_STATUS} — ${CUSTOMER_PREVIEW_LAST_SENT_PREFIX}`;
+  if (!hasLatestSentVersion) {
+    return {
+      kind: "unsent_draft",
+      statusLabel: formatAgreementPreviewStatusLabel({ kind: "never_sent" }),
+      hasLatestSentVersion: false,
+      lastSentAtLabel: null,
+      suppressOrdinarySend: false,
+    };
+  }
 
   return {
     kind: "draft_after_sent",
-    statusLabel,
+    statusLabel: formatAgreementPreviewStatusLabel({
+      kind: "current_sent",
+      versionNumber: input.latestSentVersionNumber,
+    }),
     hasLatestSentVersion: true,
     lastSentAtLabel,
+    suppressOrdinarySend: false,
   };
 }

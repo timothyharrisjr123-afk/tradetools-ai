@@ -225,6 +225,7 @@ import {
   JOB_CARD_PROPOSALS_TAB_SUBTITLE,
   buildJobCardProposalRowViews,
   formatJobCardContractorProposalStatusLabel,
+  jobHasCanonicalAcceptedAgreement,
 } from "@/app/tools/roofing/jobCard/jobCardProposalsTabModel";
 import type { JobDraft, JobAddress, JobRecord } from "@/app/lib/jobTypes";
 import { sendEstimateEmailWithPdf } from "@/app/lib/sendEstimateClient";
@@ -7775,6 +7776,9 @@ Thanks,`;
           }
         : undefined,
     });
+    const allowAddProposal = !jobHasCanonicalAcceptedAgreement(
+      jobAcceptedProposalIds
+    );
     const proposalDraftCreatePayload =
       identityFromJobRecord &&
       hydratedJobRecord &&
@@ -8944,6 +8948,7 @@ Thanks,`;
                   <JobCardProposalsAddHeaderButton
                     onClick={openCreateProposalModal}
                     quiet={jobCardProposalRows.length > 0}
+                    hidden={!allowAddProposal}
                   />
                 }
               >
@@ -8963,6 +8968,7 @@ Thanks,`;
                   listStatus={listedJobDraftStatus}
                   listError={listedJobDraftError}
                   onAddProposal={openCreateProposalModal}
+                  allowAddProposal={allowAddProposal}
                   focusedRequestId={focusedRequestParam}
                   onProposalAction={(action, proposalId) => {
                     if (!action.enabled) return;

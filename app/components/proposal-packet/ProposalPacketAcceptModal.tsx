@@ -7,6 +7,7 @@ import {
   PROPOSAL_CUSTOMER_PACKET_ACCEPT_PROPOSAL_CTA,
   PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUCCESS_NEXT,
   PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUCCESS_TITLE,
+  PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUPERSEDED_MESSAGE,
   formatProposalCustomerAcceptedOnLabel,
   formatProposalCustomerAcceptedOnSentence,
 } from "@/app/lib/proposalCustomerPacketViewModel";
@@ -86,11 +87,14 @@ export default function ProposalPacketAcceptModal({
       const payload = (await response.json().catch(() => ({}))) as {
         ok?: boolean;
         acceptedAt?: string;
+        code?: string;
       };
       if (!response.ok || payload.ok !== true) {
         setSubmitState("error");
         setErrorMessage(
-          "We could not accept this proposal. Please try again or contact the contractor."
+          payload.code === "superseded"
+            ? PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUPERSEDED_MESSAGE
+            : "We could not accept this proposal. Please try again or contact the contractor."
         );
         return;
       }
