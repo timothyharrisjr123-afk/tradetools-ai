@@ -14,7 +14,7 @@ STATUS: **COMPLETE**
 - **Production migration:** `20260920180000_phase1_reject_superseded_acceptance`
 - **Production project:** `rhquhnujjnzjhweypavd`
 - **Migration status:** **LIVE / VERIFIED** (dry-run after apply: remote up to date)
-- **Main:** **not** pushed. **No** deploy from this checkpoint. Phase 2 **not** started.
+- **Main:** **not** pushed. **No** deploy from this checkpoint. Phase 2 was not started from this commit (Phase 2A completed later — see Phase 2A COMPLETE section).
 
 ### Locked product truth
 
@@ -80,20 +80,9 @@ STATUS: **COMPLETE**
 
 ### NEXT
 
-**PHASE 2 — RECOVERY + FINANCIAL PROJECTION**  
-Phase 2 is **NOT** started.
-
-Future mapping scope (do not implement from this checkpoint):
-
-- uncertain consequential outcomes
-- lost HTTP/browser responses
-- send reconciliation
-- delayed provider/webhook states
-- payment unknown vs zero vs open vs processing vs paid
-- duplicate command safety
-- stale client recovery
-- accepted→deposit continuation/recovery
-- durable operation reconciliation
+**PHASE 2B — ACCEPTANCE/DEPOSIT + CHECKOUT RECOVERY**  
+Phase 2A (financial projection honesty) is **COMPLETE** — see section below.  
+Overall Phase 2 is **NOT** complete. Do **not** start Phase 2B from the Phase 1 checkpoint alone; use the Phase 2A checkpoint.
 
 ### Execution model (every remaining phase)
 
@@ -117,7 +106,7 @@ FieldDive is preparing for a **PROMOTED CONTROLLED-ACCESS LAUNCH**. Users cannot
 ### Current roadmap order
 
 1. Agreement truth + action consistency — **COMPLETE**
-2. Recovery + financial projection — **NEXT**
+2. Recovery + financial projection — **IN PROGRESS** (2A COMPLETE · 2B NEXT · 2C later)
 3. Canonical product cutover + legacy retirement
 4. Semantic UI system — continuous across phases
 5. First-use + first-proposal activation
@@ -139,6 +128,134 @@ Then (separate later programs): tiers/pricing/packaging → commercial homepage 
 - Stage 3 Deferred/Unfinished/Prototype Inventory: **COMPLETE** (inventory only; does not reopen Delivery).
 - Stage 4 Astra audit: **COMPLETE + RATIFIED** with amendments (design authority for later phases; Technology Currency Audit remains later/separate).
 - Foundation A1–A6 **CLOSED**. Selective production releases remain the deploy path until authorized full-main cutover.
+
+## 2026-09-20 — PHASE 2A COMPLETE: Financial projection honesty
+
+==================================================
+PHASE 2A — FINANCIAL PROJECTION HONESTY  
+STATUS: **COMPLETE**
+==================================================
+
+- **Base checkpoint:** `a482a324e1b1f31026ebbb5156a8bb909f644f65`
+- **Final code checkpoint:** this commit (message: `fix(payments): preserve financial truth in phase 2a`)
+- **Main:** **not** pushed. **No** deploy from this checkpoint. Phase 2B **not** started.
+- **Schema/migration:** none required for Phase 2A.
+
+### Locked financial truth
+
+- UNKNOWN ≠ ZERO
+- UNKNOWN ≠ NO PAYMENT REQUIRED
+- PROCESSING ≠ FAILED
+- transport error ≠ business failure
+- formatter does not invent `$0.00` from invalid/missing input
+- refund does not reopen contractual collectible
+- Stripe remains money-movement authority
+- FieldDive remains request/ledger/projection authority
+- `buildJobPaymentWorkspace` remains canonical contractor payment presenter
+
+### State semantics
+
+| State | UI |
+|-------|-----|
+| CONTRACT_UNAVAILABLE | Payment information unavailable |
+| KNOWN_ZERO_CONTRACT | No payment required |
+| POSITIVE REMAINING + NOT DUE | Balance remaining · No active payment request (when none) |
+| POSITIVE REMAINING + DUE | Balance due · No active payment request (when none) |
+| OPEN REQUEST | Payment requested / Open |
+| PROCESSING | Payment processing |
+| FULLY COLLECTED | Paid / Payments complete · Remaining $0 |
+| REFUND | Refunded amount shown · Remaining collectible stays closed |
+
+### Public payment
+
+Positive balance + no active request:
+
+- No payment request is currently open.
+- Remaining balance
+- exact amount
+- no Pay CTA
+- no implication that payment is currently due
+
+Known zero:
+
+- No payment required.
+
+### Loading / error
+
+`useJobPayments` distinguishes `idle` / `loading` / `ready` / `error`.
+
+- Fetch error → Payment information unavailable
+- Loading → structured loading state (not blank / not $0)
+
+### Stale read
+
+Bounded `focus` / `pageshow` / `visibilitychange` refresh. No polling. No generic sync framework.
+
+### Tests
+
+- Focused honesty: **17/17 pass**
+- Bounded Phase 2A payment set: **65/65 pass**
+- Phase 1 regression (prior): **62/62 pass**
+
+### Visual review
+
+- **PASS** — desktop + true 390
+- Screenshots (ephemeral): `tmp/fielddive-ui-review/phase2a-financial-projection/` — do **not** treat tmp as durable repo truth; conclusions live here.
+- Important visual proof includes: known zero · positive balance / no request · open request · processing · paid · actual refund · unavailable · fetch error · loading · public positive/no-request · public known-zero · Overview payment states
+
+### Actual refund proof
+
+| Field | Value |
+|-------|-------|
+| Contract | $20,000 |
+| Collected | $20,000 |
+| Refunded | $2,000 |
+| Remaining | $0 |
+| History | Refund sent −$2,000 |
+
+Proves refund does **not** reopen contractual collectible.
+
+### Remaining non-blocking unproven
+
+- Live authenticated production Job Card during a real Stripe mid-flight payment
+- Dedicated new cross-company negative projection test (tenant binding unchanged; no new cross-company path added)
+
+Does **not** block Phase 2A closure.
+
+### Overall Phase 2 position
+
+Phase 2 overall is **NOT** complete.
+
+| Slice | Status |
+|-------|--------|
+| Phase 2A — Financial projection honesty | **COMPLETE** |
+| Phase 2B — Acceptance/deposit + checkout recovery | **NEXT** |
+| Phase 2C — Proposal send recovery | later |
+
+### Preserve overall Phase 2 contract
+
+- LOST RESPONSE ≠ LOST TRUTH
+- RETRY ≠ DUPLICATE MONEY/ACTION
+- PROCESSING ≠ FAILED
+- UNKNOWN ≠ ZERO
+- REFUND ≠ REOPENED COLLECTIBLE
+
+Phase 2B and 2C must close the remaining recovery gaps.
+
+### NEXT — Phase 2B (map only; do not implement from this checkpoint)
+
+Repo-truth mapping / later implementation scope:
+
+- FD-P1-05
+- acceptance durable but deposit continuation fails
+- request/checkout lost-response recovery
+- duplicate-safe request reuse
+- checkout/session recovery
+- stale second-session payment truth
+- idempotent retry
+- browser-return vs webhook ordering
+- delayed webhook/pending semantics
+- no duplicate money/request creation
 
 ## 2026-09-11 — Delivery Completeness CLOSED (D1 + D2 + D3)
 

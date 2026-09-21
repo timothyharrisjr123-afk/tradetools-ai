@@ -258,7 +258,7 @@ describe("Stage 2D â€” collected states", () => {
       transactions: [capture(paid.id, 462500)],
     });
     assert.equal(view?.state, "payment_received");
-    assert.equal(view?.explanation, "No payment is due right now.");
+    assert.equal(view?.explanation, "No payment request is currently open.");
     assert.notEqual(view?.heading, "Paid in full");
   });
 
@@ -313,9 +313,10 @@ describe("Stage 2D â€” collected states", () => {
       contractTotalCents: 1850000,
       transactions: [],
     });
-    assert.equal(view?.state, "no_payment_due");
+    assert.equal(view?.state, "no_active_request");
+    assert.equal(view?.heading, "No payment request is currently open.");
     assert.equal(view?.ctaLabel, null);
-    assert.equal(view?.amountLabel, null);
+    assert.equal(view?.amountLabel, "$18,500.00");
   });
 });
 

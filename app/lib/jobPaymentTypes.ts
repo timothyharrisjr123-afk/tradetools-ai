@@ -174,6 +174,13 @@ export const PUBLIC_PAYMENT_FAILED_DEPOSIT_RETRY_EXPLANATION =
 export const PUBLIC_PAYMENT_FAILED_INACTIVE_EXPLANATION =
   "This payment didn't complete. Your contractor can create a new payment request if payment is still needed.";
 export const PUBLIC_PAYMENT_NO_PAYMENT_DUE_NOW = "No payment is due right now.";
+/** Known-zero contractual obligation only — never use for "no active request". */
+export const PUBLIC_PAYMENT_NO_PAYMENT_REQUIRED = "No payment required.";
+/** Positive remaining balance with no open/processing request. */
+export const PUBLIC_PAYMENT_NO_ACTIVE_REQUEST =
+  "No payment request is currently open.";
+export const JOB_PAYMENT_INFORMATION_UNAVAILABLE =
+  "Payment information unavailable";
 export const PUBLIC_PAYMENT_PAID_IN_FULL_TITLE = "Paid in full";
 export const PUBLIC_PAYMENT_PAID_IN_FULL_EXPLANATION =
   "No further payment is due on this proposal.";

@@ -6,9 +6,13 @@ import type { JobPaymentWorkspaceView } from "@/app/lib/jobPaymentWorkspace";
 import type { CollectAmountMode } from "@/app/lib/jobPaymentTypes";
 import { isUuidLike } from "@/app/lib/uuid";
 
+export type JobPaymentsLoadStatus = "idle" | "loading" | "ready" | "error";
+
 export type JobPaymentsState = {
   view: JobCardPaymentViewModel | null;
   workspace: JobPaymentWorkspaceView | null;
+  /** Transport/projection load status — never invents business money truth. */
+  loadStatus: JobPaymentsLoadStatus;
   reload: () => Promise<void>;
   collectPayment: (input: {
     amountMode: CollectAmountMode;
@@ -52,6 +56,7 @@ async function fetchJobPayments(jobId: string): Promise<{
 export function useJobPayments(jobId: string | null | undefined): JobPaymentsState {
   const [view, setView] = useState<JobCardPaymentViewModel | null>(null);
   const [workspace, setWorkspace] = useState<JobPaymentWorkspaceView | null>(null);
+  const [loadStatus, setLoadStatus] = useState<JobPaymentsLoadStatus>("idle");
   const [collectBusy, setCollectBusy] = useState(false);
   const [collectError, setCollectError] = useState<string | null>(null);
   const [cancelBusy, setCancelBusy] = useState(false);
@@ -61,43 +66,81 @@ export function useJobPayments(jobId: string | null | undefined): JobPaymentsSta
   const [refundError, setRefundError] = useState<string | null>(null);
   const id = (jobId ?? "").trim();
 
-  const apply = useCallback(
-    (
-      result: {
-        view: JobCardPaymentViewModel;
-        workspace: JobPaymentWorkspaceView | null;
-      } | null
-    ) => {
-      if (!result) {
-        setView(null);
-        setWorkspace(null);
-        return;
-      }
+  const applySuccess = useCallback(
+    (result: {
+      view: JobCardPaymentViewModel;
+      workspace: JobPaymentWorkspaceView | null;
+    }) => {
       setView(result.view);
       setWorkspace(result.workspace);
+      setLoadStatus("ready");
     },
     []
   );
 
+  const applyError = useCallback(() => {
+    setView(null);
+    setWorkspace(null);
+    setLoadStatus("error");
+  }, []);
+
   const reload = useCallback(async () => {
     if (!isUuidLike(id)) {
-      apply(null);
+      setView(null);
+      setWorkspace(null);
+      setLoadStatus("idle");
       return;
     }
-    apply(await fetchJobPayments(id));
-  }, [apply, id]);
+    setLoadStatus((prev) => (prev === "ready" ? "ready" : "loading"));
+    const result = await fetchJobPayments(id);
+    if (!result) {
+      applyError();
+      return;
+    }
+    applySuccess(result);
+  }, [applyError, applySuccess, id]);
 
   useEffect(() => {
-    if (!isUuidLike(id)) return;
+    if (!isUuidLike(id)) {
+      setView(null);
+      setWorkspace(null);
+      setLoadStatus("idle");
+      return;
+    }
     let cancelled = false;
+    setLoadStatus("loading");
     void fetchJobPayments(id).then((result) => {
       if (cancelled) return;
-      apply(result);
+      if (!result) {
+        applyError();
+        return;
+      }
+      applySuccess(result);
     });
     return () => {
       cancelled = true;
     };
-  }, [apply, id]);
+  }, [applyError, applySuccess, id]);
+
+  // Bounded Phase 2A: reuse focus/pageshow refresh so returning to the tab
+  // does not keep obviously stale financial projection.
+  useEffect(() => {
+    if (!isUuidLike(id)) return;
+    const onVisible = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return;
+      }
+      void reload();
+    };
+    window.addEventListener("focus", onVisible);
+    window.addEventListener("pageshow", onVisible);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("focus", onVisible);
+      window.removeEventListener("pageshow", onVisible);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [id, reload]);
 
   const collectPayment = useCallback(
     async (input: {
@@ -119,12 +162,12 @@ export function useJobPayments(jobId: string | null | undefined): JobPaymentsSta
         });
         const payload = (await response.json()) as { ok?: boolean; code?: string };
         if (payload.ok) {
-          apply(await fetchJobPayments(id));
+          await reload();
           return { ok: true };
         }
         const code = payload.code ?? "invalid_payload";
         setCollectError(collectErrorCopy(code));
-        apply(await fetchJobPayments(id));
+        await reload();
         return { ok: false, code };
       } catch {
         setCollectError("Could not create the payment request.");
@@ -133,7 +176,7 @@ export function useJobPayments(jobId: string | null | undefined): JobPaymentsSta
         setCollectBusy(false);
       }
     },
-    [apply, id]
+    [id, reload]
   );
 
   const cancelCurrentRequest = useCallback(async () => {
@@ -147,7 +190,7 @@ export function useJobPayments(jobId: string | null | undefined): JobPaymentsSta
         body: JSON.stringify({}),
       });
       const payload = (await response.json()) as { ok?: boolean; code?: string };
-      apply(await fetchJobPayments(id));
+      await reload();
       if (payload.ok) return { ok: true };
       return { ok: false, code: payload.code ?? "invalid_payload" };
     } catch {
@@ -155,7 +198,7 @@ export function useJobPayments(jobId: string | null | undefined): JobPaymentsSta
     } finally {
       setCancelBusy(false);
     }
-  }, [apply, id, workspace?.currentRequest?.id]);
+  }, [id, reload, workspace?.currentRequest?.id]);
 
   const copyPaymentLink = useCallback(async () => {
     if (!isUuidLike(id)) return { ok: false, code: "invalid_payload" };
@@ -211,7 +254,7 @@ export function useJobPayments(jobId: string | null | undefined): JobPaymentsSta
           ok?: boolean;
           code?: string;
         };
-        apply(await fetchJobPayments(id));
+        await reload();
         if (payload.ok) return { ok: true };
         const code = payload.code ?? "invalid_payload";
         setRefundError(refundErrorCopy(code));
@@ -223,12 +266,13 @@ export function useJobPayments(jobId: string | null | undefined): JobPaymentsSta
         setRefundBusy(false);
       }
     },
-    [apply, id]
+    [id, reload]
   );
 
   return {
     view,
     workspace,
+    loadStatus,
     reload,
     collectPayment,
     cancelCurrentRequest,

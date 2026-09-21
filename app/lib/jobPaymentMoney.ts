@@ -17,12 +17,28 @@ export function isPositiveIntCents(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0;
 }
 
+/**
+ * Format a known integer-cent amount.
+ * Invalid / non-integer input must not fabricate $0.00 business truth —
+ * callers that lack a known amount should pass null into
+ * {@link formatKnownUsdFromCents} / workspace amount helpers instead.
+ */
 export function formatUsdFromCents(cents: number): string {
-  const safe = Number.isInteger(cents) ? cents : 0;
+  if (!Number.isInteger(cents)) {
+    return "—";
+  }
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-  }).format(safe / 100);
+  }).format(cents / 100);
+}
+
+/** Format only when cents is a known non-negative integer; else null (unavailable). */
+export function formatKnownUsdFromCents(
+  cents: number | null | undefined
+): string | null {
+  if (cents == null || !Number.isInteger(cents) || cents < 0) return null;
+  return formatUsdFromCents(cents);
 }
 
 export function parseUsdInputToCents(raw: string): number | null {
@@ -37,15 +53,23 @@ export function parseUsdInputToCents(raw: string): number | null {
   return cents;
 }
 
+/**
+ * Remaining from known accepted + paid integers.
+ * Invalid inputs return null (unavailable) — never invent 0 remaining.
+ */
 export function remainingAcceptedCents(input: {
   acceptedTotalCents: number;
   netPaidCents: number;
-}): number {
-  const accepted = Number.isInteger(input.acceptedTotalCents)
-    ? input.acceptedTotalCents
-    : 0;
-  const paid = Number.isInteger(input.netPaidCents) ? input.netPaidCents : 0;
-  return Math.max(0, accepted - paid);
+}): number | null {
+  if (
+    !Number.isInteger(input.acceptedTotalCents) ||
+    input.acceptedTotalCents < 0 ||
+    !Number.isInteger(input.netPaidCents) ||
+    input.netPaidCents < 0
+  ) {
+    return null;
+  }
+  return Math.max(0, input.acceptedTotalCents - input.netPaidCents);
 }
 
 export function prefillDepositCents(input: {

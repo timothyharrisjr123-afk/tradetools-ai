@@ -100,7 +100,9 @@ export default function ProposalPacketPurchase({
     state === "payments_complete_with_refund" ||
     state === "failed_deposit_retryable" ||
     state === "failed_inactive" ||
-    state === "no_payment_due";
+    state === "no_payment_due" ||
+    state === "no_active_request" ||
+    state === "payment_unavailable";
 
   return (
     <div
@@ -192,13 +194,27 @@ export default function ProposalPacketPurchase({
         </>
       ) : null}
 
-      {state === "paid_in_full" || state === "payments_complete_with_refund" || state === "no_payment_due" ? (
+      {state === "paid_in_full" ||
+      state === "payments_complete_with_refund" ||
+      state === "no_payment_due" ||
+      state === "no_active_request" ||
+      state === "payment_unavailable" ? (
         <>
           <div className={PROPOSAL_PACKET_PURCHASE_DIVIDER} />
           <div role="status" aria-live="polite">
             <h3 className="text-[14px] font-semibold text-[#0b1f33]">{payment?.heading}</h3>
             {payment?.explanation ? (
               <p className="mt-1 text-[13px] leading-relaxed text-[#64748b]">{payment.explanation}</p>
+            ) : null}
+            {payment?.amountLabel && state === "no_active_request" ? (
+              <div className="mt-2">
+                <p className={PROPOSAL_PACKET_FIELD_LABEL}>
+                  {payment.kindLabel ?? "Remaining balance"}
+                </p>
+                <p className="mt-0.5 text-[14px] font-medium tabular-nums text-[#0b1f33]">
+                  {payment.amountLabel}
+                </p>
+              </div>
             ) : null}
           </div>
         </>

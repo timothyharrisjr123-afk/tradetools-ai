@@ -14,8 +14,10 @@ import {
   JOB_CARD_PAYMENTS_CONNECT_HREF,
   JOB_CARD_PAYMENTS_PAID_IN_FULL,
   JOB_CARD_PAYMENTS_PAYMENTS_COMPLETE,
+  JOB_PAYMENT_INFORMATION_UNAVAILABLE,
   JOB_PAYMENT_MIN_AMOUNT_CENTS,
   JOB_PAYMENT_PROVIDER,
+  PUBLIC_PAYMENT_NO_PAYMENT_REQUIRED,
   type JobPaymentKind,
   type JobPaymentRequestStatus,
 } from "@/app/lib/jobPaymentTypes";
@@ -34,6 +36,7 @@ import {
 export const JOB_PAYMENT_WORKSPACE_CONNECT_HREF = JOB_CARD_PAYMENTS_CONNECT_HREF;
 
 export type JobPaymentWorkspaceState =
+  | "contract_unavailable"
   | "no_payment_required"
   | "setup_required"
   | "deposit_due"
@@ -141,7 +144,8 @@ export type JobPaymentWorkspaceView = {
   receivedGrossCents: number;
   refundedCents: number;
   cashNetCents: number;
-  collectibleRemainingCents: number;
+  /** null when contract total is unavailable — never invent 0 remaining. */
+  collectibleRemainingCents: number | null;
   state: JobPaymentWorkspaceState;
   statusLabel: string;
   overviewStatusLabel: string | null;
@@ -299,15 +303,15 @@ export function jobPaymentWorkspaceCashNetCents(input: {
 export function jobPaymentCollectibleRemainingCents(input: {
   contractTotalCents: number | null;
   receivedGrossCents: number;
-}): number {
-  if (input.contractTotalCents == null) return 0;
+}): number | null {
+  if (input.contractTotalCents == null) return null;
   return Math.max(0, input.contractTotalCents - input.receivedGrossCents);
 }
 
 export function jobPaymentWorkspaceSummaryRows(input: {
   contractTotalCents: number | null;
   receivedGrossCents: number;
-  collectibleRemainingCents: number;
+  collectibleRemainingCents: number | null;
   refundedCents: number;
 }): JobPaymentWorkspaceSummaryRow[] {
   return [
@@ -662,15 +666,18 @@ export function buildJobPaymentWorkspaceTimeline(input: {
 
 function overviewStatusFor(state: JobPaymentWorkspaceState): string | null {
   switch (state) {
+    case "contract_unavailable":
+      return JOB_PAYMENT_INFORMATION_UNAVAILABLE;
     case "deposit_due":
+      return "Deposit due";
     case "deposit_processing":
     case "balance_processing":
     case "progress_processing":
-      return "Payment pending";
+      return "Payment processing";
     case "deposit_received":
       return "Deposit received";
     case "balance_not_yet_due":
-      return "Remaining to collect";
+      return "Balance remaining";
     case "balance_due":
       return "Balance due";
     case "balance_requested":
@@ -685,6 +692,8 @@ function overviewStatusFor(state: JobPaymentWorkspaceState): string | null {
       return "Payment failed";
     case "partially_paid":
       return "Partially paid";
+    case "setup_required":
+      return "Payments setup required";
     default:
       return null;
   }
@@ -692,8 +701,10 @@ function overviewStatusFor(state: JobPaymentWorkspaceState): string | null {
 
 function statusLabelFor(state: JobPaymentWorkspaceState): string {
   switch (state) {
+    case "contract_unavailable":
+      return JOB_PAYMENT_INFORMATION_UNAVAILABLE;
     case "no_payment_required":
-      return "No payment required yet";
+      return PUBLIC_PAYMENT_NO_PAYMENT_REQUIRED;
     case "setup_required":
       return "Payments setup required";
     case "deposit_due":
@@ -707,9 +718,9 @@ function statusLabelFor(state: JobPaymentWorkspaceState): string {
     case "partially_paid":
       return "Partially paid";
     case "balance_not_yet_due":
-      return "Remaining to collect";
+      return "Balance remaining · No active payment request";
     case "balance_due":
-      return "Balance due";
+      return "Balance due · No active payment request";
     case "balance_requested":
       return "Balance requested";
     case "balance_processing":
@@ -730,6 +741,7 @@ function nextStepFor(
   connected: boolean
 ): JobPaymentWorkspaceNextStep | null {
   switch (state) {
+    case "contract_unavailable":
     case "no_payment_required":
     case "paid_in_full":
     case "payments_complete":
@@ -769,7 +781,7 @@ function deriveWorkspaceState(input: {
   chargesEnabled: boolean;
   depositRequired: boolean;
   jobComplete: boolean;
-  collectibleRemainingCents: number;
+  collectibleRemainingCents: number | null;
   receivedGrossCents: number;
   refundedCents: number;
   depositGrossCents: number;
@@ -778,14 +790,26 @@ function deriveWorkspaceState(input: {
   contractTotalCents: number | null;
 }): JobPaymentWorkspaceState {
   if (!input.accepted) return "no_payment_required";
+  // Accepted but contractual total unknown — never invent $0 / paid / no payment.
+  if (input.contractTotalCents == null) return "contract_unavailable";
   if (!input.connected || !input.chargesEnabled) return "setup_required";
 
-  const collectible = input.collectibleRemainingCents;
+  // Known zero / sub-minimum contract with no money movement — not "Paid".
+  if (
+    input.contractTotalCents < JOB_PAYMENT_MIN_AMOUNT_CENTS &&
+    input.receivedGrossCents === 0 &&
+    input.refundedCents === 0 &&
+    !input.current &&
+    !input.failed
+  ) {
+    return "no_payment_required";
+  }
+
+  const collectible = input.collectibleRemainingCents ?? 0;
   const fullyCollected =
     collectible < JOB_PAYMENT_MIN_AMOUNT_CENTS &&
     (input.receivedGrossCents > 0 ||
-      (input.contractTotalCents != null &&
-        input.contractTotalCents < JOB_PAYMENT_MIN_AMOUNT_CENTS));
+      input.contractTotalCents < JOB_PAYMENT_MIN_AMOUNT_CENTS);
 
   if (input.current?.status === "processing") {
     if (input.current.kind === "balance") return "balance_processing";
@@ -834,6 +858,7 @@ function deriveWorkspaceState(input: {
     return zeroCollectibleStatus(input.refundedCents);
   }
 
+  // Known zero contract (or residual below minimum) with no activity.
   return "no_payment_required";
 }
 
@@ -898,6 +923,7 @@ export function buildJobPaymentWorkspace(input: {
   const canCollectPayment =
     input.accepted &&
     chargesEnabled &&
+    collectibleRemainingCents != null &&
     collectibleRemainingCents >= JOB_PAYMENT_MIN_AMOUNT_CENTS &&
     current == null &&
     jobPaymentActive;

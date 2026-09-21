@@ -279,7 +279,7 @@ describe("payment-state presenter", () => {
       transactions: [],
     });
     assert.equal(workspace.state, "no_payment_required");
-    assert.equal(workspace.statusLabel, "No payment required yet");
+    assert.equal(workspace.statusLabel, "No payment required.");
     assert.equal(workspace.overviewStatusLabel, null);
     assert.equal(workspace.nextStep, null);
     assert.equal(workspace.timeline.length, 0);
@@ -297,8 +297,8 @@ describe("payment-state presenter", () => {
       transactions: [],
     });
     assert.equal(workspace.state, "balance_not_yet_due");
-    assert.equal(workspace.statusLabel, "Remaining to collect");
-    assert.equal(workspace.overviewStatusLabel, "Remaining to collect");
+    assert.equal(workspace.statusLabel, "Balance remaining · No active payment request");
+    assert.equal(workspace.overviewStatusLabel, "Balance remaining");
     assert.equal(workspace.collectibleRemainingCents, 1500000);
     assert.doesNotMatch(workspace.overviewStatusLabel ?? "", /\$/);
   });
@@ -316,7 +316,7 @@ describe("payment-state presenter", () => {
     });
     assert.equal(workspace.state, "deposit_due");
     assert.equal(workspace.statusLabel, "Deposit due");
-    assert.equal(workspace.overviewStatusLabel, "Payment pending");
+    assert.equal(workspace.overviewStatusLabel, "Deposit due");
     assert.equal(workspace.depositNotReceived, true);
     assert.equal(workspace.nextStep, null);
     assert.equal(workspace.currentRequest?.status, "open");
@@ -334,7 +334,7 @@ describe("payment-state presenter", () => {
     });
     assert.equal(workspace.state, "deposit_processing");
     assert.equal(workspace.statusLabel, "Deposit processing");
-    assert.equal(workspace.overviewStatusLabel, "Payment pending");
+    assert.equal(workspace.overviewStatusLabel, "Payment processing");
     assert.equal(workspace.nextStep, null);
     assert.equal(workspace.currentRequest?.status, "processing");
     assert.equal(
@@ -435,7 +435,7 @@ describe("payment-state presenter", () => {
       transactions: [txn()],
     });
     assert.equal(after.state, "balance_due");
-    assert.equal(after.statusLabel, "Balance due");
+    assert.equal(after.statusLabel, "Balance due · No active payment request");
     assert.equal(after.overviewStatusLabel, "Balance due");
     assert.equal(after.canCollectRemainingBalance, true);
     assert.doesNotMatch(after.nextStep?.label ?? "", /Stage 2|coming in Stage/i);

@@ -111,7 +111,7 @@ export type JobCardPaymentViewModel = {
   action: JobCardPaymentAction;
   canRequestDeposit: boolean;
   canRequestBalance: boolean;
-  remainingCents: number;
+  remainingCents: number | null;
   acceptedTotalCents: number | null;
   unsignedApprovedEligible: boolean;
 };
@@ -168,13 +168,16 @@ export function buildJobCardPaymentViewModel(input: {
   const chargesEnabled = input.account?.charges_enabled === true;
   const acceptedTotal = input.acceptedTotalCents;
   const paid = netPaidCents(input.requests, input.transactions);
-  const remaining =
+  const remainingKnown =
     acceptedTotal == null
-      ? 0
+      ? null
       : remainingAcceptedCents({
           acceptedTotalCents: acceptedTotal,
           netPaidCents: paid,
         });
+  // Legacy VM: eligibility treats unavailable remainingKnown as not collectible (not $0 due).
+  const remainingEligible =
+    remainingKnown != null && remainingKnown >= 100 ? remainingKnown : 0;
   const unsignedApprovedEligible =
     approved && input.accepted && !input.signed;
   const depositPaid = kindNetPaidCents(
@@ -191,7 +194,7 @@ export function buildJobCardPaymentViewModel(input: {
     approved &&
     input.accepted &&
     chargesEnabled &&
-    remaining >= 100 &&
+    remainingEligible >= 100 &&
     depositPaid > 0 &&
     !current;
 
@@ -204,7 +207,7 @@ export function buildJobCardPaymentViewModel(input: {
       action: input.accepted ? "connect" : null,
       canRequestDeposit: false,
       canRequestBalance: false,
-      remainingCents: remaining,
+      remainingCents: remainingKnown,
       acceptedTotalCents: acceptedTotal,
       unsignedApprovedEligible,
     };
@@ -219,7 +222,7 @@ export function buildJobCardPaymentViewModel(input: {
       action: null,
       canRequestDeposit: false,
       canRequestBalance: false,
-      remainingCents: remaining,
+      remainingCents: remainingKnown,
       acceptedTotalCents: acceptedTotal,
       unsignedApprovedEligible,
     };
@@ -238,7 +241,7 @@ export function buildJobCardPaymentViewModel(input: {
       action: current.kind === "balance" ? "request_balance" : "request_deposit",
       canRequestDeposit: current.kind === "deposit",
       canRequestBalance: current.kind === "balance",
-      remainingCents: remaining,
+      remainingCents: remainingKnown,
       acceptedTotalCents: acceptedTotal,
       unsignedApprovedEligible,
     };
@@ -261,13 +264,13 @@ export function buildJobCardPaymentViewModel(input: {
       action: null,
       canRequestDeposit: false,
       canRequestBalance: false,
-      remainingCents: remaining,
+      remainingCents: remainingKnown,
       acceptedTotalCents: acceptedTotal,
       unsignedApprovedEligible,
     };
   }
 
-  if (remaining <= 0 && paid > 0 && !refunded) {
+  if (remainingKnown != null && remainingKnown <= 0 && paid > 0 && !refunded) {
     return {
       connected: true,
       chargesEnabled: true,
@@ -282,12 +285,12 @@ export function buildJobCardPaymentViewModel(input: {
     };
   }
 
-  if (refunded && remaining > 0) {
+  if (refunded && remainingKnown != null && remainingKnown > 0) {
     return {
       connected: true,
       chargesEnabled: true,
       headline: `Refund recorded — ${formatUsdFromCents(paid)} collected`,
-      detail: remaining >= 100 ? formatUsdFromCents(remaining) + " remaining" : null,
+      detail: remainingKnown >= 100 ? formatUsdFromCents(remainingKnown) + " remaining" : null,
       action: canRequestDeposit
         ? "request_deposit"
         : canRequestBalance
@@ -295,28 +298,28 @@ export function buildJobCardPaymentViewModel(input: {
           : null,
       canRequestDeposit,
       canRequestBalance,
-      remainingCents: remaining,
+      remainingCents: remainingKnown,
       acceptedTotalCents: acceptedTotal,
       unsignedApprovedEligible,
     };
   }
 
-  if (depositPaid > 0 && remaining >= 100) {
+  if (depositPaid > 0 && remainingKnown != null && remainingKnown >= 100) {
     return {
       connected: true,
       chargesEnabled: true,
       headline: `Deposit received — ${formatUsdFromCents(depositPaid)}`,
-      detail: `Balance due — ${formatUsdFromCents(remaining)}`,
+      detail: `Balance due — ${formatUsdFromCents(remainingKnown)}`,
       action: "request_balance",
       canRequestDeposit: false,
       canRequestBalance,
-      remainingCents: remaining,
+      remainingCents: remainingKnown,
       acceptedTotalCents: acceptedTotal,
       unsignedApprovedEligible,
     };
   }
 
-  if (depositPaid > 0 && remaining < 100) {
+  if (depositPaid > 0 && remainingKnown != null && remainingKnown < 100) {
     return {
       connected: true,
       chargesEnabled: true,
@@ -325,7 +328,7 @@ export function buildJobCardPaymentViewModel(input: {
       action: null,
       canRequestDeposit: false,
       canRequestBalance: false,
-      remainingCents: remaining,
+      remainingCents: remainingKnown,
       acceptedTotalCents: acceptedTotal,
       unsignedApprovedEligible,
     };
@@ -339,7 +342,7 @@ export function buildJobCardPaymentViewModel(input: {
     action: canRequestDeposit ? "request_deposit" : null,
     canRequestDeposit,
     canRequestBalance,
-    remainingCents: remaining,
+    remainingCents: remainingKnown,
     acceptedTotalCents: acceptedTotal,
     unsignedApprovedEligible,
   };

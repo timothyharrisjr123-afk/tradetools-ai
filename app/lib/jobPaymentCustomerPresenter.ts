@@ -18,7 +18,10 @@ import {
   PUBLIC_PAYMENT_DUE_TITLE,
   PUBLIC_PAYMENT_FAILED_DEPOSIT_RETRY_EXPLANATION,
   PUBLIC_PAYMENT_FAILED_INACTIVE_EXPLANATION,
+  JOB_PAYMENT_INFORMATION_UNAVAILABLE,
+  PUBLIC_PAYMENT_NO_ACTIVE_REQUEST,
   PUBLIC_PAYMENT_NO_PAYMENT_DUE_NOW,
+  PUBLIC_PAYMENT_NO_PAYMENT_REQUIRED,
   PUBLIC_PAYMENT_PAID_IN_FULL_EXPLANATION,
   PUBLIC_PAYMENT_PAID_IN_FULL_TITLE,
   PUBLIC_PAYMENT_PAY_DEPOSIT_CTA,
@@ -64,6 +67,8 @@ export const CUSTOMER_PAYMENT_STATES = [
   "failed_inactive",
   "payment_received",
   "no_payment_due",
+  "no_active_request",
+  "payment_unavailable",
   "paid_in_full",
   "payments_complete_with_refund",
 ] as const;
@@ -165,7 +170,9 @@ export function publicPaymentTitle(
   if (state === "failed_deposit_retryable" || state === "failed_inactive") {
     return PUBLIC_PAYMENT_DIDNT_GO_THROUGH;
   }
-  if (state === "no_payment_due") return PUBLIC_PAYMENT_NO_PAYMENT_DUE_NOW;
+  if (state === "no_payment_due") return PUBLIC_PAYMENT_NO_PAYMENT_REQUIRED;
+  if (state === "no_active_request") return PUBLIC_PAYMENT_NO_ACTIVE_REQUEST;
+  if (state === "payment_unavailable") return JOB_PAYMENT_INFORMATION_UNAVAILABLE;
   if (state === "deposit_due") return PUBLIC_PAYMENT_DEPOSIT_DUE_TITLE;
   if (state === "progress_due" || state === "balance_due") {
     return PUBLIC_PAYMENT_DUE_TITLE;
@@ -246,10 +253,10 @@ export function depositRetryUncoveredCents(input: {
   terms: ProposalPaymentTerms | null | undefined;
   contractTotalCents: number | null;
   grossCents: number;
-  collectibleCents: number;
+  collectibleCents: number | null;
 }): number {
   if (!input.terms || !termsRequireOnlineDeposit(input.terms)) return 0;
-  if (input.contractTotalCents == null) return 0;
+  if (input.contractTotalCents == null || input.collectibleCents == null) return 0;
   const obligation = resolveDepositObligationCents({
     mode: input.terms.depositMode,
     percentBps: input.terms.depositPercentBps,
@@ -268,7 +275,7 @@ export function isFailedDepositRetryEligible(input: {
   terms?: ProposalPaymentTerms | null;
   contractTotalCents: number | null;
   grossCents: number;
-  collectibleCents: number;
+  collectibleCents: number | null;
   proposalVersionId?: string | null;
   acceptanceId?: string | null;
 }): boolean {
@@ -287,6 +294,7 @@ export function isFailedDepositRetryEligible(input: {
   ) {
     return false;
   }
+  if (input.collectibleCents == null || input.contractTotalCents == null) return false;
   if (input.terms && !termsRequireOnlineDeposit(input.terms)) return false;
   if (input.terms) {
     return (
@@ -491,6 +499,7 @@ export function buildPublicPaymentViewModel(input: {
   });
   const fullyCollected =
     contractTotalCents != null &&
+    collectibleCents != null &&
     collectibleCents < JOB_PAYMENT_MIN_AMOUNT_CENTS &&
     grossCents > 0;
   const hideBalanceLine =
@@ -502,6 +511,24 @@ export function buildPublicPaymentViewModel(input: {
 
   const overlayPending =
     input.returnHint === "pending" && current?.status === "open";
+
+  if (input.accepted && contractTotalCents == null) {
+    return baseVm({
+      state: "payment_unavailable",
+      kind: null,
+      amountLabel: null,
+      kindLabel: null,
+      heading: JOB_PAYMENT_INFORMATION_UNAVAILABLE,
+      explanation: null,
+      contextNote: null,
+      ctaLabel: null,
+      stripeNote: null,
+      paidOnLabel: null,
+      methodLabel: null,
+      history,
+      originalTerms: termsVm,
+    });
+  }
 
   if (current) {
     const processing = current.status === "processing" || overlayPending;
@@ -649,14 +676,14 @@ export function buildPublicPaymentViewModel(input: {
     });
   }
 
-  if (paid && collectibleCents >= JOB_PAYMENT_MIN_AMOUNT_CENTS) {
+  if (paid && collectibleCents != null && collectibleCents >= JOB_PAYMENT_MIN_AMOUNT_CENTS) {
     return baseVm({
       state: "payment_received",
       kind: paid.kind,
       amountLabel: formatUsdFromCents(paid.amount_cents),
       kindLabel: publicPaymentReceivedKindLabel(paid.kind),
       heading: PUBLIC_PAYMENT_RECEIVED_TITLE,
-      explanation: PUBLIC_PAYMENT_NO_PAYMENT_DUE_NOW,
+      explanation: PUBLIC_PAYMENT_NO_ACTIVE_REQUEST,
       contextNote: null,
       ctaLabel: null,
       stripeNote: null,
@@ -674,7 +701,7 @@ export function buildPublicPaymentViewModel(input: {
       amountLabel: formatUsdFromCents(paid.amount_cents),
       kindLabel: publicPaymentReceivedKindLabel(paid.kind),
       heading: PUBLIC_PAYMENT_RECEIVED_TITLE,
-      explanation: PUBLIC_PAYMENT_NO_PAYMENT_DUE_NOW,
+      explanation: PUBLIC_PAYMENT_NO_ACTIVE_REQUEST,
       contextNote: null,
       ctaLabel: null,
       stripeNote: null,
@@ -709,13 +736,13 @@ export function buildPublicPaymentViewModel(input: {
     });
   }
 
-  if (input.accepted && collectibleCents >= JOB_PAYMENT_MIN_AMOUNT_CENTS) {
+  if (input.accepted && collectibleCents != null && collectibleCents >= JOB_PAYMENT_MIN_AMOUNT_CENTS) {
     return baseVm({
-      state: "no_payment_due",
+      state: "no_active_request",
       kind: null,
-      amountLabel: null,
-      kindLabel: null,
-      heading: PUBLIC_PAYMENT_NO_PAYMENT_DUE_NOW,
+      amountLabel: formatUsdFromCents(collectibleCents),
+      kindLabel: PUBLIC_PAYMENT_BALANCE_LABEL,
+      heading: PUBLIC_PAYMENT_NO_ACTIVE_REQUEST,
       explanation: null,
       contextNote: null,
       ctaLabel: null,
@@ -724,6 +751,28 @@ export function buildPublicPaymentViewModel(input: {
       methodLabel: null,
       history,
       originalTerms: originalTermsFor(input.terms, false),
+    });
+  }
+
+  if (
+    input.accepted &&
+    contractTotalCents != null &&
+    contractTotalCents < JOB_PAYMENT_MIN_AMOUNT_CENTS
+  ) {
+    return baseVm({
+      state: "no_payment_due",
+      kind: null,
+      amountLabel: null,
+      kindLabel: null,
+      heading: PUBLIC_PAYMENT_NO_PAYMENT_REQUIRED,
+      explanation: null,
+      contextNote: null,
+      ctaLabel: null,
+      stripeNote: null,
+      paidOnLabel: null,
+      methodLabel: null,
+      history,
+      originalTerms: originalTermsFor(input.terms, true),
     });
   }
 

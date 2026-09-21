@@ -1193,6 +1193,7 @@ export default function JobCardClient({
                 >
                   <JobCardPaymentsWorkspace
                     workspace={jobPayments.workspace}
+                    loadStatus={jobPayments.loadStatus}
                     onCollectPayment={
                       jobPayments.workspace?.canCollectPayment
                         ? jobPayments.collectPayment

@@ -9049,8 +9049,9 @@ Thanks,`;
                 title="Payments"
                 subtitle="Contract, collected, and remaining"
               >
-                <JobCardPaymentsWorkspace
-                  workspace={jobPayments.workspace}
+                  <JobCardPaymentsWorkspace
+                    workspace={jobPayments.workspace}
+                    loadStatus={jobPayments.loadStatus}
                   onCollectPayment={
                     jobPayments.workspace?.canCollectPayment
                       ? jobPayments.collectPayment

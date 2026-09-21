@@ -14,11 +14,14 @@ import {
   JOB_CARD_PAYMENTS_CANCEL_REQUEST_CTA,
   JOB_CARD_PAYMENTS_COLLECT_CTA,
   JOB_CARD_PAYMENTS_COPY_LINK_CTA,
+  JOB_PAYMENT_INFORMATION_UNAVAILABLE,
   type CollectAmountMode,
 } from "@/app/lib/jobPaymentTypes";
+import type { JobPaymentsLoadStatus } from "@/app/lib/useJobPayments";
 
 type JobCardPaymentsWorkspaceProps = {
   workspace: JobPaymentWorkspaceView | null;
+  loadStatus?: JobPaymentsLoadStatus;
   onCollectPayment?: (input: {
     amountMode: CollectAmountMode;
     percentageBps?: number;
@@ -124,6 +127,7 @@ function HistoryRow({
 
 export default function JobCardPaymentsWorkspace({
   workspace,
+  loadStatus = "idle",
   onCollectPayment,
   onCancelCurrentRequest,
   onCopyPaymentLink,
@@ -144,11 +148,55 @@ export default function JobCardPaymentsWorkspace({
     [workspace]
   );
 
+  if (loadStatus === "loading" && !workspace) {
+    return (
+      <div
+        className="flex flex-col gap-4"
+        data-jobcard-payments-loading
+        aria-busy="true"
+        aria-live="polite"
+      >
+        <p className="text-sm text-slate-600">Loading payment details…</p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="h-12 animate-pulse rounded-md bg-slate-100"
+              aria-hidden
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (loadStatus === "error") {
+    return (
+      <p
+        className="text-sm text-slate-600"
+        data-jobcard-payments-unavailable
+        role="status"
+      >
+        {JOB_PAYMENT_INFORMATION_UNAVAILABLE}
+      </p>
+    );
+  }
+
   if (!workspace) {
     return (
       <p className="text-sm text-slate-600" data-jobcard-payments-empty>
         Payment details will appear here after a proposal is accepted.
       </p>
+    );
+  }
+
+  if (workspace.state === "contract_unavailable") {
+    return (
+      <div data-jobcard-payments-workspace data-jobcard-payments-status={workspace.state}>
+        <p className="text-sm text-slate-600" role="status">
+          {JOB_PAYMENT_INFORMATION_UNAVAILABLE}
+        </p>
+      </div>
     );
   }
 
@@ -336,7 +384,7 @@ export default function JobCardPaymentsWorkspace({
       {sheetOpen && onCollectPayment ? (
         <JobCardCollectPaymentSheet
           open
-          collectibleCents={workspace.collectibleRemainingCents}
+          collectibleCents={workspace.collectibleRemainingCents ?? 0}
           contractTotalCents={workspace.contractTotalCents}
           submitting={collectBusy}
           error={collectError}
