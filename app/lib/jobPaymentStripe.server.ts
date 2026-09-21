@@ -275,6 +275,23 @@ export async function retrieveDirectCheckoutSession(input: {
   );
 }
 
+/**
+ * Expire an open Checkout Session on the connected account.
+ * Callers must verify request/company/account ownership before invoking.
+ * Retry-safe: Stripe returns the expired session if already expired.
+ */
+export async function expireDirectCheckoutSession(input: {
+  connectedAccountId: string;
+  sessionId: string;
+}): Promise<Stripe.Checkout.Session> {
+  const stripe = getStripeConnectClient();
+  return stripe.checkout.sessions.expire(
+    input.sessionId,
+    {},
+    { stripeAccount: input.connectedAccountId }
+  );
+}
+
 export function checkoutSessionIsReusable(
   session: Stripe.Checkout.Session
 ): boolean {
@@ -294,25 +311,59 @@ export function checkoutSessionMatchesRequest(
   );
 }
 
+/**
+ * Exact recoverability for one payment request: page connected-account Checkout
+ * Sessions and keep every match for this request (open or complete).
+ * Does not depend on "probably in last 20".
+ *
+ * If the safety ceiling is hit before the account inventory is fully scanned for
+ * this request, `truncated` is true — callers must fail closed (never mint).
+ */
+export async function listCheckoutSessionsForPaymentRequest(input: {
+  connectedAccountId: string;
+  paymentRequestId: string;
+  /** Hard cap on matched sessions; enough for realistic retry history. */
+  maxSessions?: number;
+}): Promise<{ sessions: Stripe.Checkout.Session[]; truncated: boolean }> {
+  const stripe = getStripeConnectClient();
+  const maxSessions = input.maxSessions ?? 100;
+  const matched: Stripe.Checkout.Session[] = [];
+  let truncated = false;
+  await stripe.checkout.sessions
+    .list({ limit: 100 }, { stripeAccount: input.connectedAccountId })
+    .autoPagingEach((session) => {
+      if (checkoutSessionMatchesRequest(session, input.paymentRequestId)) {
+        matched.push(session);
+        if (matched.length >= maxSessions) {
+          truncated = true;
+          return false;
+        }
+      }
+      return true;
+    });
+  return { sessions: matched, truncated };
+}
+
+/** @deprecated Prefer listCheckoutSessionsForPaymentRequest — generation-scoped list of 20 is insufficient for money safety. */
 export async function findReusableCheckoutSessionForRequest(input: {
   connectedAccountId: string;
   paymentRequestId: string;
   checkoutGeneration: number;
 }): Promise<Stripe.Checkout.Session | null> {
-  const stripe = getStripeConnectClient();
-  const listed = await stripe.checkout.sessions.list(
-    { limit: 20 },
-    { stripeAccount: input.connectedAccountId }
-  );
+  const listed = await listCheckoutSessionsForPaymentRequest({
+    connectedAccountId: input.connectedAccountId,
+    paymentRequestId: input.paymentRequestId,
+  });
+  if (listed.truncated) return null;
   return (
-    listed.data.find(
+    listed.sessions.find(
       (session) =>
         checkoutSessionIsReusable(session) &&
-        checkoutSessionMatchesRequest(session, input.paymentRequestId) &&
         session.metadata?.checkout_generation === String(input.checkoutGeneration)
     ) ?? null
   );
 }
+
 
 export function verifyStripeConnectWebhook(
   rawBody: string,

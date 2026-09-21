@@ -92,7 +92,14 @@ export async function POST(req: NextRequest, context: RouteContext) {
       error && typeof error === "object" && "code" in error
         ? String((error as { code?: string }).code)
         : "internal_error";
-    const status = code === "already_paid" || code === "not_payable" ? 409 : 500;
+    const status =
+      code === "already_paid" ||
+      code === "not_payable" ||
+      code === "processing"
+        ? 409
+        : code === "checkout_reconciliation_unavailable"
+          ? 503
+          : 500;
     return NextResponse.json({ ok: false, code }, { status });
   }
 }

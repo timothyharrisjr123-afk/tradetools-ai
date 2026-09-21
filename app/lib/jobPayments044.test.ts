@@ -458,7 +458,8 @@ describe("legacy isolation and no stage write", () => {
       join(ROOT, "app/lib/jobPaymentCheckout.server.ts"),
       "utf8"
     );
-    assert.match(checkout, /findReusableCheckoutSessionForRequest/);
+    assert.match(checkout, /listCheckoutSessionsForPaymentRequest/);
+    assert.match(checkout, /planCheckoutSessionRecovery/);
     assert.match(checkout, /Webhook metadata \+ session list recover the bind/);
   });
 

@@ -179,9 +179,13 @@ describe("Checkout creation idempotency", () => {
     );
     assert.match(stripe, /checkout_generation: String\(input\.checkoutGeneration\)/);
     assert.match(stripe, /stripeCheckoutIdempotencyKey\(input\)/);
+    assert.match(stripe, /listCheckoutSessionsForPaymentRequest/);
+    assert.match(stripe, /checkout\.sessions\.expire/);
     assert.doesNotMatch(stripe, /payment_method_types/);
     assert.match(checkout, /checkout_reconciliation_unavailable/);
     assert.match(checkout, /createOrRecoverCheckoutSession/);
+    assert.match(checkout, /planCheckoutSessionRecovery/);
+    assert.match(checkout, /status === "processing"/);
   });
 });
 

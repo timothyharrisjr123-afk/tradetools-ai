@@ -193,7 +193,14 @@ export async function POST(req: NextRequest) {
         : "internal_error";
     return NextResponse.json(
       { ok: false, message: SAFE_ERROR, code },
-      { status: code === "already_paid" ? 409 : 500 }
+      {
+        status:
+          code === "already_paid" || code === "processing" || code === "not_payable"
+            ? 409
+            : code === "checkout_reconciliation_unavailable"
+              ? 503
+              : 500,
+      }
     );
   }
 }

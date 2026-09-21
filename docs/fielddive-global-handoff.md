@@ -80,9 +80,10 @@ STATUS: **COMPLETE**
 
 ### NEXT
 
-**PHASE 2B — ACCEPTANCE/DEPOSIT + CHECKOUT RECOVERY**  
-Phase 2A (financial projection honesty) is **COMPLETE** — see section below.  
-Overall Phase 2 is **NOT** complete. Do **not** start Phase 2B from the Phase 1 checkpoint alone; use the Phase 2A checkpoint.
+**PHASE 2B2 — ACCEPTANCE/DEPOSIT PARTIAL-SUCCESS RECOVERY**  
+Phase 2A (financial projection honesty) is **COMPLETE**.  
+Phase 2B1 (checkout duplicate-charge hardening) is **COMPLETE** — see Phase 2B1 section.  
+Overall Phase 2 is **NOT** complete. Do **not** start Phase 2B2 from the Phase 1 checkpoint alone.
 
 ### Execution model (every remaining phase)
 
@@ -106,7 +107,7 @@ FieldDive is preparing for a **PROMOTED CONTROLLED-ACCESS LAUNCH**. Users cannot
 ### Current roadmap order
 
 1. Agreement truth + action consistency — **COMPLETE**
-2. Recovery + financial projection — **IN PROGRESS** (2A COMPLETE · 2B NEXT · 2C later)
+2. Recovery + financial projection — **IN PROGRESS** (2A COMPLETE · 2B1 COMPLETE · 2B2 NEXT · 2C later)
 3. Canonical product cutover + legacy retirement
 4. Semantic UI system — continuous across phases
 5. First-use + first-proposal activation
@@ -138,7 +139,7 @@ STATUS: **COMPLETE**
 
 - **Base checkpoint:** `a482a324e1b1f31026ebbb5156a8bb909f644f65`
 - **Final code checkpoint:** this commit (message: `fix(payments): preserve financial truth in phase 2a`)
-- **Main:** **not** pushed. **No** deploy from this checkpoint. Phase 2B **not** started.
+- **Main:** **not** pushed. **No** deploy from this checkpoint. Phase 2B1 completed later — see Phase 2B1 COMPLETE section.
 - **Schema/migration:** none required for Phase 2A.
 
 ### Locked financial truth
@@ -229,7 +230,8 @@ Phase 2 overall is **NOT** complete.
 | Slice | Status |
 |-------|--------|
 | Phase 2A — Financial projection honesty | **COMPLETE** |
-| Phase 2B — Acceptance/deposit + checkout recovery | **NEXT** |
+| Phase 2B1 — Checkout duplicate-charge hardening | **COMPLETE** (see Phase 2B1 section below) |
+| Phase 2B2 — Acceptance/deposit partial-success recovery | **NEXT** |
 | Phase 2C — Proposal send recovery | later |
 
 ### Preserve overall Phase 2 contract
@@ -240,22 +242,138 @@ Phase 2 overall is **NOT** complete.
 - UNKNOWN ≠ ZERO
 - REFUND ≠ REOPENED COLLECTIBLE
 
-Phase 2B and 2C must close the remaining recovery gaps.
+Phase 2B2 and 2C must close the remaining recovery gaps.
 
-### NEXT — Phase 2B (map only; do not implement from this checkpoint)
+### NEXT — Phase 2B2 (do not implement from the Phase 2A checkpoint alone)
 
-Repo-truth mapping / later implementation scope:
+After Phase 2B1 checkpoint: **FD-P1-05** acceptance/deposit partial-success envelope. See Phase 2B1 section for exact next scope.
 
-- FD-P1-05
-- acceptance durable but deposit continuation fails
-- request/checkout lost-response recovery
-- duplicate-safe request reuse
-- checkout/session recovery
-- stale second-session payment truth
-- idempotent retry
-- browser-return vs webhook ordering
-- delayed webhook/pending semantics
-- no duplicate money/request creation
+## 2026-09-20 — PHASE 2B1 COMPLETE: Checkout session recovery + duplicate-charge hardening
+
+==================================================
+PHASE 2B1 — CHECKOUT SESSION RECOVERY + DUPLICATE-CHARGE HARDENING  
+STATUS: **COMPLETE**
+==================================================
+
+- **Base checkpoint:** `ddc4135c6ce7111b5d94b22b4e7bbf12593fbf70`
+- **Final code checkpoint:** this commit (message: `fix(payments): harden checkout recovery in phase 2b1`)
+- **Main:** **not** pushed. **No** deploy from this checkpoint. Phase 2B2 **not** started.
+- **Schema/migration:** none required for Phase 2B1.
+
+### Why this slice existed
+
+Phase 2B mapping found a credible money-safety risk: after checkout **generation bump**, a prior Stripe Checkout Session could remain **open/payable** while a new Session was created. FieldDive ledger/capture dedupe was **not** sufficient protection — the customer could still be charged twice at Stripe.
+
+### Locked safety law
+
+For one canonical active FieldDive payment request: **AT MOST ONE PAYABLE CHECKOUT PATH MAY REMAIN ACTIVE WHEN FIELDDIVE CAN RECONCILE PROVIDER TRUTH.**
+
+### Recovery order
+
+1. Reject recreation for Paid  
+2. Reject recreation for Processing  
+3. Reconcile request-owned Stripe Sessions  
+4. Recover exact bound Session where needed  
+5. Reuse valid open matching Session  
+6. Retire stale/mismatched open siblings  
+7. Verify no residual payable Session remains  
+8. Only then mint replacement if legitimately needed  
+9. Ambiguous provider reconciliation fails closed  
+
+### Generation model
+
+- Stored on `job_payment_requests.checkout_generation`
+- Included in Stripe idempotency key (`fielddive_r3e_checkout_{requestId}_{generation}_{fingerprint}`)
+- Only bumped when a genuinely new Session must be minted
+- Exists to permit replacement after expire/cancel without colliding with prior idempotency key
+- Open prior Session must **not** be bypassed merely by generation bump
+
+### Session recovery
+
+- Same-generation retry reuses same Session
+- Create-response loss recovers prior Session
+- Bind ambiguity does **not** assume provider absence
+- Request-owned Session list uses paged `autoPagingEach` (no old fixed “last 20” correctness assumption)
+- Bound Session may be exact-retrieved
+- Amount/currency/ownership must match before reuse
+
+### Session retirement
+
+- Stale/mismatched request-owned open sibling may be expired via supported Stripe `checkout.sessions.expire`
+- Never expire Paid/complete path
+- Wrong company/job/account metadata not reused
+- Ambiguous expire/read result fails closed
+- No blind replacement
+
+### Safety bound
+
+Session reconciliation has a `maxSessions` safety ceiling (default 100). If reconciliation reaches the ceiling before trustworthy completion: `truncated = true`. Orchestrator returns `checkout_reconciliation_unavailable` and does **not** mint a new Session. Truncation was made explicit during the final TEST-mode provider truth gate.
+
+### Paid / Processing
+
+- Paid → `already_paid` → no new Checkout  
+- Processing → `processing` → no new Checkout  
+- PROCESSING ≠ FAILED remains preserved  
+
+### Tenancy / Connect
+
+Reuse/expire constrained by connected provider account, payment request identity, company/job metadata where available, request amount, currency, and environment/mode. No cross-company/provider-account reuse.
+
+### TEST-mode provider proof
+
+- Stripe mode: **TEST only**
+- No card entry. No charges. No production money.
+
+| Case | Result |
+|------|--------|
+| A — open Session reuse | **PASS** (same Session; open count 1) |
+| B — expire then replace | **PASS** (A expired; B only open) |
+| C — dual-open siblings | **PASS** (preferred retained; sibling expired; no third) |
+| D — ambiguous / truncated | **PASS** (fails closed; no mint) |
+| E — wrong ownership | **PASS** (not reused; no cross-account mutation) |
+
+Disposable TEST Session cleanup: **5/5 expired**.
+
+### Tests
+
+- `jobPaymentCheckoutRecovery`: **13/13** pass (includes truncation contract)
+- Combined recovery / Stripe / 2A / Phase 1 (pre-provider gate): **149/149** pass
+- Final focused provider-gate regression: **118/118** pass
+- Settlement / Connect / invariant (pre-final gate): **76/76** pass
+
+### Visual change
+
+**NONE** — backend/recovery only.
+
+### Known pre-existing test debt
+
+`jobPayments044.test.ts` still has locked SQL **042** SHA mismatch (`b61fa2d4…` vs `2d0d7210…`). **Not** introduced by Phase 2B1. Do **not** modify legacy SQL 042 merely to make that assertion green.
+
+### Remaining non-blocking unproven
+
+- Real network concurrency race under Stripe TEST beyond the safe provider proof
+- Extreme history beyond `maxSessions` ceiling  
+
+Bounded because: create/recover uses Stripe idempotency; provider inventory is reconciled; ceiling fails closed; no blind mint.
+
+### Overall Phase 2 position (after 2B1)
+
+Phase 2 overall remains **NOT** complete.
+
+| Slice | Status |
+|-------|--------|
+| Phase 2A — Financial projection honesty | **COMPLETE** |
+| Phase 2B1 — Checkout duplicate-charge hardening | **COMPLETE** |
+| Phase 2B2 — Acceptance/deposit partial-success recovery | **NEXT** |
+| Phase 2C — Proposal send recovery | later |
+
+### NEXT — Phase 2B2 (map/implement only after separate authorization)
+
+**FD-P1-05.** Current defect: customer acceptance can commit durably → deposit continuation fails → API/client may tell customer the proposal could not be accepted. This is false.
+
+Phase 2B2 must establish **ACCEPTANCE RESULT** and **PAYMENT CONTINUATION RESULT** as separate truthful outcomes (e.g. Acceptance recorded · Payment setup required / request ready / continuation needs attention). Acceptance must never be erased by later payment follow-up failure.
+
+Reuse: existing acceptance idempotency, existing deposit RPC, one-active-request law, Phase 2B1 checkout recovery. **No** new money writer. **No** generic operations framework. **Do not implement from this checkpoint alone.**
 
 ## 2026-09-11 — Delivery Completeness CLOSED (D1 + D2 + D3)
 
