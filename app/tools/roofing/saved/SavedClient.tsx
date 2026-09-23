@@ -22,7 +22,6 @@ import JobsBoardCard from "./components/JobsBoardCard";
 import JobsBoardPipelineGuidance from "./components/JobsBoardPipelineGuidance";
 import JobsBoardEmptyState from "./components/JobsBoardEmptyState";
 import JobsBoardErrorState from "./components/JobsBoardErrorState";
-import JobsBoardLegacySection from "./components/JobsBoardLegacySection";
 import JobsBoardSearchResults from "./components/JobsBoardSearchResults";
 import { useWorkspaceSearch } from "./useWorkspaceSearch";
 import { restoreCanonicalBoardFromReturnStatus } from "@/app/lib/boardCanonicalSurface";
@@ -2674,9 +2673,9 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     return () => clearTimeout(t);
   }, [searchParams, router]);
 
-  function handleSendFromSaved(savedId: string) {
-    sessionStorage.setItem("ttai_autoSendEstimateId", savedId);
-    router.push("/tools/roofing");
+  function handleSendFromSaved(_savedId: string) {
+    setToast("Legacy estimate email send is retired. Send proposals from Job Card Preview.");
+    setTimeout(() => setToast(null), 4000);
   }
 
   const refreshSaved = () => setEstimates(getNormalizedEstimates());
@@ -2868,20 +2867,18 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     }
 
     if (action === "send") {
+      if (isDbBoardJobEntry(est)) {
+        setToast("Send proposals from Job Card Preview.");
+        setTimeout(() => setToast(null), 3500);
+        return;
+      }
       handleSendFromSaved(id);
       return;
     }
 
     if (action === "approve") {
-      try {
-        markSavedEstimateStatus(id, "approved");
-        updateSavedEstimate(id, { approvedAt: new Date().toISOString(), needsScheduling: true });
-        refreshSaved();
-        setToast("Approved ✅");
-        setTimeout(() => setToast(null), 2500);
-      } catch (e) {
-        console.error("[SAVED] approve failed", e);
-      }
+      setToast("Customer acceptance uses the proposal link. Contractor approval is on the Job Card.");
+      setTimeout(() => setToast(null), 4000);
       return;
     }
 
@@ -3240,44 +3237,10 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   }, [hydrated]);
 
   const runApprovalSync = useCallback(() => {
-    if (!hydrated || isSyncingRef.current) return;
-    const list = getSavedEstimates();
-    const withToken = list.filter((e) => e.approvalToken);
-    const tokens = withToken.map((e) => e.approvalToken!);
-    if (tokens.length === 0) return;
-    isSyncingRef.current = true;
-    (async () => {
-      try {
-        const res = await fetch("/api/approval/batch-status", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tokens }),
-        });
-        const json = await res.json();
-        if (!res.ok) return;
-        const statuses = json?.statuses ?? {};
-        setBatchStatuses(statuses);
-        let approvedCount = 0;
-        for (const token of tokens) {
-          const st = statuses[token];
-          if (st?.status === "approved") {
-            const { changed } = markSavedEstimateApprovedByToken(token, st.approvedAt);
-            if (changed) approvedCount++;
-          }
-          if (st?.viewedAt) markEstimateViewedByToken(token, st.viewedAt);
-        }
-        setEstimates(getNormalizedEstimates());
-        if (approvedCount > 0) {
-          setToast(approvedCount === 1 ? "🎉 1 estimate approved — follow up to schedule." : `🎉 ${approvedCount} estimates approved — follow up to schedule.`);
-          setTimeout(() => setToast(null), 4000);
-        }
-      } catch {
-        /* ignore */
-      } finally {
-        isSyncingRef.current = false;
-      }
-    })();
-  }, [hydrated]);
+    // Phase 3: KV approval batch-status must not mutate estimateStore or
+    // influence Board agreement truth. Canonical acceptance is /p + DB.
+    return;
+  }, []);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -4403,17 +4366,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                   </>
                 ) : null}
 
-                {/* A3: Legacy estimates Board section retired — prototype drafts are inert; use New Job. */}
-                {false && !companyJobSearch.active && hasLegacyEstimates ? (
-                  <JobsBoardLegacySection
-                    count={legacyBoardEntries.length}
-                    jobs={legacySearchFiltered}
-                    buildCardModel={buildBoardCardModel}
-                    getColumnKey={(job) => getBoardColumnKeyForJob(job) ?? "estimate"}
-                    onOpenJob={(est) => handleAction(est, "load")}
-                    searchEmpty={legacySearchFiltered.length === 0}
-                  />
-                ) : null}
+                {/* A3 / Phase 3: Legacy estimates Board section retired — use New Job / Job Card. */}
               </div>
             )}
 
@@ -4882,7 +4835,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                 showRescheduleButton
                 scheduleActionLabel="Reschedule"
                 followUpInfo={getFollowUpInfo(x.est, paymentStates[x.est.id] ?? null, batchStatuses)}
-                onSendFollowUp={(est, kind) => sendFollowUpEmail(est, kind)}
+                onSendFollowUp={undefined}
                 followUpHidden={isFollowUpHidden(x.est.id)}
                 onFollowUpSnooze={(estimateId) =>
                   updateFollowUpPref(estimateId, {

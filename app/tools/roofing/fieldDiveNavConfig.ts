@@ -136,18 +136,18 @@ export const FIELD_DIVE_NAV_SECTIONS: FieldDiveNavSectionConfig[] = [
       {
         key: null,
         label: "Legacy price book",
-        href: "/admin/price-book",
-        kind: "legacy",
+        kind: "soon",
         icon: "bookOpen",
-        soonTitle: "Replaced by Catalog — legacy admin shelf only. Do not use for new proposals.",
+        soonTitle:
+          "Replaced by Catalog — admin service_items shelf retired from navigation (Phase 3)",
       },
       {
         key: null,
         label: "Customers (Legacy)",
-        href: "/admin/customers",
-        kind: "legacy",
+        kind: "soon",
         icon: "users",
-        soonTitle: "Legacy admin shelf — not primary workflow navigation",
+        soonTitle:
+          "Legacy admin customer shelf retired from navigation — use New job / Job Card (Phase 3)",
       },
       {
         key: null,

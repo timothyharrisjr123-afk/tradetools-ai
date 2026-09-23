@@ -4710,72 +4710,19 @@ Thanks,`;
   }, [previewPdfUrl]);
 
   useEffect(() => {
-    const id = typeof window !== "undefined" ? sessionStorage.getItem("ttai_autoSendEstimateId") : null;
-    if (!id) return;
-
+    // Phase 3: Board auto-send into retired /api/estimate/send is disabled.
+    if (typeof window === "undefined") return;
     sessionStorage.removeItem("ttai_autoSendEstimateId");
-
-    (async () => {
-      try {
-        const list = getSavedEstimates();
-        const match = list.find((e) => e.id === id);
-        if (!match) return;
-
-        const email = (match.customerEmail || "").trim();
-        if (!email || !email.includes("@")) return;
-
-        setCustomerName(match.customerName || "");
-        setCustomerEmail(match.customerEmail || "");
-        setCustomerPhone(match.customerPhone || "");
-        setJobAddress1(match.jobAddress1 || "");
-        setJobCity(match.jobCity || "");
-        setJobState(match.jobState || "");
-        setJobZip(match.jobZip || match.zip || "");
-        setArea(match.area ?? String(Number(match.roofAreaSqFt || 0)));
-        setWaste(match.waste ?? "");
-        setBundlesPerSquare(match.bundlesPerSquare ?? "");
-        setBundleCost(match.bundleCost ?? "");
-        setLaborPerSquare(match.laborPerSquare ?? "");
-        setMargin(match.margin ?? "");
-        setPricingMode(((match as any).pricingMode === "direct" ? "direct" : "markup"));
-        if (match.selectedTier === "Core") setRoofingTier("standard");
-        if (match.selectedTier === "Enhanced") setRoofingTier("enhanced");
-        if (match.selectedTier === "Premium") setRoofingTier("premium");
-
-        setTimeout(() => {
-          handleSendEstimate();
-        }, 0);
-      } catch (e) {
-        console.error("Auto-send load failed:", e);
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
+    // Phase 3: ?autoSend=1 no longer triggers retired estimate email send.
     const autoSend = searchParams.get("autoSend") === "1";
     if (!autoSend) return;
-
-    if (!loadSavedId) return;
-    if (!loadAppliedRef.current) return;
-    if (autoSendFiredRef.current) return;
-
-    const email = (customerEmail || "").trim();
-    if (!email || !email.includes("@")) return;
-
-    autoSendFiredRef.current = true;
-
-    setTimeout(async () => {
-      await handleSendEstimate();
-
-      // remove autoSend=1 so refresh doesn't resend
-      const url = new URL(window.location.href);
-      url.searchParams.delete("autoSend");
-      router.replace(url.pathname + url.search);
-    }, 50);
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [customerEmail, loadSavedId, searchParams]);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("autoSend");
+    router.replace(url.pathname + url.search);
+  }, [searchParams, router]);
 
   const generatePdfBase64 = async (overrideMeta?: { proposalNumber: string; proposalDate: string }) => {
     const { pdfBytes, meta } = await generateProposalPdfBytes(overrideMeta);

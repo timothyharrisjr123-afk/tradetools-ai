@@ -1,6 +1,7 @@
 /**
- * D2 — Legacy unaudited email/send routes are retired.
+ * D2 / Phase 3 — Legacy unaudited email/send + KV approval routes are retired.
  * Canonical proposal delivery: POST /api/proposals/send only.
+ * Canonical customer acceptance: /p/{token} (+ proposal_acceptances).
  */
 
 export const LEGACY_DELIVERY_ROUTE_GONE_CODE = "legacy_delivery_route_retired";
@@ -10,6 +11,9 @@ export const LEGACY_DELIVERY_ROUTE_GONE_MESSAGE =
 
 export const LEGACY_APPROVE_CONFIRM_GONE_MESSAGE =
   "This legacy approval confirmation path is retired.";
+
+export const LEGACY_KV_APPROVAL_GONE_MESSAGE =
+  "This legacy approval path is retired. Customer acceptance uses the proposal link from Preview send.";
 
 export const LEGACY_EMAIL_FOLLOWUP_GONE_MESSAGE =
   "Follow-up email send is retired. Use the proposal Preview send flow to email customers.";

@@ -1,21 +1,9 @@
-import { ensureUserIdentity, getUserCompanyId } from "@/app/lib/ensureUserIdentity";
-import { createClient } from "@/app/lib/supabase/server";
 import { redirect } from "next/navigation";
-import PriceBookAdminClient from "./PriceBookAdminClient";
 
-export default async function PriceBookPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    redirect("/login?redirectTo=/admin/price-book");
-  }
-  await ensureUserIdentity(supabase, user);
-  const companyId = await getUserCompanyId(supabase, user.id);
-  if (!companyId) {
-    redirect("/login?redirectTo=/admin/price-book");
-  }
-
-  return <PriceBookAdminClient companyId={companyId} />;
+/**
+ * Phase 3 — legacy /admin/price-book (service_items) retired.
+ * Canonical pricing shelf: /tools/roofing/catalog (catalog_items).
+ */
+export default function PriceBookRetiredPage() {
+  redirect("/tools/roofing/catalog");
 }

@@ -1,28 +1,18 @@
 import { NextResponse } from "next/server";
-import { getApprovalRecord, markApproved } from "@/app/lib/kv";
 
-export async function POST(req: Request) {
-  try {
-    const body = await req.json().catch(() => ({}));
-    const token = String(body?.token || "").trim();
+import {
+  LEGACY_KV_APPROVAL_GONE_MESSAGE,
+  legacyDeliveryRouteGoneBody,
+} from "@/app/lib/legacyDeliveryRouteRetirement";
 
-    if (!token) {
-      return NextResponse.json({ ok: false, error: "Missing token" }, { status: 400 });
-    }
+export const runtime = "nodejs";
 
-    const rec = await getApprovalRecord(token);
-    if (!rec) {
-      return NextResponse.json({ ok: false, error: "Invalid or expired token" }, { status: 404 });
-    }
-
-    const updated = await markApproved(token);
-
-    return NextResponse.json({
-      ok: true,
-      approvedAt: updated?.approvedAt ?? null,
-      estimateId: updated?.estimateId ?? null,
-    });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message || "Server error" }, { status: 500 });
-  }
+/**
+ * Phase 3 TOMBSTONE — legacy KV approval mutate.
+ * Canonical customer acceptance: /p/{token} → proposal_acceptances.
+ */
+export async function POST() {
+  return NextResponse.json(legacyDeliveryRouteGoneBody(LEGACY_KV_APPROVAL_GONE_MESSAGE), {
+    status: 410,
+  });
 }

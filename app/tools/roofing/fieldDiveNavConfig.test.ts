@@ -99,7 +99,7 @@ describe("fieldDiveNavConfig", () => {
     assert.equal(estimates.href, undefined);
   });
 
-  test("keeps admin hrefs only in Advanced section", () => {
+  test("retires admin customer/price-book hrefs from Advanced navigation", () => {
     const primaryHrefs = collectNavHrefs(
       FIELD_DIVE_NAV_SECTIONS.filter((section) => section.id !== "legacyAndFuture")
     );
@@ -108,8 +108,16 @@ describe("fieldDiveNavConfig", () => {
     const legacyHrefs = collectNavHrefs(
       FIELD_DIVE_NAV_SECTIONS.filter((section) => section.id === "legacyAndFuture")
     );
-    assert.ok(legacyHrefs.includes("/admin/customers"));
-    assert.ok(legacyHrefs.includes("/admin/price-book"));
+    assert.ok(!legacyHrefs.includes("/admin/customers"));
+    assert.ok(!legacyHrefs.includes("/admin/price-book"));
+
+    const legacy = getLegacyAndFutureNavItems();
+    for (const label of ["Legacy price book", "Customers (Legacy)"]) {
+      const item = legacy.find((row) => row.label === label);
+      assert.ok(item, `missing ${label}`);
+      assert.equal(item.kind, "soon");
+      assert.equal(item.href, undefined);
+    }
   });
 
   test("Advanced section is collapsed by default", () => {

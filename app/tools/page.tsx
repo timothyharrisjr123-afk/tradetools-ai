@@ -4,7 +4,7 @@ import Link from "next/link";
 
 const tools = [
   {
-    href: "/tools/roofing",
+    href: "/tools/roofing?entry=packet",
     title: "FieldDive Roofing",
     description:
       "Start a roofing job, prepare the scope, manage proposals, and track the work from one operating flow.",

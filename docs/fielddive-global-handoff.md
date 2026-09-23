@@ -80,9 +80,9 @@ STATUS: **COMPLETE**
 
 ### NEXT
 
-**PHASE 3 — CANONICAL PRODUCT CUTOVER + LEGACY RETIREMENT**  
-Phase 2A / 2B1 / 2B2 / 2C are **COMPLETE** (see their sections).  
-Overall Phase 2 is **COMPLETE**. Do **not** begin Phase 3 from this checkpoint alone.
+**PHASE 4 — SEMANTIC UI SYSTEM** continues/applies through upcoming work.  
+**PHASE 5 — FIRST-USE + FIRST-PROPOSAL ACTIVATION** is next product roadmap phase after Phase 3.  
+Phase 1 / Phase 2 / Phase 3 are **COMPLETE**. Do **not** begin Phase 4/5 implementation from this checkpoint alone.
 
 ### Execution model (every remaining phase)
 
@@ -107,9 +107,9 @@ FieldDive is preparing for a **PROMOTED CONTROLLED-ACCESS LAUNCH**. Users cannot
 
 1. Agreement truth + action consistency — **COMPLETE**
 2. Recovery + financial projection — **COMPLETE** (2A · 2B1 · 2B2 · 2C)
-3. Canonical product cutover + legacy retirement — **NEXT**
-4. Semantic UI system — continuous across phases
-5. First-use + first-proposal activation
+3. Canonical product cutover + legacy retirement — **COMPLETE**
+4. Semantic UI system — continuous across phases (**PHASE 4**)
+5. First-use + first-proposal activation — **NEXT** (**PHASE 5**)
 6. Jobs + identity reuse + search + repeat work
 7. Small-team responsibility + field handoff
 8. Job Card + mobile operational hierarchy
@@ -599,8 +599,111 @@ Broader retain: Preview sent/frozen chrome + Phase 2B2 acceptance envelope green
 
 ### NEXT
 
-**PHASE 3 — CANONICAL PRODUCT CUTOVER + LEGACY RETIREMENT**  
-Map/implement only after separate authorization. **Do not begin Phase 3 from this checkpoint alone.**
+**PHASE 3 — CANONICAL PRODUCT CUTOVER + LEGACY RETIREMENT** — **COMPLETE** (see Phase 3 section below).
+
+## 2026-09-23 — PHASE 3 COMPLETE: Canonical product cutover + legacy retirement
+
+==================================================
+PHASE 3 — CANONICAL PRODUCT CUTOVER + LEGACY RETIREMENT  
+STATUS: **COMPLETE**
+==================================================
+
+- **Base checkpoint:** `08c6b24b0d63b1c9c2b1f545f4bda08ac4bf2b25` (Phase 2C)
+- **Final code checkpoint:** this commit (message: `refactor(core): retire legacy product paths in phase 3`)
+- **Schema/migration:** none
+- **Main:** **not** pushed. **No** deploy. Phase 4/5 **not** started.
+
+### P0 closed this phase
+
+**Live KV approval dual-writer** vs canonical `/p/{token}` + `proposal_acceptances`:
+- Tombstoned: `/api/approve`, `/api/approve/[token]`, `/api/approve/check`, `/api/approval/confirm` → **410**
+- `/api/track/open` → tracking pixel only (no KV write)
+- `/approve/[token]` → informational retired page (no KV read/write; **no** silent `/p/` redirect)
+
+### Retired active paths
+
+| Path | Disposition |
+|------|-------------|
+| `/tools/roofing-v2` | **307** → `/tools/roofing/saved` |
+| Orphan `roofingEstimates.ts` | deleted |
+| Board `JobsBoardLegacySection` | deleted (was false-gated) |
+| Home “Open Roofing Estimator” | → **Open Jobs Board** |
+| Tools hub Start new job | → `?entry=packet` |
+| Board Follow Up email CTA | unhooked (`onSendFollowUp={undefined}`) — was calling **410** `/api/email/followup` |
+| Board Send → auto-send `/api/estimate/send` | disabled (toast + no session auto-send) |
+| Board local “Approve” on legacy cards | toast only — no estimateStore approve mutation |
+| KV `batch-status` → estimateStore sync | **no-op** (cannot override DB acceptance) |
+| Advanced → `/admin/customers`, `/admin/price-book` | nav → **soon** (no href) |
+| `/admin/price-book` | redirect → Catalog |
+| `/admin/customers` | write shelf retired (informational page only) |
+
+### Canonical owner map (locked)
+
+| Domain | Owner |
+|--------|--------|
+| Jobs | Jobs Board / Job Card / Calendar |
+| Customer birth | New job packet + Job Card (`customerStore`) |
+| Proposal | Builder / Preview / `/api/proposals/send` |
+| Customer accept | `/p/{token}` + `proposal_acceptances` |
+| Contractor approval | Job Card / Board agreement actions (DB) |
+| Payment | `job_payment_*` + Stripe Connect |
+| Catalog / pricing | `/tools/roofing/catalog` (`catalog_items`) |
+| Templates / Settings | current tools routes |
+
+### TEMP RETAIN (bounded — not competing writers)
+
+| Item | Why retain | Removal condition |
+|------|------------|-------------------|
+| `estimateStore` + LS estimates | Distinct `estimates` shelf; **cannot** create jobs or mutate `jobs.stage` (FD-P1-02 quarantine proven) | Zero remaining estimate rows/Board residual actions; delete store |
+| RoofingClient packet path | Canonical new-job birth inside monolith | Extract packet only when estimator chrome deleted |
+| `/tools/roofing/ai` localStorage | Browser-only voice notes; **not** DB truth; different key than RoofingClient voice | Unify voice store or delete AI shelf |
+| `/api/approval/batch-status` route | Read-only residual; Board sync **disabled** | Delete route when no estimate `approvalToken`s remain |
+| Dead `CustomersAdminClient.tsx` / `PriceBookAdminClient.tsx` files | Unmounted; pages no longer write | Delete files in later cleanup |
+
+### Proof: retained writers do not compete with canonical truth
+
+- **estimateStore:** no `jobs` writes; no `jobs.stage`; packet uses `createJob` only. Customer `findOrCreate` on estimate upsert is residual **only if** legacy estimate save still runs — Board no longer auto-sends / follow-up emails / KV-approve-syncs into that shelf for contractual truth.
+- **service_items:** no proposal/pricing consumer; Catalog owns `catalog_items`. Admin price-book redirected.
+- **admin customers:** page no longer mounts insert/delete UI; Advanced href removed.
+- **KV approval:** mutators 410; batch-status sync no longer writes estimateStore.
+
+### Remaining P1 / future cutover debt (NOT closed)
+
+| Item | Status | Future owner |
+|------|--------|--------------|
+| FD-P1-01 customer identity policy (`createCustomer` always-insert vs findOrCreate) | **OPEN** | Later identity cutover |
+| FD-P1-03 catalog vs historical `service_items` data | **OPEN** (writer retired; table may remain) | Catalog-only cleanup |
+| estimateStore full deletion | **OPEN** | After legacy estimate Board residual gone |
+| Commercial home/tools copy (“estimating tools”) | non-blocking cohesion debt | Phase 4/5 copy pass |
+
+### Visual / navigation proof
+
+- Ephemeral: `tmp/fielddive-ui-review/phase3-canonical-cutover/`
+- Home mobile: `innerWidth=390`, `scrollWidth=390`, no overflow
+- GPT visual cutover review: PASS for Phase 3 scope
+
+### History / data protection
+
+No frozen proposal/payment/delivery/lifecycle history rewritten. No estimate/customer row bulk delete.
+
+### Tests (closure gate)
+
+```text
+npx tsx --test \
+  app/lib/phase3LegacyCutover.test.ts \
+  app/lib/legacyDeliveryRouteRetirement.test.ts \
+  app/lib/adversarialAuditWave2.test.ts \
+  app/lib/estimateJobQuarantine.test.ts \
+  app/tools/roofing/fieldDiveNavConfig.test.ts \
+  app/lib/customersRls060.test.ts
+→ 84 pass / 0 fail
+```
+
+### NEXT
+
+**PHASE 4 — SEMANTIC UI SYSTEM** (continuous).  
+**PHASE 5 — FIRST-USE + FIRST-PROPOSAL ACTIVATION**.  
+Do **not** implement from this checkpoint alone.
 
 ## 2026-09-11 — Delivery Completeness CLOSED (D1 + D2 + D3)
 

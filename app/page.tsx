@@ -26,10 +26,10 @@ export default function HomePage() {
 
           <div className="mt-8 grid gap-3 sm:grid-cols-2">
             <Link
-              href="/tools/roofing"
+              href="/tools/roofing/saved"
               className="rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-400 active:bg-emerald-600"
             >
-              Open Roofing Estimator
+              Open Jobs Board
             </Link>
 
             <Link
