@@ -80,10 +80,10 @@ STATUS: **COMPLETE**
 
 ### NEXT
 
-**PHASE 2B2 — ACCEPTANCE/DEPOSIT PARTIAL-SUCCESS RECOVERY**  
-Phase 2A (financial projection honesty) is **COMPLETE**.  
-Phase 2B1 (checkout duplicate-charge hardening) is **COMPLETE** — see Phase 2B1 section.  
-Overall Phase 2 is **NOT** complete. Do **not** start Phase 2B2 from the Phase 1 checkpoint alone.
+**PHASE 2C — PROPOSAL SEND RECOVERY**  
+Phase 2A / 2B1 / 2B2 are **COMPLETE** (see their sections).  
+Phase 2B (payment continuation recovery) is **COMPLETE** as the 2B1+2B2 pair.  
+Overall Phase 2 is **NOT** complete until Phase 2C closes.
 
 ### Execution model (every remaining phase)
 
@@ -107,7 +107,7 @@ FieldDive is preparing for a **PROMOTED CONTROLLED-ACCESS LAUNCH**. Users cannot
 ### Current roadmap order
 
 1. Agreement truth + action consistency — **COMPLETE**
-2. Recovery + financial projection — **IN PROGRESS** (2A COMPLETE · 2B1 COMPLETE · 2B2 NEXT · 2C later)
+2. Recovery + financial projection — **IN PROGRESS** (2A COMPLETE · 2B1 COMPLETE · 2B2 COMPLETE · 2C NEXT)
 3. Canonical product cutover + legacy retirement
 4. Semantic UI system — continuous across phases
 5. First-use + first-proposal activation
@@ -231,8 +231,8 @@ Phase 2 overall is **NOT** complete.
 |-------|--------|
 | Phase 2A — Financial projection honesty | **COMPLETE** |
 | Phase 2B1 — Checkout duplicate-charge hardening | **COMPLETE** (see Phase 2B1 section below) |
-| Phase 2B2 — Acceptance/deposit partial-success recovery | **NEXT** |
-| Phase 2C — Proposal send recovery | later |
+| Phase 2B2 — Acceptance/deposit partial-success recovery | **COMPLETE** (see Phase 2B2 section below) |
+| Phase 2C — Proposal send recovery | **NEXT** |
 
 ### Preserve overall Phase 2 contract
 
@@ -242,11 +242,11 @@ Phase 2 overall is **NOT** complete.
 - UNKNOWN ≠ ZERO
 - REFUND ≠ REOPENED COLLECTIBLE
 
-Phase 2B2 and 2C must close the remaining recovery gaps.
+Phase 2C must close the remaining recovery gap (proposal send).
 
-### NEXT — Phase 2B2 (do not implement from the Phase 2A checkpoint alone)
+### NEXT — Phase 2C (do not implement from the Phase 2A checkpoint alone)
 
-After Phase 2B1 checkpoint: **FD-P1-05** acceptance/deposit partial-success envelope. See Phase 2B1 section for exact next scope.
+After Phase 2B2 checkpoint: **proposal send recovery**. See Phase 2B2 section for exact next scope.
 
 ## 2026-09-20 — PHASE 2B1 COMPLETE: Checkout session recovery + duplicate-charge hardening
 
@@ -257,7 +257,7 @@ STATUS: **COMPLETE**
 
 - **Base checkpoint:** `ddc4135c6ce7111b5d94b22b4e7bbf12593fbf70`
 - **Final code checkpoint:** this commit (message: `fix(payments): harden checkout recovery in phase 2b1`)
-- **Main:** **not** pushed. **No** deploy from this checkpoint. Phase 2B2 **not** started.
+- **Main:** **not** pushed. **No** deploy from this checkpoint. Phase 2B2 completed later — see Phase 2B2 COMPLETE section.
 - **Schema/migration:** none required for Phase 2B1.
 
 ### Why this slice existed
@@ -364,16 +364,157 @@ Phase 2 overall remains **NOT** complete.
 |-------|--------|
 | Phase 2A — Financial projection honesty | **COMPLETE** |
 | Phase 2B1 — Checkout duplicate-charge hardening | **COMPLETE** |
-| Phase 2B2 — Acceptance/deposit partial-success recovery | **NEXT** |
-| Phase 2C — Proposal send recovery | later |
+| Phase 2B2 — Acceptance/deposit partial-success recovery | **COMPLETE** (see Phase 2B2 section below) |
+| Phase 2C — Proposal send recovery | **NEXT** |
 
-### NEXT — Phase 2B2 (map/implement only after separate authorization)
+### NEXT — Phase 2C (map/implement only after separate authorization)
 
-**FD-P1-05.** Current defect: customer acceptance can commit durably → deposit continuation fails → API/client may tell customer the proposal could not be accepted. This is false.
+After Phase 2B2 closes FD-P1-05: **proposal send recovery**. See Phase 2B2 section. **Do not implement from this checkpoint alone.**
 
-Phase 2B2 must establish **ACCEPTANCE RESULT** and **PAYMENT CONTINUATION RESULT** as separate truthful outcomes (e.g. Acceptance recorded · Payment setup required / request ready / continuation needs attention). Acceptance must never be erased by later payment follow-up failure.
+## 2026-09-23 — PHASE 2B2 COMPLETE: Acceptance / deposit partial-success recovery
 
-Reuse: existing acceptance idempotency, existing deposit RPC, one-active-request law, Phase 2B1 checkout recovery. **No** new money writer. **No** generic operations framework. **Do not implement from this checkpoint alone.**
+==================================================
+PHASE 2B2 — ACCEPTANCE / DEPOSIT PARTIAL-SUCCESS RECOVERY  
+STATUS: **COMPLETE**
+==================================================
+
+- **Root defect:** **FD-P1-05**
+- **Base checkpoint:** `a473754edb472f001932b4f4c3cac9a06d624c6d`
+- **Final code checkpoint:** this commit (message: `fix(proposals): preserve acceptance truth in phase 2b2`)
+- **Main:** **not** pushed. **No** deploy from this checkpoint. Phase 2C **not** started.
+- **Schema/migration:** none required for Phase 2B2.
+- **Production project:** `rhquhnujjnzjhweypavd` — **NOT mutated**.
+- **Staging project:** `fielddive-staging-nonprod` / `tjtrhdckinjtorgbkirm` — synthetic fixture only; cleaned up.
+
+### Why this slice existed
+
+**Before:** acceptance could commit durably, then deposit continuation fail, then API/client could imply the proposal was not accepted.
+
+**After:** agreement and payment continuation are distinct result layers.
+
+### Locked product law
+
+**ACCEPTANCE SUCCESS CANNOT BE ERASED BY LATER PAYMENT FAILURE.**
+
+Durable agreement success must never be reported as agreement failure because a later payment continuation step failed.
+
+Acceptance result and payment continuation result are separate truths.
+
+After durable acceptance/sign:
+
+| Layer | Statuses |
+|-------|----------|
+| acceptance | `accepted` \| `replayed` |
+| deposit | `not_required` \| `satisfied` \| `ready` \| `setup_required` \| `conflict` \| `continuation_failed` \| `checking` |
+| checkout | `ready` \| `already_paid` \| `processing` \| `not_payable` \| `reconciliation_unavailable` \| `failed` |
+
+Client must not use deposit/checkout failure to erase accepted agreement truth.
+
+### Implementation surface
+
+| Area | Behavior |
+|------|----------|
+| Result envelopes | `app/lib/proposalAcceptanceDepositEnvelope.ts` — typed acceptance / deposit / checkout layers + mapping helpers |
+| Accept route | `POST /api/proposals/accept` returns `ok: true` + acceptance envelope after durable accept; deposit mapped separately (`not_connected` → `setup_required`) |
+| Sign route | Same partial-success envelope after durable sign |
+| Public checkout | Layered partial-success response; deposit/checkout failure does not claim acceptance failed |
+| Client state | `useProposalPurchaseAction` consumes envelopes; deposit/checkout notes secondary after success |
+| Accept / Sign modals | Acceptance visually primary; payment continuation secondary; no “Could not accept” when durable accept succeeded |
+| Purchase surface | Payment continuation presentation; one Pay CTA only when payable |
+| `not_connected` | Maps to `setup_required` + contractor follow-up copy; contractor attention remains available (`payments_not_connected` capability preserved) |
+| Replay | Same token/version intent → `acceptance.status: replayed`; no Accept-again requirement |
+
+### Staging proof (durable accept + replay)
+
+| Item | Result |
+|------|--------|
+| Target | Staging only `tjtrhdckinjtorgbkirm` (`fielddive-staging-nonprod`) |
+| Production | `rhquhnujjnzjhweypavd` **not** mutated |
+| Marker | `FD2B2TEST` (synthetic; cleaned up) |
+| Route | Actual current `POST /api/proposals/accept` against isolated staging config (not production-bound `:3000`) |
+| First response | `ok: true` · `acceptance.status: accepted` · `deposit.status: setup_required` · `deposit.code: not_connected` · title `Your acceptance is recorded.` |
+| Durable DB | acceptance count **1** · exact synthetic accepted version · payment request count **0** · signature count **0** · Checkout binding **none** · job operational stage **intake** unchanged |
+| Lost-response replay | second call `ok: true` · `acceptance.status: replayed` · deposit remains `setup_required` / `not_connected` · acceptance count stayed **1** · same accepted version · no duplicate payment request · no Accept-again |
+
+### Cross-surface result (precise — do not overstate)
+
+**Proven:**
+
+- Preview projected `Accepted proposal · Version 1`
+- Agreement remained durably accepted
+- Payment setup issue did **not** downgrade agreement
+- Acceptance chronology remained separate from payment continuation
+- Job Card read model did **not** report acceptance failure
+
+**Fixture-specific nuance (not a 2B2 failure):**
+
+The synthetic job remained at `stage=intake`. Job Card therefore showed reconciliation treatment (`valid_review_required` / `acceptance_confirmation_required`) rather than the normal proposal-stage **Customer accepted proposal** chrome.
+
+Proposal-aligned Job Card runtime after partial success remains **non-blocking unproven** for this fixture.
+
+### Visual proof
+
+Desktop + true 390 reviewed and accepted for A–F (`tmp/fielddive-ui-review/phase2b2-partial-success/` — ephemeral; do **not** commit screenshots):
+
+| Case | Result |
+|------|--------|
+| A accepted / no deposit | PASS |
+| B accepted / deposit ready | PASS |
+| C accepted / payment setup required | PASS |
+| D accepted / payment continuation problem | PASS |
+| E accepted / payment processing | PASS |
+| F contractor accepted + setup required | PASS |
+
+Locked visual result: acceptance visually primary; payment continuation secondary; no Accept-again CTA; one Pay CTA only when payable; setup-required does not look like agreement failure; no giant warning treatment; no 390 overflow; contractor payment setup issue localized.
+
+### Tests
+
+| Suite | Result |
+|-------|--------|
+| `proposalAcceptanceDepositEnvelope` | **33/33** pass |
+| Staging-resume requested regression (envelope + 2A honesty + 2B1 recovery + Stripe idempotency) | **79/79** pass |
+| Phase 2A honesty + 2B1 recovery (honesty + checkout recovery files) | **31/31** pass |
+| 052 partial-success slices (accept/checkout refuse-on-deposit → partial-success asserts) | **updated and green** as part of 2B2 WIP |
+| Known pre-existing `customerOptionChoice052` debt | **2 failures** at clean `a473754` (see below) — **not** caused or worsened by 2B2 |
+
+### Known pre-existing test debt (unchanged)
+
+1. Migration inventory expectation frozen through **055**, but migrations **056–059** now exist.
+2. Stale `termsRequireOnlineDeposit` assertion — symbol removed previously by `e28381a`.
+
+Do **not** modify these in the 2B2 checkpoint.
+
+### Remaining non-blocking unproven items
+
+- Live staging **sign** + `setup_required` route
+- Live staging checkout replay using safe Stripe **TEST** Connect
+- Live staging payment-request reuse with connected account
+- Proposal-aligned Job Card **Customer accepted proposal** runtime path after partial success
+
+**Why these do not block 2B2 closure:**
+
+- Sign partial-success behavior has deterministic route coverage
+- Request reuse has existing DB/idempotency protection
+- Checkout lost-response safety was independently proven in Phase 2B1 against Stripe TEST
+- Agreement projection remained durable in the actual staging accept/replay proof
+
+Do **not** mark them completed.
+
+### Overall Phase 2 position (after 2B2)
+
+Phase 2 overall remains **NOT** complete (Phase 2C open).
+
+| Slice | Status |
+|-------|--------|
+| Phase 2A — Financial projection honesty | **COMPLETE** |
+| Phase 2B1 — Checkout duplicate-charge hardening | **COMPLETE** |
+| Phase 2B2 — Acceptance/deposit partial-success recovery | **COMPLETE** |
+| Phase 2B (payment continuation recovery pair) | **COMPLETE** |
+| Phase 2C — Proposal send recovery | **NEXT** |
+
+### NEXT — Phase 2C (map/implement only after separate authorization)
+
+**Proposal send recovery.** Lost/partial send must not leave false commercial or delivery truth. Reuse canonical delivery/webhook architecture. **No** Phase 2C implementation from this checkpoint alone.
 
 ## 2026-09-11 — Delivery Completeness CLOSED (D1 + D2 + D3)
 
@@ -601,7 +742,7 @@ MUST_FIX_BY: `BEFORE_MORE_FEATURES` | `BEFORE_PAID_BETA` | `NORMAL_ROADMAP` | `T
 |----|--------|----------|-------|--------|-------------|--------------|
 | FD-P1-01 | CUSTOMERS | P1 | Customer identity dual writers (create vs findOrCreate vs admin email) | OPEN | BEFORE_PAID_BETA | After A |
 | FD-P1-03 | CATALOG | P1 | `catalog_items` vs admin `service_items` | OPEN | BEFORE_PAID_BETA | After A |
-| FD-P1-05 | PROPOSALS/PAYMENTS | P1 | Accept commits before deposit; HTTP can fail after durable accept | OPEN | BEFORE_PAID_BETA | After A2 money clarity |
+| FD-P1-05 | PROPOSALS/PAYMENTS | P1 | Accept commits before deposit; HTTP can fail after durable accept | **CLOSED** (Phase 2B2) | BEFORE_PAID_BETA | After A2 money clarity |
 | FD-P2-PLACES-SURFACES | PLACES | P2 | Places still New-Job-only; property edit / Board / reload-search-history unfinished | OPEN | NORMAL_ROADMAP | After Category A; first roadmap slice |
 | FD-P2-NULL-JOB-FKS | JOBS | P2 | Legacy jobs missing property/customer FKs with snapshot text | OPEN | BEFORE_PAID_BETA | After A |
 | FD-P2-EMAIL-CLUSTER | CUSTOMERS | P2 | Large shared-email customer cluster (328) from always-insert | OPEN | BEFORE_PAID_BETA | With FD-P1-01 |

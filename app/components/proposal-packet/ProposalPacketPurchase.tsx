@@ -256,6 +256,14 @@ export default function ProposalPacketPurchase({
           <p className="mt-1 text-[13px] leading-relaxed text-[#64748b]">
             {PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUCCESS_NEXT}
           </p>
+          {action.continuationNote ? (
+            <p
+              className="mt-2 text-[13px] leading-relaxed text-[#64748b]"
+              data-proposal-purchase-continuation
+            >
+              {action.continuationNote}
+            </p>
+          ) : null}
         </>
       ) : null}
 

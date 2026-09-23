@@ -177,10 +177,12 @@ describe("052 â€” app write/read contract", () => {
     assert.match(lib, /customer_option_key: commitOptionKey/);
   });
 
-  test("checkout uses durable choice through acceptance and refuses a failed deposit open", () => {
+  test("checkout uses durable choice through acceptance; deposit failure stays partial success", () => {
     const checkout = read("app/api/public/payment-requests/checkout/route.ts");
     assert.match(checkout, /openCanonicalDepositFromAcceptedProposal/);
-    assert.match(checkout, /if \(!deposit\.ok\)/);
+    assert.match(checkout, /mapDepositContinuation/);
+    assert.match(checkout, /partialSuccessResponse/);
+    assert.match(checkout, /if \(!depositRaw\.ok\)/);
   });
 });
 
@@ -196,11 +198,14 @@ describe("052 â€” deposit RPC error propagation", () => {
     assert.match(lib, /\[open_job_deposit\] rpc error/);
   });
 
-  test("accept and checkout both refuse when deposit open fails", () => {
+  test("accept and checkout return durable acceptance when deposit open fails", () => {
     const accept = read("app/api/proposals/accept/route.ts");
     const checkout = read("app/api/public/payment-requests/checkout/route.ts");
-    assert.match(accept, /if \(!deposit\.ok\)/);
-    assert.match(checkout, /if \(!deposit\.ok\)/);
+    assert.match(accept, /mapDepositContinuation/);
+    assert.doesNotMatch(accept, /if \(!deposit\.ok\)/);
+    assert.match(checkout, /mapDepositContinuation/);
+    assert.match(checkout, /if \(!depositRaw\.ok\)/);
+    assert.match(checkout, /partialSuccessResponse/);
   });
 
   test("RPC error class is a structured failure, never a silent success", async () => {

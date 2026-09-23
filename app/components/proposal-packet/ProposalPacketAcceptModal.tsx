@@ -11,6 +11,7 @@ import {
   formatProposalCustomerAcceptedOnLabel,
   formatProposalCustomerAcceptedOnSentence,
 } from "@/app/lib/proposalCustomerPacketViewModel";
+import type { DepositContinuationEnvelope } from "@/app/lib/proposalAcceptanceDepositEnvelope";
 import {
   PROPOSAL_PACKET_CTA_PRIMARY,
   PROPOSAL_PACKET_CTA_SECONDARY,
@@ -32,6 +33,7 @@ type SubmitState = "idle" | "submitting" | "success" | "error";
 
 /**
  * Public formal acceptance confirmation — not a signature or payment.
+ * Phase 2B2: deposit continuation issues stay secondary to acceptance success.
  */
 export default function ProposalPacketAcceptModal({
   open,
@@ -49,6 +51,7 @@ export default function ProposalPacketAcceptModal({
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [acceptedOnLabel, setAcceptedOnLabel] = useState<string | null>(null);
+  const [depositNote, setDepositNote] = useState<string | null>(null);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -60,6 +63,7 @@ export default function ProposalPacketAcceptModal({
         setSubmitState("idle");
         setErrorMessage(null);
         setAcceptedOnLabel(null);
+        setDepositNote(null);
       });
     } else if (!open && dialog.open) {
       dialog.close();
@@ -74,6 +78,7 @@ export default function ProposalPacketAcceptModal({
     if (submitState === "submitting") return;
     setSubmitState("submitting");
     setErrorMessage(null);
+    setDepositNote(null);
     try {
       const response = await fetch("/api/proposals/accept", {
         method: "POST",
@@ -88,8 +93,15 @@ export default function ProposalPacketAcceptModal({
         ok?: boolean;
         acceptedAt?: string;
         code?: string;
+        acceptance?: { status?: string } | null;
+        deposit?: DepositContinuationEnvelope | null;
       };
-      if (!response.ok || payload.ok !== true) {
+      const acceptanceDurable =
+        payload.ok === true &&
+        payload.acceptance != null &&
+        (payload.acceptance.status === "accepted" ||
+          payload.acceptance.status === "replayed");
+      if (!acceptanceDurable) {
         setSubmitState("error");
         setErrorMessage(
           payload.code === "superseded"
@@ -102,6 +114,7 @@ export default function ProposalPacketAcceptModal({
         formatProposalCustomerAcceptedOnLabel(payload.acceptedAt ?? null) ??
         formatProposalCustomerAcceptedOnLabel(new Date().toISOString());
       setAcceptedOnLabel(label);
+      setDepositNote(payload.deposit?.message ?? null);
       setSubmitState("success");
       onAccepted(label ?? "today");
     } catch {
@@ -142,6 +155,14 @@ export default function ProposalPacketAcceptModal({
             <p className="mt-2 text-[14px] leading-relaxed text-[#475569]">
               {PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUCCESS_NEXT}
             </p>
+            {depositNote ? (
+              <p
+                className="mt-2 text-[13px] leading-relaxed text-[#64748b]"
+                data-proposal-accept-deposit-note
+              >
+                {depositNote}
+              </p>
+            ) : null}
             <button type="submit" className={`${PROPOSAL_PACKET_CTA_PRIMARY} mt-5 w-full`}>
               Done
             </button>

@@ -5,6 +5,11 @@ import {
 } from "@/app/lib/proposalAcceptancePersistence";
 import { recordProposalAcceptance } from "@/app/lib/proposalAcceptanceStore.server";
 import { openCanonicalDepositFromAcceptedProposal } from "@/app/lib/jobPaymentAcceptanceObligation.server";
+import {
+  ACCEPTANCE_RECORDED_TITLE,
+  mapDepositContinuation,
+  type AcceptanceResultEnvelope,
+} from "@/app/lib/proposalAcceptanceDepositEnvelope";
 
 export const runtime = "nodejs";
 
@@ -33,6 +38,9 @@ function statusForFailure(code: string): number {
  * Token is hashed server-side; company/proposal/version never trusted from body.
  * `optionKey` is a frozen option key only. The server resolves it against the
  * token's bound version and reads the total from frozen truth — no client price.
+ *
+ * Phase 2B2 / FD-P1-05: durable acceptance and deposit continuation are separate.
+ * Deposit failure never claims acceptance failed.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -69,19 +77,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const deposit = await openCanonicalDepositFromAcceptedProposal({
+    const depositRaw = await openCanonicalDepositFromAcceptedProposal({
       companyId: result.company_id,
       acceptanceId: result.acceptance_id,
     });
-    if (!deposit.ok) {
-      return NextResponse.json(
-        { ok: false, message: SAFE_ERROR_MESSAGE, code: deposit.code },
-        { status: deposit.code === "conflicting_request" ? 409 : 400 }
-      );
-    }
+    const deposit = mapDepositContinuation(depositRaw);
+
+    const acceptance: AcceptanceResultEnvelope = {
+      status: result.idempotent_replay ? "replayed" : "accepted",
+      acceptanceId: result.acceptance_id,
+      acceptedAt: result.accepted_at,
+      proposalVersionId: result.proposal_version_id ?? null,
+      idempotentReplay: result.idempotent_replay,
+    };
 
     return NextResponse.json({
       ok: true,
+      title: ACCEPTANCE_RECORDED_TITLE,
+      acceptance,
+      deposit,
       acceptedAt: result.accepted_at,
       acceptedOptionLabel:
         result.customer_chosen_option_label ?? result.accepted_option_label,

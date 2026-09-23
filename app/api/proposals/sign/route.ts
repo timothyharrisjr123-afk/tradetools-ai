@@ -7,6 +7,11 @@ import { proposalSignatureMarkError, assertProposalSignatureMark } from "@/app/l
 import { recordProposalSignature } from "@/app/lib/proposalSignatureStore.server";
 import { openCanonicalDepositFromAcceptedProposal } from "@/app/lib/jobPaymentAcceptanceObligation.server";
 import { formatProposalCustomerAcceptedOnLabel } from "@/app/lib/proposalCustomerPacketViewModel";
+import {
+  ACCEPTANCE_RECORDED_TITLE,
+  mapDepositContinuation,
+  type AcceptanceResultEnvelope,
+} from "@/app/lib/proposalAcceptanceDepositEnvelope";
 
 export const runtime = "nodejs";
 
@@ -33,6 +38,9 @@ function statusForFailure(code: string): number {
 /**
  * Public Accept & sign / Sign proposal submit.
  * Token is hashed server-side. Signature never moves Job stage.
+ *
+ * Phase 2B2 / FD-P1-05: durable signature/acceptance and deposit continuation
+ * are separate. Deposit failure never claims signature/acceptance failed.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -79,19 +87,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const deposit = await openCanonicalDepositFromAcceptedProposal({
+    const depositRaw = await openCanonicalDepositFromAcceptedProposal({
       companyId: result.company_id,
       acceptanceId: result.acceptance_id,
     });
-    if (!deposit.ok) {
-      return NextResponse.json(
-        { ok: false, message: SAFE_ERROR_MESSAGE, code: deposit.code },
-        { status: deposit.code === "conflicting_request" ? 409 : 400 }
-      );
-    }
+    const deposit = mapDepositContinuation(depositRaw);
+
+    const acceptance: AcceptanceResultEnvelope = {
+      status: result.idempotent_replay ? "replayed" : "accepted",
+      acceptanceId: result.acceptance_id,
+      acceptedAt: result.accepted_at,
+      proposalVersionId: null,
+      idempotentReplay: result.idempotent_replay,
+    };
 
     return NextResponse.json({
       ok: true,
+      title: ACCEPTANCE_RECORDED_TITLE,
+      acceptance,
+      deposit,
       signedAt: result.signed_at,
       acceptedAt: result.accepted_at,
       signedOnLabel: formatProposalCustomerAcceptedOnLabel(result.signed_at),

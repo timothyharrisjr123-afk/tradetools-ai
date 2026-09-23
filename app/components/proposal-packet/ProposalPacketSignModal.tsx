@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import {
   formatProposalCustomerAcceptedOnLabel,
 } from "@/app/lib/proposalCustomerPacketViewModel";
+import type { DepositContinuationEnvelope } from "@/app/lib/proposalAcceptanceDepositEnvelope";
 import type { ProposalSignatureMarkV1 } from "@/app/lib/proposalSignatureMark";
 import { proposalSignatureMarkError } from "@/app/lib/proposalSignatureMark";
 import {
@@ -51,6 +52,7 @@ const SAFE_ERROR =
 /**
  * Public Accept & sign / Sign proposal modal.
  * Submits one POST /api/proposals/sign — never accept-then-sign.
+ * Phase 2B2: deposit continuation failure never erases durable sign/accept truth.
  */
 export default function ProposalPacketSignModal({
   open,
@@ -69,6 +71,7 @@ export default function ProposalPacketSignModal({
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [signedOnLabel, setSignedOnLabel] = useState<string | null>(null);
+  const [depositNote, setDepositNote] = useState<string | null>(null);
   const [name, setName] = useState((customerName ?? "").trim());
   const [acknowledged, setAcknowledged] = useState(false);
   const [mark, setMark] = useState<ProposalSignatureMarkV1 | null>(null);
@@ -83,6 +86,7 @@ export default function ProposalPacketSignModal({
         setSubmitState("idle");
         setErrorMessage(null);
         setSignedOnLabel(null);
+        setDepositNote(null);
         setName((customerName ?? "").trim());
         setAcknowledged(false);
         setMark(null);
@@ -110,6 +114,7 @@ export default function ProposalPacketSignModal({
     if (!canSubmit || !mark) return;
     setSubmitState("submitting");
     setErrorMessage(null);
+    setDepositNote(null);
     try {
       const response = await fetch("/api/proposals/sign", {
         method: "POST",
@@ -129,8 +134,15 @@ export default function ProposalPacketSignModal({
         signedOnLabel?: string | null;
         acceptedOnLabel?: string | null;
         signerPrintedName?: string;
+        acceptance?: { status?: string } | null;
+        deposit?: DepositContinuationEnvelope | null;
       };
-      if (!response.ok || payload.ok !== true) {
+      const durable =
+        payload.ok === true &&
+        payload.acceptance != null &&
+        (payload.acceptance.status === "accepted" ||
+          payload.acceptance.status === "replayed");
+      if (!durable) {
         setSubmitState("error");
         setErrorMessage(SAFE_ERROR);
         return;
@@ -145,6 +157,7 @@ export default function ProposalPacketSignModal({
         formatProposalCustomerAcceptedOnLabel(payload.acceptedAt ?? null) ??
         signedLabel;
       setSignedOnLabel(signedLabel);
+      setDepositNote(payload.deposit?.message ?? null);
       setSubmitState("success");
       onSigned({
         signedOnLabel: signedLabel,
@@ -188,6 +201,14 @@ export default function ProposalPacketSignModal({
             <p className="mt-2 text-[14px] leading-relaxed text-[#475569]">
               {PROPOSAL_CUSTOMER_PACKET_SIGNED_SUCCESS_NEXT}
             </p>
+            {depositNote ? (
+              <p
+                className="mt-2 text-[13px] leading-relaxed text-[#64748b]"
+                data-proposal-sign-deposit-note
+              >
+                {depositNote}
+              </p>
+            ) : null}
             <button type="submit" className={`${PROPOSAL_PACKET_CTA_PRIMARY} mt-5 w-full`}>
               Done
             </button>
