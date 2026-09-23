@@ -24,6 +24,7 @@ import JobsBoardEmptyState from "./components/JobsBoardEmptyState";
 import JobsBoardErrorState from "./components/JobsBoardErrorState";
 import JobsBoardSearchResults from "./components/JobsBoardSearchResults";
 import { useWorkspaceSearch } from "./useWorkspaceSearch";
+import { useCompanyMembers } from "@/app/tools/roofing/jobCard/useCompanyMembers";
 import { restoreCanonicalBoardFromReturnStatus } from "@/app/lib/boardCanonicalSurface";
 import { useCompanySetupReadiness } from "./useCompanySetupReadiness";
 import { useBoardCanonicalJobs } from "./useBoardCanonicalJobs";
@@ -72,6 +73,7 @@ import {
   isLegacyBoardEstimateEntry,
   LAST_DB_JOB_ID_STORAGE_KEY,
   mapDbJobsToBoardEstimates,
+  enrichBoardEstimatesWithMemberNames,
   partitionLegacyEstimatesForBoardSection,
   resolveBoardEntryOpenHref,
   resolveLastDbJobRecoveryHref,
@@ -2392,6 +2394,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     enabled: hydrated,
     companyId,
   });
+  const companyMembers = useCompanyMembers(hydrated);
   const scheduleLoadBanner = boardScheduleLoadBanner(r3fSchedulesLoadStatus);
   const coreBoardReady = hydrated && dbJobsStatus === "ready";
   const companySetupReadiness = useCompanySetupReadiness(companyId, {
@@ -3303,10 +3306,21 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     [estimates, query]
   );
 
-  const dbBoardEntries = useMemo(
-    () => mapDbJobsToBoardEstimates(dbJobs),
-    [dbJobs]
-  );
+  const dbBoardEntries = useMemo(() => {
+    const mapped = mapDbJobsToBoardEstimates(dbJobs);
+    const names = new Map<string, string>();
+    for (const member of companyMembers.liveMembers) {
+      const label = companyMembers.labelFor(member.userId);
+      if (label && label !== "Unassigned" && label !== "Team member") {
+        names.set(member.userId, label);
+      } else if (member.displayName?.trim()) {
+        names.set(member.userId, member.displayName.trim());
+      } else if (member.email?.trim()) {
+        names.set(member.userId, member.email.trim());
+      }
+    }
+    return enrichBoardEstimatesWithMemberNames(mapped, names);
+  }, [dbJobs, companyMembers.liveMembers, companyMembers.labelFor]);
 
   const legacyBoardEntries = useMemo(
     () => partitionLegacyEstimatesForBoardSection(estimates, dbJobs.map((job) => job.id)),

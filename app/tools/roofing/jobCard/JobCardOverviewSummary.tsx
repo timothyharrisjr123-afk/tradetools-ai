@@ -7,6 +7,12 @@ type JobCardOverviewSummaryProps = {
   measurementLabel: string | null;
   operationalStateLabel?: string | null;
   paymentStatusLabel?: string | null;
+  /** When true, hide commercial Proposal/Payment rows (field-restricted viewers). */
+  suppressCommercial?: boolean;
+  productionLead?: ReactNode;
+  fieldBrief?: ReactNode;
+  /** When field brief already shows measurement, skip the quiet Overview row. */
+  hideMeasurementRow?: boolean;
 };
 
 function Row({ label, value }: { label: string; value: ReactNode }) {
@@ -23,10 +29,19 @@ export default function JobCardOverviewSummary({
   measurementLabel,
   operationalStateLabel = null,
   paymentStatusLabel = null,
+  suppressCommercial = false,
+  productionLead = null,
+  fieldBrief = null,
+  hideMeasurementRow = false,
 }: JobCardOverviewSummaryProps) {
+  const showMeasurement =
+    Boolean(measurementLabel) &&
+    !hideMeasurementRow &&
+    !(suppressCommercial && fieldBrief);
+
   return (
-    <div className="space-y-3" data-jobcard-overview-truth>
-      {operationalStateLabel ? (
+    <div className="space-y-5" data-jobcard-overview-truth>
+      {operationalStateLabel && !suppressCommercial ? (
         <div data-jobcard-overview-operational className="space-y-1">
           {operationalStateLabel.split("\n").map((line, index) => (
             <p
@@ -42,25 +57,41 @@ export default function JobCardOverviewSummary({
           ))}
         </div>
       ) : null}
-      <div className="space-y-2">
-        <Row label="Proposal" value={proposalLabel} />
-        {measurementLabel ? (
-          <Row
-            label="Measurement"
-            value={
-              <span data-jobcard-overview-measurement>{measurementLabel}</span>
-            }
-          />
-        ) : null}
-        {paymentStatusLabel ? (
-          <Row
-            label="Payment"
-            value={
-              <span data-jobcard-overview-payment>{paymentStatusLabel}</span>
-            }
-          />
-        ) : null}
-      </div>
+
+      {fieldBrief}
+
+      {/* Standalone lead control only when brief is absent (no double hierarchy). */}
+      {!fieldBrief && productionLead ? productionLead : null}
+
+      {(!suppressCommercial || showMeasurement) && (
+        <div
+          className={
+            fieldBrief
+              ? "space-y-2 border-t border-slate-100 pt-4"
+              : "space-y-2"
+          }
+        >
+          {!suppressCommercial ? (
+            <Row label="Proposal" value={proposalLabel} />
+          ) : null}
+          {showMeasurement ? (
+            <Row
+              label="Measurement"
+              value={
+                <span data-jobcard-overview-measurement>{measurementLabel}</span>
+              }
+            />
+          ) : null}
+          {!suppressCommercial && paymentStatusLabel ? (
+            <Row
+              label="Payment"
+              value={
+                <span data-jobcard-overview-payment>{paymentStatusLabel}</span>
+              }
+            />
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }

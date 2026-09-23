@@ -187,6 +187,8 @@ export type JobRecord = {
 
   // Assignment / ownership
   assigned_to?: string | null;
+  /** Optional free-text crew label (not resource planning). */
+  crew_label?: string | null;
   created_by?: string | null;
   updated_by?: string | null;
 

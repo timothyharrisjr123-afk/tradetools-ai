@@ -11,6 +11,7 @@ import {
   isPublicAppOriginError,
   resolvePublicAppOrigin,
 } from "@/app/lib/publicAppOrigin.server";
+import { requireCapabilitySession } from "@/app/lib/requireCapabilitySession";
 import { createClient } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -65,6 +66,22 @@ export async function POST(req: NextRequest) {
     if (!companyId) {
       return NextResponse.json(
         { ok: false, code: "forbidden", message: PROPOSAL_EMAIL_SEND_ERROR_MESSAGE },
+        { status: 403 }
+      );
+    }
+
+    const gated = await requireCapabilitySession(
+      supabase,
+      user.id,
+      "proposal_author"
+    );
+    if (!gated.ok) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "capability_denied",
+          message: PROPOSAL_EMAIL_SEND_ERROR_MESSAGE,
+        },
         { status: 403 }
       );
     }

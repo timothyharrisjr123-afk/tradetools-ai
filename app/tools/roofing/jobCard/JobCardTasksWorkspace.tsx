@@ -12,9 +12,12 @@ import {
   JOB_TASKS_ADD_LABEL,
   JOB_TASKS_COMPLETED_LABEL,
   JOB_TASKS_EMPTY,
+  JOB_TASK_UNASSIGNED_LABEL,
 } from "@/app/lib/jobTaskTypes";
 import JobCardSectionPanel from "@/app/tools/roofing/jobCard/JobCardSectionPanel";
 import type { JobCardTabId } from "@/app/tools/roofing/jobCard/jobCardTypes";
+import type { CompanyMemberClientItem } from "@/app/tools/roofing/jobCard/useCompanyMembers";
+import { labelForCompanyMember } from "@/app/tools/roofing/jobCard/useCompanyMembers";
 
 type TaskDraft = {
   title: string;
@@ -30,6 +33,8 @@ type JobCardTasksWorkspaceProps = {
   loading?: boolean;
   error?: string | null;
   today?: string;
+  canAssignTasks?: boolean;
+  members?: readonly CompanyMemberClientItem[];
   onCreate: (input: {
     title: string;
     notes: string | null;
@@ -42,6 +47,7 @@ type JobCardTasksWorkspaceProps = {
   onComplete: (taskId: string) => void;
   onReopen: (taskId: string) => void;
   onRemove: (taskId: string) => Promise<boolean> | boolean;
+  onAssign?: (taskId: string, assignedTo: string | null) => Promise<boolean> | boolean;
   initialAdding?: boolean;
   initialCompletedOpen?: boolean;
   initialEditingId?: string | null;
@@ -61,6 +67,51 @@ function payloadFromDraft(draft: TaskDraft) {
     notes: draft.notes.trim() ? draft.notes : null,
     dueOn: draft.dueOn.trim() ? draft.dueOn : null,
   };
+}
+
+function TaskAssigneeControl({
+  task,
+  canAssignTasks,
+  members,
+  onAssign,
+}: {
+  task: JobTaskListItem;
+  canAssignTasks: boolean;
+  members: readonly CompanyMemberClientItem[];
+  onAssign?: (taskId: string, assignedTo: string | null) => Promise<boolean> | boolean;
+}) {
+  const label = labelForCompanyMember(task.assignedTo, members);
+  if (!canAssignTasks || !onAssign) {
+    return (
+      <p
+        className="mt-0.5 text-[11px] leading-4 text-slate-400"
+        data-jobcard-task-assignee
+      >
+        {label === JOB_TASK_UNASSIGNED_LABEL ? JOB_TASK_UNASSIGNED_LABEL : label}
+      </p>
+    );
+  }
+  return (
+    <label className="mt-1 block max-w-[10.5rem]">
+      <span className="sr-only">Assignee</span>
+      <select
+        className="min-h-[32px] w-full rounded border-0 bg-transparent px-0 text-[11px] font-medium text-slate-500 outline-none ring-0 hover:text-slate-700 focus:text-slate-800"
+        value={task.assignedTo ?? ""}
+        data-jobcard-task-assignee-select
+        onChange={(event) => {
+          const next = event.target.value.trim() || null;
+          void onAssign(task.id, next);
+        }}
+      >
+        <option value="">{JOB_TASK_UNASSIGNED_LABEL}</option>
+        {members.map((member) => (
+          <option key={member.userId} value={member.userId}>
+            {labelForCompanyMember(member.userId, members)}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
 }
 
 function TaskForm({
@@ -163,11 +214,14 @@ export default function JobCardTasksWorkspace({
   loading = false,
   error = null,
   today,
+  canAssignTasks = false,
+  members = [],
   onCreate,
   onUpdate,
   onComplete,
   onReopen,
   onRemove,
+  onAssign,
   initialAdding = false,
   initialCompletedOpen = false,
   initialEditingId = null,
@@ -247,9 +301,24 @@ export default function JobCardTasksWorkspace({
         ) : null}
 
         {view.isEmpty && !adding && !loading ? (
-          <p className="text-sm text-slate-500" data-jobcard-quiet-empty="tasks">
-            {JOB_TASKS_EMPTY}
-          </p>
+          <div
+            className="flex min-h-[9rem] flex-col items-start justify-center py-6"
+            data-jobcard-quiet-empty="tasks"
+          >
+            <p className="text-sm font-medium text-slate-700">{JOB_TASKS_EMPTY}</p>
+            <p className="mt-1 text-sm text-slate-400">
+              Capture the next field action when you’re ready.
+            </p>
+            <button
+              type="button"
+              className="mt-4 inline-flex min-h-[44px] items-center gap-1.5 rounded-md bg-slate-900 px-3 text-sm font-semibold text-white hover:bg-slate-800"
+              data-jobcard-tasks-add-empty="true"
+              onClick={startAdd}
+            >
+              <Plus className="h-4 w-4" />
+              {JOB_TASKS_ADD_LABEL}
+            </button>
+          </div>
         ) : null}
 
         {view.openTasks.length > 0 ? (
@@ -310,6 +379,12 @@ export default function JobCardTasksWorkspace({
                             Due {formatTaskDueOn(task.dueOn)}
                           </p>
                         ) : null}
+                        <TaskAssigneeControl
+                          task={task}
+                          canAssignTasks={canAssignTasks}
+                          members={members}
+                          onAssign={onAssign}
+                        />
                       </div>
                       <button
                         type="button"
@@ -390,6 +465,12 @@ export default function JobCardTasksWorkspace({
                                 Due {formatTaskDueOn(task.dueOn)}
                               </p>
                             ) : null}
+                            <TaskAssigneeControl
+                              task={task}
+                              canAssignTasks={canAssignTasks}
+                              members={members}
+                              onAssign={onAssign}
+                            />
                           </div>
                           <div className="flex shrink-0 items-center">
                             <button

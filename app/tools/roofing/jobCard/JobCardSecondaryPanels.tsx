@@ -6,17 +6,23 @@ import JobCardQuietEmptyState from "@/app/tools/roofing/jobCard/JobCardQuietEmpt
 import JobCardAttachmentsWorkspace from "@/app/tools/roofing/jobCard/JobCardAttachmentsWorkspace";
 import JobCardTasksWorkspace from "@/app/tools/roofing/jobCard/JobCardTasksWorkspace";
 import { useJobCardAttachments } from "@/app/tools/roofing/jobCard/useJobCardAttachments";
-import { useJobCardTasks } from "@/app/tools/roofing/jobCard/useJobCardTasks";
+import type { useJobCardTasks } from "@/app/tools/roofing/jobCard/useJobCardTasks";
 import type { JobCardTabId } from "@/app/tools/roofing/jobCard/jobCardTypes";
 import { applyTemplateSetupFetchResult } from "@/app/lib/jobCardTemplateSetupState";
 import type { TemplateSetupReadStatus } from "@/app/lib/jobCardTemplateSetupState";
 import { isUuidLike } from "@/app/lib/uuid";
+import type { CompanyMemberClientItem } from "@/app/tools/roofing/jobCard/useCompanyMembers";
+
+type TasksApi = ReturnType<typeof useJobCardTasks>;
 
 type JobCardSecondaryPanelsProps = {
   activeTab: JobCardTabId;
   jobId: string | null;
   companyId?: string;
   listedDraftProposalId: string | null;
+  tasks: TasksApi;
+  canAssignTasks?: boolean;
+  members?: readonly CompanyMemberClientItem[];
 };
 
 /**
@@ -30,17 +36,15 @@ export default function JobCardSecondaryPanels({
   jobId,
   companyId,
   listedDraftProposalId,
+  tasks,
+  canAssignTasks = false,
+  members = [],
 }: JobCardSecondaryPanelsProps) {
   void listedDraftProposalId;
   const attachmentsEnabled = activeTab === "attachments";
-  const tasksEnabled = activeTab === "tasks";
   const attachments = useJobCardAttachments({
     jobId,
     enabled: attachmentsEnabled && Boolean(jobId),
-  });
-  const tasks = useJobCardTasks({
-    jobId,
-    enabled: tasksEnabled && Boolean(jobId),
   });
   const [templateStatus, setTemplateStatus] =
     useState<TemplateSetupReadStatus>("idle");
@@ -103,11 +107,14 @@ export default function JobCardSecondaryPanels({
         tasks={tasks.tasks}
         loading={tasks.loading}
         error={tasks.error}
+        canAssignTasks={canAssignTasks}
+        members={members}
         onCreate={tasks.create}
         onUpdate={tasks.updateContent}
         onComplete={tasks.complete}
         onReopen={tasks.reopen}
         onRemove={tasks.remove}
+        onAssign={tasks.assign}
       />
       {quiet("material_orders", "Material Orders", "No material orders yet.", "material_orders")}
       {quiet("work_orders", "Work Orders", "No work orders yet.", "work_orders")}

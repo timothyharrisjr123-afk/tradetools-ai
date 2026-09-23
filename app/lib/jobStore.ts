@@ -54,6 +54,7 @@ export type JobRow = {
   address_country?: string | null;
   address_formatted?: string | null;
   assigned_to?: string | null;
+  crew_label?: string | null;
   created_by?: string | null;
   updated_by?: string | null;
   notes?: string | null;
@@ -108,7 +109,7 @@ export type JobUpdatePatch = Omit<
 };
 
 const JOB_SELECT_COLUMNS =
-  "id, company_id, customer_id, property_id, job_name, stage, status, source, priority, customer_name, customer_email, customer_phone, address_line1, address_line2, address_city, address_state, address_zip, address_country, address_formatted, assigned_to, created_by, updated_by, notes, summary, last_activity_at, stage_entered_at, production_started_at, completed_at, archived, deleted_at, selected_measurement_id, active_proposal_id, latest_estimate_id, latest_proposal_id, source_metadata, custom_fields, created_at, updated_at";
+  "id, company_id, customer_id, property_id, job_name, stage, status, source, priority, customer_name, customer_email, customer_phone, address_line1, address_line2, address_city, address_state, address_zip, address_country, address_formatted, assigned_to, crew_label, created_by, updated_by, notes, summary, last_activity_at, stage_entered_at, production_started_at, completed_at, archived, deleted_at, selected_measurement_id, active_proposal_id, latest_estimate_id, latest_proposal_id, source_metadata, custom_fields, created_at, updated_at";
 
 // ---------------------------------------------------------------------------
 // Pure helpers
@@ -191,6 +192,7 @@ export function rowToJobRecord(row: JobRow): JobRecord {
     contact,
     address,
     assigned_to: row.assigned_to ?? null,
+    crew_label: row.crew_label ?? null,
     created_by: row.created_by ?? null,
     updated_by: row.updated_by ?? null,
     notes: row.notes ?? null,

@@ -2,6 +2,70 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-23 — PHASE 7 COMPLETE: Small-team responsibility + field handoff (Astra G7)
+
+==================================================
+PHASE 7 — SMALL-TEAM RESPONSIBILITY + FIELD HANDOFF  
+STATUS: **COMPLETE**
+==================================================
+
+- **Base HEAD (pre-commit WIP):** `0c13ece3256d3de4491fa69f1cca74e6ad894afe`
+- **Astra fidelity source:** `tmp/fielddive-ui-review/astra-future-state-fielddive-blueprint.md` (G7) + Stage 4 Astra ratification
+- **Main:** **not** pushed from this checkpoint. **No** deploy. Phase 8 **not** started.
+
+### Locked Astra G7 product truth
+
+- **Production lead** = `jobs.assigned_to` (NULL = explicit **Unassigned**)
+- **Task assignee** = `job_tasks.assigned_to` (NULL = Unassigned; independent of lead + task status)
+- Optional **crew label** = `jobs.crew_label` (text only — not resource planning)
+- Assignment does **not** change stage, proposal, payment, schedule, or task completion
+- **Four bounded presets:** Owner/Admin · Office/Sales · Production lead · Field user (no ACL builder)
+- **Server capability enforcement** on proposal send, refunds/connect, Start/Complete, schedule mutate, job/task assign, member admin (not UI-only)
+- **Member soft-remove** via `company_memberships.removed_at`; open work → Unassigned or deliberate reassignment; historical Activity actors preserved
+- **Activity** events: `production_lead_assigned` / `changed` / `cleared`
+- **Board** shows real member display names (or Unassigned) — no fake “Assigned”
+- **Overview field brief** is derived/read-only: customer/contact actions → schedule + production lead → authorized work → measurement/access → open tasks (no proposal duplication)
+- Schedule uses the **same** assignment truth as the brief (idle duplicate “Not scheduled” card suppressed when brief already shows it)
+- Display names: profile full name → email fallback → “Team member” / Unassigned (no invented names); `ensureUserIdentity` no longer wipes `full_name`
+
+### Staging non-owner proof (complete + cleaned)
+
+- Target **STAGING only** `tjtrhdckinjtorgbkirm` / `fielddive-staging-nonprod`
+- Disposable Auth Field User → Production Lead role switch → removal
+- Real product API denials returned **403 `capability_denied`** (send, members, production-lead, connect, schedule, start)
+- Field User task complete allowed; Production Lead production-lead assign allowed
+- Fixtures cleaned; disposable Auth **0**; live memberships **1 owner**; production Auth **untouched**
+
+### Paid-UI corrections (G7 surfaces only)
+
+- Compact operational production-lead Assign/Change/Save (no mini settings panel)
+- Field brief hierarchy + Call/Directions semantics
+- Tasks: primary Add task; quieter assignee; intentional empty state
+- Team: small-team admin polish; bounded presets
+- Photos: intentional empty state (code); owner 390 empty shot may predate polish
+- Broader cohesion deferred — see Phase 12.5
+
+### Proof artifacts
+
+- Desktop + true-390 under `tmp/fielddive-ui-review/phase7-responsibility-handoff/final-paid-ui/`
+- Restricted Field User / Production Lead staging product captures included
+- Owner product captures from same-day localhost product routes
+
+### Migration
+
+- `20260923200000_phase7_responsibility_handoff.sql` — local = staging = production (applied; not reapplied at closure)
+
+### Tests
+
+- G7 + Phase 5/3/related regression gate: **167 pass / 0 fail**
+
+### Explicit debt / next
+
+**PHASE 12.5 — WHOLE-APP PAID UI + COHESION AUDIT** (future): buttons, colors, typography, spacing, cards/containers, forms, tables, modals/drawers, empty/error/loading, navigation, status semantics, customer-facing + operational surfaces, desktop + true 390, inherited “acceptable but not premium” UI. Do **not** start from this checkpoint alone.
+
+**NEXT: PHASE 8 — JOB CARD + MOBILE OPERATIONAL HIERARCHY**  
+Do **not** begin Phase 8 from this checkpoint alone. Recorded G8 debt includes compressed/cropped Job Card tab rail at 390.
+
 ## 2026-09-23 — PHASE 6 COMPLETE: Jobs + identity reuse + search + repeat work (Astra G6)
 
 ==================================================
@@ -11,7 +75,7 @@ STATUS: **COMPLETE**
 
 - **Base HEAD:** `1ec1df9fab98b3ebb0491c1f766a17fffbec06fe`
 - **Astra fidelity source:** `tmp/fielddive-ui-review/astra-future-state-fielddive-blueprint.md` (G6) + Stage 4 Astra ratification
-- **Main:** **not** pushed from this checkpoint. **No** deploy. Phase 7 **not** started.
+- **Main:** **not** pushed from this checkpoint. **No** deploy. Phase 7 completed later — see Phase 7 COMPLETE section above.
 
 ### Locked Astra G6 product truth
 
@@ -52,8 +116,8 @@ STATUS: **COMPLETE**
 
 ### NEXT
 
-**PHASE 7 — SMALL-TEAM RESPONSIBILITY + FIELD HANDOFF**  
-Do **not** begin Phase 7 from this checkpoint alone.
+**PHASE 7 — SMALL-TEAM RESPONSIBILITY + FIELD HANDOFF** — **COMPLETE** (see Phase 7 COMPLETE section above).  
+**NEXT authorized slice:** **PHASE 8 — JOB CARD + MOBILE OPERATIONAL HIERARCHY**.
 
 ## 2026-09-23 — PHASE 5 COMPLETE: First-use + first-proposal activation (Astra G5)
 

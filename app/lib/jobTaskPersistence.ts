@@ -8,13 +8,14 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { validateLiveCompanyMember } from "@/app/lib/companyMemberValidation";
 import { toJobTaskListItem } from "@/app/lib/jobTaskModel";
 import type { JobTaskListItem, JobTaskRecord } from "@/app/lib/jobTaskTypes";
 import { validateJobTaskContent } from "@/app/lib/jobTaskValidation";
 import { isUuidLike } from "@/app/lib/uuid";
 
 const LIST_COLUMNS =
-  "id,company_id,job_id,title,notes,status,due_on,created_by,completed_at,completed_by,created_at,updated_at,deleted_at";
+  "id,company_id,job_id,title,notes,status,due_on,assigned_to,created_by,completed_at,completed_by,created_at,updated_at,deleted_at";
 
 export type JobTaskAuthContext = {
   userId: string;
@@ -73,6 +74,7 @@ function asRecord(row: Record<string, unknown>): JobTaskRecord {
     notes: row.notes == null ? null : String(row.notes),
     status,
     due_on: asDueOn(row.due_on),
+    assigned_to: row.assigned_to ? String(row.assigned_to) : null,
     created_by: row.created_by ? String(row.created_by) : null,
     completed_at: row.completed_at ? String(row.completed_at) : null,
     completed_by: row.completed_by ? String(row.completed_by) : null,
@@ -282,4 +284,60 @@ export async function softDeleteJobTask(input: {
     .maybeSingle();
   if (error) throw new JobTaskHttpError(500, "internal_error");
   if (!data) throw new JobTaskHttpError(404, "not_found");
+}
+
+/**
+ * Set or clear job_tasks.assigned_to. Independent of task status and production lead.
+ * Idempotent when durable value already matches.
+ */
+export async function setJobTaskAssignee(input: {
+  supabase: SupabaseClient;
+  ctx: JobTaskAuthContext;
+  jobId: string;
+  taskId: string;
+  assignedTo: string | null;
+}): Promise<JobTaskListItem> {
+  const job = await loadOwnedJobForTasks(input.supabase, input.ctx, input.jobId);
+  const existing = await loadOwnedTask(input.supabase, job, input.taskId);
+
+  const next =
+    input.assignedTo == null || String(input.assignedTo).trim() === ""
+      ? null
+      : String(input.assignedTo).trim();
+
+  if (next != null) {
+    if (!isUuidLike(next)) {
+      throw new JobTaskHttpError(400, "invalid_assignee");
+    }
+    const validated = await validateLiveCompanyMember(
+      input.supabase,
+      job.company_id,
+      next
+    );
+    if (!validated.ok) {
+      const status =
+        validated.code === "foreign_member" || validated.code === "removed_member"
+          ? 403
+          : 400;
+      throw new JobTaskHttpError(status, validated.code);
+    }
+  }
+
+  const previous = existing.assigned_to;
+  if (previous === next) {
+    return toJobTaskListItem(existing);
+  }
+
+  const { data, error } = await input.supabase
+    .from("job_tasks")
+    .update({ assigned_to: next })
+    .eq("id", input.taskId)
+    .eq("job_id", job.id)
+    .eq("company_id", job.company_id)
+    .is("deleted_at", null)
+    .select(LIST_COLUMNS)
+    .maybeSingle();
+  if (error) throw new JobTaskHttpError(500, "internal_error");
+  if (!data) throw new JobTaskHttpError(404, "not_found");
+  return toJobTaskListItem(asRecord(data as Record<string, unknown>));
 }

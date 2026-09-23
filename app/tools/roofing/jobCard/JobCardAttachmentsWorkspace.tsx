@@ -233,11 +233,15 @@ export default function JobCardAttachmentsWorkspace({
         }}
       />
       {view.isEmpty && !loading ? (
-        <div className="flex items-start justify-between gap-3">
-          <p className="text-sm text-slate-500" data-jobcard-attachments-empty>
+        <div
+          className="flex min-h-[12rem] flex-col items-center justify-center rounded-lg border border-dashed border-slate-200/90 bg-slate-50/40 px-4 py-10 text-center"
+          data-jobcard-attachments-empty
+        >
+          <p className="text-sm font-medium text-slate-800">No photos yet</p>
+          <p className="mt-1 max-w-[16rem] text-sm text-slate-500">
             {JOB_ATTACHMENTS_EMPTY}
           </p>
-          {addButton}
+          <div className="mt-5">{addButton}</div>
         </div>
       ) : (
         <div className="flex items-start justify-between gap-3">

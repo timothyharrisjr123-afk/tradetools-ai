@@ -21,6 +21,11 @@ type JobCardScheduleSectionProps = {
   scheduleReady?: boolean;
   scheduleLoadStatus?: "loading" | "ready" | "error";
   scheduleRefreshError?: boolean;
+  /**
+   * When Overview field brief already shows schedule truth, suppress the idle
+   * bordered “Not scheduled” card chrome. Keep Start/Complete/Change actions.
+   */
+  briefAlreadyShowsSchedule?: boolean;
   onStartWork?: () => void;
   onCompleteJob?: () => void;
   onSchedule: () => void;
@@ -44,6 +49,7 @@ export default function JobCardScheduleSection({
   scheduleReady = true,
   scheduleLoadStatus = scheduleReady ? "ready" : "loading",
   scheduleRefreshError = false,
+  briefAlreadyShowsSchedule = false,
   onStartWork,
   onCompleteJob,
   onSchedule,
@@ -71,9 +77,42 @@ export default function JobCardScheduleSection({
     scheduleLoadStatus !== "error" &&
     !planned &&
     !hasActualStart;
+  const suppressIdleDuplicate =
+    briefAlreadyShowsSchedule &&
+    showNotScheduled &&
+    !canStart &&
+    !canComplete &&
+    !showUnavailable &&
+    !scheduleRefreshError &&
+    !startError &&
+    !completeError;
   const timezone = planned?.timezone ?? displayTimezone;
   const startedLabel = formatProductionStartedAt(productionStartedAt, timezone);
   const completedLabel = formatJobCompletedAt(completedAt, timezone);
+
+  if (suppressIdleDuplicate) {
+    if (!canSchedule || isReadOnly) {
+      return null;
+    }
+    return (
+      <div
+        className="mt-3 flex justify-end"
+        data-jobcard-schedule
+        data-jobcard-schedule-brief-deduped="true"
+        data-jobcard-schedule-ready={scheduleReady ? "true" : "false"}
+        data-jobcard-schedule-status={scheduleLoadStatus}
+      >
+        <button
+          type="button"
+          onClick={onSchedule}
+          className="text-sm font-medium text-slate-600 hover:text-slate-900"
+          data-jobcard-schedule-job
+        >
+          Schedule job
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div

@@ -42,6 +42,7 @@ export function toJobTaskListItem(row: JobTaskRecord): JobTaskListItem {
     notes: row.notes,
     status: row.status,
     dueOn: row.due_on,
+    assignedTo: row.assigned_to,
     createdAt: row.created_at,
     createdBy: row.created_by,
     completedAt: row.completed_at,

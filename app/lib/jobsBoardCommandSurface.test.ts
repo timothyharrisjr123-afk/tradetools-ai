@@ -88,19 +88,18 @@ describe("shell Sign out — one per active context", () => {
 });
 
 describe("board card truth", () => {
-  test("does not invent Unassigned when no assignment exists", () => {
-    assert.doesNotMatch(CARD, /return "Unassigned"/);
+  test("Owner column shows Unassigned when no production lead", () => {
     const model = buildJobsBoardCardModel(
       { id: "j1", status: "estimate", roofAreaSqFt: 0 } as unknown as RoofingEstimate,
       undefined,
       { columnKey: "estimate" }
     );
-    assert.equal(model.assigneeLabel, null);
+    assert.equal(model.assigneeLabel, "Unassigned");
     assert.equal(model.tasksLabel, "");
   });
 
-  test("shows assignment and task ratio only when real", () => {
-    const model = buildJobsBoardCardModel(
+  test("shows production-lead name or Team member, and real task ratio", () => {
+    const unnamed = buildJobsBoardCardModel(
       {
         id: "j2",
         status: "estimate",
@@ -110,8 +109,20 @@ describe("board card truth", () => {
       undefined,
       { columnKey: "estimate" }
     );
-    assert.equal(model.assigneeLabel, "Assigned");
-    assert.equal(model.tasksLabel, "1/3");
+    assert.equal(unnamed.assigneeLabel, "Team member");
+    assert.equal(unnamed.tasksLabel, "1/3");
+
+    const named = buildJobsBoardCardModel(
+      {
+        id: "j3",
+        status: "estimate",
+        assigned_to: "user-1",
+        assigned_to_name: "Alex Rivera",
+      } as unknown as RoofingEstimate,
+      undefined,
+      { columnKey: "estimate" }
+    );
+    assert.equal(named.assigneeLabel, "Alex Rivera");
   });
 });
 

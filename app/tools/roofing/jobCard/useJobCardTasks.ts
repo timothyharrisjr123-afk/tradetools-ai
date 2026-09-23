@@ -156,6 +156,14 @@ export function useJobCardTasks({ jobId, enabled }: UseJobCardTasksArgs) {
     [jobId]
   );
 
+  const assign = useCallback(
+    async (taskId: string, assignedTo: string | null) => {
+      const task = await patch(taskId, { assignedTo });
+      return Boolean(task);
+    },
+    [patch]
+  );
+
   return {
     tasks,
     loading,
@@ -165,5 +173,6 @@ export function useJobCardTasks({ jobId, enabled }: UseJobCardTasksArgs) {
     complete,
     reopen,
     remove,
+    assign,
   };
 }

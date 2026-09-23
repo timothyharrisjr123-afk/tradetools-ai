@@ -1,6 +1,6 @@
 /**
- * Job tasks V1 — optional contractor memory / coordination.
- * Not workflow, Calendar, Attention, or assignment.
+ * Job tasks V1 + Astra G7 assignee — optional contractor memory / coordination.
+ * Assignment is independent of status and of jobs.assigned_to (production lead).
  */
 
 export const JOB_TASK_STATUSES = ["open", "complete"] as const;
@@ -12,6 +12,7 @@ export const JOB_TASK_NOTES_MAX = 500;
 export const JOB_TASKS_EMPTY = "No tasks yet";
 export const JOB_TASKS_ADD_LABEL = "Add task";
 export const JOB_TASKS_COMPLETED_LABEL = "Completed";
+export const JOB_TASK_UNASSIGNED_LABEL = "Unassigned";
 
 export type JobTaskRecord = {
   id: string;
@@ -21,6 +22,7 @@ export type JobTaskRecord = {
   notes: string | null;
   status: JobTaskStatus;
   due_on: string | null;
+  assigned_to: string | null;
   created_by: string | null;
   completed_at: string | null;
   completed_by: string | null;
@@ -36,6 +38,7 @@ export type JobTaskListItem = {
   notes: string | null;
   status: JobTaskStatus;
   dueOn: string | null;
+  assignedTo: string | null;
   createdAt: string;
   createdBy: string | null;
   completedAt: string | null;

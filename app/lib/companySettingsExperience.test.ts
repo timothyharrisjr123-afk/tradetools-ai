@@ -37,6 +37,7 @@ const BUSINESS_EDITOR = read("app/tools/settings/CompanySettingsBusinessEditor.t
 const BRANDING_EDITOR = read("app/tools/settings/CompanySettingsBrandingEditor.tsx");
 const PAYMENTS_EDITOR = read("app/tools/settings/CompanySettingsPaymentsEditor.tsx");
 const PREFERENCES_EDITOR = read("app/tools/settings/CompanySettingsPreferencesEditor.tsx");
+const TEAM_EDITOR = read("app/tools/settings/CompanySettingsTeamEditor.tsx");
 const PAYMENTS_ROUTE = read("app/tools/settings/payments/page.tsx");
 const FOCUSED_EDITOR = read("app/components/ui/FocusedEditor.tsx");
 const APP_SHELL = read("app/tools/roofing/FieldDiveAppShell.tsx");
@@ -63,7 +64,7 @@ describe("Company Settings summary-first model", () => {
     assert.match(SETTINGS_CLIENT, /data-company-settings-summary/);
     assert.match(SETTINGS_CLIENT, /divide-y divide-slate-200/);
     assert.match(SETTINGS_CLIENT, /data-company-settings-row=\{testId\}/);
-    for (const row of ["business", "branding", "payments", "pricing", "preferences"]) {
+    for (const row of ["business", "branding", "payments", "pricing", "preferences", "team"]) {
       assert.match(SETTINGS_CLIENT, new RegExp(`testId="${row}"`));
     }
   });
@@ -172,9 +173,11 @@ describe("Company Settings save model", () => {
       assert.doesNotMatch(editor, /open: boolean/);
       assert.match(editor, /open\s*$|open\n/m);
     }
-    for (const id of ["business", "branding", "payments", "preferences"]) {
+    for (const id of ["business", "branding", "payments", "preferences", "team"]) {
       assert.match(SETTINGS_CLIENT, new RegExp(`editor === "${id}" \\?`));
     }
+    assert.match(TEAM_EDITOR, /data-company-settings-editor="team"/);
+    assert.match(TEAM_EDITOR, /canAdminMembers/);
   });
 
   test("business and branding save through the single branding persistence path", () => {

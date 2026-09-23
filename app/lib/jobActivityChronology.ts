@@ -445,7 +445,10 @@ export function classifyJobActivityEvent(
     event.event_type === "job_unscheduled" ||
     event.event_type === "job_work_started" ||
     event.event_type === "job_work_completed" ||
-    event.event_type === "disposition_changed"
+    event.event_type === "disposition_changed" ||
+    event.event_type === "production_lead_assigned" ||
+    event.event_type === "production_lead_changed" ||
+    event.event_type === "production_lead_cleared"
   ) {
     return JOB_ACTIVITY_VISIBILITY.CONTRACTOR_VISIBLE;
   }
@@ -642,6 +645,29 @@ function composeEventRow(
       kind,
       title: composed.label,
       detail: note && !isTechnicalNote(note, composed.label) ? note : null,
+      occurredAt: event.occurred_at,
+      actor,
+      source: "durable",
+      sourceIds: [event.id],
+    };
+  }
+
+  if (
+    event.event_type === "production_lead_assigned" ||
+    event.event_type === "production_lead_changed" ||
+    event.event_type === "production_lead_cleared"
+  ) {
+    const title =
+      event.event_type === "production_lead_assigned"
+        ? "Production lead assigned"
+        : event.event_type === "production_lead_cleared"
+          ? "Production lead cleared"
+          : "Production lead changed";
+    return {
+      id: event.id,
+      kind: "work_approved",
+      title,
+      detail: null,
       occurredAt: event.occurred_at,
       actor,
       source: "durable",

@@ -6,6 +6,7 @@ import {
   JobProductionValidationError,
   startJobWorkViaRpc,
 } from "@/app/lib/jobProductionPersistence";
+import { requireCapabilitySession } from "@/app/lib/requireCapabilitySession";
 import { createClient } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -45,6 +46,13 @@ export async function POST(req: NextRequest) {
         { status: 403 }
       );
     }
+
+    const gated = await requireCapabilitySession(
+      supabase,
+      user.id,
+      "lifecycle_start_complete"
+    );
+    if (!gated.ok) return gated.response;
 
     const body = await req.json().catch(() => ({}));
     const jobId = typeof body?.jobId === "string" ? body.jobId.trim() : "";

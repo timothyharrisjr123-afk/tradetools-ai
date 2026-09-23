@@ -6,7 +6,12 @@ import {
   JobScheduleValidationError,
   scheduleJobViaRpc,
 } from "@/app/lib/jobSchedulePersistence";
+import { requireCapabilitySession } from "@/app/lib/requireCapabilitySession";
 import { createClient } from "@/app/lib/supabase/server";
+import {
+  JobResponsibilityHttpError,
+  setJobProductionLead,
+} from "@/app/lib/jobResponsibilityPersistence";
 
 export const runtime = "nodejs";
 
@@ -32,6 +37,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, code: "forbidden" }, { status: 403 });
     }
 
+    const gated = await requireCapabilitySession(
+      supabase,
+      user.id,
+      "schedule_mutate"
+    );
+    if (!gated.ok) return gated.response;
+
     const body = await req.json().catch(() => ({}));
     const jobId = typeof body?.jobId === "string" ? body.jobId.trim() : "";
     if (!isUuidLike(jobId)) {
@@ -51,6 +63,40 @@ export async function POST(req: NextRequest) {
     if (!result.ok) {
       return NextResponse.json(result, { status: statusForCode(result.code) });
     }
+
+    // Optional confirm/set of the SAME jobs.assigned_to production-lead fact.
+    if (Object.prototype.hasOwnProperty.call(body, "assignedTo")) {
+      const assignedTo =
+        body.assignedTo === null ||
+        body.assignedTo === undefined ||
+        body.assignedTo === ""
+          ? null
+          : String(body.assignedTo).trim();
+      try {
+        const lead = await setJobProductionLead({
+          supabase,
+          companyId,
+          jobId,
+          actorUserId: user.id,
+          assignedTo,
+        });
+        return NextResponse.json({ ...result, productionLead: lead });
+      } catch (leadError) {
+        if (leadError instanceof JobResponsibilityHttpError) {
+          return NextResponse.json(
+            {
+              ok: false,
+              code: leadError.code,
+              message: leadError.message,
+              schedule: result,
+            },
+            { status: leadError.status }
+          );
+        }
+        throw leadError;
+      }
+    }
+
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof JobScheduleValidationError) {

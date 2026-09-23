@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
+import { requireCapabilitySession } from "@/app/lib/requireCapabilitySession";
 import {
   upsertCompanyPaymentAccountFromProviderViaRpc,
 } from "@/app/lib/jobPaymentPersistence";
@@ -44,6 +45,13 @@ export async function POST(req: NextRequest) {
     if (!companyId) {
       return NextResponse.json({ ok: false, code: "forbidden" }, { status: 403 });
     }
+
+    const gated = await requireCapabilitySession(
+      supabase,
+      user.id,
+      "payment_admin"
+    );
+    if (!gated.ok) return gated.response;
 
     const [existingResult, predecessorResult, candidateResult] = await Promise.all([
       supabase

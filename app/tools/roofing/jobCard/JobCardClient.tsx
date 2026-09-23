@@ -57,6 +57,7 @@ import {
 import { useJobPayments } from "@/app/lib/useJobPayments";
 import {
   companyTimezoneForScheduling,
+  formatScheduleWindowLabel,
   parseCompanyTimezoneGetResult,
   parseJobScheduleRow,
   resolveCompanyTimezoneReadState,
@@ -109,6 +110,8 @@ import {
 } from "@/app/tools/roofing/jobCard/jobCardTypes";
 import JobCardSectionPanel from "@/app/tools/roofing/jobCard/JobCardSectionPanel";
 import JobCardOverviewSummary from "@/app/tools/roofing/jobCard/JobCardOverviewSummary";
+import JobCardProductionLeadControl from "@/app/tools/roofing/jobCard/JobCardProductionLeadControl";
+import JobCardFieldBrief from "@/app/tools/roofing/jobCard/JobCardFieldBrief";
 import JobCardForwardLifecycleAction from "@/app/tools/roofing/jobCard/JobCardForwardLifecycleAction";
 import JobCardScheduleSection from "@/app/tools/roofing/jobCard/JobCardScheduleSection";
 import JobCardScheduleWorkspacePanel from "@/app/tools/roofing/jobCard/JobCardScheduleWorkspacePanel";
@@ -121,6 +124,8 @@ import JobCardMeasurementsWorkspace from "@/app/tools/roofing/jobCard/JobCardMea
 import JobCardMeasurementCapture from "@/app/tools/roofing/jobCard/JobCardMeasurementCapture";
 import { PREPARE_PROPOSAL_MEASUREMENT_CAPTURE_HINT } from "@/app/tools/roofing/jobCard/jobCardCreateProposalModalModel";
 import { useJobCardPrepareProposal } from "@/app/tools/roofing/jobCard/useJobCardPrepareProposal";
+import { useJobCardTasks } from "@/app/tools/roofing/jobCard/useJobCardTasks";
+import { useCompanyMembers } from "@/app/tools/roofing/jobCard/useCompanyMembers";
 import JobCardActivityPanelWithCustomerRequests from "@/app/tools/roofing/jobCard/JobCardActivityPanelWithCustomerRequests";
 import { resolveJobCardIdentityFromRecord } from "@/app/tools/roofing/jobCard/jobCardIdentityUtils";
 import {
@@ -129,6 +134,7 @@ import {
 } from "@/app/lib/propertyAddressNormalize";
 import type { JobCardDisplayModel } from "@/app/tools/roofing/jobCard/jobCardDisplayTypes";
 import type { JobScheduleWorkspaceSubmit } from "@/app/tools/roofing/jobCard/JobScheduleWorkspace";
+import { buildFieldBriefViewModel } from "@/app/lib/fieldBriefModel";
 
 const JobCardSecondaryPanels = dynamic(
   () => import("@/app/tools/roofing/jobCard/JobCardSecondaryPanels"),
@@ -192,6 +198,11 @@ export default function JobCardClient({
     enabled: true,
   });
   const jobPayments = useJobPayments(currentJobId);
+  const companyMembers = useCompanyMembers(Boolean(currentJobId));
+  const jobTasks = useJobCardTasks({
+    jobId: currentJobId,
+    enabled: Boolean(currentJobId),
+  });
   const [pendingAttentionId, setPendingAttentionId] = useState<string | null>(
     null
   );
@@ -702,9 +713,19 @@ export default function JobCardClient({
     ]
   );
 
-  const allowAddProposal = !jobHasCanonicalAcceptedAgreement(
-    jobAcceptedProposalIds
-  );
+  const allowAddProposal =
+    !companyMembers.restrictedFieldRole &&
+    !jobHasCanonicalAcceptedAgreement(jobAcceptedProposalIds);
+
+  const suppressCommercial = companyMembers.restrictedFieldRole;
+
+  const productionLeadAssignedTo = hydratedJobRecord?.assigned_to ?? null;
+  const productionLeadCrewLabel = hydratedJobRecord?.crew_label ?? null;
+  const productionLeadLabel = companyMembers.labelFor(productionLeadAssignedTo);
+
+  const scheduleWindowLabel = jobCardSchedule.active
+    ? formatScheduleWindowLabel(jobCardSchedule.active)
+    : null;
 
   const measurementProposalRefs = useMemo(
     () =>
@@ -767,6 +788,41 @@ export default function JobCardClient({
     }),
     tasksLabel: "No tasks",
   };
+
+  const fieldBriefModel = buildFieldBriefViewModel({
+    customerName: identity.displayName,
+    customerPhone: identity.phone || null,
+    customerEmail: identity.email || null,
+    addressFormatted:
+      identity.hasAddress && identity.addressLine !== "Property details not complete"
+        ? identity.addressLine
+        : null,
+    addressLine1: hydratedJobRecord?.address?.line1 ?? null,
+    addressLine2: hydratedJobRecord?.address?.line2 ?? null,
+    addressCity: hydratedJobRecord?.address?.city ?? null,
+    addressState: hydratedJobRecord?.address?.state ?? null,
+    addressZip: hydratedJobRecord?.address?.zip ?? null,
+    scheduleStartsOn: jobCardSchedule.active?.starts_on ?? null,
+    scheduleEndsOn: jobCardSchedule.active?.ends_on ?? null,
+    scheduleTimezone: jobCardSchedule.active?.timezone ?? companyTimezone,
+    scheduleWindowLabel,
+    productionLeadLabel,
+    crewLabel: productionLeadCrewLabel,
+    approvedScopeLabel: jobHasCanonicalAcceptedAgreement(jobAcceptedProposalIds)
+      ? display.proposalLabel
+      : null,
+    measurementSummary: prepare.selected
+      ? formatMeasurementQuantityLine(prepare.selected)
+      : null,
+    tasks: jobTasks.tasks.map((task) => ({
+      id: task.id,
+      title: task.title,
+      status: task.status,
+      dueOn: task.dueOn,
+      assignedTo: task.assignedTo,
+      assigneeLabel: companyMembers.labelFor(task.assignedTo),
+    })),
+  });
 
   const confirmJobAcceptance = async () => {
     if (!currentJobId || !approveAcceptanceItem?.acceptance) return;
@@ -1037,7 +1093,7 @@ export default function JobCardClient({
                         : "No measurement"
                     }
                     operationalStateLabel={
-                      jobCardActionEligibility.canApproveJob
+                      !suppressCommercial && jobCardActionEligibility.canApproveJob
                         ? (() => {
                             const proposalId = String(
                               hydratedJobRecord?.active_proposal_id ?? ""
@@ -1052,9 +1108,48 @@ export default function JobCardClient({
                         : null
                     }
                     paymentStatusLabel={
-                      jobPayments.workspace?.overviewStatusLabel ?? null
+                      suppressCommercial
+                        ? null
+                        : (jobPayments.workspace?.overviewStatusLabel ?? null)
+                    }
+                    suppressCommercial={suppressCommercial}
+                    hideMeasurementRow={Boolean(
+                      fieldBriefModel.authorizedWork.measurementSummary
+                    )}
+                    productionLead={null}
+                    fieldBrief={
+                      <JobCardFieldBrief
+                        model={fieldBriefModel}
+                        quietPhotoHint
+                        omitIdentityHero
+                        leadAction={
+                          currentJobId ? (
+                            <JobCardProductionLeadControl
+                              jobId={currentJobId}
+                              assignedTo={productionLeadAssignedTo}
+                              crewLabel={productionLeadCrewLabel}
+                              canAssign={companyMembers.canAssignJobs}
+                              members={companyMembers.liveMembers}
+                              embedInBrief
+                              onUpdated={({ assignedTo, crewLabel }) => {
+                                setHydratedJobRecord((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        assigned_to: assignedTo,
+                                        crew_label: crewLabel,
+                                      }
+                                    : prev
+                                );
+                                setScheduleActivityTick((n) => n + 1);
+                              }}
+                            />
+                          ) : null
+                        }
+                      />
                     }
                   />
+                  {!suppressCommercial ? (
                   <JobCardForwardLifecycleAction
                     action={overviewForward}
                     busy={pendingAttentionId != null}
@@ -1064,6 +1159,7 @@ export default function JobCardClient({
                       setJobCardTab("calendar");
                     }}
                   />
+                  ) : null}
                   <JobCardScheduleSection
                     canSchedule={
                       overviewForward?.kind === "schedule"
@@ -1090,6 +1186,7 @@ export default function JobCardClient({
                     startError={startWorkError}
                     completeBusy={completeJobBusy}
                     completeError={completeJobError}
+                    briefAlreadyShowsSchedule
                     onStartWork={
                       jobCardActionEligibility.canStartWork
                         ? startCurrentJobWork
@@ -1255,6 +1352,9 @@ export default function JobCardClient({
                   jobId={currentJobId}
                   companyId={companyId}
                   listedDraftProposalId={listedJobDraftProposalId}
+                  tasks={jobTasks}
+                  canAssignTasks={companyMembers.canAssignTasks}
+                  members={companyMembers.liveMembers}
                 />
               </main>
               {currentJobId ? (

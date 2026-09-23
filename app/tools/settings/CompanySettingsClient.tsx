@@ -21,6 +21,8 @@ import CompanySettingsBrandingEditor from "@/app/tools/settings/CompanySettingsB
 import CompanySettingsBusinessEditor from "@/app/tools/settings/CompanySettingsBusinessEditor";
 import CompanySettingsPaymentsEditor from "@/app/tools/settings/CompanySettingsPaymentsEditor";
 import CompanySettingsPreferencesEditor from "@/app/tools/settings/CompanySettingsPreferencesEditor";
+import CompanySettingsTeamEditor from "@/app/tools/settings/CompanySettingsTeamEditor";
+import { useCompanyMembers } from "@/app/tools/roofing/jobCard/useCompanyMembers";
 import {
   loadCompanyPaymentsStatus,
   loadCompanyPricingSummary,
@@ -50,6 +52,7 @@ export type CompanySettingsEditorId =
   | "branding"
   | "payments"
   | "preferences"
+  | "team"
   | null;
 
 type CompanySettingsClientProps = {
@@ -147,7 +150,7 @@ function SummaryRow({
 function SummarySkeleton() {
   return (
     <div className="divide-y divide-slate-200" data-company-settings-skeleton>
-      {[0, 1, 2, 3, 4].map((row) => (
+      {[0, 1, 2, 3, 4, 5].map((row) => (
         <div key={row} className="px-4 py-4 sm:px-5">
           <div className="h-3.5 w-24 animate-pulse rounded bg-slate-200" />
           <div className="mt-2.5 h-3 w-48 animate-pulse rounded bg-slate-100" />
@@ -186,6 +189,8 @@ export default function CompanySettingsClient({
   const [editorError, setEditorError] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
+  const team = useCompanyMembers(Boolean(companyId));
 
   const savingRef = useRef(false);
   const profileRef = useRef(profile);
@@ -414,6 +419,21 @@ export default function CompanySettingsClient({
               onClick={() => setEditor("preferences")}
               testId="preferences"
             />
+            <SummaryRow
+              label="Team"
+              detail={
+                team.loading
+                  ? "Loading…"
+                  : team.error
+                    ? "Could not load team"
+                    : `${team.liveMembers.length} member${
+                        team.liveMembers.length === 1 ? "" : "s"
+                      }`
+              }
+              action={team.canAdminMembers ? "Manage" : "View"}
+              onClick={() => setEditor("team")}
+              testId="team"
+            />
           </div>
         )}
       </div>
@@ -454,6 +474,16 @@ export default function CompanySettingsClient({
           error={editorError}
           onClose={closeEditor}
           onSave={(next) => void saveTimezone(next)}
+        />
+      ) : null}
+      {editor === "team" ? (
+        <CompanySettingsTeamEditor
+          canAdminMembers={team.canAdminMembers}
+          members={team.members}
+          loading={team.loading}
+          error={team.error}
+          onClose={closeEditor}
+          onChanged={() => team.refresh()}
         />
       ) : null}
     </div>

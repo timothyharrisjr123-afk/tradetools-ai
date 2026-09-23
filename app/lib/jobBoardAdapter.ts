@@ -377,6 +377,33 @@ export function mapDbJobsToBoardEstimates(dbJobs: JobSummary[]): RoofingEstimate
     .map((job) => mapDbJobToBoardEstimate(job));
 }
 
+/** Resolve production-lead display names onto board rows (read-only). */
+export function enrichBoardEstimatesWithMemberNames(
+  estimates: RoofingEstimate[],
+  namesByUserId: ReadonlyMap<string, string> | Record<string, string>
+): RoofingEstimate[] {
+  const lookup =
+    namesByUserId instanceof Map
+      ? namesByUserId
+      : new Map(Object.entries(namesByUserId));
+  return estimates.map((est) => {
+    const assigned = String(
+      (est as { assigned_to?: string | null }).assigned_to ?? ""
+    ).trim();
+    if (!assigned) {
+      return {
+        ...(est as object),
+        assigned_to_name: null,
+      } as RoofingEstimate;
+    }
+    const name = lookup.get(assigned)?.trim() || null;
+    return {
+      ...(est as object),
+      assigned_to_name: name,
+    } as RoofingEstimate;
+  });
+}
+
 /**
  * Legacy estimates for the secondary board section.
  * Drops rows already represented by a DB job card (linked via estimate.jobId).

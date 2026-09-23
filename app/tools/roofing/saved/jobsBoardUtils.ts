@@ -618,8 +618,17 @@ function deriveAssigneeLabel(est: RoofingEstimate): string | null {
   const assigned =
     (est as { assigned_to?: string | null }).assigned_to ??
     (est as { assignedTo?: string | null }).assignedTo;
-  if (!assigned?.trim()) return null;
-  return "Assigned";
+  if (!assigned?.trim()) return "Unassigned";
+
+  const named =
+    (est as { assigned_to_name?: string | null }).assigned_to_name ??
+    (est as { assignee_display_name?: string | null }).assignee_display_name ??
+    (est as { assigneeDisplayName?: string | null }).assigneeDisplayName ??
+    (est as { assignedToName?: string | null }).assignedToName;
+  const trimmedName = typeof named === "string" ? named.trim() : "";
+  if (trimmedName) return trimmedName;
+
+  return "Team member";
 }
 
 function deriveTasksLabel(est: RoofingEstimate): string {

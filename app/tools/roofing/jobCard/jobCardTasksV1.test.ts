@@ -148,8 +148,10 @@ describe("UI model", () => {
 describe("live wiring", () => {
   test("Job Card uses the tasks workspace", () => {
     const secondary = read("app/tools/roofing/jobCard/JobCardSecondaryPanels.tsx");
+    const client = read("app/tools/roofing/jobCard/JobCardClient.tsx");
     assert.match(secondary, /JobCardTasksWorkspace/);
-    assert.match(secondary, /useJobCardTasks/);
+    assert.match(client, /useJobCardTasks/);
+    assert.match(secondary, /onAssign/);
     assert.doesNotMatch(secondary, /quiet\("tasks"/);
   });
 });
