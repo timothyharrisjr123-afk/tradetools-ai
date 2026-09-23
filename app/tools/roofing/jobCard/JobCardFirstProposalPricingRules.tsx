@@ -1,11 +1,19 @@
 "use client";
 
 import {
+  FIRST_PROPOSAL_COST_BASED_HINT,
+  FIRST_PROPOSAL_DIRECT_PRICE_HINT,
   FIRST_PROPOSAL_RULES_HINT,
   FIRST_PROPOSAL_RULES_REQUIRED,
   FIRST_PROPOSAL_RULES_TITLE,
+  firstProposalPricingMethodNeedsRate,
   type FirstProposalPricingRulesDraft,
 } from "@/app/lib/firstProposalPrepare";
+import {
+  ASTRA_G5_PRICING_METHOD_COST_LABEL,
+  ASTRA_G5_PRICING_METHOD_DIRECT_LABEL,
+  type AstraG5PricingMethod,
+} from "@/app/lib/astraG5Activation";
 import type { ProfitabilityType } from "@/app/lib/proposalPricingTypes";
 
 export type JobCardFirstProposalPricingRulesProps = {
@@ -19,6 +27,7 @@ export type JobCardFirstProposalPricingRulesProps = {
 
 /**
  * Contextual company pricing-rules editor for Prepare proposal.
+ * Astra G5: direct selling prices vs cost-based — ask only relevant facts.
  * Persists through upsertCompanyPricingPolicy — not a parallel authority.
  */
 export default function JobCardFirstProposalPricingRules({
@@ -31,16 +40,22 @@ export default function JobCardFirstProposalPricingRules({
 }: JobCardFirstProposalPricingRulesProps) {
   if (configured) return null;
 
+  const setMethod = (pricingMethod: AstraG5PricingMethod) => {
+    onChange({ pricingMethod });
+  };
+
   const setType = (profitabilityType: ProfitabilityType) => {
     onChange({ profitabilityType });
   };
 
+  const needsRate = firstProposalPricingMethodNeedsRate(draft.pricingMethod);
   const rateNoun = draft.profitabilityType === "markup" ? "markup" : "margin";
 
   return (
     <section
       className="rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm"
       data-first-proposal-pricing-rules
+      data-pricing-method={draft.pricingMethod}
       aria-labelledby="first-proposal-pricing-rules-heading"
     >
       <h3
@@ -55,57 +70,103 @@ export default function JobCardFirstProposalPricingRules({
         <div>
           <p className="text-sm font-medium text-slate-700">How do you price this work?</p>
           <div
-            className="mt-2 inline-flex min-h-[44px] rounded-lg border border-slate-200 bg-white p-0.5"
+            className="mt-2 flex flex-col gap-2 sm:inline-flex sm:flex-row sm:min-h-[44px] sm:rounded-lg sm:border sm:border-slate-200 sm:bg-white sm:p-0.5"
             role="group"
             aria-label="Pricing method"
           >
             <button
               type="button"
-              aria-pressed={draft.profitabilityType === "margin"}
-              onClick={() => setType("margin")}
+              aria-pressed={draft.pricingMethod === "direct_price"}
+              onClick={() => setMethod("direct_price")}
               disabled={saving}
+              data-pricing-method-direct
               className={
-                "rounded-md px-3 py-2 text-sm font-medium transition " +
-                (draft.profitabilityType === "margin"
-                  ? "bg-slate-100 text-slate-900 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900")
+                "min-h-[44px] rounded-md px-3 py-2 text-left text-sm font-medium transition sm:text-center " +
+                (draft.pricingMethod === "direct_price"
+                  ? "bg-slate-100 text-slate-900 shadow-sm ring-1 ring-slate-200 sm:ring-0"
+                  : "border border-slate-200 text-slate-600 hover:text-slate-900 sm:border-0")
               }
             >
-              Margin
+              {ASTRA_G5_PRICING_METHOD_DIRECT_LABEL}
             </button>
             <button
               type="button"
-              aria-pressed={draft.profitabilityType === "markup"}
-              onClick={() => setType("markup")}
+              aria-pressed={draft.pricingMethod === "cost_based"}
+              onClick={() => setMethod("cost_based")}
               disabled={saving}
+              data-pricing-method-cost
               className={
-                "rounded-md px-3 py-2 text-sm font-medium transition " +
-                (draft.profitabilityType === "markup"
-                  ? "bg-slate-100 text-slate-900 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900")
+                "min-h-[44px] rounded-md px-3 py-2 text-left text-sm font-medium transition sm:text-center " +
+                (draft.pricingMethod === "cost_based"
+                  ? "bg-slate-100 text-slate-900 shadow-sm ring-1 ring-slate-200 sm:ring-0"
+                  : "border border-slate-200 text-slate-600 hover:text-slate-900 sm:border-0")
               }
             >
-              Markup
+              {ASTRA_G5_PRICING_METHOD_COST_LABEL}
             </button>
           </div>
+          <p className="mt-2 text-xs leading-relaxed text-slate-500">
+            {draft.pricingMethod === "direct_price"
+              ? FIRST_PROPOSAL_DIRECT_PRICE_HINT
+              : FIRST_PROPOSAL_COST_BASED_HINT}
+          </p>
         </div>
 
-        <label className="block text-sm font-medium text-slate-700">
-          Target {rateNoun} (%)
-          <input
-            type="text"
-            inputMode="decimal"
-            value={draft.defaultProfitabilityPct}
-            onChange={(event) => onChange({ defaultProfitabilityPct: event.target.value })}
-            disabled={saving}
-            placeholder="—"
-            className="mt-1 block min-h-[44px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm tabular-nums text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 sm:max-w-xs"
-            aria-label={`Target ${rateNoun} percent`}
-          />
-          <span className="mt-1 block text-xs leading-relaxed text-slate-500">
-            Used when an item is priced from cost. Items with a set unit price use that price.
-          </span>
-        </label>
+        {needsRate ? (
+          <>
+            <div>
+              <p className="text-sm font-medium text-slate-700">Margin or markup?</p>
+              <div
+                className="mt-2 inline-flex min-h-[44px] rounded-lg border border-slate-200 bg-white p-0.5"
+                role="group"
+                aria-label="Profitability type"
+              >
+                <button
+                  type="button"
+                  aria-pressed={draft.profitabilityType === "margin"}
+                  onClick={() => setType("margin")}
+                  disabled={saving}
+                  className={
+                    "rounded-md px-3 py-2 text-sm font-medium transition " +
+                    (draft.profitabilityType === "margin"
+                      ? "bg-slate-100 text-slate-900 shadow-sm"
+                      : "text-slate-600 hover:text-slate-900")
+                  }
+                >
+                  Margin
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={draft.profitabilityType === "markup"}
+                  onClick={() => setType("markup")}
+                  disabled={saving}
+                  className={
+                    "rounded-md px-3 py-2 text-sm font-medium transition " +
+                    (draft.profitabilityType === "markup"
+                      ? "bg-slate-100 text-slate-900 shadow-sm"
+                      : "text-slate-600 hover:text-slate-900")
+                  }
+                >
+                  Markup
+                </button>
+              </div>
+            </div>
+
+            <label className="block text-sm font-medium text-slate-700">
+              Target {rateNoun} (%)
+              <input
+                type="text"
+                inputMode="decimal"
+                value={draft.defaultProfitabilityPct}
+                onChange={(event) => onChange({ defaultProfitabilityPct: event.target.value })}
+                disabled={saving}
+                placeholder="—"
+                className="mt-1 block min-h-[44px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm tabular-nums text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 sm:max-w-xs"
+                aria-label={`Target ${rateNoun} percent`}
+              />
+            </label>
+          </>
+        ) : null}
 
         <label className="block text-sm font-medium text-slate-700">
           Sales tax (%)

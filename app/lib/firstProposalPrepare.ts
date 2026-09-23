@@ -2,6 +2,7 @@
  * Commercial Wedge Group 2 — first-proposal preparation helpers (pure).
  * Structure bootstrap decisions + focused pricing queue over canonical Catalog truth.
  * Contextual company pricing-rules draft for Prepare (canonical policy upsert).
+ * Astra G5: direct selling price vs cost-based paths; no invented economics.
  * No React, Supabase, or alternate pricing authority.
  */
 
@@ -11,6 +12,10 @@ import {
   validateCompanyPricingPolicy,
   type CompanyPricingPolicyResolution,
 } from "@/app/lib/companyPricingPolicy";
+import {
+  ASTRA_G5_NO_INVENTED_PRICES,
+  type AstraG5PricingMethod,
+} from "@/app/lib/astraG5Activation";
 import { DEFAULT_ROOF_REPLACEMENT_TEMPLATE_SEED_KEY } from "@/app/lib/defaultRoofingProposalTemplates";
 import type { PricingPolicy, ProfitabilityType } from "@/app/lib/proposalPricingTypes";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
@@ -22,7 +27,7 @@ import {
 
 export const FIRST_PROPOSAL_PRICING_TITLE = "Price this proposal" as const;
 export const FIRST_PROPOSAL_PRICING_HINT =
-  "Enter what you charge for these items. FieldDive does not invent prices." as const;
+  `Enter what you charge for these offered-package items. ${ASTRA_G5_NO_INVENTED_PRICES}` as const;
 export const FIRST_PROPOSAL_PRICE_THIS_ITEM = "Price this item" as const;
 export const FIRST_PROPOSAL_PREPARING = "Preparing proposal…" as const;
 export const FIRST_PROPOSAL_STRUCTURE_FAILED =
@@ -30,15 +35,22 @@ export const FIRST_PROPOSAL_STRUCTURE_FAILED =
 export const FIRST_PROPOSAL_PRICE_SAVE_FAILED =
   "Could not save price. Check the amount and try again." as const;
 export const FIRST_PROPOSAL_PRICES_REQUIRED =
-  "Price every item below before creating this proposal." as const;
+  "Price every offered item below, or remove it from the package, before creating this proposal." as const;
 
-export const FIRST_PROPOSAL_RULES_TITLE = "Set your pricing" as const;
+export const FIRST_PROPOSAL_RULES_TITLE = "How do you usually price?" as const;
 export const FIRST_PROPOSAL_RULES_HINT =
-  "Tell FieldDive how you price work and what sales tax to use. Nothing is assumed until you save." as const;
+  "Ask only what this proposal needs. Nothing is assumed until you save." as const;
 export const FIRST_PROPOSAL_RULES_SAVE_FAILED =
   "Could not save pricing. Check the values and try again." as const;
 export const FIRST_PROPOSAL_RULES_REQUIRED =
   "Save your pricing before creating this proposal." as const;
+
+/** Direct path: catalog unit prices are the selling prices; policy holds tax only. */
+export const FIRST_PROPOSAL_DIRECT_PRICE_HINT =
+  "You will enter selling prices on the package items. Margin and markup are not asked." as const;
+/** Cost path: margin/markup apply when items are priced from cost. */
+export const FIRST_PROPOSAL_COST_BASED_HINT =
+  "Enter your target rate for cost-based items. Items with a set unit price still use that price." as const;
 
 export type FirstProposalPricingLine = {
   catalogItemId: string;
@@ -57,8 +69,10 @@ export type FirstProposalStructureNeed = {
 
 /** Contractor-edited fields for contextual company pricing policy. */
 export type FirstProposalPricingRulesDraft = {
+  /** Astra G5: direct selling prices vs price-from-cost. */
+  pricingMethod: AstraG5PricingMethod;
   profitabilityType: ProfitabilityType;
-  /** Target margin or markup % — contractor judgment. */
+  /** Target margin or markup % — contractor judgment (cost-based path only). */
   defaultProfitabilityPct: string;
   /** Sales tax % — contractor judgment (0 is explicit). */
   salesTaxRatePct: string;
@@ -195,13 +209,22 @@ export function resolveShowFirstProposalPricingRules(
 /**
  * Empty draft for contextual entry — no prefilled margin/tax assumptions.
  * Structural locks (exact rounding, adjusted measurement) apply only on build/save.
+ * Default mental model: direct selling prices (Astra usual contractor path).
  */
 export function emptyFirstProposalPricingRulesDraft(): FirstProposalPricingRulesDraft {
   return {
+    pricingMethod: "direct_price",
     profitabilityType: "margin",
     defaultProfitabilityPct: "",
     salesTaxRatePct: "",
   };
+}
+
+/** Whether margin/markup inputs are required for the chosen pricing method. */
+export function firstProposalPricingMethodNeedsRate(
+  method: AstraG5PricingMethod
+): boolean {
+  return method === "cost_based";
 }
 
 function parseRequiredPct(raw: string, label: string): { value: number | null; error: string | null } {
@@ -221,26 +244,39 @@ function parseRequiredPct(raw: string, label: string): { value: number | null; e
 
 /**
  * Build a canonical PricingPolicy from contractor answers + locked structural fields.
- * Minimum profitability matches the contractor's stated target (refine later in Settings).
- * Does NOT invent percentages — empty/invalid inputs fail closed.
+ * Direct-price path: sales tax only; profitability stored as 0% margin so catalog
+ * unit prices remain the selling authority (not invented sample economics).
+ * Cost-based path: requires explicit margin/markup target from the contractor.
+ * Does NOT invent catalog prices or sample percentages beyond the stated path.
  */
 export function buildFirstProposalPricingPolicyFromDraft(
   draft: FirstProposalPricingRulesDraft
 ): FirstProposalPricingRulesBuildResult {
-  const defaultPct = parseRequiredPct(draft.defaultProfitabilityPct, "Target rate");
-  if (defaultPct.error || defaultPct.value == null) {
-    return { ok: false, reason: defaultPct.error ?? "Target rate is required." };
-  }
-
   const salesTax = parseRequiredPct(draft.salesTaxRatePct, "Sales tax");
   if (salesTax.error || salesTax.value == null) {
     return { ok: false, reason: salesTax.error ?? "Sales tax is required." };
   }
 
+  let profitabilityType: ProfitabilityType = draft.profitabilityType;
+  let defaultPctValue: number;
+
+  if (draft.pricingMethod === "direct_price") {
+    // Explicit contractor choice: selling prices live on catalog unit_price_cents.
+    // 0% margin is structural policy fill — not a fabricated mark-up on work.
+    profitabilityType = "margin";
+    defaultPctValue = 0;
+  } else {
+    const defaultPct = parseRequiredPct(draft.defaultProfitabilityPct, "Target rate");
+    if (defaultPct.error || defaultPct.value == null) {
+      return { ok: false, reason: defaultPct.error ?? "Target rate is required." };
+    }
+    defaultPctValue = defaultPct.value;
+  }
+
   const candidate: PricingPolicy = {
-    profitabilityType: draft.profitabilityType,
-    defaultProfitabilityPct: defaultPct.value,
-    minimumProfitabilityPct: defaultPct.value,
+    profitabilityType,
+    defaultProfitabilityPct: defaultPctValue,
+    minimumProfitabilityPct: defaultPctValue,
     quantityRounding: LOCKED_QUANTITY_ROUNDING,
     wasteModel: LOCKED_WASTE_MODEL,
     discount: null,

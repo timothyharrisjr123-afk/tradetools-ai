@@ -1,6 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import {
+  ASTRA_G5_FIRST_JOB_HINT,
+  ASTRA_G5_FIRST_JOB_HREF,
+  ASTRA_G5_FIRST_JOB_LABEL,
+  ASTRA_G5_USUAL_ROOF_HINT,
+  ASTRA_G5_USUAL_ROOF_HREF,
+  ASTRA_G5_USUAL_ROOF_LABEL,
+} from "@/app/lib/astraG5Activation";
 
 type JobsBoardEmptyStateProps = {
   companyNameMissing: boolean;
@@ -23,18 +31,27 @@ export default function JobsBoardEmptyState({
     <div
       className="rounded-lg border border-dashed border-slate-200 bg-white px-6 py-10 text-center"
       data-jobs-board-empty-first-run
+      data-astra-g5-entry
     >
-      <h2 className="text-base font-semibold text-slate-900">No jobs yet</h2>
+      <h2 className="text-base font-semibold text-slate-900">Ready for your first proposal</h2>
       <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-600">
-        Create a job to start measuring, pricing, and sending a proposal.
+        Start a real job, or prepare your usual roof setup once for every proposal after.
       </p>
-      <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+      <div className="mt-5 flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         <Link
-          href="/tools/roofing?entry=packet"
+          href={ASTRA_G5_FIRST_JOB_HREF}
           className="inline-flex h-11 min-h-[44px] items-center justify-center rounded-md border border-slate-800 bg-slate-900 px-5 text-sm font-medium text-white transition hover:bg-slate-800"
           data-jobs-board-empty-primary-action
+          data-astra-g5-first-job
         >
-          + New job
+          {ASTRA_G5_FIRST_JOB_LABEL}
+        </Link>
+        <Link
+          href={ASTRA_G5_USUAL_ROOF_HREF}
+          className="inline-flex h-11 min-h-[44px] items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+          data-astra-g5-usual-roof-entry
+        >
+          {ASTRA_G5_USUAL_ROOF_LABEL}
         </Link>
         {companyNameMissing ? (
           <Link
@@ -45,6 +62,9 @@ export default function JobsBoardEmptyState({
           </Link>
         ) : null}
       </div>
+      <p className="mx-auto mt-4 max-w-md text-xs leading-relaxed text-slate-500">
+        {ASTRA_G5_FIRST_JOB_HINT} {ASTRA_G5_USUAL_ROOF_HINT}
+      </p>
     </div>
   );
 }

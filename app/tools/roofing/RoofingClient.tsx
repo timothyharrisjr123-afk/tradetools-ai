@@ -5644,7 +5644,7 @@ Thanks,`;
       >
         {isStandalone ? (
           <div className="rounded-2xl bg-white px-5 py-4 shadow-sm shadow-slate-200/50 ring-1 ring-slate-200/55 sm:px-6 sm:py-5">
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">New Roofing Job</h1>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Start my first job</h1>
             {!packetFactsComplete ? (
               <p className="mt-3 text-[12px] leading-snug text-slate-500">
                 Add customer and property details to continue.
@@ -10608,7 +10608,7 @@ Thanks,`;
         ) : (
           <>
           <header className="sr-only">
-            <h1>New Roofing Job</h1>
+            <h1>Start my first job</h1>
           </header>
 
           <div className="sr-only">

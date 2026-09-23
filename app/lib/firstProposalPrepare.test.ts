@@ -230,14 +230,30 @@ describe("first proposal pricing rules (policy)", () => {
 
   test("empty draft does not invent margin or tax percentages", () => {
     const draft = emptyFirstProposalPricingRulesDraft();
+    assert.equal(draft.pricingMethod, "direct_price");
     assert.equal(draft.defaultProfitabilityPct, "");
     assert.equal(draft.salesTaxRatePct, "");
     const built = buildFirstProposalPricingPolicyFromDraft(draft);
     assert.equal(built.ok, false);
   });
 
-  test("build refuses blank target rate without inventing starter margin", () => {
+  test("direct-price path asks only sales tax (no invented catalog prices)", () => {
     const built = buildFirstProposalPricingPolicyFromDraft({
+      pricingMethod: "direct_price",
+      profitabilityType: "markup",
+      defaultProfitabilityPct: "",
+      salesTaxRatePct: "0",
+    });
+    assert.equal(built.ok, true);
+    if (!built.ok) return;
+    assert.equal(built.policy.profitabilityType, "margin");
+    assert.equal(built.policy.defaultProfitabilityPct, 0);
+    assert.equal(built.policy.tax.salesTaxRatePct, 0);
+  });
+
+  test("cost-based path refuses blank target rate without inventing starter margin", () => {
+    const built = buildFirstProposalPricingPolicyFromDraft({
+      pricingMethod: "cost_based",
       profitabilityType: "margin",
       defaultProfitabilityPct: "",
       salesTaxRatePct: "0",
@@ -246,8 +262,9 @@ describe("first proposal pricing rules (policy)", () => {
     if (!built.ok) assert.match(built.reason, /required/i);
   });
 
-  test("build persists contractor answers with locked structural fields only", () => {
+  test("cost-based build persists contractor answers with locked structural fields only", () => {
     const built = buildFirstProposalPricingPolicyFromDraft({
+      pricingMethod: "cost_based",
       profitabilityType: "markup",
       defaultProfitabilityPct: "35",
       salesTaxRatePct: "8.25",
@@ -266,6 +283,7 @@ describe("first proposal pricing rules (policy)", () => {
 
   test("sales tax 0 is explicit contractor truth, not invented", () => {
     const built = buildFirstProposalPricingPolicyFromDraft({
+      pricingMethod: "cost_based",
       profitabilityType: "margin",
       defaultProfitabilityPct: "40",
       salesTaxRatePct: "0",
@@ -299,23 +317,26 @@ describe("Group 2 wiring contracts", () => {
     assert.doesNotMatch(hook, /DEFAULT_STARTER_PRICING_POLICY/);
   });
 
-  test("modal surfaces focused pricing without wizard copy", () => {
-    const modal = read("app/tools/roofing/jobCard/JobCardCreateProposalModal.tsx");
-    assert.match(modal, /JobCardFirstProposalPricing/);
-    assert.match(modal, /JobCardFirstProposalPricingRules/);
-    assert.match(modal, /showFirstProposalPricing/);
-    assert.match(modal, /showFirstProposalPricingRules/);
-    assert.doesNotMatch(modal, /Step 2 of|Installing your catalog|Configuration completed/i);
-    assert.doesNotMatch(modal, /Configure pricing policy|Pricing readiness|Company pricing setup/i);
-  });
-
   test("contextual rules UI uses contractor language and canonical copy constants", () => {
     const ui = read("app/tools/roofing/jobCard/JobCardFirstProposalPricingRules.tsx");
     assert.match(ui, /FIRST_PROPOSAL_RULES_TITLE/);
     assert.match(ui, /How do you price this work\?/);
+    assert.match(ui, /data-pricing-method-direct/);
+    assert.match(ui, /data-pricing-method-cost/);
     assert.match(ui, /Save pricing/);
     assert.doesNotMatch(ui, /\/tools\/settings\/pricing/);
     assert.doesNotMatch(ui, /Configure pricing policy|Pricing readiness/i);
+  });
+
+  test("modal surfaces focused pricing and preview-led starter packages without wizard copy", () => {
+    const modal = read("app/tools/roofing/jobCard/JobCardCreateProposalModal.tsx");
+    assert.match(modal, /JobCardFirstProposalPricing/);
+    assert.match(modal, /JobCardFirstProposalPricingRules/);
+    assert.match(modal, /JobCardFirstProposalTemplatePreview/);
+    assert.match(modal, /showFirstProposalPricing/);
+    assert.match(modal, /showFirstProposalPricingRules/);
+    assert.doesNotMatch(modal, /Step 2 of|Installing your catalog|Configuration completed/i);
+    assert.doesNotMatch(modal, /Configure pricing policy|Pricing readiness|Company pricing setup/i);
   });
 
   test("installers remain insert-only and null-priced", () => {

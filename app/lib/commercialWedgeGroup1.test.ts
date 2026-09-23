@@ -53,17 +53,22 @@ describe("FieldDive auth branding", () => {
   test("auth redirect and supabase handlers remain intact", () => {
     assert.match(LOGIN, /signInWithPassword/);
     assert.match(LOGIN, /redirectTo/);
+    assert.match(LOGIN, /resolveAuthReturnPath/);
     assert.match(LOGIN, /window\.location\.assign\(safePath\)/);
-    assert.match(SIGNUP, /signUp\(\{ email, password \}\)/);
+    assert.match(SIGNUP, /signUp\(/);
+    assert.match(SIGNUP, /emailRedirectTo/);
+    assert.match(SIGNUP, /buildAuthCallbackUrl/);
   });
 });
 
 describe("blank-company Jobs Board is job-first", () => {
-  test("empty state primary action is canonical New job", () => {
+  test("empty state primary action is canonical first-job packet entry", () => {
     assert.match(EMPTY, /data-jobs-board-empty-primary-action/);
-    assert.match(EMPTY, /No jobs yet/);
-    assert.match(EMPTY, /href="\/tools\/roofing\?entry=packet"/);
-    assert.match(EMPTY, /\+ New job/);
+    assert.match(EMPTY, /data-astra-g5-first-job/);
+    assert.match(EMPTY, /ASTRA_G5_FIRST_JOB_LABEL/);
+    assert.match(EMPTY, /ASTRA_G5_FIRST_JOB_HREF/);
+    assert.match(EMPTY, /ASTRA_G5_USUAL_ROOF_LABEL/);
+    assert.match(EMPTY, /ASTRA_G5_USUAL_ROOF_HREF/);
     assert.doesNotMatch(EMPTY, /Finish setup first/);
     assert.doesNotMatch(EMPTY, /setupIncomplete|setupPrimaryHref/);
   });
@@ -71,11 +76,11 @@ describe("blank-company Jobs Board is job-first", () => {
   test("header New job uses the same canonical packet entry", () => {
     assert.match(HEADER, /href="\/tools\/roofing\?entry=packet"/);
     assert.match(HEADER, /\+ New job/);
-    assert.doesNotMatch(HEADER, /Quick Job|First Job|Onboarding Job|Demo Job/);
+    assert.doesNotMatch(HEADER, /Quick Job|Onboarding Job|Demo Job/);
   });
 
   test("SavedClient does not introduce an alternate job creator", () => {
-    assert.doesNotMatch(SAVED, /Quick Job|First Job|Onboarding Job|Demo Job/);
+    assert.doesNotMatch(SAVED, /Quick Job|Onboarding Job|Demo Job/);
     assert.match(SAVED, /companyNameMissing=\{companySetupReadiness\.showBanner\}/);
   });
 

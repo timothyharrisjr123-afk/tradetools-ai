@@ -110,7 +110,7 @@ export function formatCatalogNextStepCopy(summary: CatalogReadinessSummary): str
     case "partial_mapping":
       return "Add more measurement-mapped catalog items in catalog setup";
     case "needs_pricing":
-      return "Set unit prices on catalog items in catalog setup";
+      return "Enter selling prices for offered-package items when you prepare a proposal";
     case "ready_for_templates":
       return "Open proposal templates to install company templates";
     default:

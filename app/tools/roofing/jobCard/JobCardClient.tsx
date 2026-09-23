@@ -28,6 +28,7 @@ import {
   visibleDispositionLabel,
 } from "@/app/lib/jobDispositionManagement";
 import { isUuidLike } from "@/app/lib/uuid";
+import { loadCompanyProfile } from "@/app/lib/companyProfile";
 import { resolveTrustedJobCardSeed } from "@/app/lib/jobCardServerSeed";
 import { useJobCardCanonicalRead } from "@/app/tools/roofing/jobCard/useJobCardCanonicalRead";
 import {
@@ -293,7 +294,8 @@ export default function JobCardClient({
     onCreatedProposal: (proposalId) => {
       if (!currentJobId) return;
       void refreshHydratedJobRecord(currentJobId);
-      router.push(buildProposalBuilderHref(currentJobId, proposalId));
+      // Astra G5: after first draft create, open canonical Customer Preview (preview-led).
+      router.push(buildProposalPreviewHref(currentJobId, proposalId));
     },
   });
 
@@ -1342,6 +1344,8 @@ export default function JobCardClient({
           firstProposalPricingSaving={prepare.firstProposalPricingSaving}
           firstProposalPricingSaveError={prepare.firstProposalPricingSaveError}
           firstProposalPricingComplete={prepare.firstProposalPricingComplete}
+          firstProposalOnJob={listedJobDraftSummaries.length === 0}
+          starterPreviewBranding={loadCompanyProfile()}
         />
       ) : null}
       {prepare.captureOpen && prepare.captureOrigin === "prepare" ? (

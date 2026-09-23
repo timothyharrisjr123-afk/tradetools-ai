@@ -1,19 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/app/lib/supabase/client";
 import {
   FOCUSED_EDITOR_INPUT,
   FOCUSED_EDITOR_LABEL,
   FOCUSED_EDITOR_SAVE,
 } from "@/app/components/ui/FocusedEditor";
+import {
+  buildAuthCallbackUrl,
+  buildLoginHrefWithReturn,
+  resolveAuthReturnPath,
+} from "@/app/lib/safeInternalRedirect";
 
-export default function SignUpPage() {
+function SignUpPageInner() {
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const redirectCandidate = searchParams.get("redirectTo");
+  const loginHref = buildLoginHrefWithReturn(redirectCandidate);
 
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
@@ -21,12 +31,26 @@ export default function SignUpPage() {
     setLoading(true);
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.signUp({ email, password });
+      const origin = window.location.origin;
+      const emailRedirectTo = buildAuthCallbackUrl(origin, redirectCandidate);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo },
+      });
       if (error) {
         setMessage({ type: "error", text: error.message });
         return;
       }
-      setMessage({ type: "success", text: "Account created. Check your email to confirm, or sign in." });
+      // Session present (confirmations off) → return to intended FieldDive route.
+      if (data.session) {
+        window.location.assign(resolveAuthReturnPath(redirectCandidate, "/"));
+        return;
+      }
+      setMessage({
+        type: "success",
+        text: "Account created. Check your email to confirm, or sign in.",
+      });
     } catch (err) {
       setMessage({ type: "error", text: err instanceof Error ? err.message : "Something went wrong." });
     } finally {
@@ -89,12 +113,20 @@ export default function SignUpPage() {
           </form>
           <p className="mt-4 text-center text-sm text-slate-600">
             Already have an account?{" "}
-            <Link href="/login" className="font-medium text-blue-700 hover:text-blue-800">
+            <Link href={loginHref} className="font-medium text-blue-700 hover:text-blue-800">
               Sign in
             </Link>
           </p>
         </div>
       </div>
     </main>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignUpPageInner />
+    </Suspense>
   );
 }

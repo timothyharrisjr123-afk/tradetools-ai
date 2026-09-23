@@ -9,6 +9,10 @@ import {
   FOCUSED_EDITOR_LABEL,
   FOCUSED_EDITOR_SAVE,
 } from "@/app/components/ui/FocusedEditor";
+import {
+  buildSignupHrefWithReturn,
+  resolveAuthReturnPath,
+} from "@/app/lib/safeInternalRedirect";
 
 function LoginPageInner() {
   const searchParams = useSearchParams();
@@ -16,6 +20,9 @@ function LoginPageInner() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const redirectCandidate = searchParams.get("redirectTo");
+  const signupHref = buildSignupHrefWithReturn(redirectCandidate);
 
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault();
@@ -28,14 +35,7 @@ function LoginPageInner() {
         setMessage({ type: "error", text: error.message });
         return;
       }
-      const redirectTo = searchParams.get("redirectTo");
-      const safePath =
-        typeof redirectTo === "string" &&
-        redirectTo.startsWith("/") &&
-        !redirectTo.startsWith("//") &&
-        !redirectTo.includes(":")
-          ? redirectTo
-          : "/";
+      const safePath = resolveAuthReturnPath(redirectCandidate, "/");
       window.location.assign(safePath);
     } catch (err) {
       setMessage({ type: "error", text: err instanceof Error ? err.message : "Something went wrong." });
@@ -99,7 +99,7 @@ function LoginPageInner() {
           </form>
           <p className="mt-4 text-center text-sm text-slate-600">
             No account?{" "}
-            <Link href="/signup" className="font-medium text-blue-700 hover:text-blue-800">
+            <Link href={signupHref} className="font-medium text-blue-700 hover:text-blue-800">
               Create one
             </Link>
           </p>

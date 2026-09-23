@@ -2,6 +2,68 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-23 — PHASE 5 COMPLETE: First-use + first-proposal activation (Astra G5)
+
+==================================================
+PHASE 5 — FIRST-USE + FIRST-PROPOSAL ACTIVATION  
+STATUS: **COMPLETE**
+==================================================
+
+- **Base HEAD:** `b20ae205e8fad2dbc925db0e64df0cbf34b94d7f`
+- **Astra fidelity source:** `tmp/fielddive-ui-review/astra-future-state-fielddive-blueprint.md` (G5 — Entry and first/second proposal activation) + Stage 4 Astra ratification in this handoff
+- **Main:** **not** pushed from this checkpoint. **No** deploy. Phase 6 **not** started.
+
+### Locked Astra G5 product truth
+
+- First real proposal possible in one sitting when required business facts exist
+- Second proposal removes repeated company setup
+- Setup stays subordinate to the job — **no separate onboarding model**
+- Ask only relevant price questions (direct-price vs cost-based)
+- **No invented economics** (null seed prices; totals hidden until priced)
+- Preview-led starter proposal using **canonical Customer Preview packet presentation leafs** (Cover / PackageStrip / EstimateTable / PacketSection) — **not** a second renderer; **not** a fake persisted proposal/version
+- Safe auth/deep-link return (`parseSafeInternalRedirect` / auth callback)
+- Interruption/resume from durable Job Card / `prepare=1` truth (no progress tracker fiction)
+- True-390 proof on activation surfaces
+- Activation event = **FIRST REAL PROPOSAL SENT** (synthetic recipient; Phase 1/2 send laws preserved)
+- No Phase 6 identity/search scope leakage; no Phase 8 Job Card mobile overhaul
+
+### Surfaces delivered
+
+| Surface | Result |
+|--------|--------|
+| First job entry | Packet `?entry=packet` · **Start my first job** · existing `createJob` |
+| Usual roof | `/tools/roofing/usual-roof` · company-only starter catalog + template install · no fake job |
+| Direct-price Prepare | Selling prices + sales tax only; no margin ask; no invented catalog prices |
+| Cost-based Prepare | Margin/markup + target + sales tax; blank target fails closed |
+| Preview-led starter | Shared `AstraG5StarterPacketPreview` on usual-roof + first Prepare |
+| Safe auth return | Login/signup/callback preserve safe internal `redirectTo` |
+| Second-proposal reuse | Pricing/setup questions skipped when company truth exists |
+| True 390 | Packet / usual-roof / Prepare / Preview proven |
+
+### Runtime proof (localhost signed-in)
+
+- Job A synthetic send → **Sent** (activation)
+- Job B Prepare reuses company setup; first-create shows starter document preview
+- Desktop `innerWidth >= 1200` and true `390` / `scrollWidth <= 390` captures under `tmp/fielddive-ui-review/phase5-astra-g5/` (ephemeral; conclusions live here)
+
+### Tests
+
+- Focused Phase 5 G5 gate: **101 pass / 0 fail** (starter preview + activation + prepare + safe redirect + commercial wedge + Phase 3 + builder readiness)
+
+### Dev overlay note (non-blocking)
+
+- Red Next.js **“1 Issue”** seen during Cursor browser automation is a **hydration attribute mismatch** caused by injected `data-cursor-ref="…"` attributes (Cursor IDE browser tooling), **not** application source. Absent from `app/`. Dev-only. Does **not** affect production. Not introduced by Phase 5 product code.
+
+### Remaining non-blocking optional debt
+
+- Empty Jobs Board dual-CTA visual when the board already has jobs
+- Live direct/cost Prepare UI walkthrough when company pricing already configured (unit-covered; runtime correctly skips)
+
+### NEXT
+
+**PHASE 6 — JOBS + IDENTITY REUSE + SEARCH + REPEAT WORK**  
+Do **not** begin Phase 6 from this checkpoint alone.
+
 ## 2026-09-20 — PHASE 1 COMPLETE: Agreement truth + action consistency
 
 ==================================================
@@ -81,8 +143,9 @@ STATUS: **COMPLETE**
 ### NEXT
 
 **PHASE 4 — SEMANTIC UI SYSTEM** continues/applies through upcoming work.  
-**PHASE 5 — FIRST-USE + FIRST-PROPOSAL ACTIVATION** is next product roadmap phase after Phase 3.  
-Phase 1 / Phase 2 / Phase 3 are **COMPLETE**. Do **not** begin Phase 4/5 implementation from this checkpoint alone.
+**PHASE 5 — FIRST-USE + FIRST-PROPOSAL ACTIVATION** is **COMPLETE** (see Phase 5 COMPLETE section at top of this handoff).  
+**Immediate next:** **PHASE 6 — JOBS + IDENTITY REUSE + SEARCH + REPEAT WORK** (do not begin until authorized).  
+Phase 1 / Phase 2 / Phase 3 / Phase 5 are **COMPLETE**.
 
 ### Execution model (every remaining phase)
 
@@ -109,8 +172,8 @@ FieldDive is preparing for a **PROMOTED CONTROLLED-ACCESS LAUNCH**. Users cannot
 2. Recovery + financial projection — **COMPLETE** (2A · 2B1 · 2B2 · 2C)
 3. Canonical product cutover + legacy retirement — **COMPLETE**
 4. Semantic UI system — continuous across phases (**PHASE 4**)
-5. First-use + first-proposal activation — **NEXT** (**PHASE 5**)
-6. Jobs + identity reuse + search + repeat work
+5. First-use + first-proposal activation — **COMPLETE** (**PHASE 5**)
+6. Jobs + identity reuse + search + repeat work — **NEXT** (**PHASE 6**)
 7. Small-team responsibility + field handoff
 8. Job Card + mobile operational hierarchy
 9. Lifecycle/disposition recovery

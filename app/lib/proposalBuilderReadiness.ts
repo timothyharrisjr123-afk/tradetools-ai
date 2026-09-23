@@ -181,7 +181,7 @@ export function formatProposalBuilderGateMessage(
         ? formatProposalTemplateNextStepCopy(context.templateReadiness)
         : "Install and price the starter proposal template before Proposal Builder can open.";
     default:
-      return "Complete setup prerequisites before using Proposal Builder.";
+      return "Finish the next required fact before Proposal Builder can open.";
   }
 }
 
@@ -369,6 +369,6 @@ export function resolveJobCardProposalActivityLine(
   }
   return {
     label: "Proposal setup blocked",
-    note: "Complete setup prerequisites before using Proposal Builder.",
+    note: "Finish the next required fact for this proposal.",
   };
 }

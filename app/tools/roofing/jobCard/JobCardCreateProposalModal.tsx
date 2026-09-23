@@ -36,7 +36,9 @@ import {
 import type { JobCardPackageChoice } from "@/app/tools/roofing/jobCard/jobCardProposalSetup";
 import JobCardFirstProposalPricing from "@/app/tools/roofing/jobCard/JobCardFirstProposalPricing";
 import JobCardFirstProposalPricingRules from "@/app/tools/roofing/jobCard/JobCardFirstProposalPricingRules";
+import JobCardFirstProposalTemplatePreview from "@/app/tools/roofing/jobCard/JobCardFirstProposalTemplatePreview";
 import { JOB_CARD_PROPOSALS_PRIMARY_BUTTON_CLASS } from "@/app/tools/roofing/jobCard/jobCardProposalsTabModel";
+import { resolveShowFirstUseStarterDocumentPreview } from "@/app/lib/astraG5StarterPacketPreview";
 import type {
   FirstProposalPricingLine,
   FirstProposalPricingRulesDraft,
@@ -110,6 +112,22 @@ export type JobCardCreateProposalModalProps = {
   firstProposalPricingSaving?: boolean;
   firstProposalPricingSaveError?: string | null;
   firstProposalPricingComplete?: boolean;
+
+  /** Company branding for first-use starter packet preview (optional). */
+  starterPreviewBranding?: {
+    companyName?: string | null;
+    logoDataUrl?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    license?: string | null;
+    address?: string | null;
+    website?: string | null;
+    brandPrimaryColor?: string | null;
+    brandSecondaryColor?: string | null;
+    showLicenseOnCover?: boolean | null;
+  } | null;
+  /** First proposal on this job — show starter document preview before create. */
+  firstProposalOnJob?: boolean;
 };
 
 const CANCEL_BUTTON_CLASS =
@@ -170,6 +188,8 @@ export function JobCardCreateProposalModal({
   firstProposalPricingSaving = false,
   firstProposalPricingSaveError = null,
   firstProposalPricingComplete = true,
+  starterPreviewBranding = null,
+  firstProposalOnJob = false,
 }: JobCardCreateProposalModalProps) {
   const titleId = useId();
   const changeRefs = useRef<Partial<Record<PrepareProposalFieldId, HTMLButtonElement | null>>>(
@@ -558,6 +578,29 @@ export function JobCardCreateProposalModal({
             >
               {structureError}
             </p>
+          ) : null}
+
+          {!preparingStructure && !structureError ? (
+            <div className="py-2">
+              {(() => {
+                const showDocumentPreview = resolveShowFirstUseStarterDocumentPreview({
+                  starterTemplateSelected:
+                    Boolean(starterTemplateId) &&
+                    Boolean(selectedTemplateId) &&
+                    selectedTemplateId === starterTemplateId,
+                  showFirstProposalPricingRules,
+                  showFirstProposalPricing,
+                  firstProposalOnJob,
+                });
+                return (
+                  <JobCardFirstProposalTemplatePreview
+                    visible={showDocumentPreview}
+                    showDocumentPreview={showDocumentPreview}
+                    branding={starterPreviewBranding}
+                  />
+                );
+              })()}
+            </div>
           ) : null}
 
           {showFirstProposalPricingRules &&
