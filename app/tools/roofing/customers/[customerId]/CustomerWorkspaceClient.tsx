@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Mail, Phone } from "lucide-react";
+import Link from "next/link";
+import { buildPacketEntryHref } from "@/app/lib/packetIdentityEntry";
 import FieldDiveWorkspaceShell, {
   WorkspaceEmpty,
   WorkspaceLinkRow,
@@ -167,14 +169,23 @@ export default function CustomerWorkspaceClient({ customerId }: { customerId: st
       }
       actions={
         customer && !editing ? (
-          <button
-            type="button"
-            onClick={beginEdit}
-            className="text-sm font-medium text-sky-700 underline-offset-2 hover:underline"
-            data-testid="customer-edit-action"
-          >
-            Edit customer
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href={buildPacketEntryHref({ customerId })}
+              className="inline-flex h-9 items-center rounded-lg bg-slate-900 px-3 text-sm font-medium text-white hover:bg-slate-800"
+              data-testid="customer-new-job"
+            >
+              New job
+            </Link>
+            <button
+              type="button"
+              onClick={beginEdit}
+              className="text-sm font-medium text-sky-700 underline-offset-2 hover:underline"
+              data-testid="customer-edit-action"
+            >
+              Edit customer
+            </button>
+          </div>
         ) : null
       }
     >
@@ -263,14 +274,27 @@ export default function CustomerWorkspaceClient({ customerId }: { customerId: st
             {propertyRows.length === 0 ? (
               <WorkspaceEmpty>No properties yet.</WorkspaceEmpty>
             ) : (
-              <div className="border-b border-slate-100">
+              <div>
                 {propertyRows.map((property) => (
-                  <WorkspaceLinkRow
-                    key={property.id}
-                    href={property.href}
-                    primary={property.primary}
-                    secondary={property.secondary}
-                  />
+                  <div key={property.id} className="border-b border-slate-100">
+                    <WorkspaceLinkRow
+                      href={property.href}
+                      primary={property.primary}
+                      secondary={property.secondary}
+                    />
+                    <div className="px-1 pb-2">
+                      <Link
+                        href={buildPacketEntryHref({
+                          customerId,
+                          propertyId: property.id,
+                        })}
+                        className="text-[12px] font-medium text-sky-700 underline-offset-2 hover:underline"
+                        data-testid={"customer-property-new-job-" + property.id}
+                      >
+                        New job here
+                      </Link>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}

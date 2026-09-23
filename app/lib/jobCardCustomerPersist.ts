@@ -1,8 +1,10 @@
 /**
- * Persist Job Card customer identity to jobs.customer_id (SMOKE-2D-CUST).
+ * Persist Job Card customer identity to jobs.customer_id.
  *
- * Uses existing findOrCreateCustomer rules — email is required for lookup/create.
- * Board-origin gating is the caller's responsibility; this helper does not check it.
+ * Phase 6 / FD-P1-01: supported path never silently findOrCreates by email.
+ * - existing customer_id → unchanged
+ * - missing customer_id → explicit_selection_required (safe no-op)
+ * Old/null jobs keep snapshot contact fields; they are not auto-linked.
  */
 
 import { isUuidLike } from "@/app/lib/uuid";
@@ -11,6 +13,7 @@ import type { JobRecord } from "@/app/lib/jobTypes";
 export type JobCardCustomerPersistReason =
   | "unchanged"
   | "insufficient_customer_identity"
+  | "explicit_selection_required"
   | "invalid_company_or_job"
   | "customer_lookup_failed"
   | "update_failed"
@@ -23,7 +26,8 @@ export type EnsureJobCustomerPersistedResult = {
 };
 
 export type EnsureJobCustomerPersistedDeps = {
-  findOrCreateCustomer: (args: {
+  /** @deprecated Phase 6 — ignored; kept optional for call-site compatibility during cutover. */
+  findOrCreateCustomer?: (args: {
     companyId: string;
     name: string;
     email: string;
@@ -59,8 +63,7 @@ function normalizeText(value: string | null | undefined): string {
 }
 
 /**
- * Find or create a DB customer and link jobs.customer_id when needed.
- * Never throws for normal insufficient/missing customer data.
+ * Link jobs.customer_id only when already known. Never email-collapse.
  */
 export async function ensureJobCustomerPersisted(
   input: EnsureJobCustomerPersistedInput
@@ -85,51 +88,17 @@ export async function ensureJobCustomerPersisted(
     };
   }
 
-  const email = normalizeText(input.customerEmail);
-  if (!email) {
-    return {
-      customerId: null,
-      updated: false,
-      reason: "insufficient_customer_identity",
-    };
-  }
-
-  const customerId = await input.deps.findOrCreateCustomer({
-    companyId,
-    name: normalizeText(input.customerName),
-    email,
-    phone: normalizeText(input.customerPhone) || undefined,
-    address: normalizeText(input.customerAddress) || undefined,
-  });
-
-  if (!customerId || !isUuidLike(customerId)) {
-    return {
-      customerId: null,
-      updated: false,
-      reason: "customer_lookup_failed",
-    };
-  }
-
-  if (existingCustomerId === customerId) {
-    return {
-      customerId,
-      updated: false,
-      reason: "unchanged",
-    };
-  }
-
-  const updatedJob = await input.deps.updateJob(jobId, { customer_id: customerId });
-  if (!updatedJob) {
-    return {
-      customerId,
-      updated: false,
-      reason: "update_failed",
-    };
-  }
+  // Phase 6: do not invent a customer_id from email/name snapshots.
+  // Missing pointer stays missing until an explicit select/create path sets it.
+  void input.customerEmail;
+  void input.customerName;
+  void input.customerPhone;
+  void input.customerAddress;
+  void input.deps.findOrCreateCustomer;
 
   return {
-    customerId: normalizeId(updatedJob.customer_id) ?? customerId,
-    updated: true,
-    reason: "persisted",
+    customerId: null,
+    updated: false,
+    reason: "explicit_selection_required",
   };
 }

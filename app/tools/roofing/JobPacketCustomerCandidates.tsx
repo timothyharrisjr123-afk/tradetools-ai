@@ -57,7 +57,7 @@ export function JobPacketCustomerCandidates({
     <div className="mt-1.5 space-y-1" data-testid="customer-candidates">
       {visible.length > 0 ? (
         <p className="text-[10.5px] font-medium uppercase tracking-[0.08em] text-slate-500">
-          Possible match
+          Possible matches
         </p>
       ) : null}
       <ul className="space-y-1">
@@ -99,7 +99,7 @@ export function JobPacketCustomerCandidates({
           onClick={onContinueAsNew}
           className="min-h-[32px] px-0.5 text-[11px] font-medium text-slate-600 underline-offset-2 hover:text-slate-800 hover:underline"
         >
-          Continue as new customer
+          Continue as new — do not use a match
         </button>
       ) : null}
     </div>

@@ -105,6 +105,6 @@ describe("060 â€” accepted client paths stay company-scoped", () => {
     assert.match(context, /\.from\("customers"\)/);
     assert.match(context, /\.eq\("company_id", cid\)/);
     assert.match(admin, /\.eq\("company_id", companyId\)/);
-    assert.match(persist, /findOrCreateCustomer/);
+    assert.match(persist, /explicit_selection_required/);
   });
 });

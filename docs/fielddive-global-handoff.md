@@ -2,6 +2,59 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-23 — PHASE 6 COMPLETE: Jobs + identity reuse + search + repeat work (Astra G6)
+
+==================================================
+PHASE 6 — JOBS + IDENTITY REUSE + SEARCH + REPEAT WORK  
+STATUS: **COMPLETE**
+==================================================
+
+- **Base HEAD:** `1ec1df9fab98b3ebb0491c1f766a17fffbec06fe`
+- **Astra fidelity source:** `tmp/fielddive-ui-review/astra-future-state-fielddive-blueprint.md` (G6) + Stage 4 Astra ratification
+- **Main:** **not** pushed from this checkpoint. **No** deploy. Phase 7 **not** started.
+
+### Locked Astra G6 product truth
+
+- **Customer = who**, **Property = where**, **Job = this instance**
+- Three intake cases: new customer/new property; existing customer/same property; existing customer/**Another property**
+- Workspace **New job** / **New job here** carry known identity; repeat title **New job** (first-use keeps **Start my first job**)
+- Selected identity summaries + **Change**; duplicate hints; **Use existing** / explicit continue-as-new; **no forced merge**; **no silent email collapse** on packet/Job Card
+- Job-specific **non-copy law** (measurements, proposals, payments, schedule, tasks, lifecycle timestamps not cloned)
+- Typed search is **one model**: Jobs → Job Card; Customers → customer workspace; Properties → property workspace
+- Search **LOADING / EMPTY / FAILED** are distinct; failure never looks empty
+- Board/list bounded hierarchy: identity → action/context → date → owner (no G8 redesign)
+- Interrupted create: durable **create_idempotency_key** (client key before request; `createJob` find-or-insert; unique index migration); session UX helpers remain secondary
+- Company-scoped search/selection/association
+- Desktop + true-390 proof under `tmp/fielddive-ui-review/phase6-identity-repeat/`
+- **No CRM**, no historical customer merge, no G7/G8 leakage
+
+### FD-P1-01 dual-writer (precise Phase 6 closure)
+
+- **Active packet / Job Card path:** select-existing **or** explicit `createCustomer` (always insert). `ensureJobCustomerPersist` no longer silent-`findOrCreate`s. `estimateStore` no longer `findOrCreate`s customers.
+- **Legacy `findOrCreateCustomer` / `findOrCreateCustomerDetailed`:** remain in `customerStore` for residual legacy callers; duplicate-email ambiguity returns null (no wrong attach).
+- **Historical shared-email customer clusters:** **remain unmerged** (not in Phase 6 scope).
+
+### Durable interrupted-create architecture
+
+1. Client builds fingerprint + **ensures UUID operation key in session before** `createJob`
+2. Draft `source_metadata`: `{ source: "job_packet", create_idempotency_key }`
+3. `createJob` looks up company-scoped key → insert → on unique violation re-lookup
+4. Migration `20260923180000_jobs_packet_create_idempotency.sql` unique index `(company_id, create_idempotency_key)` for live rows
+5. Lost HTTP response + retry → **same job id** (server truth owns duplicate prevention)
+
+### Search failure proof note
+
+- Screenshot failure state was produced by **Playwright `page.route` interception** of `/api/search` (test-only). **No** product magic query (`failprobe123` absent from `app/` / API / RPC).
+
+### Tests
+
+- Combined Phase 6 + Phase 5 activation + Phase 3 retirement gate: **110 pass / 0 fail**
+
+### NEXT
+
+**PHASE 7 — SMALL-TEAM RESPONSIBILITY + FIELD HANDOFF**  
+Do **not** begin Phase 7 from this checkpoint alone.
+
 ## 2026-09-23 — PHASE 5 COMPLETE: First-use + first-proposal activation (Astra G5)
 
 ==================================================
@@ -11,7 +64,7 @@ STATUS: **COMPLETE**
 
 - **Base HEAD:** `b20ae205e8fad2dbc925db0e64df0cbf34b94d7f`
 - **Astra fidelity source:** `tmp/fielddive-ui-review/astra-future-state-fielddive-blueprint.md` (G5 — Entry and first/second proposal activation) + Stage 4 Astra ratification in this handoff
-- **Main:** **not** pushed from this checkpoint. **No** deploy. Phase 6 **not** started.
+- **Main:** **not** pushed from this checkpoint. **No** deploy. Phase 6 completed later — see Phase 6 COMPLETE section above.
 
 ### Locked Astra G5 product truth
 
@@ -61,8 +114,7 @@ STATUS: **COMPLETE**
 
 ### NEXT
 
-**PHASE 6 — JOBS + IDENTITY REUSE + SEARCH + REPEAT WORK**  
-Do **not** begin Phase 6 from this checkpoint alone.
+**PHASE 6 — COMPLETE** (see Phase 6 COMPLETE section). Next authorized slice: **PHASE 7**.
 
 ## 2026-09-20 — PHASE 1 COMPLETE: Agreement truth + action consistency
 
@@ -734,7 +786,7 @@ STATUS: **COMPLETE**
 
 | Item | Status | Future owner |
 |------|--------|--------------|
-| FD-P1-01 customer identity policy (`createCustomer` always-insert vs findOrCreate) | **OPEN** | Later identity cutover |
+| FD-P1-01 customer identity policy (`createCustomer` always-insert vs findOrCreate) | **PARTIAL — Phase 6** | Active packet/Job Card writers closed to select-or-createCustomer; historical email clusters still unmerged |
 | FD-P1-03 catalog vs historical `service_items` data | **OPEN** (writer retired; table may remain) | Catalog-only cleanup |
 | estimateStore full deletion | **OPEN** | After legacy estimate Board residual gone |
 | Commercial home/tools copy (“estimating tools”) | non-blocking cohesion debt | Phase 4/5 copy pass |

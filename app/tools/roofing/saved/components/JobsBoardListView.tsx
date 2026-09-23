@@ -3,11 +3,8 @@
 import type { RoofingEstimate } from "@/app/lib/estimateStore";
 import { CircleAlert } from "lucide-react";
 import {
-  formatCentsToCurrency,
   getBoardColumnKeyForJob,
   getBoardStageLabelForJob,
-  timeInStageToneClass,
-  toEstimateTotalCents,
   type BoardColumnKey,
   type JobsBoardCardModel,
 } from "../jobsBoardUtils";
@@ -27,14 +24,10 @@ type JobsBoardListViewProps = {
   sourceBadge?: string | null;
 };
 
-function statusParts(
-  model: JobsBoardCardModel | null
-): string {
-  if (!model) return "—";
-  const parts = [model.reportStatus?.label, model.proposalStatus.label].filter(Boolean);
-  return parts.length > 0 ? parts.join(" · ") : "—";
-}
-
+/**
+ * Astra G6 hierarchy: identity → action → date → owner.
+ * Stage remains as operational truth; value/status metadata are not primary.
+ */
 export default function JobsBoardListView({
   jobs,
   buildCardModel,
@@ -48,7 +41,7 @@ export default function JobsBoardListView({
   if (jobs.length === 0) {
     return (
       <p className="rounded-lg border border-slate-200/60 bg-white px-4 py-10 text-center text-sm text-slate-500">
-        No jobs match your search or filters.
+        No jobs match your filters.
       </p>
     );
   }
@@ -56,17 +49,15 @@ export default function JobsBoardListView({
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200/60 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
       <div className="overflow-x-auto [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200/70 [&::-webkit-scrollbar-track]:bg-transparent">
-        <table className="w-full min-w-[720px] text-left text-sm">
+        <table className="w-full min-w-[640px] text-left text-sm">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50/60 text-xs font-medium uppercase tracking-wide text-slate-500">
               <th className="px-4 py-2.5 font-medium">Customer</th>
               <th className="px-4 py-2.5 font-medium">Address</th>
-              <th className="px-4 py-2.5 font-medium">Stage</th>
-              <th className="px-4 py-2.5 font-medium">Value</th>
-              <th className="px-4 py-2.5 font-medium">Status</th>
-              <th className="px-4 py-2.5 font-medium">Updated</th>
-              <th className="px-4 py-2.5 font-medium">Time in stage</th>
               <th className="px-4 py-2.5 font-medium">Action</th>
+              <th className="px-4 py-2.5 font-medium">Updated</th>
+              <th className="px-4 py-2.5 font-medium">Owner</th>
+              <th className="px-4 py-2.5 font-medium">Stage</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -76,8 +67,7 @@ export default function JobsBoardListView({
                 columnKey !== null
                   ? buildCardModel(job, columnKey)
                   : null;
-              const valueCents = toEstimateTotalCents(job);
-              const summary = statusParts(model);
+              const owner = model?.assigneeLabel?.trim() || null;
 
               return (
                 <tr
@@ -143,31 +133,6 @@ export default function JobsBoardListView({
                   <td className="max-w-[200px] truncate px-4 py-3 text-slate-600">
                     {(job.address || "").trim() || "—"}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-slate-700">
-                    <span>{getBoardStageLabelForJob(job)}</span>
-                    {model?.dispositionLabel ? (
-                      <span
-                        className="ml-2 text-xs font-medium text-slate-500"
-                        data-board-disposition={model.dispositionLabel}
-                      >
-                        {model.dispositionLabel}
-                      </span>
-                    ) : null}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 tabular-nums text-slate-700">
-                    {valueCents > 0 ? formatCentsToCurrency(valueCents) : "—"}
-                  </td>
-                  <td className="max-w-[180px] truncate px-4 py-3 text-xs text-slate-600">{summary}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500">
-                    {model?.lastUpdatedDisplay ?? "—"}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-xs">
-                    {model?.timeInStage ? (
-                      <span className={timeInStageToneClass(model.timeInStageTone)}>{model.timeInStage}</span>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
                   <td className="whitespace-nowrap px-4 py-3 text-xs">
                     {model?.showApproveAction && onApproveJob ? (
                       <button
@@ -223,6 +188,26 @@ export default function JobsBoardListView({
                     ) : (
                       "—"
                     )}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500">
+                    {model?.lastUpdatedDisplay ?? "—"}
+                  </td>
+                  <td
+                    className="max-w-[140px] truncate px-4 py-3 text-xs text-slate-600"
+                    data-board-list-owner
+                  >
+                    {owner ?? "—"}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-700">
+                    <span>{getBoardStageLabelForJob(job)}</span>
+                    {model?.dispositionLabel ? (
+                      <span
+                        className="ml-2 text-xs font-medium text-slate-500"
+                        data-board-disposition={model.dispositionLabel}
+                      >
+                        {model.dispositionLabel}
+                      </span>
+                    ) : null}
                   </td>
                 </tr>
               );

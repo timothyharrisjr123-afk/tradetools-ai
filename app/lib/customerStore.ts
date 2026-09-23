@@ -1,12 +1,18 @@
 /**
- * Wave B — customers table writers.
+ * Wave B / Phase 6 — customers table writers.
  *
  * customers = reusable live identity (company-scoped).
  * jobs.customer_id = stable pointer when selected/created.
  * Job contact columns = job-facing snapshot (not frozen proposal history).
  *
- * findOrCreateCustomer: legacy estimate / Job Card auto-link path (email required).
- * createCustomer: always inserts — used when contractor explicitly continues as new.
+ * Canonical supported policy (Astra G6 / FD-P1-01 cutover):
+ *   EXISTING → explicit selection of customer_id
+ *   NEW → explicit createCustomer
+ *   POSSIBLE DUPLICATE → candidates / inspect / continue-as-new
+ * No silent email-based collapse on supported paths.
+ *
+ * findOrCreateCustomer remains LEGACY-QUARANTINED for residual estimate shelf
+ * callers only. Supported Job Card / packet paths must not call it.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -23,6 +29,12 @@ export type CustomerWriteParams = {
   phone?: string | null;
   address?: string | null;
 };
+
+export type FindOrCreateCustomerOutcome =
+  | { status: "found"; customerId: string }
+  | { status: "created"; customerId: string }
+  | { status: "ambiguous"; customerId: null }
+  | { status: "skipped"; customerId: null; reason: "empty_email" | "error" };
 
 function displayPhone(phone?: string | null): string | null {
   const trimmed = String(phone ?? "").trim();
@@ -71,11 +83,16 @@ export async function createCustomer({
 }
 
 /**
- * Find a customer by company_id + normalized email, or create one.
- * Never throws; returns null if email is empty or on any error.
+ * LEGACY-QUARANTINED — do not use on supported packet / Job Card identity paths.
  *
- * Do not use this for New Job "continue as new" — that must call createCustomer
- * so exact-email cannot silently collapse contractor intent onto an existing human.
+ * Exact same-company duplicate-email behavior (deterministic):
+ * - empty email → skipped (null)
+ * - 0 matches → createCustomer (status created)
+ * - exactly 1 match → returns that id (status found) — silent email collapse
+ * - 2+ matches → ambiguous → null (does NOT pick, does NOT create, does NOT wrong-attach)
+ * - query/insert error → skipped null
+ *
+ * Supported flows must use explicit select or createCustomer instead.
  */
 export async function findOrCreateCustomer({
   supabase,
@@ -85,20 +102,51 @@ export async function findOrCreateCustomer({
   phone,
   address,
 }: CustomerWriteParams & { email: string }): Promise<string | null> {
+  const outcome = await findOrCreateCustomerDetailed({
+    supabase,
+    companyId,
+    name,
+    email,
+    phone,
+    address,
+  });
+  return outcome.customerId;
+}
+
+/** Detailed legacy outcome for tests / quarantine diagnostics. */
+export async function findOrCreateCustomerDetailed({
+  supabase,
+  companyId,
+  name,
+  email,
+  phone,
+  address,
+}: CustomerWriteParams & { email: string }): Promise<FindOrCreateCustomerOutcome> {
   try {
     const emailNorm = normalizeCustomerEmail(email);
-    if (!emailNorm) return null;
+    if (!emailNorm) return { status: "skipped", customerId: null, reason: "empty_email" };
 
-    const { data: existing, error: selectError } = await supabase
+    const { data: matches, error: selectError } = await supabase
       .from("customers")
       .select("id")
       .eq("company_id", companyId)
       .ilike("email", emailNorm)
-      .maybeSingle();
+      .limit(2);
 
-    if (!selectError && existing?.id) return existing.id as string;
+    if (selectError) {
+      return { status: "skipped", customerId: null, reason: "error" };
+    }
 
-    return createCustomer({
+    const rows = Array.isArray(matches) ? matches : [];
+    if (rows.length > 1) {
+      // Duplicate-email ambiguity: return null — no merge, no create, no wrong attach.
+      return { status: "ambiguous", customerId: null };
+    }
+    if (rows.length === 1 && rows[0]?.id) {
+      return { status: "found", customerId: rows[0].id as string };
+    }
+
+    const created = await createCustomer({
       supabase,
       companyId,
       name,
@@ -106,7 +154,9 @@ export async function findOrCreateCustomer({
       phone,
       address,
     });
+    if (!created) return { status: "skipped", customerId: null, reason: "error" };
+    return { status: "created", customerId: created };
   } catch {
-    return null;
+    return { status: "skipped", customerId: null, reason: "error" };
   }
 }

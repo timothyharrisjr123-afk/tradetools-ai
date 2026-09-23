@@ -82,10 +82,12 @@ import {
   dispositionBlockedWorkCopy,
   visibleDispositionLabel,
 } from "@/app/lib/jobDispositionManagement";
-import { createCustomer, findOrCreateCustomer } from "@/app/lib/customerStore";
+import { createCustomer } from "@/app/lib/customerStore";
+import { buildPacketCreateFingerprint, buildPacketEntryHref, ensurePacketCreateOperation, markPacketCreateOperationComplete, parsePacketIdentitySearchParams, resolvePacketIntakeTitle, withJobCreateIdempotencyMetadata } from "@/app/lib/packetIdentityEntry";
 import { ensureJobCustomerPersisted } from "@/app/lib/jobCardCustomerPersist";
 import type { CustomerSearchCandidate } from "@/app/lib/customerMatch";
 import { JobPacketCustomerCandidates } from "@/app/tools/roofing/JobPacketCustomerCandidates";
+import { JobPacketSelectedIdentitySummary } from "@/app/tools/roofing/JobPacketSelectedIdentitySummary";
 import { JobPacketAddressCombobox } from "@/app/tools/roofing/JobPacketAddressCombobox";
 import {
   JobPacketPropertyCandidates,
@@ -1185,6 +1187,11 @@ export default function RoofingClient({
   const fromParam = searchParams.get("from");
   const isBoardOriginParam = fromParam === "board";
   const jobParam = searchParams.get("job");
+  const packetIdentityKey = [
+    searchParams.get("customer") ?? "",
+    searchParams.get("property") ?? "",
+    searchParams.get("anotherProperty") ?? "",
+  ].join("|");
   const attentionParam = searchParams.get("attention");
   const focusedRequestParam = searchParams.get("request");
   // A3: unlinked legacy estimate workspace retired. loadSaved= only resolves to an
@@ -1653,7 +1660,103 @@ export default function RoofingClient({
     if (jobParam && isUuidLike(jobParam)) return;
     resetPacketIntakeFields();
     setCurrentLoadedSavedId(null);
-  }, [entryMode, jobParam, loadSavedId, isBoardOriginParam, resetPacketIntakeFields]);
+  }, [entryMode, jobParam, loadSavedId, isBoardOriginParam, resetPacketIntakeFields, packetIdentityKey]);
+  // Phase 6: carry selected customer/property from workspace New job / New job here.
+  useEffect(() => {
+    if (loadSavedId || isBoardOriginParam) return;
+    if (entryMode !== "packet" && entryMode !== "instant") return;
+    if (jobParam && isUuidLike(jobParam)) return;
+
+    const parsed = parsePacketIdentitySearchParams(searchParams);
+    if (!parsed.customerId && !parsed.propertyId && !parsed.anotherProperty) return;
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        if (parsed.customerId) {
+          const res = await fetch(`/api/customers/${encodeURIComponent(parsed.customerId)}`, {
+            cache: "no-store",
+          });
+          const json = await res.json().catch(() => null);
+          if (cancelled) return;
+          if (res.ok && json?.ok && json.customer?.id) {
+            const c = json.customer;
+            setSelectedCustomerId(String(c.id));
+            setSelectedCustomerLabel(String(c.name || "Customer"));
+            setForceNewCustomer(false);
+            setCustomerName(String(c.name || ""));
+            setCustomerEmail(String(c.email || ""));
+            setCustomerPhone(String(c.phone || ""));
+          }
+        }
+
+        if (parsed.anotherProperty) {
+          setSelectedPropertyId(null);
+          setSelectedPropertyLabel(null);
+          setForceNewProperty(false);
+          setJobAddress1("");
+          setJobAddress2("");
+          setJobCity("");
+          setJobState("");
+          setJobZip("");
+          setAddressEntryMode("search");
+          setSelectedPlacesAddress(null);
+          return;
+        }
+
+        if (parsed.propertyId) {
+          const res = await fetch(`/api/properties/${encodeURIComponent(parsed.propertyId)}`, {
+            cache: "no-store",
+          });
+          const json = await res.json().catch(() => null);
+          if (cancelled) return;
+          if (res.ok && json?.ok && json.property?.id) {
+            const prop = json.property;
+            setSelectedPropertyId(String(prop.id));
+            setSelectedPropertyLabel(
+              String(prop.line1 || prop.formatted || "Property")
+            );
+            setForceNewProperty(false);
+            if (prop.line1) setJobAddress1(String(prop.line1));
+            setJobAddress2(prop.line2 ? String(prop.line2) : "");
+            if (prop.city) setJobCity(String(prop.city));
+            if (prop.state) setJobState(String(prop.state));
+            if (prop.zip) setJobZip(String(prop.zip));
+            setSuppressAddressSuggestions(true);
+            setSelectedPlacesAddress(null);
+            setAddressEntryMode("manual");
+
+            if (!parsed.customerId && Array.isArray(json.customers) && json.customers.length === 1) {
+              const only = json.customers[0];
+              if (only?.id) {
+                setSelectedCustomerId(String(only.id));
+                setSelectedCustomerLabel(String(only.name || "Customer"));
+                setForceNewCustomer(false);
+                setCustomerName(String(only.name || ""));
+                setCustomerEmail(String(only.email || ""));
+                setCustomerPhone(String(only.phone || ""));
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("[RoofingClient] packet identity prefill failed:", err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    entryMode,
+    jobParam,
+    loadSavedId,
+    isBoardOriginParam,
+    packetIdentityKey,
+    searchParams,
+  ]);
+
 
   // Moving into the clean DB Job Card flow clears any lingering legacy
   // "current loaded saved id" so currentSaved cannot fill/override DB job fields.
@@ -2416,9 +2519,6 @@ export default function RoofingClient({
       const cid = (companyId ?? "").trim();
       if (!cid || !job.id || !isUuidLike(job.id)) return null;
 
-      const supabase = getSupabaseClient();
-      if (!supabase) return null;
-
       const email = (job.contact?.customer_email ?? customerEmail ?? "").trim();
       const name = (job.contact?.customer_name ?? customerName ?? "").trim();
       const phone = (job.contact?.customer_phone ?? customerPhone ?? "").trim();
@@ -2436,8 +2536,6 @@ export default function RoofingClient({
         customerPhone: phone,
         customerAddress: address,
         deps: {
-          findOrCreateCustomer: (args) =>
-            findOrCreateCustomer({ supabase, ...args }),
           updateJob,
         },
       });
@@ -2463,47 +2561,8 @@ export default function RoofingClient({
     [persistJobCardCustomerForJob, refreshHydratedJobRecord]
   );
 
-  useEffect(() => {
-    if (entryMode !== "job-card") return;
-    if (isJobCardBoardContext) return;
-
-    const job = hydratedJobRecord;
-    const jobId = currentJobId;
-    if (!job || !jobId || job.id !== jobId) return;
-    if (isUuidLike(job.customer_id ?? "")) return;
-
-    const email = (job.contact?.customer_email ?? customerEmail ?? "").trim();
-    if (!email) return;
-
-    if (isRestoringRef.current) return;
-    if (customerPersistInFlightRef.current === jobId) return;
-
-    customerPersistInFlightRef.current = jobId;
-
-    void (async () => {
-      try {
-        const result = await persistJobCardCustomerForJob(job);
-        if (customerPersistInFlightRef.current !== jobId) return;
-        if (result?.updated) {
-          await refreshHydratedJobRecord(jobId);
-        }
-      } catch (err) {
-        console.warn("[RoofingClient] job card customer persist error:", err);
-      } finally {
-        if (customerPersistInFlightRef.current === jobId) {
-          customerPersistInFlightRef.current = null;
-        }
-      }
-    })();
-  }, [
-    entryMode,
-    isJobCardBoardContext,
-    hydratedJobRecord,
-    currentJobId,
-    customerEmail,
-    persistJobCardCustomerForJob,
-    refreshHydratedJobRecord,
-  ]);
+  /* Phase 6: removed silent email auto-link useEffect */
+  
 
   useEffect(() => {
     if (entryMode !== "job-card") return;
@@ -5320,7 +5379,7 @@ Thanks,`;
   );
 
   const packetCustomerSearchEnabled =
-    (entryMode === "packet" || entryMode === "instant") && !forceNewCustomer && !selectedCustomerId;
+    (entryMode === "packet" || entryMode === "instant") && !selectedCustomerId;
   const { results: customerCandidates } = useCompanyCustomerSearch(
     {
       name: customerName,
@@ -5394,6 +5453,45 @@ Thanks,`;
     setSelectedPropertyLabel(null);
     setForceNewProperty(true);
   }, []);
+
+  const changeSelectedCustomer = useCallback(() => {
+    setSelectedCustomerId(null);
+    setSelectedCustomerLabel(null);
+    setForceNewCustomer(false);
+  }, []);
+
+  const changeSelectedProperty = useCallback(() => {
+    setSelectedPropertyId(null);
+    setSelectedPropertyLabel(null);
+    setForceNewProperty(false);
+    setSuppressAddressSuggestions(false);
+    setSelectedPlacesAddress(null);
+    setAddressEntryMode("search");
+  }, []);
+
+  const startAnotherProperty = useCallback(() => {
+    const keepCustomerId = selectedCustomerId;
+    setSelectedPropertyId(null);
+    setSelectedPropertyLabel(null);
+    setForceNewProperty(false);
+    setSuppressAddressSuggestions(false);
+    setSelectedPlacesAddress(null);
+    setAddressEntryMode("search");
+    setJobAddress1("");
+    setJobAddress2("");
+    setJobCity("");
+    setJobState("");
+    setJobZip("");
+    setAutofillFromZip(false);
+    setZipNoPresetMessage(false);
+    setPreAutofillSnapshot(null);
+    if (keepCustomerId) {
+      router.replace(
+        buildPacketEntryHref({ customerId: keepCustomerId, anotherProperty: true })
+      );
+    }
+  }, [router, selectedCustomerId]);
+
 
   const applyPlacesSuggestion = useCallback(
     async (suggestion: PlacesSuggestion) => {
@@ -5570,17 +5668,49 @@ Thanks,`;
         }
       }
 
+      const fingerprint = buildPacketCreateFingerprint({
+        companyId: cid,
+        customerId: linkedCustomerId,
+        propertyId: linkedPropertyId,
+        addressLine,
+      });
+      const { operationKey, existingJobId } = ensurePacketCreateOperation(
+        fingerprint,
+        typeof sessionStorage !== "undefined" ? sessionStorage : null
+      );
+      if (existingJobId) {
+        setCurrentLoadedSavedId(null);
+        router.replace(
+          `/tools/roofing?entry=job-card&job=${encodeURIComponent(existingJobId)}`
+        );
+        return;
+      }
+
       const draft = buildJobDraftFromPacketState(linkedCustomerId, linkedPropertyId);
       if (!draft) {
         setJobCreationError("Company context is missing. Refresh and try again.");
         return;
       }
+      draft.source_metadata = withJobCreateIdempotencyMetadata(
+        { source: "job_packet" },
+        operationKey
+      );
 
       const record = await createJob(draft);
       if (!record?.id) {
         setJobCreationError("Could not create job. Check your connection and try again.");
         return;
       }
+      markPacketCreateOperationComplete(
+        fingerprint,
+        operationKey,
+        record.id,
+        typeof sessionStorage !== "undefined" ? sessionStorage : null
+      );
+      // Pin job id into the URL immediately so reload/back cannot mint a second job.
+      router.replace(
+        `/tools/roofing?entry=job-card&job=${encodeURIComponent(record.id)}`
+      );
       setCurrentLoadedSavedId(null);
       setHydratedJobRecord(record);
       hydrateJobDisplayFromRecord(record, { fillEmptyOnly: false });
@@ -5596,7 +5726,6 @@ Thanks,`;
       }
       setToast("Job saved. You can reopen it from the Job Board.");
       setTimeout(() => setToast(null), 3500);
-      router.push(`/tools/roofing?entry=job-card&job=${encodeURIComponent(record.id)}`);
     } finally {
       setIsCreatingJob(false);
     }
@@ -5624,6 +5753,18 @@ Thanks,`;
     selectedPlacesAddress,
   ]);
 
+  const packetIdentityParsed = parsePacketIdentitySearchParams(searchParams);
+  const packetIntakeTitle = resolvePacketIntakeTitle({
+    hasSelectedCustomer: Boolean(selectedCustomerId),
+    hasSelectedProperty: Boolean(selectedPropertyId),
+    anotherProperty: packetIdentityParsed.anotherProperty,
+    fromIdentityParams: Boolean(
+      packetIdentityParsed.customerId ||
+        packetIdentityParsed.propertyId ||
+        packetIdentityParsed.anotherProperty
+    ),
+  });
+
   function renderJobPacketWorkbench(
     variant: "standalone" | "embedded" = "embedded",
     _standaloneEntryMode: "packet" | "instant" = "packet"
@@ -5644,7 +5785,7 @@ Thanks,`;
       >
         {isStandalone ? (
           <div className="rounded-2xl bg-white px-5 py-4 shadow-sm shadow-slate-200/50 ring-1 ring-slate-200/55 sm:px-6 sm:py-5">
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Start my first job</h1>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl" data-testid="packet-intake-title">{packetIntakeTitle}</h1>
             {!packetFactsComplete ? (
               <p className="mt-3 text-[12px] leading-snug text-slate-500">
                 Add customer and property details to continue.
@@ -5686,13 +5827,26 @@ Thanks,`;
                             Customer
                           </div>
                           <p className="mt-1 text-[10.5px] leading-snug text-slate-500">Who receives the proposal and follow-ups.</p>
-                          <div className="mt-2 grid gap-2">
+                                                    <div className="mt-2 grid gap-2">
+                            {selectedCustomerId ? (
+                              <JobPacketSelectedIdentitySummary
+                                kind="customer"
+                                title={selectedCustomerLabel || customerName || "Customer"}
+                                detail={[customerEmail, customerPhone].filter(Boolean).join(" · ") || null}
+                                onChange={changeSelectedCustomer}
+                                secondaryAction={null}
+                              />
+                            ) : (
+                              <>
                             <input
                               id="customer-name"
                               name="customer_name_field"
                               type="text"
                               value={customerName}
-                              onChange={(e) => setCustomerName(e.target.value)}
+                              onChange={(e) => {
+                                setCustomerName(e.target.value);
+                                if (forceNewCustomer) setForceNewCustomer(false);
+                              }}
                               placeholder="Customer name"
                               autoComplete="off"
                               autoCorrect="off"
@@ -5709,6 +5863,7 @@ Thanks,`;
                               onChange={(e) => {
                                 setCustomerEmail(e.target.value);
                                 setSendError("");
+                                if (forceNewCustomer) setForceNewCustomer(false);
                               }}
                               placeholder="Email address"
                               autoComplete="new-password"
@@ -5726,7 +5881,10 @@ Thanks,`;
                               type="tel"
                               inputMode="tel"
                               value={customerPhone}
-                              onChange={(e) => setCustomerPhone(e.target.value)}
+                              onChange={(e) => {
+                                setCustomerPhone(e.target.value);
+                                if (forceNewCustomer) setForceNewCustomer(false);
+                              }}
                               placeholder="Phone optional"
                               autoComplete="off"
                               autoCorrect="off"
@@ -5746,6 +5904,13 @@ Thanks,`;
                                 }
                               />
                             )}
+                            {forceNewCustomer ? (
+                              <p className="text-[11px] text-slate-500" data-testid="packet-continue-as-new-hint">
+                                Creating a new customer. Choose Use on a match above to reuse instead.
+                              </p>
+                            ) : null}
+                              </>
+                            )}
                           </div>
             </section>
 
@@ -5756,185 +5921,199 @@ Thanks,`;
                             Property
                           </div>
                           <p className="mt-1 text-[10.5px] leading-snug text-slate-500">Where the job is happening.</p>
-                          <div className="mt-2 grid gap-2">
-                            <JobPacketAddressCombobox
-                              value={jobAddress1}
-                              suggestions={addressSuggestions}
-                              status={placesStatus}
-                              manualMode={addressEntryMode === "manual"}
-                              selectedAddress={selectedPlacesAddress}
-                              onValueChange={(value) => {
-                                setSuppressAddressSuggestions(false);
-                                setJobAddress1(value);
-                                setSelectedPlacesAddress(null);
-                                if (addressEntryMode === "search") {
-                                  // SEARCHING must not visually or submit-wise mix with prior structured truth.
-                                  clearStructuredAddressFields();
-                                }
-                                if (selectedPropertyId) {
-                                  setSelectedPropertyId(null);
-                                  setSelectedPropertyLabel(null);
-                                }
-                                if (forceNewProperty) setForceNewProperty(false);
-                              }}
-                              onValueBlur={(value) => {
-                                const cleaned = value.replace(/\s+/g, " ").trim();
-                                if (cleaned !== jobAddress1) setJobAddress1(cleaned);
-                              }}
-                              onSelect={applyPlacesSuggestion}
-                              onManual={() => {
-                                abandonSession();
-                                setAddressEntryMode("manual");
-                              }}
-                              onSearch={() => {
-                                abandonSession();
-                                setAddressEntryMode("search");
-                                setSuppressAddressSuggestions(false);
-                                setSelectedPlacesAddress(null);
-                                clearStructuredAddressFields();
-                              }}
-                              onChangeSelected={() => {
-                                abandonSession();
-                                setSelectedPlacesAddress(null);
-                                setAddressEntryMode("search");
-                                setSuppressAddressSuggestions(false);
-                                clearStructuredAddressFields();
-                              }}
-                              onClear={() => {
-                                abandonSession();
-                                setSelectedPlacesAddress(null);
-                                setSelectedPropertyId(null);
-                                setSelectedPropertyLabel(null);
-                                setForceNewProperty(false);
-                                setSuppressAddressSuggestions(false);
-                                setAddressEntryMode("search");
-                                setJobAddress1("");
-                                clearStructuredAddressFields();
-                              }}
-                            />
-                            {(addressEntryMode === "manual" ||
-                              Boolean(selectedPlacesAddress) ||
-                              Boolean(selectedPropertyId)) && (
-                            <>
-                            <input
-                              id="job-address-line-2"
-                              name="job_address2_field"
-                              type="text"
-                              value={jobAddress2}
-                              onChange={(event) => setJobAddress2(event.target.value)}
-                              onBlur={(event) => {
-                                const cleaned = event.target.value.replace(/\s+/g, " ").trim();
-                                if (cleaned !== jobAddress2) setJobAddress2(cleaned);
-                              }}
-                              placeholder="Unit / Apt / Suite (optional)"
-                              autoComplete="address-line2"
-                              className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-[12.5px] font-medium text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
-                            />
-                            <div className="grid grid-cols-[minmax(0,1fr)_5rem_5.75rem] gap-2">
-                              <input
-                                id="job-city"
-                                name="job_city_field"
-                                type="text"
-                                value={jobCity}
-                                onChange={(e) => {
-                                  setJobCity(e.target.value);
-                                  if (selectedPropertyId) {
-                                    setSelectedPropertyId(null);
-                                    setSelectedPropertyLabel(null);
-                                  }
-                                  if (forceNewProperty) setForceNewProperty(false);
-                                }}
-                                onBlur={(e) => {
-                                  const cleaned = e.target.value
-                                    .replace(/[^a-zA-Z\s.'-]/g, "")
-                                    .replace(/\s+/g, " ")
-                                    .trim();
-                                  if (cleaned !== jobCity) {
-                                    setJobCity(cleaned);
-                                  }
-                                }}
-                                placeholder="City"
-                                autoComplete="off"
-                                autoCorrect="off"
-                                autoCapitalize="words"
-                                spellCheck={false}
-                                className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12.5px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
-                              />
-                              <input
-                                id="job-state"
-                                name="job_state_field"
-                                type="text"
-                                value={jobState}
-                                onChange={(e) => {
-                                  setJobState(e.target.value);
-                                  if (selectedPropertyId) {
-                                    setSelectedPropertyId(null);
-                                    setSelectedPropertyLabel(null);
-                                  }
-                                  if (forceNewProperty) setForceNewProperty(false);
-                                }}
-                                onBlur={(e) => {
-                                  const cleaned = e.target.value
-                                    .replace(/[^a-zA-Z]/g, "")
-                                    .toUpperCase()
-                                    .trim();
-                                  if (cleaned !== jobState) setJobState(cleaned);
-                                }}
-                                placeholder="State"
-                                autoComplete="off"
-                                autoCorrect="off"
-                                autoCapitalize="characters"
-                                spellCheck={false}
-                                className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12.5px] font-medium uppercase text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
-                              />
-                              <input
-                                id="customer-job-zip"
-                                name="job_zip_field"
-                                type="text"
-                                inputMode="numeric"
-                                value={jobZip}
-                                onChange={(e) => {
-                                  setJobZip(sanitizeZipInput(e.target.value));
-                                  if (selectedPropertyId) {
-                                    setSelectedPropertyId(null);
-                                    setSelectedPropertyLabel(null);
-                                  }
-                                  if (forceNewProperty) setForceNewProperty(false);
-                                }}
-                                onBlur={() => {
-                                  const sanitized = sanitizeZipInput(jobZip);
-                                  if (sanitized !== jobZip) setJobZip(sanitized);
-                                  if (sanitized.length === 5) tryApplyZipPreset(sanitized);
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    const sanitized = sanitizeZipInput(jobZip);
-                                    if (sanitized !== jobZip) setJobZip(sanitized);
-                                    if (sanitized.length === 5) tryApplyZipPreset(sanitized);
-                                  }
-                                }}
-                                placeholder="ZIP"
-                                autoComplete="postal-code"
-                                autoCorrect="off"
-                                autoCapitalize="off"
-                                spellCheck={false}
-                                className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12.5px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
-                              />
-                            </div>
-                            {(entryMode === "packet" || entryMode === "instant") && (
-                              <JobPacketPropertyCandidates
-                                candidates={propertyCandidates}
-                                selectedPropertyId={selectedPropertyId}
-                                selectedPropertyLabel={selectedPropertyLabel}
-                                onSelect={selectExistingProperty}
-                                onContinueAsNew={continueAsNewProperty}
-                                showContinueAsNew={
-                                  !forceNewProperty && propertyCandidates.length > 0
+                                                    <div className="mt-2 grid gap-2">
+                            {selectedPropertyId ? (
+                              <JobPacketSelectedIdentitySummary
+                                kind="property"
+                                title={selectedPropertyLabel || jobAddress1 || "Property"}
+                                detail={[jobCity, jobState, jobZip].filter(Boolean).join(", ") || null}
+                                onChange={changeSelectedProperty}
+                                secondaryAction={
+                                  selectedCustomerId
+                                    ? { label: "Another property", onClick: startAnotherProperty }
+                                    : null
                                 }
                               />
-                            )}
-                            <div className="min-h-[1rem]">
+                            ) : (
+                              <>
+<JobPacketAddressCombobox
+                              value={jobAddress1}
+                              suggestions={addressSuggestions}
+                              status={placesStatus}
+                              manualMode={addressEntryMode === "manual"}
+                              selectedAddress={selectedPlacesAddress}
+                              onValueChange={(value) => {
+                                setSuppressAddressSuggestions(false);
+                                setJobAddress1(value);
+                                setSelectedPlacesAddress(null);
+                                if (addressEntryMode === "search") {
+                                  // SEARCHING must not visually or submit-wise mix with prior structured truth.
+                                  clearStructuredAddressFields();
+                                }
+                                if (selectedPropertyId) {
+                                  setSelectedPropertyId(null);
+                                  setSelectedPropertyLabel(null);
+                                }
+                                if (forceNewProperty) setForceNewProperty(false);
+                              }}
+                              onValueBlur={(value) => {
+                                const cleaned = value.replace(/\s+/g, " ").trim();
+                                if (cleaned !== jobAddress1) setJobAddress1(cleaned);
+                              }}
+                              onSelect={applyPlacesSuggestion}
+                              onManual={() => {
+                                abandonSession();
+                                setAddressEntryMode("manual");
+                              }}
+                              onSearch={() => {
+                                abandonSession();
+                                setAddressEntryMode("search");
+                                setSuppressAddressSuggestions(false);
+                                setSelectedPlacesAddress(null);
+                                clearStructuredAddressFields();
+                              }}
+                              onChangeSelected={() => {
+                                abandonSession();
+                                setSelectedPlacesAddress(null);
+                                setAddressEntryMode("search");
+                                setSuppressAddressSuggestions(false);
+                                clearStructuredAddressFields();
+                              }}
+                              onClear={() => {
+                                abandonSession();
+                                setSelectedPlacesAddress(null);
+                                setSelectedPropertyId(null);
+                                setSelectedPropertyLabel(null);
+                                setForceNewProperty(false);
+                                setSuppressAddressSuggestions(false);
+                                setAddressEntryMode("search");
+                                setJobAddress1("");
+                                clearStructuredAddressFields();
+                              }}
+                            />
+                            {(addressEntryMode === "manual" ||
+                              Boolean(selectedPlacesAddress) ||
+                              Boolean(selectedPropertyId)) && (
+                            <>
+                            <input
+                              id="job-address-line-2"
+                              name="job_address2_field"
+                              type="text"
+                              value={jobAddress2}
+                              onChange={(event) => setJobAddress2(event.target.value)}
+                              onBlur={(event) => {
+                                const cleaned = event.target.value.replace(/\s+/g, " ").trim();
+                                if (cleaned !== jobAddress2) setJobAddress2(cleaned);
+                              }}
+                              placeholder="Unit / Apt / Suite (optional)"
+                              autoComplete="address-line2"
+                              className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-[12.5px] font-medium text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+                            />
+                            <div className="grid grid-cols-[minmax(0,1fr)_5rem_5.75rem] gap-2">
+                              <input
+                                id="job-city"
+                                name="job_city_field"
+                                type="text"
+                                value={jobCity}
+                                onChange={(e) => {
+                                  setJobCity(e.target.value);
+                                  if (selectedPropertyId) {
+                                    setSelectedPropertyId(null);
+                                    setSelectedPropertyLabel(null);
+                                  }
+                                  if (forceNewProperty) setForceNewProperty(false);
+                                }}
+                                onBlur={(e) => {
+                                  const cleaned = e.target.value
+                                    .replace(/[^a-zA-Z\s.'-]/g, "")
+                                    .replace(/\s+/g, " ")
+                                    .trim();
+                                  if (cleaned !== jobCity) {
+                                    setJobCity(cleaned);
+                                  }
+                                }}
+                                placeholder="City"
+                                autoComplete="off"
+                                autoCorrect="off"
+                                autoCapitalize="words"
+                                spellCheck={false}
+                                className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12.5px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+                              />
+                              <input
+                                id="job-state"
+                                name="job_state_field"
+                                type="text"
+                                value={jobState}
+                                onChange={(e) => {
+                                  setJobState(e.target.value);
+                                  if (selectedPropertyId) {
+                                    setSelectedPropertyId(null);
+                                    setSelectedPropertyLabel(null);
+                                  }
+                                  if (forceNewProperty) setForceNewProperty(false);
+                                }}
+                                onBlur={(e) => {
+                                  const cleaned = e.target.value
+                                    .replace(/[^a-zA-Z]/g, "")
+                                    .toUpperCase()
+                                    .trim();
+                                  if (cleaned !== jobState) setJobState(cleaned);
+                                }}
+                                placeholder="State"
+                                autoComplete="off"
+                                autoCorrect="off"
+                                autoCapitalize="characters"
+                                spellCheck={false}
+                                className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12.5px] font-medium uppercase text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+                              />
+                              <input
+                                id="customer-job-zip"
+                                name="job_zip_field"
+                                type="text"
+                                inputMode="numeric"
+                                value={jobZip}
+                                onChange={(e) => {
+                                  setJobZip(sanitizeZipInput(e.target.value));
+                                  if (selectedPropertyId) {
+                                    setSelectedPropertyId(null);
+                                    setSelectedPropertyLabel(null);
+                                  }
+                                  if (forceNewProperty) setForceNewProperty(false);
+                                }}
+                                onBlur={() => {
+                                  const sanitized = sanitizeZipInput(jobZip);
+                                  if (sanitized !== jobZip) setJobZip(sanitized);
+                                  if (sanitized.length === 5) tryApplyZipPreset(sanitized);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    const sanitized = sanitizeZipInput(jobZip);
+                                    if (sanitized !== jobZip) setJobZip(sanitized);
+                                    if (sanitized.length === 5) tryApplyZipPreset(sanitized);
+                                  }
+                                }}
+                                placeholder="ZIP"
+                                autoComplete="postal-code"
+                                autoCorrect="off"
+                                autoCapitalize="off"
+                                spellCheck={false}
+                                className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12.5px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+                              />
+                            </div>
+                            {(entryMode === "packet" || entryMode === "instant") && (
+                              <JobPacketPropertyCandidates
+                                candidates={propertyCandidates}
+                                selectedPropertyId={selectedPropertyId}
+                                selectedPropertyLabel={selectedPropertyLabel}
+                                onSelect={selectExistingProperty}
+                                onContinueAsNew={continueAsNewProperty}
+                                showContinueAsNew={
+                                  !forceNewProperty && propertyCandidates.length > 0
+                                }
+                              />
+                            )}
+                            ﻿                            <div className="min-h-[1rem]">
                               {autofillFromZip && (
                                 <div className="flex flex-wrap items-center gap-2">
                                   <span className="text-[10.5px] font-medium text-emerald-700">Auto-filled from ZIP defaults</span>
@@ -5973,7 +6152,9 @@ Thanks,`;
                                 </button>
                               )}
                             </div>
-                            </>
+                              </>
+                            )}
+                              </>
                             )}
                           </div>
             </section>

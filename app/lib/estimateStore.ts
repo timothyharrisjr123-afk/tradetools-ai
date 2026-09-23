@@ -1,5 +1,4 @@
 import { getSupabaseClient } from "@/app/lib/supabaseClient";
-import { findOrCreateCustomer } from "@/app/lib/customerStore";
 
 export interface RoofingEstimate {
   id: string;
@@ -194,14 +193,9 @@ async function upsertEstimateToSupabase(e: RoofingEstimate): Promise<boolean> {
   if (!companyId) return false;
   const supabase = getSupabaseClient();
   if (!supabase) return false;
-  const customerId = await findOrCreateCustomer({
-    supabase,
-    companyId,
-    name: e.customerName ?? "",
-    email: e.customerEmail ?? "",
-    phone: e.customerPhone,
-    address: e.address,
-  });
+    // Phase 6 / FD-P1-01 quarantine: estimate shelf must not create or email-collapse customers.
+  // Never invent a customer_id from estimate contact fields.
+  const customerId = null;
   const nowIso = new Date().toISOString();
   const row = estimateToRow(e, nowIso, companyId, customerId);
   try {

@@ -8,6 +8,10 @@
  */
 
 import {
+  createJobWithIdempotency,
+  readCreateIdempotencyKeyFromMetadata,
+} from "@/app/lib/packetIdentityEntry";
+import {
   ensureBrowserAuthSession,
   getSupabaseClient,
 } from "@/app/lib/supabaseClient";
@@ -314,16 +318,42 @@ export function jobDraftToInsertRow(draft: JobDraft | Partial<JobDraft>): Partia
 // Supabase reads / writes
 // ---------------------------------------------------------------------------
 
+async function findJobByCreateIdempotencyKey(
+  supabase: NonNullable<ReturnType<typeof getSupabaseClient>>,
+  companyId: string,
+  createIdempotencyKey: string
+): Promise<JobRecord | null> {
+  const { data, error } = await supabase
+    .from("jobs")
+    .select(JOB_SELECT_COLUMNS)
+    .eq("company_id", companyId)
+    .contains("source_metadata", { create_idempotency_key: createIdempotencyKey })
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[jobStore] createJob idempotency lookup failed:", error.message);
+    return null;
+  }
+  if (!data) return null;
+  return rowToJobRecord(data as JobRow);
+}
+
 export async function createJob(draft: JobDraft): Promise<JobRecord | null> {
   const supabase = getSupabaseClient();
   if (!supabase) {
     console.error("[jobStore] createJob: Supabase client unavailable");
     return null;
   }
-  if (!normalizeNullableString(draft.company_id)) {
+  const companyId = normalizeNullableString(draft.company_id);
+  if (!companyId) {
     console.error("[jobStore] createJob: company_id is required");
     return null;
   }
+
+  const createIdempotencyKey = readCreateIdempotencyKeyFromMetadata(
+    draft.source_metadata ?? null
+  );
 
   const nowIso = new Date().toISOString();
   const row = jobDraftToInsertRow({
@@ -339,18 +369,31 @@ export async function createJob(draft: JobDraft): Promise<JobRecord | null> {
   });
 
   try {
-    const { data, error } = await supabase
-      .from("jobs")
-      .insert(row)
-      .select(JOB_SELECT_COLUMNS)
-      .single();
+    return await createJobWithIdempotency({
+      companyId,
+      createIdempotencyKey,
+      findExisting: (cid, key) => findJobByCreateIdempotencyKey(supabase, cid, key),
+      insert: async () => {
+        const { data, error } = await supabase
+          .from("jobs")
+          .insert(row)
+          .select(JOB_SELECT_COLUMNS)
+          .single();
 
-    if (error) {
-      console.error("[jobStore] createJob failed:", error.message);
-      return null;
-    }
-    if (!data) return null;
-    return rowToJobRecord(data as JobRow);
+        if (!error && data) {
+          return { ok: true as const, record: rowToJobRecord(data as JobRow) };
+        }
+
+        const uniqueViolation =
+          error?.code === "23505" ||
+          /duplicate key|unique constraint/i.test(String(error?.message ?? ""));
+        if (uniqueViolation) {
+          return { ok: false as const, uniqueViolation: true };
+        }
+        console.error("[jobStore] createJob failed:", error?.message ?? "unknown");
+        return { ok: false as const, uniqueViolation: false };
+      },
+    });
   } catch (err) {
     console.error("[jobStore] createJob error:", err);
     return null;

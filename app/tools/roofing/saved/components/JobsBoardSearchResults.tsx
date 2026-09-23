@@ -33,12 +33,15 @@ function ResultButton({
         aria-label={`Open ${typeLabel.toLowerCase()} ${item.primary}`}
         onClick={() => onOpen(item.href)}
       >
-        <span className="w-full truncate text-sm font-semibold text-slate-900">
-          {item.primary}
+        <span className="flex w-full min-w-0 items-baseline gap-2">
+          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">{typeLabel}</span>
+          <span className="min-w-0 truncate text-sm font-semibold text-slate-900">{item.primary}</span>
         </span>
-        <span className="w-full truncate text-xs text-slate-500">
-          {[item.secondary, item.stageLabel].filter(Boolean).join(" · ") || typeLabel}
-        </span>
+        {[item.secondary, item.stageLabel].filter(Boolean).join(" · ") ? (
+          <span className="w-full truncate text-xs text-slate-500">
+            {[item.secondary, item.stageLabel].filter(Boolean).join(" · ")}
+          </span>
+        ) : null}
       </button>
     </li>
   );
@@ -90,12 +93,12 @@ export default function JobsBoardSearchResults({
       </div>
 
       {status === "loading" ? (
-        <p className="px-4 py-8 text-center text-sm text-slate-500">Searching…</p>
+        <p className="px-4 py-8 text-center text-sm text-slate-500" data-jobs-board-search-loading>Searching…</p>
       ) : null}
 
       {status === "error" ? (
-        <p className="px-4 py-8 text-center text-sm text-slate-600">
-          Could not search. Try again.
+        <p className="px-4 py-8 text-center text-sm text-slate-600" data-jobs-board-search-failed>
+          Could not search right now. Try again.
         </p>
       ) : null}
 
@@ -105,7 +108,7 @@ export default function JobsBoardSearchResults({
         </p>
       ) : null}
 
-      {results.length > 0 ? (
+      {status === "ready" && results.length > 0 ? (
         <div className="pb-2">
           <TypeGroup label="Jobs" items={grouped.jobs} onOpen={onOpen} />
           <TypeGroup label="Customers" items={grouped.customers} onOpen={onOpen} />

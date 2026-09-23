@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { MapPin } from "lucide-react";
+import Link from "next/link";
+import { buildPacketEntryHref } from "@/app/lib/packetIdentityEntry";
 import FieldDiveWorkspaceShell, {
   WorkspaceEmpty,
   WorkspaceLinkRow,
@@ -81,6 +83,20 @@ export default function PropertyWorkspaceClient({ propertyId }: { propertyId: st
             <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" strokeWidth={1.75} aria-hidden />
             <span className="truncate">{locality}</span>
           </div>
+        ) : null
+      }
+      actions={
+        property ? (
+          <Link
+            href={buildPacketEntryHref({
+              propertyId,
+              customerId: customers.length === 1 ? customers[0]?.id : null,
+            })}
+            className="inline-flex h-9 items-center rounded-lg bg-slate-900 px-3 text-sm font-medium text-white hover:bg-slate-800"
+            data-testid="property-new-job-here"
+          >
+            New job here
+          </Link>
         ) : null
       }
     >

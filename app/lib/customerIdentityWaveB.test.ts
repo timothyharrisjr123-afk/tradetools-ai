@@ -153,7 +153,8 @@ describe("Wave B â€” writers + intake contracts", () => {
     assert.match(source, /export async function findOrCreateCustomer/);
     assert.match(source, /normalizeCustomerEmail/);
     assert.match(source, /\.ilike\("email", emailNorm\)/);
-    assert.match(source, /Do not use this for New Job "continue as new"/);
+    assert.match(source, /LEGACY-QUARANTINED/);
+    assert.match(source, /No silent email-based collapse/);
   });
 
   test("New Job packet uses createCustomer or selected id â€” not silent findOrCreate collapse", () => {
@@ -179,16 +180,17 @@ describe("Wave B â€” writers + intake contracts", () => {
     assert.match(source, /Add customer and property details to continue/);
     assert.match(read("app/tools/roofing/JobPacketAddressCombobox.tsx"), /job_address1_field/);
     assert.match(packet, /Show more/);
-    assert.match(packet, /Continue as new customer/);
+    assert.match(packet, /Continue as new/);
     assert.match(packet, /Using existing customer/);
     assert.doesNotMatch(packet, /Duplicate detected/);
   });
 
-  test("Job Card contact remains snapshot; live Customer not dual-written from packet edits", () => {
+  test("Job Card contact remains snapshot; no silent email findOrCreate on persist", () => {
     const persist = read("app/lib/jobCardCustomerPersist.ts");
     assert.match(persist, /customer_id/);
+    assert.match(persist, /explicit_selection_required/);
+    assert.doesNotMatch(persist, /await input\.deps\.findOrCreateCustomer/);
     assert.doesNotMatch(persist, /\.update\(\{[\s\S]*email/);
-    assert.match(persist, /findOrCreateCustomer/);
   });
 
   test("proposal customer context remains company-scoped snapshot path", () => {
@@ -222,7 +224,7 @@ describe("Wave B â€” migration 063 security contract", () => {
     const names = readdirSync(MIGRATIONS).filter((n) => n.includes("_063_"));
     assert.deepEqual(names, ["20260830_063_search_company_customers.sql"]);
     const packet = read("app/tools/roofing/JobPacketCustomerCandidates.tsx");
-    assert.match(packet, /Possible match/);
+    assert.match(packet, /Possible matches/);
     assert.doesNotMatch(packet, /Duplicate detected/);
     const searchApi = read("app/api/customers/search/route.ts");
     assert.match(searchApi, /search_company_customers_v1/);

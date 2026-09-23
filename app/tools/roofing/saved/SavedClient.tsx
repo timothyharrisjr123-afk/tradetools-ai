@@ -153,6 +153,20 @@ const ROOFING_SAVED_RETURN_STATUS_FILTER = "roofing_saved_return_status_filter";
 const ROOFING_SAVED_RETURN_SCHEDULED_VIEW = "roofing_saved_return_scheduled_view";
 const ROOFING_SAVED_RETURN_QUERY = "roofing_saved_return_query";
 
+function stashBoardReturnContext(args: {
+  query: string;
+  statusFilter: string;
+  scheduledView: string;
+}) {
+  try {
+    sessionStorage.setItem(ROOFING_SAVED_RETURN_QUERY, args.query);
+    sessionStorage.setItem(ROOFING_SAVED_RETURN_STATUS_FILTER, args.statusFilter);
+    sessionStorage.setItem(ROOFING_SAVED_RETURN_SCHEDULED_VIEW, args.scheduledView);
+  } catch {
+    /* ignore */
+  }
+}
+
 function arrivalLabelFromValue(v: string) {
   const found = ARRIVAL_WINDOWS.find((x) => x.value === v);
   return found?.label ?? v;
@@ -2848,6 +2862,11 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     if (!id) return;
 
     if (action === "load") {
+      stashBoardReturnContext({
+        query,
+        statusFilter,
+        scheduledView,
+      });
       const href = resolveJobOpenHref(est);
       if (href.includes("loadSaved=")) {
         setCurrentLoadedSavedId(id);
@@ -3298,7 +3317,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
   const boardReady = hydrated && dbJobsStatus === "ready";
   const companyJobSearch = useWorkspaceSearch(
     query,
-    statusFilter === "all" && hydrated
+    hydrated
   );
 
   const legacySearchFiltered = useMemo(
@@ -4197,6 +4216,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                     status={companyJobSearch.status}
                     results={companyJobSearch.results}
                     onOpen={(href) => {
+                      stashBoardReturnContext({ query, statusFilter, scheduledView });
                       setCurrentLoadedSavedId(null);
                       router.push(href);
                     }}
@@ -4236,7 +4256,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
 
                 {boardFilterZeroMatch ? (
                   <p className="rounded-md border border-slate-200/80 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-                    No jobs match your search or filter.
+                    No jobs match your filters.
                     {boardViewMode === "board" ? " Stages remain below." : null}
                   </p>
                 ) : null}

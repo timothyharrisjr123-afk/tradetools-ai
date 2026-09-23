@@ -209,6 +209,14 @@ export default function JobsBoardCard({
             </span>
           ) : null}
         </div>
+        <div className="mt-1.5 flex min-w-0 items-start gap-2">
+          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400/90" strokeWidth={ICON_STROKE} aria-hidden />
+          {model.address ? (
+            <p className="min-w-0 line-clamp-2 text-xs leading-relaxed text-slate-500">{model.address}</p>
+          ) : (
+            <p className="text-xs text-slate-400">No address on file</p>
+          )}
+        </div>
         {model.dispositionLabel ? (
           <p
             className="mt-1 text-[11px] font-medium text-slate-600"
@@ -252,14 +260,7 @@ export default function JobsBoardCard({
             ) : null}
           </div>
         ) : null}
-        <div className="mt-1.5 flex min-w-0 items-start gap-2">
-          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400/90" strokeWidth={ICON_STROKE} aria-hidden />
-          {model.address ? (
-            <p className="min-w-0 line-clamp-2 text-xs leading-relaxed text-slate-500">{model.address}</p>
-          ) : (
-            <p className="text-xs text-slate-400">No address on file</p>
-          )}
-        </div>
+        
         {model.scheduleLabel ? (
           <p className="mt-1.5 text-xs font-medium text-slate-600" data-board-schedule-meta>
             {model.scheduleLabel}
@@ -346,7 +347,7 @@ export default function JobsBoardCard({
         ) : null}
       </div>
 
-      <div className="flex flex-1 flex-col justify-center border-y border-slate-100/90 bg-slate-50/35 px-4 py-3">
+      <div className="flex flex-1 flex-col justify-center border-y border-slate-100/80 bg-slate-50/25 px-4 py-2">
         <div className="grid grid-cols-1 gap-x-5 gap-y-2.5 min-[280px]:grid-cols-2 min-[280px]:gap-y-3">
           {model.tasksLabel ? (
             <IconStatusRow
@@ -367,9 +368,7 @@ export default function JobsBoardCard({
             label={model.proposalStatus.label}
             textClassName={statusMetaTextClass(model.proposalStatus.tone)}
           />
-          {assignee ? (
-            <IconStatusRow icon={UserCircle} label={assignee} textClassName="text-slate-500" />
-          ) : null}
+          
         </div>
       </div>
 
@@ -389,6 +388,12 @@ export default function JobsBoardCard({
           <div className="flex min-w-0 items-center gap-2 min-[280px]:justify-end">
             <CalendarClock className={ICON_CLASS} strokeWidth={ICON_STROKE} aria-hidden />
             <span className="truncate text-slate-500">{updatedFooter}</span>
+          </div>
+        ) : null}
+        {assignee ? (
+          <div className="flex min-w-0 items-center gap-2" data-board-card-owner>
+            <UserCircle className={ICON_CLASS} strokeWidth={ICON_STROKE} aria-hidden />
+            <span className="truncate text-slate-500">{assignee}</span>
           </div>
         ) : null}
       </footer>
