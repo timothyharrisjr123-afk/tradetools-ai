@@ -196,7 +196,7 @@ export default function JobCardDispositionControl({
         type="button"
         aria-haspopup="menu"
         aria-expanded={menuOpen}
-        aria-label="Job actions"
+        aria-label="More job actions"
         disabled={disabled || busy}
         data-jobcard-disposition-menu-trigger
         onClick={() => {
@@ -216,14 +216,14 @@ export default function JobCardDispositionControl({
             return next;
           });
         }}
-        className="inline-flex h-8 items-center rounded-md border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/70 disabled:opacity-60"
+        className="inline-flex h-8 items-center rounded-md border border-transparent bg-transparent px-2 text-xs font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/70 disabled:opacity-60"
       >
-        Job actions
+        More job actions
       </button>
       {menuOpen ? (
         <div
           role="menu"
-          aria-label="Job actions"
+          aria-label="More job actions"
           data-jobcard-disposition-menu
           className="fixed z-[60] min-w-[10.5rem] rounded-md border border-slate-200 bg-white py-1 shadow-lg"
           style={{

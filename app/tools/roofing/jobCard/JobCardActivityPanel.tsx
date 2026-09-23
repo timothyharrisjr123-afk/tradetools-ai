@@ -91,13 +91,15 @@ export default function JobCardActivityPanel({ items }: JobCardActivityPanelProp
 
   return (
     <aside
-      className="flex h-full min-h-0 flex-col border-t border-slate-200/80 bg-slate-50/30 xl:border-l xl:border-t-0"
+      className="flex min-h-0 max-h-[min(420px,50vh)] flex-col border-t border-slate-200/70 bg-transparent min-[1200px]:max-h-[min(70vh,36rem)] min-[1200px]:border-l min-[1200px]:border-t-0"
       data-jobcard-activity
     >
-      <div className="shrink-0 border-b border-slate-200/60 px-4 py-3">
-        <h2 className="text-sm font-semibold text-slate-900">Activity</h2>
+      <div className="shrink-0 border-b border-slate-200/50 px-3 py-2.5">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.04em] text-slate-500">
+          Activity
+        </h2>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-3 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200/60">
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-2.5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200/60">
         {items.length === 0 ? (
           <JobCardQuietEmptyState message="No activity yet" testId="activity" />
         ) : groups ? (

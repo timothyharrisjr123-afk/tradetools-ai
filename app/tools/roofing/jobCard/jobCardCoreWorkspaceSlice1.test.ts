@@ -316,17 +316,33 @@ describe("Overview lifecycle", () => {
       resolveJobCardOverviewForwardAction(eligibility({ canStartWork: true })),
       null
     );
+    assert.equal(
+      resolveJobCardOverviewPrimaryAction(eligibility({ canStartWork: true }))
+        ?.owner,
+      "overview_primary"
+    );
+    assert.equal(
+      resolveJobCardOverviewPrimaryAction(eligibility({ canCompleteJob: true }))
+        ?.owner,
+      "overview_primary"
+    );
     const html = renderToStaticMarkup(
       createElement(JobCardForwardLifecycleAction, {
-        action: { kind: "approve_job", label: "Approve job" },
+        action: {
+          kind: "approve_job",
+          label: "Approve",
+          owner: "overview_primary",
+        },
         onApproveJob: () => undefined,
       })
     );
     assert.match(html, /data-jobcard-overview-forward="approve_job"/);
-    assert.equal((html.match(/Approve job/g) ?? []).length, 1);
+    assert.equal((html.match(/>Approve</g) ?? []).length, 1);
     assert.match(JOB_CARD, /JobCardForwardLifecycleAction/);
+    assert.match(JOB_CARD, /overviewOwnsLifecycleCta/);
+    assert.match(JOB_CARD, /placement="sticky"/);
     assert.match(JOB_CARD, /onStartWork/);
-    assert.match(JOB_CARD, /data-jobcard-complete-job|onCompleteJob/);
+    assert.match(JOB_CARD, /onCompleteJob/);
   });
 });
 

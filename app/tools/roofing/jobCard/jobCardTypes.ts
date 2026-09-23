@@ -25,7 +25,7 @@ export const JOB_CARD_TABS = [
   { id: "work_orders", label: "Work Orders" },
   { id: "invoices", label: "Invoices" },
   { id: "job_costing", label: "Job Costing" },
-  { id: "attachments", label: "Attachments" },
+  { id: "attachments", label: "Photos" },
   { id: "instant_estimate", label: "Instant Estimate" },
 ] as const;
 

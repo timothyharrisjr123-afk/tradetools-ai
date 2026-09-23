@@ -283,10 +283,10 @@ describe("R3G surface contracts", () => {
     assert.match(JOB_CARD, /isProduction \|\| isComplete/);
     assert.match(JOB_CARD, /hasActualStart = isProduction \|\| isComplete/);
     assert.match(JOB_CARD, /Work started/);
-    assert.match(JOB_CARD, /Planned schedule Â·/);
-    assert.doesNotMatch(JOB_CARD, /Production Â· planned/);
+    assert.match(JOB_CARD, /Planned schedule/);
+    assert.doesNotMatch(JOB_CARD, /Production .* planned/);
     assert.match(ROOFING_CLIENT, /JobCardScheduleWorkspacePanel/);
-    assert.doesNotMatch(ROOFING_CLIENT, /Production Â· planned/);
+    assert.doesNotMatch(ROOFING_CLIENT, /Production .* planned/);
     assert.match(JOB_CARD, /scheduleReady/);
     assert.doesNotMatch(JOB_CARD, /Undo Start/);
     assert.match(ROOFING_CLIENT, /\/api\/jobs\/start-work/);

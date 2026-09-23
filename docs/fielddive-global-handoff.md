@@ -2,6 +2,47 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-23 — PHASE 8 COMPLETE: Job Card + mobile operational hierarchy (Astra §4 + §21)
+
+==================================================
+PHASE 8 — JOB CARD + MOBILE OPERATIONAL HIERARCHY  
+STATUS: **COMPLETE**
+==================================================
+
+- **Base HEAD (pre-commit):** `f0db86779e9121b9b7ea94c9dc6b5e3699fb9aa9`
+- **Astra fidelity source:** `tmp/fielddive-ui-review/astra-future-state-fielddive-blueprint.md` §4 Job Card + §21 Mobile (390) + §12 schedule→field handoff + G7 compact mobile nav note
+- **Roadmap Phase 8 ≠ Astra numbered G8.** Astra numbered G8 = disposition/recovery → **FieldDive Phase 9** (not started).
+- **Main:** **not** pushed. **No** deploy. **No** migration.
+
+### Locked product truth
+
+- **ONE** canonical Job Card; domain ownership unchanged (Calendar / Tasks / Photos-Attachments / Measurements / Proposals / Payments / Activity chronology)
+- **Mobile (viewport &lt; 1200, proven at true 390):** primary nav **Overview | Tasks | Photos | More**
+- **More bottom sheet** destinations: Calendar · Measurements · Proposals · Payments · Activity (real domains; no second shell)
+- **Desktop (≥1200):** full visible tab set retained (Overview…Photos)
+- **Overview hierarchy:** situation + single primary lifecycle CTA → field brief/schedule → compact financial (authorized) → tasks via G7 brief → Activity subordinate
+- **Primary lifecycle CTA:** reuses `resolveJobCardOverviewPrimaryAction` / canonical eligibility (Approve · Schedule · Start work · Complete job); Overview owns presentation; schedule section does not duplicate
+- **Mobile sticky** primary CTA (safe-area); yields while More sheet / focused editing surfaces are open
+- **Job actions:** quiet **More job actions** overflow (disposition authority unchanged; Phase 9 not redesigned)
+- **G7 field brief** preserved (derived/read-only; production lead canonical)
+- **Activity:** desktop right-rail reduced dominance; mobile via More + Overview teaser
+- **Roles:** same shell; `suppressCommercial` / server capability gates unchanged
+- **Phase 12.5** whole-app cohesion still deferred
+
+### Proof
+
+- Desktop + true-390 under `tmp/fielddive-ui-review/phase8-jobcard-mobile/`
+- Mobile dims proven: `innerWidth === 390`, `scrollWidth ≤ 390`
+
+### Tests
+
+- Phase 8 + Job Card / lifecycle / G7 / tasks / Activity / Board regressions: **215 pass / 0 fail**
+
+### Explicit next
+
+**NEXT: PHASE 9 — LIFECYCLE / DISPOSITION RECOVERY**  
+(Astra numbered G8). Do **not** begin from this checkpoint alone.
+
 ## 2026-09-23 — PHASE 7 COMPLETE: Small-team responsibility + field handoff (Astra G7)
 
 ==================================================
@@ -63,8 +104,7 @@ STATUS: **COMPLETE**
 
 **PHASE 12.5 — WHOLE-APP PAID UI + COHESION AUDIT** (future): buttons, colors, typography, spacing, cards/containers, forms, tables, modals/drawers, empty/error/loading, navigation, status semantics, customer-facing + operational surfaces, desktop + true 390, inherited “acceptable but not premium” UI. Do **not** start from this checkpoint alone.
 
-**NEXT: PHASE 8 — JOB CARD + MOBILE OPERATIONAL HIERARCHY**  
-Do **not** begin Phase 8 from this checkpoint alone. Recorded G8 debt includes compressed/cropped Job Card tab rail at 390.
+**NEXT: PHASE 9 — LIFECYCLE / DISPOSITION RECOVERY** (Astra numbered G8). Phase 8 Job Card + mobile hierarchy is **COMPLETE** — see Phase 8 COMPLETE section above.
 
 ## 2026-09-23 — PHASE 6 COMPLETE: Jobs + identity reuse + search + repeat work (Astra G6)
 

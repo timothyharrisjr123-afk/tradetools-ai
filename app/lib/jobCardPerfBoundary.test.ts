@@ -111,7 +111,7 @@ describe("jobCardPerfBoundary settlement ownership", () => {
   test("E: schedule error settlement does not replace Complete planned-schedule guard", () => {
     assert.match(
       SCHEDULE_SECTION,
-      /canComplete\s*=\s*\r?\n\s*isProduction && Boolean\(planned\)/
+      /canComplete\s*=\s*\r?\n\s*!overviewOwnsLifecycleCta &&\r?\n\s*isProduction &&\r?\n\s*Boolean\(planned\)/
     );
     assert.match(
       ROOFING_CLIENT,

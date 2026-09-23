@@ -9,7 +9,7 @@ import { findApproveJobAcceptanceItem } from "@/app/lib/boardGuardedMovement";
 import { filterJobCardWorkspaceAttentionItems } from "@/app/lib/jobCardWorkspaceAttention";
 import {
   JOB_CARD_AWAITING_CONTRACTOR_APPROVAL,
-  resolveJobCardOverviewForwardAction,
+  resolveJobCardOverviewPrimaryAction,
 } from "@/app/lib/jobCardForwardLifecycleAction";
 import { formatMeasurementQuantityLine } from "@/app/lib/jobCardMeasurementPresentation";
 import {
@@ -175,8 +175,10 @@ export default function JobCardClient({
   const [jobCardTab, setJobCardTabRaw] = useState<JobCardTabId>(
     coerceJobCardVisibleTab(tabParam)
   );
+  const [mobileActivityFocused, setMobileActivityFocused] = useState(false);
   const setJobCardTab = useCallback(
     (tab: JobCardTabId) => {
+      setMobileActivityFocused(false);
       const next = coerceJobCardVisibleTab(tab);
       setJobCardTabRaw(next);
       const qs = applyJobCardTabToSearch(searchParams.toString(), next);
@@ -618,7 +620,7 @@ export default function JobCardClient({
     ),
   });
   const approveAcceptanceItem = findApproveJobAcceptanceItem(jobAttention.items);
-  const overviewForward = resolveJobCardOverviewForwardAction(
+  const overviewPrimary = resolveJobCardOverviewPrimaryAction(
     jobCardActionEligibility
   );
   const workspaceAttentionItems = filterJobCardWorkspaceAttentionItems(
@@ -1077,9 +1079,54 @@ export default function JobCardClient({
                   ] === true
               )}
             />
-            <JobCardTabs activeTab={jobCardTab} onTabChange={setJobCardTab} />
-            <div className="grid min-h-[min(520px,calc(100vh-14rem))] grid-cols-1 xl:grid-cols-[minmax(0,1fr)_300px]">
-              <main className="min-h-0 overflow-y-auto p-5 sm:p-6">
+            <JobCardTabs
+              activeTab={jobCardTab}
+              onTabChange={setJobCardTab}
+              mobileActivityFocused={mobileActivityFocused}
+              onMobileActivityFocus={() => setMobileActivityFocused(true)}
+              onClearMobileActivityFocus={() => setMobileActivityFocused(false)}
+            />
+            <div className="grid min-h-0 grid-cols-1 min-[1200px]:grid-cols-[minmax(0,1fr)_220px] min-[1200px]:items-start">
+              <main
+                className={`min-h-0 overflow-y-auto p-5 sm:p-6 ${
+                  jobCardTab === "overview" &&
+                  overviewPrimary &&
+                  !mobileActivityFocused
+                    ? "pb-28 min-[1200px]:pb-6"
+                    : ""
+                }`}
+              >
+                {mobileActivityFocused ? (
+                  <div
+                    data-jobcard-mobile-activity-destination
+                    className="min-[1200px]:hidden"
+                  >
+                    <h2 className="mb-3 text-base font-semibold text-slate-900">
+                      Activity
+                    </h2>
+                    {currentJobId ? (
+                      <JobCardActivityPanelWithCustomerRequests
+                        key={`${currentJobId}-${scheduleActivityTick}-mobile`}
+                        jobId={currentJobId}
+                        proposalIds={jobCardProposalRows.map(
+                          (row) => row.proposalId
+                        )}
+                        jobCreatedAt={hydratedJobRecord?.created_at ?? null}
+                        proposals={listedJobDraftSummaries}
+                        sentFactsByProposalId={listedJobSentFacts}
+                        secondaryEffectsEnabled={jobCardSecondaryEnabled}
+                        ownedAcceptanceItems={jobAcceptanceActivityItems}
+                        ownedSignatureItems={jobSignatureActivityItems}
+                        skipPaymentEnrichment
+                      />
+                    ) : null}
+                  </div>
+                ) : null}
+                <div
+                  className={
+                    mobileActivityFocused ? "hidden min-[1200px]:block" : undefined
+                  }
+                >
                 <JobCardSectionPanel
                   tabId="overview"
                   activeTab={jobCardTab}
@@ -1112,11 +1159,62 @@ export default function JobCardClient({
                         ? null
                         : (jobPayments.workspace?.overviewStatusLabel ?? null)
                     }
+                    financialSummary={
+                      suppressCommercial
+                        ? null
+                        : jobPayments.loadStatus === "loading" &&
+                            !jobPayments.workspace?.overviewStatusLabel
+                          ? (
+                              <p className="text-sm text-slate-500">
+                                Loading payment status…
+                              </p>
+                            )
+                          : jobPayments.workspace?.overviewStatusLabel
+                            ? (
+                                <p
+                                  className="text-sm font-medium text-slate-800"
+                                  data-jobcard-overview-payment
+                                >
+                                  {jobPayments.workspace.overviewStatusLabel}
+                                </p>
+                              )
+                            : null
+                    }
                     suppressCommercial={suppressCommercial}
                     hideMeasurementRow={Boolean(
                       fieldBriefModel.authorizedWork.measurementSummary
                     )}
                     productionLead={null}
+                    primaryAction={
+                      overviewPrimary ? (
+                        <div className="hidden min-[1200px]:block">
+                          <JobCardForwardLifecycleAction
+                            action={overviewPrimary}
+                            placement="inline"
+                            busy={
+                              pendingAttentionId != null ||
+                              startWorkBusy ||
+                              completeJobBusy
+                            }
+                            onApproveJob={confirmJobAcceptance}
+                            onSchedule={() => {
+                              setScheduleError(null);
+                              setJobCardTab("calendar");
+                            }}
+                            onStartWork={
+                              jobCardActionEligibility.canStartWork
+                                ? startCurrentJobWork
+                                : undefined
+                            }
+                            onCompleteJob={
+                              jobCardActionEligibility.canCompleteJob
+                                ? completeCurrentJobWork
+                                : undefined
+                            }
+                          />
+                        </div>
+                      ) : null
+                    }
                     fieldBrief={
                       <JobCardFieldBrief
                         model={fieldBriefModel}
@@ -1148,21 +1246,29 @@ export default function JobCardClient({
                         }
                       />
                     }
+                    tasksSummary={null}
+                    recentActivitySummary={
+                      <section
+                        data-jobcard-overview-activity-teaser
+                        className="border-t border-slate-100 pt-4 min-[1200px]:hidden"
+                      >
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-400">
+                          Recent activity
+                        </p>
+                        <button
+                          type="button"
+                          className="mt-1 text-sm font-medium text-slate-700 hover:text-slate-950"
+                          onClick={() => setMobileActivityFocused(true)}
+                          data-jobcard-overview-activity-open
+                        >
+                          View activity
+                        </button>
+                      </section>
+                    }
                   />
-                  {!suppressCommercial ? (
-                  <JobCardForwardLifecycleAction
-                    action={overviewForward}
-                    busy={pendingAttentionId != null}
-                    onApproveJob={confirmJobAcceptance}
-                    onSchedule={() => {
-                      setScheduleError(null);
-                      setJobCardTab("calendar");
-                    }}
-                  />
-                  ) : null}
                   <JobCardScheduleSection
                     canSchedule={
-                      overviewForward?.kind === "schedule"
+                      overviewPrimary?.kind === "schedule"
                         ? false
                         : jobCardActionEligibility.canSchedule
                     }
@@ -1187,6 +1293,7 @@ export default function JobCardClient({
                     completeBusy={completeJobBusy}
                     completeError={completeJobError}
                     briefAlreadyShowsSchedule
+                    overviewOwnsLifecycleCta
                     onStartWork={
                       jobCardActionEligibility.canStartWork
                         ? startCurrentJobWork
@@ -1356,22 +1463,59 @@ export default function JobCardClient({
                   canAssignTasks={companyMembers.canAssignTasks}
                   members={companyMembers.liveMembers}
                 />
+                </div>
               </main>
               {currentJobId ? (
-                <JobCardActivityPanelWithCustomerRequests
-                  key={`${currentJobId}-${scheduleActivityTick}`}
-                  jobId={currentJobId}
-                  proposalIds={jobCardProposalRows.map((row) => row.proposalId)}
-                  jobCreatedAt={hydratedJobRecord?.created_at ?? null}
-                  proposals={listedJobDraftSummaries}
-                  sentFactsByProposalId={listedJobSentFacts}
-                  secondaryEffectsEnabled={jobCardSecondaryEnabled}
-                  ownedAcceptanceItems={jobAcceptanceActivityItems}
-                  ownedSignatureItems={jobSignatureActivityItems}
-                  skipPaymentEnrichment
-                />
+                <div
+                  className="hidden max-h-[min(70vh,36rem)] self-start overflow-hidden min-[1200px]:block"
+                  data-jobcard-activity-rail
+                >
+                  <JobCardActivityPanelWithCustomerRequests
+                    key={`${currentJobId}-${scheduleActivityTick}`}
+                    jobId={currentJobId}
+                    proposalIds={jobCardProposalRows.map((row) => row.proposalId)}
+                    jobCreatedAt={hydratedJobRecord?.created_at ?? null}
+                    proposals={listedJobDraftSummaries}
+                    sentFactsByProposalId={listedJobSentFacts}
+                    secondaryEffectsEnabled={jobCardSecondaryEnabled}
+                    ownedAcceptanceItems={jobAcceptanceActivityItems}
+                    ownedSignatureItems={jobSignatureActivityItems}
+                    skipPaymentEnrichment
+                  />
+                </div>
               ) : null}
             </div>
+            {jobCardTab === "overview" &&
+            overviewPrimary &&
+            !mobileActivityFocused &&
+            !prepare.modalOpen &&
+            !prepare.captureOpen &&
+            !changePropertyOpen ? (
+              <JobCardForwardLifecycleAction
+                action={overviewPrimary}
+                placement="sticky"
+                busy={
+                  pendingAttentionId != null ||
+                  startWorkBusy ||
+                  completeJobBusy
+                }
+                onApproveJob={confirmJobAcceptance}
+                onSchedule={() => {
+                  setScheduleError(null);
+                  setJobCardTab("calendar");
+                }}
+                onStartWork={
+                  jobCardActionEligibility.canStartWork
+                    ? startCurrentJobWork
+                    : undefined
+                }
+                onCompleteJob={
+                  jobCardActionEligibility.canCompleteJob
+                    ? completeCurrentJobWork
+                    : undefined
+                }
+              />
+            ) : null}
           </div>
         </div>
       </div>

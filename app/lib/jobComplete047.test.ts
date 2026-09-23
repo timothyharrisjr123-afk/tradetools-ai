@@ -189,7 +189,7 @@ describe("047 schema and security contracts", () => {
     ];
     for (const name of migrations) {
       assert.doesNotMatch(
-        readFileSync(join(ROOT, "supabase/migrations", name), "utf8"),
+        readFileSync(join(ROOT, "supabase/history/legacy-migrations", name), "utf8"),
         /complete_job_work_v1|jobs\.completed_at/
       );
     }
@@ -350,7 +350,7 @@ describe("R3H surface contracts", () => {
   test("Job Card Production exposes Complete job and read-only planned schedule", () => {
     assert.match(JOB_CARD, /data-jobcard-complete-job/);
     assert.match(JOB_CARD, /Complete job/);
-    assert.match(JOB_CARD, /isProduction && Boolean\(planned\) && Boolean\(onCompleteJob\)/);
+    assert.match(JOB_CARD, /!overviewOwnsLifecycleCta &&\s*\r?\n\s*isProduction &&\s*\r?\n\s*Boolean\(planned\) &&\s*\r?\n\s*Boolean\(onCompleteJob\)/);
     assert.match(JOB_CARD, /isProduction \|\| isComplete/);
     assert.match(JOB_CARD, /Work completed/);
     assert.match(JOB_CARD, /data-jobcard-work-completed/);
@@ -495,7 +495,7 @@ describe("R3H surface contracts", () => {
     );
     assert.match(ROOFING_CLIENT, /setJobSchedulesLoadedForJobId\(currentJobId\)/);
     assert.match(ROOFING_CLIENT, /resolveJobCardScheduleDisplay|resolveJobCardActiveSchedule/);
-    assert.match(JOB_CARD, /isProduction && Boolean\(planned\) && Boolean\(onCompleteJob\)/);
+    assert.match(JOB_CARD, /!overviewOwnsLifecycleCta &&\s*\r?\n\s*isProduction &&\s*\r?\n\s*Boolean\(planned\) &&\s*\r?\n\s*Boolean\(onCompleteJob\)/);
     assert.match(ROOFING_CLIENT, /initialTrustedServerJobSeed/);
     assert.match(ROOFING_CLIENT, /\[entryMode, currentJobId, scheduleActivityTick/);
   });

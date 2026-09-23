@@ -1,39 +1,81 @@
 "use client";
 
-import type { JobCardOverviewForwardAction } from "@/app/lib/jobCardForwardLifecycleAction";
+import type { JobCardOverviewPrimaryAction } from "@/app/lib/jobCardForwardLifecycleAction";
 
 const PRIMARY_BUTTON =
-  "inline-flex min-h-[44px] items-center justify-center rounded-md bg-slate-900 px-3.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto";
 
 type JobCardForwardLifecycleActionProps = {
-  action: JobCardOverviewForwardAction | null;
+  action: JobCardOverviewPrimaryAction | null;
   busy?: boolean;
+  /** Desktop/inline placement in the Overview situation area. */
+  placement?: "inline" | "sticky";
   onApproveJob?: () => void;
   onSchedule?: () => void;
+  onStartWork?: () => void;
+  onCompleteJob?: () => void;
 };
+
+function busyLabel(action: JobCardOverviewPrimaryAction): string {
+  if (action.kind === "approve_job") return "Approving…";
+  if (action.kind === "start_work") return "Starting…";
+  if (action.kind === "complete_job") return "Completing…";
+  return action.label;
+}
 
 export default function JobCardForwardLifecycleAction({
   action,
   busy = false,
+  placement = "inline",
   onApproveJob,
   onSchedule,
+  onStartWork,
+  onCompleteJob,
 }: JobCardForwardLifecycleActionProps) {
   if (!action) return null;
+
   const onClick =
-    action.kind === "approve_job" ? onApproveJob : onSchedule;
+    action.kind === "approve_job"
+      ? onApproveJob
+      : action.kind === "schedule"
+        ? onSchedule
+        : action.kind === "start_work"
+          ? onStartWork
+          : onCompleteJob;
   if (!onClick) return null;
 
-  return (
-    <div className="mt-4 flex justify-end" data-jobcard-overview-forward={action.kind}>
-      <button
-        type="button"
-        className={PRIMARY_BUTTON}
-        disabled={busy}
-        onClick={onClick}
-        data-jobcard-overview-forward-action={action.kind}
+  const button = (
+    <button
+      type="button"
+      className={PRIMARY_BUTTON}
+      disabled={busy}
+      onClick={onClick}
+      data-jobcard-overview-forward-action={action.kind}
+      data-jobcard-primary-lifecycle={action.kind}
+    >
+      {busy ? busyLabel(action) : action.label}
+    </button>
+  );
+
+  if (placement === "sticky") {
+    return (
+      <div
+        className="fixed inset-x-0 bottom-0 z-[55] border-t border-slate-200/90 bg-white/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-6px_20px_rgba(15,23,42,0.08)] backdrop-blur-sm min-[1200px]:hidden"
+        data-jobcard-overview-forward={action.kind}
+        data-jobcard-sticky-primary="true"
       >
-        {busy && action.kind === "approve_job" ? "Approving…" : action.label}
-      </button>
+        {button}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="mt-3 flex justify-stretch sm:justify-end"
+      data-jobcard-overview-forward={action.kind}
+      data-jobcard-primary-inline="true"
+    >
+      {button}
     </div>
   );
 }

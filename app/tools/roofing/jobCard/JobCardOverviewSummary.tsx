@@ -7,12 +7,20 @@ type JobCardOverviewSummaryProps = {
   measurementLabel: string | null;
   operationalStateLabel?: string | null;
   paymentStatusLabel?: string | null;
+  /** Contract / collected line when authorized — never fabricate $0. */
+  financialSummary?: ReactNode;
   /** When true, hide commercial Proposal/Payment rows (field-restricted viewers). */
   suppressCommercial?: boolean;
   productionLead?: ReactNode;
   fieldBrief?: ReactNode;
   /** When field brief already shows measurement, skip the quiet Overview row. */
   hideMeasurementRow?: boolean;
+  /** Situation-area primary lifecycle CTA (desktop/inline). */
+  primaryAction?: ReactNode;
+  /** Compact open-task / exception summary (Tasks remains authoritative). */
+  tasksSummary?: ReactNode;
+  /** Subordinate recent-activity teaser (mobile / Overview bottom). */
+  recentActivitySummary?: ReactNode;
 };
 
 function Row({ label, value }: { label: string; value: ReactNode }) {
@@ -29,10 +37,14 @@ export default function JobCardOverviewSummary({
   measurementLabel,
   operationalStateLabel = null,
   paymentStatusLabel = null,
+  financialSummary = null,
   suppressCommercial = false,
   productionLead = null,
   fieldBrief = null,
   hideMeasurementRow = false,
+  primaryAction = null,
+  tasksSummary = null,
+  recentActivitySummary = null,
 }: JobCardOverviewSummaryProps) {
   const showMeasurement =
     Boolean(measurementLabel) &&
@@ -40,40 +52,54 @@ export default function JobCardOverviewSummary({
     !(suppressCommercial && fieldBrief);
 
   return (
-    <div className="space-y-5" data-jobcard-overview-truth>
-      {operationalStateLabel && !suppressCommercial ? (
-        <div data-jobcard-overview-operational className="space-y-1">
-          {operationalStateLabel.split("\n").map((line, index) => (
-            <p
-              key={`${index}-${line}`}
-              className={
-                index === 0
-                  ? "text-base font-semibold text-slate-950"
-                  : "text-sm font-medium text-slate-700"
-              }
-            >
-              {line}
-            </p>
-          ))}
-        </div>
+    <div className="space-y-6" data-jobcard-overview-truth>
+      {/* 1. Current situation + primary forward action */}
+      <section data-jobcard-overview-situation className="space-y-3">
+        {operationalStateLabel && !suppressCommercial ? (
+          <div data-jobcard-overview-operational className="space-y-1">
+            {operationalStateLabel.split("\n").map((line, index) => (
+              <p
+                key={`${index}-${line}`}
+                className={
+                  index === 0
+                    ? "text-base font-semibold text-slate-950"
+                    : "text-sm font-medium text-slate-700"
+                }
+              >
+                {line}
+              </p>
+            ))}
+          </div>
+        ) : null}
+        {primaryAction}
+      </section>
+
+      {/* 2. Field brief / schedule hierarchy (G7) */}
+      {fieldBrief ? (
+        <section data-jobcard-overview-brief>{fieldBrief}</section>
+      ) : productionLead ? (
+        <section data-jobcard-overview-lead>{productionLead}</section>
       ) : null}
 
-      {fieldBrief}
-
-      {/* Standalone lead control only when brief is absent (no double hierarchy). */}
-      {!fieldBrief && productionLead ? productionLead : null}
-
-      {(!suppressCommercial || showMeasurement) && (
-        <div
-          className={
-            fieldBrief
-              ? "space-y-2 border-t border-slate-100 pt-4"
-              : "space-y-2"
-          }
+      {/* 3. Compact financial summary when authorized */}
+      {!suppressCommercial && (financialSummary || paymentStatusLabel) ? (
+        <section
+          data-jobcard-overview-financial
+          className="space-y-2 border-t border-slate-100 pt-4"
         >
-          {!suppressCommercial ? (
-            <Row label="Proposal" value={proposalLabel} />
+          <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-400">
+            Financial
+          </p>
+          {financialSummary}
+          {!financialSummary && paymentStatusLabel ? (
+            <Row
+              label="Payment"
+              value={
+                <span data-jobcard-overview-payment>{paymentStatusLabel}</span>
+              }
+            />
           ) : null}
+          <Row label="Proposal" value={proposalLabel} />
           {showMeasurement ? (
             <Row
               label="Measurement"
@@ -82,16 +108,23 @@ export default function JobCardOverviewSummary({
               }
             />
           ) : null}
-          {!suppressCommercial && paymentStatusLabel ? (
-            <Row
-              label="Payment"
-              value={
-                <span data-jobcard-overview-payment>{paymentStatusLabel}</span>
-              }
-            />
-          ) : null}
-        </div>
-      )}
+        </section>
+      ) : showMeasurement ? (
+        <section className="space-y-2 border-t border-slate-100 pt-4">
+          <Row
+            label="Measurement"
+            value={
+              <span data-jobcard-overview-measurement>{measurementLabel}</span>
+            }
+          />
+        </section>
+      ) : null}
+
+      {/* 4. Relevant tasks / exceptions */}
+      {tasksSummary}
+
+      {/* 5. Recent Activity — subordinate */}
+      {recentActivitySummary}
     </div>
   );
 }

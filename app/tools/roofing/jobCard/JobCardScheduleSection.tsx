@@ -26,6 +26,11 @@ type JobCardScheduleSectionProps = {
    * bordered “Not scheduled” card chrome. Keep Start/Complete/Change actions.
    */
   briefAlreadyShowsSchedule?: boolean;
+  /**
+   * Phase 8 — Overview owns the single primary lifecycle CTA; do not duplicate
+   * Start work / Complete job / Schedule here.
+   */
+  overviewOwnsLifecycleCta?: boolean;
   onStartWork?: () => void;
   onCompleteJob?: () => void;
   onSchedule: () => void;
@@ -50,6 +55,7 @@ export default function JobCardScheduleSection({
   scheduleLoadStatus = scheduleReady ? "ready" : "loading",
   scheduleRefreshError = false,
   briefAlreadyShowsSchedule = false,
+  overviewOwnsLifecycleCta = false,
   onStartWork,
   onCompleteJob,
   onSchedule,
@@ -67,9 +73,16 @@ export default function JobCardScheduleSection({
   const hasActualStart = isProduction || isComplete;
   const isReadOnly = isProduction || isComplete;
   const canStart =
-    stage === "scheduled" && Boolean(planned) && Boolean(onStartWork);
+    !overviewOwnsLifecycleCta &&
+    stage === "scheduled" &&
+    Boolean(planned) &&
+    Boolean(onStartWork);
   const canComplete =
-    isProduction && Boolean(planned) && Boolean(onCompleteJob);
+    !overviewOwnsLifecycleCta &&
+    isProduction &&
+    Boolean(planned) &&
+    Boolean(onCompleteJob);
+  const canShowScheduleCta = !overviewOwnsLifecycleCta;
   const showUnavailable =
     scheduleLoadStatus === "error" && !planned && !hasActualStart;
   const showNotScheduled =
@@ -91,7 +104,7 @@ export default function JobCardScheduleSection({
   const completedLabel = formatJobCompletedAt(completedAt, timezone);
 
   if (suppressIdleDuplicate) {
-    if (!canSchedule || isReadOnly) {
+    if (!canSchedule || isReadOnly || !canShowScheduleCta) {
       return null;
     }
     return (
@@ -219,7 +232,11 @@ export default function JobCardScheduleSection({
                 Unschedule
               </button>
             </>
-          ) : !planned && canSchedule && !isReadOnly && !showUnavailable ? (
+          ) : !planned &&
+            canShowScheduleCta &&
+            canSchedule &&
+            !isReadOnly &&
+            !showUnavailable ? (
             <button
               type="button"
               onClick={onSchedule}

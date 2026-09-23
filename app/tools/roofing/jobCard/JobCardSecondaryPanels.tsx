@@ -123,7 +123,7 @@ export default function JobCardSecondaryPanels({
       <JobCardSectionPanel
         tabId="attachments"
         activeTab={activeTab}
-        title="Attachments"
+        title="Photos"
       >
         <JobCardAttachmentsWorkspace
           attachments={attachments.attachments}

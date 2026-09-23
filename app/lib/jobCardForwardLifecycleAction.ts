@@ -1,7 +1,7 @@
 /**
  * One primary forward lifecycle action for Job Card Overview.
- * Start/Complete remain owned by the Overview schedule section so those
- * existing surfaces stay the single CTA for those stages.
+ * Overview owns presentation of the single eligible CTA (Approve / Schedule /
+ * Start work / Complete job). Canonical eligibility remains authoritative.
  */
 
 import type { CanonicalJobActionEligibility } from "@/app/lib/jobLifecycleActionEligibility";
@@ -21,14 +21,15 @@ export type JobCardOverviewForwardAction = {
 export type JobCardOverviewPrimaryAction = {
   kind: JobCardOverviewPrimaryKind;
   label: string;
-  owner: "forward_strip" | "schedule_section";
+  /** Overview presents the CTA; schedule section must not duplicate it. */
+  owner: "overview_primary";
 };
 
 export function resolveJobCardOverviewForwardAction(
   eligibility: CanonicalJobActionEligibility
 ): JobCardOverviewForwardAction | null {
   if (eligibility.canApproveJob) {
-    return { kind: "approve_job", label: "Approve job" };
+    return { kind: "approve_job", label: "Approve" };
   }
   if (eligibility.canSchedule) {
     return { kind: "schedule", label: "Schedule" };
@@ -41,16 +42,16 @@ export function resolveJobCardOverviewPrimaryAction(
 ): JobCardOverviewPrimaryAction | null {
   const forward = resolveJobCardOverviewForwardAction(eligibility);
   if (forward) {
-    return { ...forward, owner: "forward_strip" };
+    return { ...forward, owner: "overview_primary" };
   }
   if (eligibility.canStartWork) {
-    return { kind: "start_work", label: "Start work", owner: "schedule_section" };
+    return { kind: "start_work", label: "Start work", owner: "overview_primary" };
   }
   if (eligibility.canCompleteJob) {
     return {
       kind: "complete_job",
       label: "Complete job",
-      owner: "schedule_section",
+      owner: "overview_primary",
     };
   }
   return null;
