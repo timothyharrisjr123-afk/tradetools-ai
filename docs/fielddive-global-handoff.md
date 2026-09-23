@@ -38,6 +38,12 @@ STATUS: **COMPLETE**
 
 - Phase 8 + Job Card / lifecycle / G7 / tasks / Activity / Board regressions: **215 pass / 0 fail**
 
+### Visual-proof correction (same day)
+
+- **Defect:** Phase 8 proof captures showed Photos tab with Tasks body (stale `dynamic()` SecondaryPanels chunk vs active tab) plus duplicate empty-state **Add task**.
+- **Fix commit:** `fix(job-card): correct Phase 8 mobile domain mapping` — static SecondaryPanels import, tab URL sync on `tab` value only, `photos`→`attachments` coerce alias, single Tasks header Add CTA.
+- Correction shots: `tmp/fielddive-ui-review/phase8-jobcard-mobile/correction-*.png`
+
 ### Explicit next
 
 **NEXT: PHASE 9 — LIFECYCLE / DISPOSITION RECOVERY**  
