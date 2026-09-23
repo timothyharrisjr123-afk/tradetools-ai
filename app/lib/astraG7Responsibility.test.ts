@@ -35,6 +35,11 @@ describe("Astra G7 role presets", () => {
     assert.equal(hasCompanyCapability("field_user", "proposal_author"), false);
     assert.equal(hasCompanyCapability("field_user", "payment_admin"), false);
     assert.equal(hasCompanyCapability("field_user", "member_admin"), false);
+    assert.equal(hasCompanyCapability("field_user", "job_pause_resume"), false);
+    assert.equal(
+      hasCompanyCapability("field_user", "job_disposition_finalize"),
+      false
+    );
     assert.equal(hasCompanyCapability("field_user", "task_complete"), true);
     assert.equal(hasCompanyCapability("field_user", "photo_mutate"), true);
     assert.equal(isRestrictedFieldRole("field_user"), true);
@@ -46,6 +51,8 @@ describe("Astra G7 role presets", () => {
     assert.equal(caps.has("task_assign"), true);
     assert.equal(caps.has("proposal_author"), false);
     assert.equal(caps.has("payment_admin"), false);
+    assert.equal(caps.has("job_pause_resume"), true);
+    assert.equal(caps.has("job_disposition_finalize"), false);
   });
 });
 
@@ -136,6 +143,8 @@ describe("Astra G7 repo authority contracts", () => {
     assert.match(members, /member_admin/);
     const start = read("app/api/jobs/start-work/route.ts");
     assert.match(start, /lifecycle_start_complete/);
+    const disposition = read("app/api/jobs/change-disposition/route.ts");
+    assert.match(disposition, /requireCapabilitySession/);
   });
 
   test("removed members lose getUserCompanyId access", () => {

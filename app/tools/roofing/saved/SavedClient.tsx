@@ -79,7 +79,7 @@ import {
   resolveLastDbJobRecoveryHref,
   searchBoardEntries,
 } from "@/app/lib/jobBoardAdapter";
-import { visibleDispositionLabel } from "@/app/lib/jobDispositionManagement";
+import { compactDispositionBadgeLabel } from "@/app/lib/jobDispositionManagement";
 import {
   hasActivePlannedWorkSchedule,
   isActiveJobDisposition,
@@ -3825,7 +3825,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       return {
         ...buildJobsBoardCardModel(job, batchStatuses, { columnKey }),
         sourceBadge: isLegacyBoardEstimateEntry(job) ? "Legacy" : null,
-        dispositionLabel: visibleDispositionLabel(
+        dispositionLabel: compactDispositionBadgeLabel(
           (job as { jobDisposition?: string | null }).jobDisposition
         ),
         attention: boardAttention,

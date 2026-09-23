@@ -1,17 +1,26 @@
 /**
- * One primary forward lifecycle action for Job Card Overview.
- * Overview owns presentation of the single eligible CTA (Approve / Schedule /
- * Start work / Complete job). Canonical eligibility remains authoritative.
+ * One primary operational action for Job Card Overview.
+ * Phase 8: Approve / Schedule / Start work / Complete job.
+ * Phase 9 / Astra G8: disposition recovery takes precedence when not active.
  */
 
 import type { CanonicalJobActionEligibility } from "@/app/lib/jobLifecycleActionEligibility";
+import { isActiveJobDisposition } from "@/app/lib/jobLifecycleActionEligibility";
+import {
+  isProductionClosedReopenAndCompletePath,
+  resolveOperationalDisposition,
+} from "@/app/lib/jobDispositionManagement";
+import type { CanonicalJobStage } from "@/app/lib/jobLifecycleTypes";
 
 export type JobCardOverviewForwardKind = "approve_job" | "schedule";
 
 export type JobCardOverviewPrimaryKind =
   | JobCardOverviewForwardKind
   | "start_work"
-  | "complete_job";
+  | "complete_job"
+  | "resume_job"
+  | "reopen_job"
+  | "reopen_and_complete";
 
 export type JobCardOverviewForwardAction = {
   kind: JobCardOverviewForwardKind;
@@ -37,9 +46,77 @@ export function resolveJobCardOverviewForwardAction(
   return null;
 }
 
+export type ResolveJobCardOverviewPrimaryOptions = {
+  disposition?: string | null;
+  stage?: CanonicalJobStage | string | null;
+  /** Capability: Hold/Resume. Default true when omitted (owner paths). */
+  canPauseResume?: boolean;
+  /** Capability: Lost/Close/Reopen. Default true when omitted. */
+  canFinalizeDisposition?: boolean;
+  /**
+   * Whether Complete would be eligible if disposition were active
+   * (used for Production + Closed composed recovery).
+   */
+  canCompleteIfActive?: boolean;
+};
+
+/**
+ * Exactly one primary operational CTA.
+ * Priority:
+ * 1. disposition != active → Resume / Reopen / Reopen and complete
+ * 2. else Phase 8 lifecycle CTA
+ * 3. else none
+ */
 export function resolveJobCardOverviewPrimaryAction(
-  eligibility: CanonicalJobActionEligibility
+  eligibility: CanonicalJobActionEligibility,
+  options?: ResolveJobCardOverviewPrimaryOptions
 ): JobCardOverviewPrimaryAction | null {
+  const dispositionRaw = options?.disposition;
+  if (!isActiveJobDisposition(dispositionRaw)) {
+    const disposition = resolveOperationalDisposition(dispositionRaw);
+    const canPause = options?.canPauseResume !== false;
+    const canFinalize = options?.canFinalizeDisposition !== false;
+
+    if (disposition === "on_hold") {
+      if (!canPause) return null;
+      return {
+        kind: "resume_job",
+        label: "Resume job",
+        owner: "overview_primary",
+      };
+    }
+    if (disposition === "lost") {
+      if (!canFinalize) return null;
+      return {
+        kind: "reopen_job",
+        label: "Reopen job",
+        owner: "overview_primary",
+      };
+    }
+    if (disposition === "closed") {
+      if (!canFinalize) return null;
+      if (
+        isProductionClosedReopenAndCompletePath({
+          stage: options?.stage,
+          disposition,
+          canCompleteIfActive: options?.canCompleteIfActive === true,
+        })
+      ) {
+        return {
+          kind: "reopen_and_complete",
+          label: "Reopen and complete",
+          owner: "overview_primary",
+        };
+      }
+      return {
+        kind: "reopen_job",
+        label: "Reopen job",
+        owner: "overview_primary",
+      };
+    }
+    return null;
+  }
+
   const forward = resolveJobCardOverviewForwardAction(eligibility);
   if (forward) {
     return { ...forward, owner: "overview_primary" };
@@ -59,3 +136,8 @@ export function resolveJobCardOverviewPrimaryAction(
 
 export const JOB_CARD_AWAITING_CONTRACTOR_APPROVAL =
   "Awaiting contractor approval" as const;
+
+export const REOPEN_AND_COMPLETE_CONFIRM_TITLE = "Reopen and complete" as const;
+
+export const REOPEN_AND_COMPLETE_CONFIRM_BODY =
+  "This reopens the job to Active, then records Complete using the normal completion rules. If reopen succeeds but Complete cannot run, the job stays Active in Production — Complete remains available. Closing history is not rolled back." as const;

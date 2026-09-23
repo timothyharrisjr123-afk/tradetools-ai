@@ -14,12 +14,18 @@ type JobCardForwardLifecycleActionProps = {
   onSchedule?: () => void;
   onStartWork?: () => void;
   onCompleteJob?: () => void;
+  onResumeJob?: () => void;
+  onReopenJob?: () => void;
+  onReopenAndComplete?: () => void;
 };
 
 function busyLabel(action: JobCardOverviewPrimaryAction): string {
   if (action.kind === "approve_job") return "Approving…";
   if (action.kind === "start_work") return "Starting…";
   if (action.kind === "complete_job") return "Completing…";
+  if (action.kind === "resume_job") return "Resuming…";
+  if (action.kind === "reopen_job") return "Reopening…";
+  if (action.kind === "reopen_and_complete") return "Working…";
   return action.label;
 }
 
@@ -31,6 +37,9 @@ export default function JobCardForwardLifecycleAction({
   onSchedule,
   onStartWork,
   onCompleteJob,
+  onResumeJob,
+  onReopenJob,
+  onReopenAndComplete,
 }: JobCardForwardLifecycleActionProps) {
   if (!action) return null;
 
@@ -41,7 +50,13 @@ export default function JobCardForwardLifecycleAction({
         ? onSchedule
         : action.kind === "start_work"
           ? onStartWork
-          : onCompleteJob;
+          : action.kind === "complete_job"
+            ? onCompleteJob
+            : action.kind === "resume_job"
+              ? onResumeJob
+              : action.kind === "reopen_job"
+                ? onReopenJob
+                : onReopenAndComplete;
   if (!onClick) return null;
 
   const button = (

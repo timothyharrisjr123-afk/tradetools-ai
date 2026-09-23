@@ -47,7 +47,11 @@ export type CompanyCapability =
   | "lifecycle_start_complete"
   | "photo_mutate"
   | "job_assign"
-  | "customers_jobs";
+  | "customers_jobs"
+  /** Astra G8 — Hold / Resume (active ↔ on_hold). */
+  | "job_pause_resume"
+  /** Astra G8 — Lost / Close / Reopen (and composed Production+Closed recovery). */
+  | "job_disposition_finalize";
 
 const PRESET_CAPABILITIES: Record<
   CompanyMembershipPreset,
@@ -66,6 +70,8 @@ const PRESET_CAPABILITIES: Record<
     "photo_mutate",
     "job_assign",
     "customers_jobs",
+    "job_pause_resume",
+    "job_disposition_finalize",
   ]),
   office_sales: new Set([
     "proposal_author",
@@ -77,6 +83,8 @@ const PRESET_CAPABILITIES: Record<
     "photo_mutate",
     "job_assign",
     "customers_jobs",
+    "job_pause_resume",
+    "job_disposition_finalize",
   ]),
   production_lead: new Set([
     "schedule_mutate",
@@ -86,6 +94,7 @@ const PRESET_CAPABILITIES: Record<
     "photo_mutate",
     "job_assign",
     "customers_jobs",
+    "job_pause_resume",
   ]),
   field_user: new Set([
     "task_complete",

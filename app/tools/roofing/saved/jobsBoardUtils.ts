@@ -775,22 +775,26 @@ export function buildJobCardDisplayModel(
 }
 
 export type BoardDispositionFilter =
+  | "active_work"
   | "all"
   | "active"
   | "on_hold"
   | "lost"
   | "closed";
 
-export const BOARD_DEFAULT_DISPOSITION_FILTER: BoardDispositionFilter = "all";
+/** Astra G8 — default Board shows Active + On hold; Lost/Closed via filter. */
+export const BOARD_DEFAULT_DISPOSITION_FILTER: BoardDispositionFilter =
+  "active_work";
 
 export const BOARD_DISPOSITION_FILTER_OPTIONS: ReadonlyArray<{
   id: BoardDispositionFilter;
   label: string;
 }> = [
+  { id: "active_work", label: "Active + On hold" },
   { id: "all", label: "All dispositions" },
   { id: "active", label: "Active" },
   { id: "on_hold", label: "On hold" },
-  { id: "lost", label: "Lost" },
+  { id: "lost", label: "Not proceeding" },
   { id: "closed", label: "Closed" },
 ];
 
@@ -798,6 +802,7 @@ export function isBoardDispositionFilter(
   value: unknown
 ): value is BoardDispositionFilter {
   return (
+    value === "active_work" ||
     value === "all" ||
     value === "active" ||
     value === "on_hold" ||
@@ -817,6 +822,9 @@ export function applyBoardDispositionFilter(
       resolveOperationalDisposition(
         (job as { jobDisposition?: string | null }).jobDisposition
       ) ?? "active";
+    if (filter === "active_work") {
+      return disposition === "active" || disposition === "on_hold";
+    }
     return disposition === filter;
   });
 }

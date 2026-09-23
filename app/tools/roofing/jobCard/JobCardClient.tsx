@@ -8,8 +8,16 @@ import { findApproveJobAcceptanceItem } from "@/app/lib/boardGuardedMovement";
 import { filterJobCardWorkspaceAttentionItems } from "@/app/lib/jobCardWorkspaceAttention";
 import {
   JOB_CARD_AWAITING_CONTRACTOR_APPROVAL,
+  REOPEN_AND_COMPLETE_CONFIRM_BODY,
+  REOPEN_AND_COMPLETE_CONFIRM_TITLE,
   resolveJobCardOverviewPrimaryAction,
 } from "@/app/lib/jobCardForwardLifecycleAction";
+import {
+  applyKnownDispositionToJobRecord,
+  dispositionBlockedWorkCopy,
+  mapDispositionMutationError,
+  visibleDispositionLabel,
+} from "@/app/lib/jobDispositionManagement";
 import { formatMeasurementQuantityLine } from "@/app/lib/jobCardMeasurementPresentation";
 import {
   pickMeasurementProposalRefs,
@@ -21,11 +29,6 @@ import {
   resolveCanonicalJobStageLabel,
 } from "@/app/lib/jobLifecycleMapper";
 import { resolveCanonicalJobActionEligibilityFromFacts } from "@/app/lib/jobLifecycleActionEligibility";
-import {
-  applyKnownDispositionToJobRecord,
-  dispositionBlockedWorkCopy,
-  visibleDispositionLabel,
-} from "@/app/lib/jobDispositionManagement";
 import { isUuidLike } from "@/app/lib/uuid";
 import { loadCompanyProfile } from "@/app/lib/companyProfile";
 import { resolveTrustedJobCardSeed } from "@/app/lib/jobCardServerSeed";
@@ -224,6 +227,12 @@ export default function JobCardClient({
   const [completeJobBusy, setCompleteJobBusy] = useState(false);
   const [changePropertyOpen, setChangePropertyOpen] = useState(false);
   const [completeJobError, setCompleteJobError] = useState<string | null>(null);
+  const [dispositionRecoveryBusy, setDispositionRecoveryBusy] = useState(false);
+  const [dispositionRecoveryError, setDispositionRecoveryError] = useState<
+    string | null
+  >(null);
+  const [reopenAndCompleteConfirmOpen, setReopenAndCompleteConfirmOpen] =
+    useState(false);
   const [scheduleActivityTick, setScheduleActivityTick] = useState(0);
   const [scheduleHydrateRetryTick, setScheduleHydrateRetryTick] = useState(0);
   const [jobCardSecondaryEnabled, setJobCardSecondaryEnabled] = useState(false);
@@ -618,8 +627,29 @@ export default function JobCardClient({
     ),
   });
   const approveAcceptanceItem = findApproveJobAcceptanceItem(jobAttention.items);
+  const canCompleteIfActive = resolveCanonicalJobActionEligibilityFromFacts({
+    stage: hydratedJobRecord?.stage,
+    disposition: "active",
+    schedule: jobCardSchedule.active,
+    scheduleReadStatus:
+      jobCardSchedule.loadStatus === "error"
+        ? "error"
+        : jobCardSchedule.ready
+          ? "ready"
+          : "loading",
+    approvalAcceptancePending: Boolean(
+      findApproveJobAcceptanceItem(jobAttention.items)
+    ),
+  }).canCompleteJob;
   const overviewPrimary = resolveJobCardOverviewPrimaryAction(
-    jobCardActionEligibility
+    jobCardActionEligibility,
+    {
+      disposition: hydratedJobRecord?.status,
+      stage: hydratedJobRecord?.stage,
+      canPauseResume: companyMembers.canPauseResume,
+      canFinalizeDisposition: companyMembers.canFinalizeDisposition,
+      canCompleteIfActive,
+    }
   );
   const workspaceAttentionItems = filterJobCardWorkspaceAttentionItems(
     jobAttention.items,
@@ -904,6 +934,121 @@ export default function JobCardClient({
     }
   };
 
+  const changeDispositionToActive = async (
+    jobId: string
+  ): Promise<{ ok: true; idempotent: boolean } | { ok: false; code: string }> => {
+    const response = await fetch("/api/jobs/change-disposition", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jobId, toStatus: "active" }),
+    });
+    const result = await response.json().catch(() => null);
+    if (!response.ok || result?.ok !== true) {
+      return {
+        ok: false,
+        code: typeof result?.code === "string" ? result.code : "internal_error",
+      };
+    }
+    try {
+      const refreshed = await refreshHydratedJobRecord(jobId);
+      if (!refreshed) {
+        setHydratedJobRecord((prev) =>
+          applyKnownDispositionToJobRecord(prev, jobId, "active")
+        );
+      }
+    } finally {
+      setScheduleActivityTick((value) => value + 1);
+    }
+    return { ok: true, idempotent: Boolean(result.idempotent) };
+  };
+
+  const resumeOrReopenJob = async () => {
+    if (!currentJobId || dispositionRecoveryBusy) return;
+    setDispositionRecoveryBusy(true);
+    setDispositionRecoveryError(null);
+    try {
+      const outcome = await changeDispositionToActive(currentJobId);
+      if (!outcome.ok) {
+        setDispositionRecoveryError(mapDispositionMutationError(outcome.code));
+        await refreshHydratedJobRecord(currentJobId);
+      }
+    } catch {
+      setDispositionRecoveryError(
+        "Could not confirm whether the job was reopened. Refreshing current Job status."
+      );
+      await refreshHydratedJobRecord(currentJobId);
+    } finally {
+      setDispositionRecoveryBusy(false);
+    }
+  };
+
+  const reopenAndCompleteJob = async () => {
+    if (!currentJobId || dispositionRecoveryBusy || completeJobBusy) return;
+    setReopenAndCompleteConfirmOpen(false);
+    setDispositionRecoveryBusy(true);
+    setDispositionRecoveryError(null);
+    setCompleteJobError(null);
+    try {
+      const reopen = await changeDispositionToActive(currentJobId);
+      if (!reopen.ok) {
+        setDispositionRecoveryError(mapDispositionMutationError(reopen.code));
+        await refreshHydratedJobRecord(currentJobId);
+        return;
+      }
+      // Partial-success rule: do not roll back reopen if Complete fails.
+      setDispositionRecoveryBusy(false);
+      setCompleteJobBusy(true);
+      const response = await fetch("/api/jobs/complete-work", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: currentJobId }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || result?.ok !== true) {
+        setCompleteJobError(
+          "Job was reopened to Active, but Complete could not finish. Use Complete job when ready."
+        );
+        await refreshHydratedJobRecord(currentJobId);
+        return;
+      }
+      await refreshHydratedJobRecord(currentJobId);
+      applyReturnedSchedule(result?.schedule, currentJobId);
+      setScheduleActivityTick((value) => value + 1);
+    } catch {
+      setCompleteJobError(
+        "Job may have been reopened. Refresh to confirm status before completing."
+      );
+      await refreshHydratedJobRecord(currentJobId);
+    } finally {
+      setDispositionRecoveryBusy(false);
+      setCompleteJobBusy(false);
+    }
+  };
+
+  const primaryActionHandlers = {
+    onApproveJob: confirmJobAcceptance,
+    onSchedule: () => {
+      setScheduleError(null);
+      setJobCardTab("calendar");
+    },
+    onStartWork: jobCardActionEligibility.canStartWork
+      ? startCurrentJobWork
+      : undefined,
+    onCompleteJob: jobCardActionEligibility.canCompleteJob
+      ? completeCurrentJobWork
+      : undefined,
+    onResumeJob: companyMembers.canPauseResume ? resumeOrReopenJob : undefined,
+    onReopenJob: companyMembers.canFinalizeDisposition
+      ? resumeOrReopenJob
+      : undefined,
+    onReopenAndComplete: companyMembers.canFinalizeDisposition
+      ? () => {
+          setDispositionRecoveryError(null);
+          setReopenAndCompleteConfirmOpen(true);
+        }
+      : undefined,
+  };
+
   return (
     <FieldDiveAppShell activeNav="jobs" activeSubId="job-card">
       <div
@@ -942,10 +1087,25 @@ export default function JobCardClient({
                   disposition={hydratedJobRecord?.status ?? null}
                   stage={canonicalJobStage}
                   stageLabel={display.stageLabel}
+                  capabilities={{
+                    pauseResume: companyMembers.canPauseResume,
+                    finalize: companyMembers.canFinalizeDisposition,
+                  }}
+                  closeCommitment={{
+                    hasAcceptedAgreement: jobHasCanonicalAcceptedAgreement(
+                      jobAcceptedProposalIds
+                    ),
+                    collectibleRemainingCents:
+                      jobPayments.workspace?.collectibleRemainingCents ?? null,
+                    paymentOverviewStatusLabel:
+                      jobPayments.workspace?.overviewStatusLabel ?? null,
+                    paymentState: jobPayments.workspace?.state ?? null,
+                  }}
                   disabled={
                     !hydratedJobRecord ||
                     startWorkBusy ||
                     completeJobBusy ||
+                    dispositionRecoveryBusy ||
                     scheduleBusy
                   }
                   onApplied={async (result) => {
@@ -1192,23 +1352,10 @@ export default function JobCardClient({
                             busy={
                               pendingAttentionId != null ||
                               startWorkBusy ||
-                              completeJobBusy
+                              completeJobBusy ||
+                              dispositionRecoveryBusy
                             }
-                            onApproveJob={confirmJobAcceptance}
-                            onSchedule={() => {
-                              setScheduleError(null);
-                              setJobCardTab("calendar");
-                            }}
-                            onStartWork={
-                              jobCardActionEligibility.canStartWork
-                                ? startCurrentJobWork
-                                : undefined
-                            }
-                            onCompleteJob={
-                              jobCardActionEligibility.canCompleteJob
-                                ? completeCurrentJobWork
-                                : undefined
-                            }
+                            {...primaryActionHandlers}
                           />
                         </div>
                       ) : null
@@ -1488,31 +1635,65 @@ export default function JobCardClient({
             !mobileActivityFocused &&
             !prepare.modalOpen &&
             !prepare.captureOpen &&
-            !changePropertyOpen ? (
+            !changePropertyOpen &&
+            !reopenAndCompleteConfirmOpen ? (
               <JobCardForwardLifecycleAction
                 action={overviewPrimary}
                 placement="sticky"
                 busy={
                   pendingAttentionId != null ||
                   startWorkBusy ||
-                  completeJobBusy
+                  completeJobBusy ||
+                  dispositionRecoveryBusy
                 }
-                onApproveJob={confirmJobAcceptance}
-                onSchedule={() => {
-                  setScheduleError(null);
-                  setJobCardTab("calendar");
-                }}
-                onStartWork={
-                  jobCardActionEligibility.canStartWork
-                    ? startCurrentJobWork
-                    : undefined
-                }
-                onCompleteJob={
-                  jobCardActionEligibility.canCompleteJob
-                    ? completeCurrentJobWork
-                    : undefined
-                }
+                {...primaryActionHandlers}
               />
+            ) : null}
+            {dispositionRecoveryError ? (
+              <p
+                className="mx-3 mt-2 text-sm text-rose-700 sm:mx-4"
+                role="alert"
+                data-jobcard-disposition-recovery-error
+              >
+                {dispositionRecoveryError}
+              </p>
+            ) : null}
+            {reopenAndCompleteConfirmOpen ? (
+              <div
+                className="fixed inset-0 z-[70] flex items-end justify-center bg-slate-900/40 p-3 sm:items-center"
+                role="dialog"
+                aria-modal="true"
+                aria-label={REOPEN_AND_COMPLETE_CONFIRM_TITLE}
+                data-jobcard-reopen-and-complete-dialog
+              >
+                <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl">
+                  <h2 className="text-base font-semibold text-slate-900">
+                    {REOPEN_AND_COMPLETE_CONFIRM_TITLE}
+                  </h2>
+                  <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                    {REOPEN_AND_COMPLETE_CONFIRM_BODY}
+                  </p>
+                  <div className="mt-5 flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setReopenAndCompleteConfirmOpen(false)}
+                      disabled={dispositionRecoveryBusy || completeJobBusy}
+                      className="inline-flex h-9 items-center rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void reopenAndCompleteJob()}
+                      disabled={dispositionRecoveryBusy || completeJobBusy}
+                      data-jobcard-reopen-and-complete-confirm
+                      className="inline-flex h-9 items-center rounded-md bg-slate-900 px-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+                    >
+                      Reopen and complete
+                    </button>
+                  </div>
+                </div>
+              </div>
             ) : null}
           </div>
         </div>

@@ -2,6 +2,48 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-23 — PHASE 9 COMPLETE: Lifecycle / disposition recovery (Astra G8)
+
+==================================================
+PHASE 9 — LIFECYCLE / DISPOSITION RECOVERY  
+STATUS: **COMPLETE**
+==================================================
+
+- **Base HEAD (pre-commit):** `f7c019ee9c2e556c09b2c913f83a9e8d7d70e557`
+- **Astra fidelity source:** `tmp/fielddive-ui-review/astra-future-state-fielddive-blueprint.md` §17 + numbered **G8**
+- **Repo lock:** R3I disposition architecture preserved (`change_job_disposition_v1` sole status writer)
+- **Main:** **not** pushed. **No** deploy. **No** migration.
+
+### Locked product truth
+
+- **Stage ≠ disposition:** `jobs.stage` = lifecycle; `jobs.status` = business disposition (`active` / `on_hold` / `lost` / `closed`)
+- **Complete** remains a **terminal lifecycle stage** (not a disposition). **No Complete-stage reopen.**
+- **Hold / Resume:** status `on_hold` ↔ `active`; stage/clocks/schedule/assignments unchanged; Activity via `disposition_changed`
+- **Lost / Reopen:** status `lost` ↔ `active`; commercial/payment/history/schedule retained; leave default active-work Board
+- **Closed / Reopen:** status `closed` ↔ `active`; Close ≠ Complete; does not cancel agreements / forgive balances / refund / alter schedule
+- **Production + Closed:** composed UI **Reopen and complete** = (1) disposition → active (2) `complete_job_work_v1`. Partial success: reopen kept; Complete failure surfaces; no rollback
+- **Payment / proposal independence:** disposition never mutates commercial truth; Close warning is read-only from existing presenters
+- **Primary CTA priority:** non-active disposition recovery first → else Phase 8 lifecycle CTA → else none. Hold/Lost/Close under **More job actions**
+- **Capabilities (G7 bounded, not ACL builder):** `job_pause_resume` (Owner/Admin, Office/Sales, Production Lead); `job_disposition_finalize` (Owner/Admin, Office/Sales). Server-enforced on `POST /api/jobs/change-disposition`
+- **Board:** stage lanes preserved; default filter **Active + On hold**; Lost/Closed via disposition filter. Do not rename Board key `paid`
+- **Calendar:** no disposition side-effect schedule mutation
+- **Activity:** existing `disposition_changed` chronology preserved (Job put on hold / marked lost / closed / reactivated)
+- **Phase 12.5** whole-app cohesion still deferred
+
+### Proof
+
+- Desktop + true-390 under `tmp/fielddive-ui-review/phase9-disposition-recovery/`
+- Mobile dims proven: `innerWidth === 390`, `scrollWidth ≤ 390`
+
+### Tests
+
+- Phase 9 matrix + disposition + G7 + eligibility + Board + Phase 8 Job Card regressions: **179 pass / 0 fail** (targeted clean suite)
+
+### Explicit next
+
+**NEXT: PHASE 10 — MINIMAL APPROVED SCOPE CHANGES**  
+Do **not** begin from this checkpoint alone.
+
 ## 2026-09-23 — PHASE 8 COMPLETE: Job Card + mobile operational hierarchy (Astra §4 + §21)
 
 ==================================================
@@ -11,7 +53,7 @@ STATUS: **COMPLETE**
 
 - **Base HEAD (pre-commit):** `f0db86779e9121b9b7ea94c9dc6b5e3699fb9aa9`
 - **Astra fidelity source:** `tmp/fielddive-ui-review/astra-future-state-fielddive-blueprint.md` §4 Job Card + §21 Mobile (390) + §12 schedule→field handoff + G7 compact mobile nav note
-- **Roadmap Phase 8 ≠ Astra numbered G8.** Astra numbered G8 = disposition/recovery → **FieldDive Phase 9** (not started).
+- **Roadmap Phase 8 ≠ Astra numbered G8.** Astra numbered G8 = disposition/recovery → **FieldDive Phase 9** (**COMPLETE** — see Phase 9 COMPLETE section above).
 - **Main:** **not** pushed. **No** deploy. **No** migration.
 
 ### Locked product truth
@@ -23,7 +65,7 @@ STATUS: **COMPLETE**
 - **Overview hierarchy:** situation + single primary lifecycle CTA → field brief/schedule → compact financial (authorized) → tasks via G7 brief → Activity subordinate
 - **Primary lifecycle CTA:** reuses `resolveJobCardOverviewPrimaryAction` / canonical eligibility (Approve · Schedule · Start work · Complete job); Overview owns presentation; schedule section does not duplicate
 - **Mobile sticky** primary CTA (safe-area); yields while More sheet / focused editing surfaces are open
-- **Job actions:** quiet **More job actions** overflow (disposition authority unchanged; Phase 9 not redesigned)
+- **Job actions:** quiet **More job actions** overflow (disposition recovery completed in Phase 9)
 - **G7 field brief** preserved (derived/read-only; production lead canonical)
 - **Activity:** desktop right-rail reduced dominance; mobile via More + Overview teaser
 - **Roles:** same shell; `suppressCommercial` / server capability gates unchanged
@@ -47,7 +89,7 @@ STATUS: **COMPLETE**
 ### Explicit next
 
 **NEXT: PHASE 9 — LIFECYCLE / DISPOSITION RECOVERY**  
-(Astra numbered G8). Do **not** begin from this checkpoint alone.
+(Astra numbered G8). **COMPLETE** — see Phase 9 COMPLETE section above.
 
 ## 2026-09-23 — PHASE 7 COMPLETE: Small-team responsibility + field handoff (Astra G7)
 

@@ -26,6 +26,10 @@ export type CompanyMembersClientState = {
   canAdminMembers: boolean;
   canAssignJobs: boolean;
   canAssignTasks: boolean;
+  /** Astra G8 — Hold / Resume. */
+  canPauseResume: boolean;
+  /** Astra G8 — Lost / Close / Reopen. */
+  canFinalizeDisposition: boolean;
   restrictedFieldRole: boolean;
   loading: boolean;
   error: string | null;
@@ -124,6 +128,8 @@ export function useCompanyMembers(enabled = true): CompanyMembersClientState {
     canAdminMembers,
     canAssignJobs: caps?.has("job_assign") === true,
     canAssignTasks: caps?.has("task_assign") === true,
+    canPauseResume: caps?.has("job_pause_resume") === true,
+    canFinalizeDisposition: caps?.has("job_disposition_finalize") === true,
     restrictedFieldRole:
       viewerPreset != null && isRestrictedFieldRole(viewerPreset),
     loading,

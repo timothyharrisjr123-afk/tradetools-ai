@@ -59,20 +59,18 @@ describe("contractor disposition actions mirror RPC reactivation", () => {
       ["on_hold", "lost", "closed"]
     );
     assert.equal(
-      actions.some((action) => action.kind === "reactivate"),
+      actions.some((action) => action.kind === "resume" || action.kind === "reopen"),
       false
     );
   });
 
-  test("on_hold / lost / closed expose Reactivate only", () => {
-    for (const current of ["on_hold", "lost", "closed"] as const) {
-      const actions = resolveDispositionManagementActions(current);
-      assert.deepEqual(
-        actions.map((action) => [action.kind, action.target]),
-        [["reactivate", "active"]],
-        current
-      );
-    }
+  test("on_hold menu is secondary lost/close; recovery is primary CTA", () => {
+    assert.deepEqual(
+      resolveDispositionManagementActions("on_hold").map((a) => a.kind),
+      ["lost", "close"]
+    );
+    assert.deepEqual(resolveDispositionManagementActions("lost"), []);
+    assert.deepEqual(resolveDispositionManagementActions("closed"), []);
   });
 
   test("legacy won/archived have no contractor menu", () => {
@@ -89,21 +87,21 @@ describe("paired stage + disposition presentation", () => {
     assert.equal(isActiveOperationalDisposition("active"), true);
   });
 
-  test("non-active labels and Reactivate copy", () => {
+  test("non-active labels and Resume/Reopen copy", () => {
     assert.equal(visibleDispositionLabel("on_hold"), "On hold");
     assert.equal(
       dispositionBlockedWorkCopy("on_hold"),
-      "Job is on hold. Reactivate to continue work."
+      "Job is on hold. Resume to continue work."
     );
-    assert.equal(visibleDispositionLabel("lost"), "Lost");
+    assert.equal(visibleDispositionLabel("lost"), "Not proceeding");
     assert.equal(
       dispositionBlockedWorkCopy("lost"),
-      "Job is lost. Reactivate to continue work."
+      "Not proceeding. Reopen to continue work."
     );
-    assert.equal(visibleDispositionLabel("closed"), "Closed");
+    assert.equal(visibleDispositionLabel("closed"), "Closed to active work");
     assert.equal(
       dispositionBlockedWorkCopy("closed"),
-      "Job is closed. Reactivate to continue work."
+      "Closed to active work. Reopen to continue."
     );
   });
 
@@ -113,7 +111,7 @@ describe("paired stage + disposition presentation", () => {
       stage: "scheduled",
     });
     assert.equal(copy.closeDoesNotComplete, true);
-    assert.match(copy.body, /does not mean work was completed/i);
+    assert.match(copy.body, /not the same as Complete/i);
     assert.match(copy.body, /Scheduled/);
   });
 });
@@ -307,6 +305,7 @@ describe("API ownership", () => {
   test("authenticated wrapper around change_job_disposition_v1", () => {
     assert.match(route, /changeJobDispositionViaRpc/);
     assert.match(route, /getUserCompanyId/);
+    assert.match(route, /requireCapabilitySession/);
     assert.match(route, /from "@\/app\/lib\/uuid"/);
     assert.doesNotMatch(route, /from "@\/app\/lib\/jobStore"/);
     assert.match(route, /auth\.getUser/);
@@ -336,6 +335,7 @@ describe("Job Card UI contract", () => {
     assert.match(control, /role="dialog"/);
     assert.match(control, /Escape/);
     assert.match(control, /className="fixed z-\[60\]/);
+    assert.match(control, /z-\[70\]/);
     assert.match(control, /first\?\.focus\(\)/);
     assert.doesNotMatch(control, /menuOpen && menuBox \?/);
     assert.match(control, /\/api\/jobs\/change-disposition/);

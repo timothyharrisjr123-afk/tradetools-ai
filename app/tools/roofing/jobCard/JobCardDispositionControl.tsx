@@ -3,12 +3,16 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { CanonicalJobStage, OperationalJobDisposition } from "@/app/lib/jobLifecycleTypes";
 import {
+  CLOSE_COMMITMENT_STATIC_NOTES,
   DISPOSITION_REASON_MAX_LENGTH,
+  buildCloseCommitmentWarningFacts,
   dispositionConfirmCopy,
+  filterDispositionActionsByCapability,
   mapDispositionMutationError,
   normalizeDispositionReason,
   resolveDispositionManagementActions,
   resolveOperationalDisposition,
+  type CloseCommitmentWarningFact,
   type DispositionManagementAction,
 } from "@/app/lib/jobDispositionManagement";
 
@@ -18,12 +22,25 @@ export type JobDispositionAppliedResult = {
   idempotent: boolean;
 };
 
+export type JobCardDispositionCapabilities = {
+  pauseResume: boolean;
+  finalize: boolean;
+};
+
 type JobCardDispositionControlProps = {
   jobId: string | null;
   disposition: string | null | undefined;
   stage: CanonicalJobStage | string;
   stageLabel: string;
   disabled?: boolean;
+  capabilities?: JobCardDispositionCapabilities;
+  /** Existing canonical commercial/payment truth for Close warning only. */
+  closeCommitment?: {
+    hasAcceptedAgreement: boolean;
+    collectibleRemainingCents?: number | null;
+    paymentOverviewStatusLabel?: string | null;
+    paymentState?: string | null;
+  };
   onApplied: (result: JobDispositionAppliedResult) => Promise<void> | void;
 };
 
@@ -33,9 +50,16 @@ export default function JobCardDispositionControl({
   stage,
   stageLabel,
   disabled = false,
+  capabilities = { pauseResume: true, finalize: true },
+  closeCommitment,
   onApplied,
 }: JobCardDispositionControlProps) {
-  const actions = resolveDispositionManagementActions(disposition);
+  const actions = filterDispositionActionsByCapability(
+    resolveDispositionManagementActions(disposition, {
+      omitPrimaryRecoveryFromMenu: true,
+    }),
+    capabilities
+  );
   const [menuOpen, setMenuOpen] = useState(false);
   const [pendingAction, setPendingAction] =
     useState<DispositionManagementAction | null>(null);
@@ -49,8 +73,16 @@ export default function JobCardDispositionControl({
   );
   const dialogTitleId = useId();
   const confirmCopy = pendingAction
-    ? dispositionConfirmCopy({ target: pendingAction.target, stage })
+    ? dispositionConfirmCopy({
+        target: pendingAction.target,
+        stage,
+        kind: pendingAction.kind,
+      })
     : null;
+  const closeFacts: CloseCommitmentWarningFact[] =
+    pendingAction?.kind === "close" && closeCommitment
+      ? buildCloseCommitmentWarningFacts(closeCommitment)
+      : [];
 
   useEffect(() => {
     setMenuOpen(false);
@@ -233,7 +265,7 @@ export default function JobCardDispositionControl({
         >
           {actions.map((action) => (
             <button
-              key={action.target}
+              key={`${action.kind}-${action.target}`}
               type="button"
               role="menuitem"
               disabled={disabled || busy}
@@ -249,7 +281,7 @@ export default function JobCardDispositionControl({
 
       {pendingAction && confirmCopy ? (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-3 sm:items-center"
+          className="fixed inset-0 z-[70] flex items-end justify-center bg-slate-900/40 p-3 sm:items-center"
           role="dialog"
           aria-modal="true"
           aria-labelledby={dialogTitleId}
@@ -268,6 +300,29 @@ export default function JobCardDispositionControl({
             <p className="mt-3 text-sm leading-relaxed text-slate-600">
               {confirmCopy.body}
             </p>
+            {pendingAction.kind === "close" ? (
+              <div
+                className="mt-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5"
+                data-jobcard-close-commitment-warning
+              >
+                {closeFacts.length > 0 ? (
+                  <ul className="space-y-1 text-sm text-slate-700">
+                    {closeFacts.map((fact) => (
+                      <li key={fact.id}>{fact.text}</li>
+                    ))}
+                  </ul>
+                ) : null}
+                <ul
+                  className={`space-y-0.5 text-xs text-slate-600 ${
+                    closeFacts.length > 0 ? "mt-2 border-t border-slate-200/80 pt-2" : ""
+                  }`}
+                >
+                  {CLOSE_COMMITMENT_STATIC_NOTES.map((note) => (
+                    <li key={note}>{note}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             <label className="mt-4 block text-xs font-medium text-slate-600">
               Reason (optional)
               <textarea
