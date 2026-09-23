@@ -22,6 +22,11 @@ import { resolveOnlineDepositSendReadiness } from "@/app/lib/proposalPaymentSend
 export const SEND_GATE_PANEL_TITLE = "Send proposal";
 export const SEND_GATE_SEND_PROPOSAL_LABEL = "Send proposal";
 export const SEND_GATE_SEND_REVISION_LABEL = "Send revision";
+export const SEND_GATE_RETRY_EMAIL_LABEL = "Retry email";
+/** Durable freeze truth — not customer email receipt (see “Proposal emailed”). */
+export const SEND_GATE_PROPOSAL_SENT_TITLE = "Sent version preserved.";
+export const SEND_GATE_DELIVERY_NEEDS_ATTENTION =
+  "Email delivery needs attention. Check the customer's email and try again.";
 
 export function resolveSendGateSheetTitle(isRevisionSend: boolean): string {
   return isRevisionSend ? SEND_GATE_SEND_REVISION_LABEL : SEND_GATE_SEND_PROPOSAL_LABEL;

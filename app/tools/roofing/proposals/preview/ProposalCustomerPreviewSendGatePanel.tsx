@@ -30,10 +30,13 @@ import {
   resolveSendGateRecipientEmail,
   SEND_GATE_CUSTOMER_LINK_HELPER,
   SEND_GATE_DELIVERY_DISABLED_MESSAGE,
+  SEND_GATE_DELIVERY_NEEDS_ATTENTION,
   SEND_GATE_EMAIL_PROVIDER_ACCEPTED_TITLE,
   SEND_GATE_EMAIL_PROVIDER_ACCEPTED_BODY_PREFIX,
   SEND_GATE_PREPARE_CUSTOMER_LINK_LABEL,
   SEND_GATE_PREPARING_CUSTOMER_LINK_MESSAGE,
+  SEND_GATE_PROPOSAL_SENT_TITLE,
+  SEND_GATE_RETRY_EMAIL_LABEL,
   SEND_GATE_SENDING_PROPOSAL_EMAIL_MESSAGE,
   SEND_GATE_SEND_PROPOSAL_LABEL,
   SEND_GATE_SEND_REVISION_LABEL,
@@ -54,6 +57,15 @@ type SendPrepSessionLink = {
 type EmailSendSuccess = {
   recipientDisplay: string;
   subject: string;
+};
+
+/** Durable proposal sent; email delivery still needs attention / retry. */
+type EmailSendPartial = {
+  recipientDisplay: string;
+  subject: string;
+  deliveryMessage: string;
+  /** failed = exception attention; checking/in_progress = uncertainty, quieter. */
+  deliveryKind: "failed" | "checking" | "in_progress";
 };
 
 type ProposalCustomerPreviewSendGatePanelProps = {
@@ -139,6 +151,7 @@ export default function ProposalCustomerPreviewSendGatePanel({
   const [sendPending, setSendPending] = useState(false);
   const [sendErrorMessage, setSendErrorMessage] = useState<string | null>(null);
   const [sendSuccess, setSendSuccess] = useState<EmailSendSuccess | null>(null);
+  const [sendPartial, setSendPartial] = useState<EmailSendPartial | null>(null);
   const [deliveryHistoryRefreshKey, setDeliveryHistoryRefreshKey] = useState(0);
   const [deliveryActivitySummary, setDeliveryActivitySummary] = useState<string | null>(null);
   const [paymentTerms, setPaymentTerms] = useState<ProposalPaymentTerms | null>(null);
@@ -239,6 +252,7 @@ export default function ProposalCustomerPreviewSendGatePanel({
 
   const canSendProposalEmail =
     readiness.canSend && !actionsLocked && !sendSuccess && Boolean(recipientEmail);
+  const emailComposerLocked = actionsLocked || Boolean(sendSuccess);
 
   const [subjectDraft, setSubjectDraft] = useState<string | null>(null);
   const [bodyDraft, setBodyDraft] = useState<string | null>(null);
@@ -329,8 +343,20 @@ export default function ProposalCustomerPreviewSendGatePanel({
       const payload = (await response.json().catch(() => null)) as
         | {
             ok: true;
-            deliveryAttemptId: string;
-            deliveryStatus: "provider_accepted";
+            title?: string;
+            proposal?: { status?: string; proposalVersionId?: string };
+            delivery?: {
+              status?: string;
+              attemptId?: string | null;
+              code?: string | null;
+              message?: string | null;
+            };
+            deliveryAttemptId: string | null;
+            deliveryStatus:
+              | "provider_accepted"
+              | "failed"
+              | "checking"
+              | "in_progress";
             recipientDisplay: string;
             deliveryEnabled: true;
             snapshotStatus?: string;
@@ -344,17 +370,45 @@ export default function ProposalCustomerPreviewSendGatePanel({
           }
         | null;
 
-      if (!response.ok || !payload || payload.ok !== true) {
+      if (!payload || payload.ok !== true) {
+        // Pre-freeze / auth / config only — durable freeze paths return ok:true.
         setSendErrorMessage(
           payload && payload.ok === false && payload.message
             ? payload.message
             : "We couldn't send the proposal email yet. Check the proposal and try again."
         );
-        // Freeze may have committed before delivery failure — refresh chrome truth.
+        setSendPartial(null);
         onSendCompleted?.();
         return;
       }
 
+      const deliveryStatus = payload.delivery?.status ?? payload.deliveryStatus;
+      if (
+        deliveryStatus === "failed" ||
+        deliveryStatus === "checking" ||
+        deliveryStatus === "in_progress"
+      ) {
+        setSendSuccess(null);
+        setSendPartial({
+          recipientDisplay: payload.recipientDisplay,
+          subject: subjectValue,
+          deliveryMessage:
+            payload.delivery?.message?.trim() ||
+            SEND_GATE_DELIVERY_NEEDS_ATTENTION,
+          deliveryKind:
+            deliveryStatus === "checking"
+              ? "checking"
+              : deliveryStatus === "in_progress"
+                ? "in_progress"
+                : "failed",
+        });
+        setSendErrorMessage(null);
+        setDeliveryHistoryRefreshKey((key) => key + 1);
+        onSendCompleted?.();
+        return;
+      }
+
+      setSendPartial(null);
       setSendSuccess({
         recipientDisplay: payload.recipientDisplay,
         subject: subjectValue,
@@ -400,7 +454,7 @@ export default function ProposalCustomerPreviewSendGatePanel({
     pricingStale,
     emailDeliveryConfigured,
   });
-  const sendBlocked = !readiness.canSend && !sendSuccess && readiness.phase !== "loading";
+  const sendBlocked = !readiness.canSend && !sendSuccess && !sendPartial && readiness.phase !== "loading";
 
   return (
     <section
@@ -431,6 +485,49 @@ export default function ProposalCustomerPreviewSendGatePanel({
               {sendSuccess.recipientDisplay} · {sendSuccess.subject}
             </p>
           </div>
+        </div>
+      ) : null}
+
+      {sendPartial && !sendSuccess ? (
+        <div
+          className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3.5"
+          data-preview-send-partial
+          data-preview-send-proposal-ready
+          data-preview-send-delivery-kind={sendPartial.deliveryKind}
+        >
+          <div className="flex gap-3">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-slate-700" aria-hidden />
+            <div>
+              <p className="text-[14px] font-semibold text-slate-900">
+                {SEND_GATE_PROPOSAL_SENT_TITLE}
+              </p>
+              <p className="mt-1 text-[13px] leading-relaxed text-slate-600">
+                {sendPartial.recipientDisplay} · {sendPartial.subject}
+              </p>
+            </div>
+          </div>
+          {sendPartial.deliveryKind === "failed" ? (
+            <div
+              className="flex gap-2 rounded-lg border border-amber-200/80 bg-amber-50/70 px-3 py-2.5"
+              data-preview-send-delivery-attention
+            >
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" aria-hidden />
+              <p className="text-[13px] leading-relaxed text-amber-950">
+                {sendPartial.deliveryMessage}
+              </p>
+            </div>
+          ) : (
+            <div
+              className="flex gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5"
+              data-preview-send-delivery-checking
+              role="status"
+            >
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" aria-hidden />
+              <p className="text-[13px] leading-relaxed text-slate-700">
+                {sendPartial.deliveryMessage}
+              </p>
+            </div>
+          )}
         </div>
       ) : null}
 
@@ -488,7 +585,7 @@ export default function ProposalCustomerPreviewSendGatePanel({
               type="text"
               value={subjectValue}
               onChange={(event) => setSubjectDraft(event.target.value)}
-              disabled={actionsLocked || Boolean(sendSuccess)}
+              disabled={emailComposerLocked}
               className="min-w-0 border-0 bg-transparent px-0 py-3 text-[14px] font-medium text-slate-900 outline-none placeholder:text-slate-400 disabled:text-slate-500"
               data-preview-email-subject
             />
@@ -499,7 +596,7 @@ export default function ProposalCustomerPreviewSendGatePanel({
               value={bodyValue}
               onChange={(event) => setBodyDraft(event.target.value)}
               rows={6}
-              disabled={actionsLocked || Boolean(sendSuccess)}
+              disabled={emailComposerLocked}
               className="block w-full resize-none border-0 bg-white px-3.5 py-3 text-[14px] leading-6 text-slate-700 outline-none placeholder:text-slate-400 disabled:bg-slate-50 disabled:text-slate-500"
               data-preview-email-message
             />
@@ -577,7 +674,11 @@ export default function ProposalCustomerPreviewSendGatePanel({
           ) : (
             <>
               <Mail className="h-4 w-4" aria-hidden />
-              {isRevisionSend ? SEND_GATE_SEND_REVISION_LABEL : SEND_GATE_SEND_PROPOSAL_LABEL}
+              {sendPartial
+                ? SEND_GATE_RETRY_EMAIL_LABEL
+                : isRevisionSend
+                  ? SEND_GATE_SEND_REVISION_LABEL
+                  : SEND_GATE_SEND_PROPOSAL_LABEL}
             </>
           )}
         </button>

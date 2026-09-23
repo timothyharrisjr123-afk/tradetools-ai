@@ -351,6 +351,9 @@ describe("sendProposalEmail orchestrator", () => {
     if (!result.ok) return;
     assert.equal(result.deliveryStatus, "provider_accepted");
     assert.equal(result.deliveryEnabled, true);
+    assert.equal(result.delivery.status, "submitted");
+    assert.equal(result.proposal.proposalVersionId, SENT_VERSION_ID);
+    assert.ok(result.proposal.status === "sent" || result.proposal.status === "replayed");
     assert.match(result.recipientDisplay, /\*/);
     assert.equal(mintCalls.length, 1);
     assert.deepEqual(mintCalls[0]?.metadata_json, EMAIL_SEND_MINT_METADATA);
@@ -384,26 +387,42 @@ describe("sendProposalEmail orchestrator", () => {
     assert.equal(result.ok, true);
     if (!result.ok) return;
     assert.equal(result.deliveryAttemptId, accepted.id);
+    assert.equal(result.proposal.status, "replayed");
+    assert.equal(result.delivery.status, "submitted");
   });
 
   test("blocks duplicate click while attempt is in flight", async () => {
     const inFlight = attemptRow({ status: "attempted" });
+    let resendCalls = 0;
     const deps = buildDeps({
       findDeliveryAttemptByIdempotencyKey: async () => inFlight,
+      sendResendEmail: async () => {
+        resendCalls += 1;
+        throw new Error("resend should not run");
+      },
     });
 
     const result = await sendProposalEmail(baseInput(), deps);
-    assert.equal(result.ok, false);
-    if (result.ok) return;
-    assert.equal(result.code, "send_in_progress");
-    assert.equal(result.message, PROPOSAL_EMAIL_SEND_IN_PROGRESS_MESSAGE);
+    assert.equal(result.ok, true);
+    if (!result.ok) return;
+    assert.equal(result.delivery.status, "in_progress");
+    assert.equal(result.delivery.code, "send_in_progress");
+    assert.equal(result.delivery.attemptId, inFlight.id);
+    assert.equal(result.proposal.proposalVersionId, SENT_VERSION_ID);
+    assert.match(result.delivery.message ?? "", /already in progress/i);
+    assert.equal(resendCalls, 0);
   });
 
-  test("retries failed attempt with retry suffix idempotency key", async () => {
+  test("retries failed attempt with retry suffix idempotency key without new freeze", async () => {
     const failed = attemptRow({ status: "failed", id: "failed-attempt-id" });
     const createdKeys: string[] = [];
+    let freezeCalls = 0;
 
     const deps = buildDeps({
+      freezeDraft: async () => {
+        freezeCalls += 1;
+        return { sentVersionId: SENT_VERSION_ID };
+      },
       findDeliveryAttemptByIdempotencyKey: async ({ idempotency_key }) => {
         if (createdKeys.includes(idempotency_key)) {
           return null;
@@ -419,9 +438,23 @@ describe("sendProposalEmail orchestrator", () => {
     const result = await sendProposalEmail(baseInput(), deps);
     assert.equal(result.ok, true);
     assert.match(createdKeys[0] ?? "", /\/retry\/failed-attempt-id$/);
+    assert.equal(freezeCalls, 0);
   });
 
-  test("marks attempt failed when Resend returns error", async () => {
+  test("mint failure after snapshot is partial success", async () => {
+    const deps = buildDeps({
+      mintToken: async () => ({ ok: false, code: "mint_failed" }),
+    });
+
+    const result = await sendProposalEmail(baseInput(), deps);
+    assert.equal(result.ok, true);
+    if (!result.ok) return;
+    assert.equal(result.delivery.status, "failed");
+    assert.equal(result.delivery.code, "mint_failed");
+    assert.equal(result.proposal.proposalVersionId, SENT_VERSION_ID);
+  });
+
+  test("marks attempt failed when Resend returns error but preserves durable proposal send", async () => {
     const deps = buildDeps({
       sendResendEmail: async () => ({
         ok: false,
@@ -431,13 +464,18 @@ describe("sendProposalEmail orchestrator", () => {
     });
 
     const result = await sendProposalEmail(baseInput(), deps);
-    assert.equal(result.ok, false);
-    if (result.ok) return;
+    assert.equal(result.ok, true);
+    if (!result.ok) return;
+    assert.equal(result.proposal.status, "replayed");
+    assert.equal(result.proposal.proposalVersionId, SENT_VERSION_ID);
+    assert.equal(result.delivery.status, "failed");
+    assert.equal(result.delivery.code, "email_provider_rejected");
+    assert.equal(result.delivery.attemptId, ATTEMPT_ID);
     assert.equal(result.deliveryStatus, "failed");
     assert.equal(result.deliveryAttemptId, ATTEMPT_ID);
   });
 
-  test("returns persist pending when Resend succeeds but DB update fails", async () => {
+  test("returns checking continuation when Resend succeeds but DB update fails", async () => {
     const deps = buildDeps({
       markDeliveryAttemptProviderAccepted: async () => {
         throw new Error("db update failed");
@@ -445,10 +483,11 @@ describe("sendProposalEmail orchestrator", () => {
     });
 
     const result = await sendProposalEmail(baseInput(), deps);
-    assert.equal(result.ok, false);
-    if (result.ok) return;
-    assert.equal(result.code, "provider_accepted_persist_pending");
-    assert.equal(result.message, PROPOSAL_EMAIL_SEND_PERSIST_PENDING_MESSAGE);
+    assert.equal(result.ok, true);
+    if (!result.ok) return;
+    assert.equal(result.delivery.status, "checking");
+    assert.equal(result.delivery.code, "provider_accepted_persist_pending");
+    assert.equal(result.delivery.message, PROPOSAL_EMAIL_SEND_PERSIST_PENDING_MESSAGE);
     assert.equal(result.deliveryAttemptId, ATTEMPT_ID);
   });
 

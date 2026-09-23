@@ -31,6 +31,17 @@ import {
   type SendPrepSnapshotStatus,
 } from "@/app/lib/proposalSendPrep";
 import { buildPublicReviewLinkExpiresAt } from "@/app/lib/proposalPublicReviewLink";
+import {
+  PROPOSAL_SENT_DELIVERY_COPY,
+  PROPOSAL_SENT_TITLE,
+  mapCheckingDelivery,
+  mapFailedDelivery,
+  mapInProgressDelivery,
+  mapSubmittedDelivery,
+  proposalSendStatusFromSnapshot,
+  type ProposalDeliveryContinuationEnvelope,
+  type ProposalSendEnvelope,
+} from "@/app/lib/proposalSendDeliveryEnvelope";
 
 export type ProposalEmailSendMintResult =
   | {
@@ -99,8 +110,12 @@ export type SendProposalEmailInput = {
 
 export type SendProposalEmailSuccess = {
   ok: true;
-  deliveryAttemptId: string;
-  deliveryStatus: "provider_accepted";
+  title: string;
+  proposal: ProposalSendEnvelope;
+  delivery: ProposalDeliveryContinuationEnvelope;
+  deliveryAttemptId: string | null;
+  /** Legacy alias aligned with delivery.status (submitted → provider_accepted). */
+  deliveryStatus: "provider_accepted" | "failed" | "checking" | "in_progress";
   recipientDisplay: string;
   deliveryEnabled: true;
   snapshotStatus?: SendPrepSnapshotStatus;
@@ -219,10 +234,22 @@ export function buildProposalEmailSendIdempotencyKey(input: {
 
 function successFromAttempt(
   attempt: ProposalDeliveryAttemptRow,
-  snapshotStatus?: SendPrepSnapshotStatus
+  snapshotStatus: SendPrepSnapshotStatus,
+  opts?: { idempotentDeliveryReplay?: boolean }
 ): SendProposalEmailSuccess {
+  const proposal: ProposalSendEnvelope = {
+    status: proposalSendStatusFromSnapshot(snapshotStatus, {
+      idempotentDeliveryReplay: opts?.idempotentDeliveryReplay,
+    }),
+    proposalVersionId: attempt.proposal_version_id,
+    snapshotStatus,
+  };
+  const delivery = mapSubmittedDelivery({ attemptId: attempt.id });
   return {
     ok: true,
+    title: PROPOSAL_SENT_TITLE,
+    proposal,
+    delivery,
     deliveryAttemptId: attempt.id,
     deliveryStatus: "provider_accepted",
     recipientDisplay: attempt.recipient_email_redacted ?? "Customer",
@@ -231,10 +258,55 @@ function successFromAttempt(
   };
 }
 
-function inFlightFailure(attempt: ProposalDeliveryAttemptRow): SendProposalEmailFailure {
-  return failure(PROPOSAL_EMAIL_SEND_IN_PROGRESS_MESSAGE, "send_in_progress", {
-    deliveryAttemptId: attempt.id,
-    deliveryStatus: "failed",
+function partialSuccessAfterSnapshot(input: {
+  proposalVersionId: string;
+  snapshotStatus: SendPrepSnapshotStatus;
+  recipientDisplay: string;
+  delivery: ProposalDeliveryContinuationEnvelope;
+  idempotentDeliveryReplay?: boolean;
+}): SendProposalEmailSuccess {
+  const proposal: ProposalSendEnvelope = {
+    status: proposalSendStatusFromSnapshot(input.snapshotStatus, {
+      idempotentDeliveryReplay: input.idempotentDeliveryReplay,
+    }),
+    proposalVersionId: input.proposalVersionId,
+    snapshotStatus: input.snapshotStatus,
+  };
+  const deliveryStatus =
+    input.delivery.status === "submitted"
+      ? "provider_accepted"
+      : input.delivery.status === "checking"
+        ? "checking"
+        : input.delivery.status === "in_progress"
+          ? "in_progress"
+          : "failed";
+  return {
+    ok: true,
+    title: PROPOSAL_SENT_TITLE,
+    proposal,
+    delivery: input.delivery,
+    deliveryAttemptId: input.delivery.attemptId,
+    deliveryStatus,
+    recipientDisplay: input.recipientDisplay,
+    deliveryEnabled: true,
+    snapshotStatus: input.snapshotStatus,
+  };
+}
+
+/** Post-freeze: in-flight attempt must not report proposal send failure. */
+function inFlightPartialSuccess(
+  attempt: ProposalDeliveryAttemptRow,
+  snapshotStatus: SendPrepSnapshotStatus
+): SendProposalEmailSuccess {
+  return partialSuccessAfterSnapshot({
+    proposalVersionId: attempt.proposal_version_id,
+    snapshotStatus,
+    recipientDisplay: attempt.recipient_email_redacted ?? "Customer",
+    delivery: mapInProgressDelivery({
+      attemptId: attempt.id,
+      message: PROPOSAL_EMAIL_SEND_IN_PROGRESS_MESSAGE,
+    }),
+    idempotentDeliveryReplay: true,
   });
 }
 
@@ -318,7 +390,15 @@ export async function sendProposalEmail(
     recipientEmailHash = hashNormalizedRecipientEmailSha256(recipientEmail);
     recipientFields = buildRecipientDeliveryFieldsFromEmail(recipientEmail);
   } catch {
-    return failure(PROPOSAL_EMAIL_SEND_ERROR_MESSAGE, "invalid_recipient");
+    return partialSuccessAfterSnapshot({
+      proposalVersionId,
+      snapshotStatus,
+      recipientDisplay: "Customer",
+      delivery: mapFailedDelivery({
+        code: "invalid_recipient",
+        message: PROPOSAL_SENT_DELIVERY_COPY.failed,
+      }),
+    });
   }
 
   let idempotencyKey = buildProposalEmailSendIdempotencyKey({
@@ -335,11 +415,13 @@ export async function sendProposalEmail(
   });
 
   if (existingAttempt?.status === "provider_accepted") {
-    return successFromAttempt(existingAttempt, snapshotStatus);
+    return successFromAttempt(existingAttempt, snapshotStatus, {
+      idempotentDeliveryReplay: true,
+    });
   }
 
   if (existingAttempt?.status === "attempted") {
-    return inFlightFailure(existingAttempt);
+    return inFlightPartialSuccess(existingAttempt, snapshotStatus);
   }
 
   if (existingAttempt?.status === "failed") {
@@ -364,7 +446,16 @@ export async function sendProposalEmail(
   });
 
   if (!mintResult.ok) {
-    return failure(PROPOSAL_EMAIL_SEND_ERROR_MESSAGE, "mint_failed");
+    // Snapshot already durable — do not claim proposal send failed.
+    return partialSuccessAfterSnapshot({
+      proposalVersionId,
+      snapshotStatus,
+      recipientDisplay: recipientFields.recipient_email_redacted ?? "Customer",
+      delivery: mapFailedDelivery({
+        code: "mint_failed",
+        message: PROPOSAL_SENT_DELIVERY_COPY.failed,
+      }),
+    });
   }
 
   const contextEcho =
@@ -413,13 +504,23 @@ export async function sendProposalEmail(
         idempotency_key: idempotencyKey,
       });
       if (duplicate?.status === "provider_accepted") {
-        return successFromAttempt(duplicate, snapshotStatus);
+        return successFromAttempt(duplicate, snapshotStatus, {
+          idempotentDeliveryReplay: true,
+        });
       }
       if (duplicate?.status === "attempted") {
-        return inFlightFailure(duplicate);
+        return inFlightPartialSuccess(duplicate, snapshotStatus);
       }
     }
-    return failure(PROPOSAL_EMAIL_SEND_ERROR_MESSAGE, "delivery_attempt_insert_failed");
+    return partialSuccessAfterSnapshot({
+      proposalVersionId,
+      snapshotStatus,
+      recipientDisplay: recipientFields.recipient_email_redacted ?? "Customer",
+      delivery: mapFailedDelivery({
+        code: "delivery_attempt_insert_failed",
+        message: PROPOSAL_SENT_DELIVERY_COPY.failed,
+      }),
+    });
   }
 
   const resendResult = await deps.sendResendEmail({
@@ -439,14 +540,26 @@ export async function sendProposalEmail(
         error_code: resendResult.code,
         error_message_safe: resendResult.message,
       });
-      return failure(resendResult.message, resendResult.code, {
-        deliveryAttemptId: failedAttempt.id,
-        deliveryStatus: "failed",
+      return partialSuccessAfterSnapshot({
+        proposalVersionId,
+        snapshotStatus,
+        recipientDisplay: failedAttempt.recipient_email_redacted ?? "Customer",
+        delivery: mapFailedDelivery({
+          attemptId: failedAttempt.id,
+          code: resendResult.code,
+          message: resendResult.message || PROPOSAL_SENT_DELIVERY_COPY.failed,
+        }),
       });
     } catch {
-      return failure(resendResult.message, resendResult.code, {
-        deliveryAttemptId: attempt.id,
-        deliveryStatus: "failed",
+      return partialSuccessAfterSnapshot({
+        proposalVersionId,
+        snapshotStatus,
+        recipientDisplay: attempt.recipient_email_redacted ?? "Customer",
+        delivery: mapFailedDelivery({
+          attemptId: attempt.id,
+          code: resendResult.code,
+          message: resendResult.message || PROPOSAL_SENT_DELIVERY_COPY.failed,
+        }),
       });
     }
   }
@@ -459,8 +572,15 @@ export async function sendProposalEmail(
     });
     return successFromAttempt(acceptedAttempt, snapshotStatus);
   } catch {
-    return failure(PROPOSAL_EMAIL_SEND_PERSIST_PENDING_MESSAGE, "provider_accepted_persist_pending", {
-      deliveryAttemptId: attempt.id,
+    return partialSuccessAfterSnapshot({
+      proposalVersionId,
+      snapshotStatus,
+      recipientDisplay: attempt.recipient_email_redacted ?? "Customer",
+      delivery: mapCheckingDelivery({
+        attemptId: attempt.id,
+        code: "provider_accepted_persist_pending",
+        message: PROPOSAL_EMAIL_SEND_PERSIST_PENDING_MESSAGE,
+      }),
     });
   }
 }

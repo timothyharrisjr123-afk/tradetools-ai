@@ -80,10 +80,9 @@ STATUS: **COMPLETE**
 
 ### NEXT
 
-**PHASE 2C — PROPOSAL SEND RECOVERY**  
-Phase 2A / 2B1 / 2B2 are **COMPLETE** (see their sections).  
-Phase 2B (payment continuation recovery) is **COMPLETE** as the 2B1+2B2 pair.  
-Overall Phase 2 is **NOT** complete until Phase 2C closes.
+**PHASE 3 — CANONICAL PRODUCT CUTOVER + LEGACY RETIREMENT**  
+Phase 2A / 2B1 / 2B2 / 2C are **COMPLETE** (see their sections).  
+Overall Phase 2 is **COMPLETE**. Do **not** begin Phase 3 from this checkpoint alone.
 
 ### Execution model (every remaining phase)
 
@@ -107,8 +106,8 @@ FieldDive is preparing for a **PROMOTED CONTROLLED-ACCESS LAUNCH**. Users cannot
 ### Current roadmap order
 
 1. Agreement truth + action consistency — **COMPLETE**
-2. Recovery + financial projection — **IN PROGRESS** (2A COMPLETE · 2B1 COMPLETE · 2B2 COMPLETE · 2C NEXT)
-3. Canonical product cutover + legacy retirement
+2. Recovery + financial projection — **COMPLETE** (2A · 2B1 · 2B2 · 2C)
+3. Canonical product cutover + legacy retirement — **NEXT**
 4. Semantic UI system — continuous across phases
 5. First-use + first-proposal activation
 6. Jobs + identity reuse + search + repeat work
@@ -502,7 +501,92 @@ Do **not** mark them completed.
 
 ### Overall Phase 2 position (after 2B2)
 
-Phase 2 overall remains **NOT** complete (Phase 2C open).
+Superseded by Phase 2C COMPLETE below. At 2B2 closeout, Phase 2C was still open.
+
+### NEXT — Phase 2C (historical; now CLOSED)
+
+**Proposal send recovery** — closed in Phase 2C COMPLETE section below.
+
+## 2026-09-23 — PHASE 2C COMPLETE: Proposal send recovery
+
+==================================================
+PHASE 2C — PROPOSAL SEND RECOVERY  
+STATUS: **COMPLETE**
+==================================================
+
+- **Base checkpoint:** `b00eda2ca035e69cc8bab3ae1558438e8f9e820a` (Phase 2B2)
+- **Final code checkpoint:** this commit (message: `fix(proposals): recover proposal delivery in phase 2c`)
+- **Schema/migration:** none required for Phase 2C
+- **Main:** **not** pushed. **No** deploy from this checkpoint. Phase 3 **not** started.
+
+### ROOT DEFECT
+
+**FD-P2-SEND-EMAIL-PARTIAL** — after durable proposal send/freeze, email/provider failure (or lost HTTP response) could be presented as if the proposal itself was not sent.
+
+### LOCKED LAW
+
+**PROPOSAL SENT/FROZEN VERSION TRUTH** and **EMAIL DELIVERY TRUTH** are **separate**.
+
+| Authority | Durable facts |
+|-----------|---------------|
+| Canonical sent | sent `proposal_versions` snapshot + `proposals.latest_sent_version_id` |
+| Delivery | `proposal_delivery_attempts` + provider message identity + Resend webhook/history |
+
+- **Pre-freeze failure:** true send failure → `ok: false`
+- **Post-freeze continuation problem:** proposal remains `sent`/`replayed`; delivery becomes `failed` / `checking` / `in_progress` (or `submitted` on provider accept) → `ok: true` with layered envelope
+- **Delivered:** only provider/webhook truth establishes delivery (route `submitted` ≠ delivered)
+
+### Retry
+
+- Reuses frozen version (no contractual send recreate; no frozen-history rewrite)
+- Preserves failed attempt history
+- `provider_accepted` replay does **not** resend
+- `attempted` / `in_progress` does **not** resend
+- Definitive failure may create a deliberate delivery retry (`…/retry/{attemptId}` idempotency suffix)
+- Contractor action: **Retry email** (not **Send proposal**) when freeze truth already exists
+
+### Contractor wording
+
+| State | Copy |
+|-------|------|
+| Partial / delivery problem | **Sent version preserved.** |
+| Normal email success | **Proposal emailed** / **Submitted to…** |
+| Delivery failure | localized amber: email delivery needs attention |
+| Checking / in_progress | quiet slate (not definitive failure) |
+
+### TOKEN DEBT
+
+Same-version email retry may mint another active `contractor_email_send` token because raw token is not stored. **Existing** C4 architecture; **not** introduced by 2C; not treated as ideal single-link reuse. No P0/P1 found in this phase.
+
+### VISUAL LAW
+
+- Normal success: quiet existing emerald treatment
+- Delivery failure: localized amber attention
+- Checking / in_progress: quiet slate
+- One **Retry email** action; no **Send proposal** recreation after freeze
+- Final proof (ephemeral): `tmp/fielddive-ui-review/phase2c-send-recovery/final/` desktop + true 390 — do **not** treat tmp as durable repo truth; conclusions live here
+
+### Tests (checkpoint gate)
+
+```text
+npx tsx --test \
+  app/lib/proposalSendDeliveryEnvelope.test.ts \
+  app/lib/proposalEmailDelivery.test.ts \
+  app/lib/proposalAcceptanceDepositEnvelope.test.ts \
+  app/lib/resendWebhookDelivery.test.ts \
+  app/lib/proposalSendFreezePersistence.test.ts
+→ 76 pass / 0 fail
+```
+
+Broader retain: Preview sent/frozen chrome + Phase 2B2 acceptance envelope green. Known unrelated debt: `customerOptionChoice052` stale `termsRequireOnlineDeposit` assertion (fails at clean `b00eda2`; not modified here).
+
+### Remaining non-blocking unproven
+
+- Live Resend/webhook E2E not rerun (orchestrator mocked; webhook path unchanged)
+- Live browser network-drop of `/api/proposals/send` not reproduced (idempotent unit coverage)
+- Same-version token-remint remains existing architecture/debt
+
+### Overall Phase 2 position (after 2C)
 
 | Slice | Status |
 |-------|--------|
@@ -510,11 +594,13 @@ Phase 2 overall remains **NOT** complete (Phase 2C open).
 | Phase 2B1 — Checkout duplicate-charge hardening | **COMPLETE** |
 | Phase 2B2 — Acceptance/deposit partial-success recovery | **COMPLETE** |
 | Phase 2B (payment continuation recovery pair) | **COMPLETE** |
-| Phase 2C — Proposal send recovery | **NEXT** |
+| Phase 2C — Proposal send recovery | **COMPLETE** |
+| **OVERALL PHASE 2** | **COMPLETE** |
 
-### NEXT — Phase 2C (map/implement only after separate authorization)
+### NEXT
 
-**Proposal send recovery.** Lost/partial send must not leave false commercial or delivery truth. Reuse canonical delivery/webhook architecture. **No** Phase 2C implementation from this checkpoint alone.
+**PHASE 3 — CANONICAL PRODUCT CUTOVER + LEGACY RETIREMENT**  
+Map/implement only after separate authorization. **Do not begin Phase 3 from this checkpoint alone.**
 
 ## 2026-09-11 — Delivery Completeness CLOSED (D1 + D2 + D3)
 
