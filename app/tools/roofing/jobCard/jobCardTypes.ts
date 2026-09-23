@@ -68,7 +68,10 @@ export function isJobCardVisibleTabId(
 export function coerceJobCardVisibleTab(
   value: string | null | undefined
 ): JobCardVisibleTabId {
-  return isJobCardVisibleTabId(value) ? value : "overview";
+  const raw = String(value ?? "").trim();
+  // Product label alias — Photos nav must resolve to the attachments domain.
+  if (raw === "photos") return "attachments";
+  return isJobCardVisibleTabId(raw) ? raw : "overview";
 }
 
 /** Writes the visible Job Card tab into the current query string. */

@@ -11,13 +11,19 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   JOB_CARD_DESKTOP_NAV_MIN_WIDTH,
+  JOB_CARD_DOMAIN_WORKSPACE,
   JOB_CARD_MOBILE_PRIMARY_NAV,
   JOB_CARD_MORE_DESTINATIONS,
   isJobCardMoreActiveDestination,
   jobCardMobileNavCoversAllVisibleDomains,
+  resolveJobCardDomainWorkspace,
   resolveJobCardMobileRailSelection,
 } from "./jobCardMobileNav";
-import { JOB_CARD_VISIBLE_TAB_IDS, JOB_CARD_VISIBLE_TABS } from "./jobCardTypes";
+import {
+  coerceJobCardVisibleTab,
+  JOB_CARD_VISIBLE_TAB_IDS,
+  JOB_CARD_VISIBLE_TABS,
+} from "./jobCardTypes";
 import {
   resolveJobCardOverviewPrimaryAction,
   resolveJobCardOverviewForwardAction,
@@ -39,6 +45,8 @@ const DISPOSITION = read(
   "app/tools/roofing/jobCard/JobCardDispositionControl.tsx"
 );
 const FIELD_BRIEF = read("app/tools/roofing/jobCard/JobCardFieldBrief.tsx");
+const SECONDARY = read("app/tools/roofing/jobCard/JobCardSecondaryPanels.tsx");
+const TASKS_WS = read("app/tools/roofing/jobCard/JobCardTasksWorkspace.tsx");
 
 function eligibility(
   overrides: Partial<CanonicalJobActionEligibility> = {}
@@ -111,6 +119,33 @@ describe("Phase 8 mobile nav model", () => {
     assert.match(MORE, /data-jobcard-more-destination/);
     assert.match(MORE, /Escape/);
     assert.match(MORE, /safe-area-inset-bottom/);
+  });
+
+  test("Photos label maps to attachments workspace; Tasks stays Tasks", () => {
+    assert.equal(resolveJobCardDomainWorkspace("attachments"), "attachments");
+    assert.equal(resolveJobCardDomainWorkspace("photos"), "attachments");
+    assert.equal(resolveJobCardDomainWorkspace("tasks"), "tasks");
+    assert.equal(coerceJobCardVisibleTab("photos"), "attachments");
+    assert.equal(JOB_CARD_DOMAIN_WORKSPACE.attachments, "attachments");
+    assert.equal(JOB_CARD_DOMAIN_WORKSPACE.tasks, "tasks");
+    assert.match(SECONDARY, /tabId="attachments"/);
+    assert.match(SECONDARY, /title="Photos"/);
+    assert.match(SECONDARY, /JobCardAttachmentsWorkspace/);
+    assert.match(SECONDARY, /JobCardTasksWorkspace/);
+    assert.match(TASKS_WS, /tabId="tasks"/);
+    assert.doesNotMatch(TASKS_WS, /tabId="attachments"/);
+    assert.match(CLIENT, /import JobCardSecondaryPanels from/);
+    assert.doesNotMatch(CLIENT, /next\/dynamic/);
+    assert.match(TABS, /data-jobcard-mobile-primary=\{tab\.id\}/);
+    assert.match(TABS, /JOB_CARD_MOBILE_PRIMARY_NAV/);
+    // Mobile Photos primary uses attachments id, not a second photos domain.
+    assert.match(
+      read("app/tools/roofing/jobCard/jobCardMobileNav.ts"),
+      /id: "attachments", label: "Photos"/
+    );
+    // One Add task control in empty Tasks (header only).
+    assert.match(TASKS_WS, /data-jobcard-tasks-add="true"/);
+    assert.doesNotMatch(TASKS_WS, /data-jobcard-tasks-add-empty/);
   });
 });
 

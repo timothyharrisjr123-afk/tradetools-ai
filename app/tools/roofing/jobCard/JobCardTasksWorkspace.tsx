@@ -309,15 +309,6 @@ export default function JobCardTasksWorkspace({
             <p className="mt-1 text-sm text-slate-400">
               Capture the next field action when you’re ready.
             </p>
-            <button
-              type="button"
-              className="mt-4 inline-flex min-h-[44px] items-center gap-1.5 rounded-md bg-slate-900 px-3 text-sm font-semibold text-white hover:bg-slate-800"
-              data-jobcard-tasks-add-empty="true"
-              onClick={startAdd}
-            >
-              <Plus className="h-4 w-4" />
-              {JOB_TASKS_ADD_LABEL}
-            </button>
           </div>
         ) : null}
 

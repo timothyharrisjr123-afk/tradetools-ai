@@ -1,6 +1,5 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import FieldDiveAppShell from "@/app/tools/roofing/FieldDiveAppShell";
@@ -135,11 +134,7 @@ import {
 import type { JobCardDisplayModel } from "@/app/tools/roofing/jobCard/jobCardDisplayTypes";
 import type { JobScheduleWorkspaceSubmit } from "@/app/tools/roofing/jobCard/JobScheduleWorkspace";
 import { buildFieldBriefViewModel } from "@/app/lib/fieldBriefModel";
-
-const JobCardSecondaryPanels = dynamic(
-  () => import("@/app/tools/roofing/jobCard/JobCardSecondaryPanels"),
-  { ssr: false }
-);
+import JobCardSecondaryPanels from "@/app/tools/roofing/jobCard/JobCardSecondaryPanels";
 
 export default function JobCardClient({
   companyId,
@@ -186,9 +181,12 @@ export default function JobCardClient({
     },
     [pathname, router, searchParams]
   );
+  // Sync from the tab query value only — not every searchParams identity change —
+  // so in-flight tab clicks are not overwritten by stale URL snapshots.
+  const tabFromUrl = searchParams.get("tab");
   useEffect(() => {
-    setJobCardTabRaw(coerceJobCardVisibleTab(searchParams.get("tab")));
-  }, [searchParams]);
+    setJobCardTabRaw(coerceJobCardVisibleTab(tabFromUrl));
+  }, [tabFromUrl]);
   const [jobCardBoardOrigin, setJobCardBoardOrigin] = useState(isBoardOriginParam);
   const isRestoringRef = useRef(false);
   const loadAppliedRef = useRef(true);

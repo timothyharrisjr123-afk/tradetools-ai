@@ -41,6 +41,28 @@ export type JobCardMoreTabDestinationId = Exclude<
 /** Viewport width at/above which the full desktop tab set is shown. */
 export const JOB_CARD_DESKTOP_NAV_MIN_WIDTH = 1200;
 
+/** Canonical workspace owner for each visible tab id (Photos label → attachments). */
+export const JOB_CARD_DOMAIN_WORKSPACE = {
+  overview: "overview",
+  tasks: "tasks",
+  calendar: "calendar",
+  measurements: "measurements",
+  proposals: "proposals",
+  payments: "payments",
+  attachments: "attachments",
+} as const satisfies Record<JobCardVisibleTabId, JobCardVisibleTabId>;
+
+export function resolveJobCardDomainWorkspace(
+  tab: string | null | undefined
+): JobCardVisibleTabId {
+  const raw = String(tab ?? "").trim();
+  if (raw === "photos") return "attachments";
+  if ((JOB_CARD_VISIBLE_TAB_IDS as readonly string[]).includes(raw)) {
+    return raw as JobCardVisibleTabId;
+  }
+  return "overview";
+}
+
 export function isJobCardMobilePrimaryNavId(
   value: string | null | undefined
 ): value is JobCardMobilePrimaryNavId {
@@ -81,8 +103,9 @@ export function resolveJobCardMobileRailSelection(
   mobileActivityFocused: boolean
 ): "overview" | "tasks" | "attachments" | "more" {
   if (mobileActivityFocused) return "more";
-  if (isJobCardMobilePrimaryNavId(activeTab)) return activeTab;
-  if (isJobCardMoreTabDestination(activeTab)) return "more";
+  const domain = resolveJobCardDomainWorkspace(activeTab);
+  if (isJobCardMobilePrimaryNavId(domain)) return domain;
+  if (isJobCardMoreTabDestination(domain)) return "more";
   return "overview";
 }
 
