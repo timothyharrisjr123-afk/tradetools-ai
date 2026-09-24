@@ -2,6 +2,65 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-23 — PHASE 10 COMPLETE: Minimal approved scope changes (Astra G9)
+
+==================================================
+PHASE 10 — MINIMAL APPROVED SCOPE CHANGES  
+STATUS: **COMPLETE**
+==================================================
+
+- **Astra source:** Astra §14 Production → approved scope change; Astra numbered **G9**
+- **Base HEAD (pre-commit):** `08d1f0beaeb05c6ec0fe640a304972a00f4d6682`
+- **Commit:** `feat(proposals): add approved scope changes` (tip `main` after Phase 10 close)
+- **Main:** **not** pushed. **No** deploy. **No** Phase 11.
+
+### Locked product truth
+
+- **Original accepted agreement is immutable** — frozen proposal pages/options/line items, acceptance rows, signature evidence, accepted totals, and public/sent history are never mutated in place
+- **Additive amendments only:** `job_scope_changes` + `job_scope_change_lines` + `job_scope_change_approvals` (+ hash-only `job_scope_change_public_access_tokens`)
+- **Canonical contract total:** base acceptance total + Σ `authorized` `price_delta_cents` via `job_contract_total_cents_v1` (rewires `job_payment_current_contractual_total_cents_v1` reader only; does **not** rewrite `proposal_acceptances.accepted_total_cents` or payment-request snapshots)
+- **States:** `draft` → `proposed` → `authorized` | `declined`; `draft`|`proposed` → `voided`. Propose ≠ authorize; send does not change contract total / field authorized scope / stage / payment requests
+- **One proposed change V1** per job (unique partial index + RPC advisory lock)
+- **Stale-basis guard:** `basis_contract_total_cents` must equal live rollup before propose/authorize
+- **Authorize apply-once:** unique approval per scope change; token_hash required and bound to company+job+scope_change; idempotent retry; no double delta / Activity
+- **Reduction financial-review block:** negative delta blocked when new total &lt; collected gross or open payment requests; no request rewrite / refund / cancel
+- **Signature policy reuse:** follow existing company/proposal signature policy — not always-required; payment is not an authorization gate
+- **Field brief:** authorized summaries → authorized work; proposed → pending warning (`… — Pending approval`); declined/voided excluded; no second editable field-scope store; no lifecycle hard gate from scope-change status
+- **Authoring gates:** Complete / Lost / Closed / on_hold block new authoring; disposition history remains viewable; Capability = existing `proposal_author` (Owner/Admin, Office/Sales). Production Lead / Field User: view authorized + pending warning only
+- **Activity (append-only):** `scope_change_created` | `proposed` | `authorized` | `declined` | `voided`
+- **Public token:** hash-only; resolve/authorize service_role; no client-trusted company/job ids
+- **UX home:** Proposals domain under accepted agreement + Production Overview contextual entry; **no** new Job Card tab
+- **Phase 11 collection deferred**
+
+### Migration
+
+- File: `supabase/migrations/20260923210000_phase10_approved_scope_changes.sql`
+- **STAGING** `tjtrhdckinjtorgbkirm`: applied + ledger remote includes `20260923210000`
+- **PRODUCTION** `rhquhnujjnzjhweypavd`: applied + ledger remote includes `20260923210000`
+- Ordinary CLI link restored/remains **staging**
+
+### Proof
+
+- Desktop + true-390 under `tmp/fielddive-ui-review/phase10-approved-scope-changes/`
+- Harness: `/dev-harness/phase10-scope-changes` (safe static fixtures; no Auth users)
+- Mobile dims proven: viewport width **390**, `scrollWidth ≤ 390` (observed **375**)
+
+### Tests (targeted clean suite)
+
+- G9 A+B + G8 + G7 + Phase 8 Job Card + payment workspace + lifecycle eligibility: **129 pass / 0 fail**
+- G9 focused: **43 pass / 0 fail**
+
+### Astra classification
+
+- **ASTRA-EXPLICIT:** additive approved scope changes, immutable original agreement, customer authorize, contract-total rollup, pending ≠ authorized field projection
+- **ASTRA-ALIGNED IMPROVEMENT:** hash-only public access tokens mirroring proposal public-access patterns; financial-conflict read-only context on public authorize
+- **NEW DIRECTION:** **NONE**
+
+### Explicit next
+
+**NEXT: PHASE 11 — COLLECTION COMMUNICATION**  
+Do **not** implement Phase 11 from this checkpoint alone.
+
 ## 2026-09-23 — PHASE 9 COMPLETE: Lifecycle / disposition recovery (Astra G8)
 
 ==================================================

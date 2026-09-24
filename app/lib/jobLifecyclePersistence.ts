@@ -197,7 +197,12 @@ export function buildRecordJobActivityPayload(
     eventType === "job_rescheduled" ||
     eventType === "job_unscheduled" ||
     eventType === "job_work_started" ||
-    eventType === "job_work_completed"
+    eventType === "job_work_completed" ||
+    eventType === "scope_change_created" ||
+    eventType === "scope_change_proposed" ||
+    eventType === "scope_change_authorized" ||
+    eventType === "scope_change_declined" ||
+    eventType === "scope_change_voided"
   ) {
     throw new JobLifecyclePersistenceError(
       `Job activity event type is reserved for lifecycle writers: ${eventType}`

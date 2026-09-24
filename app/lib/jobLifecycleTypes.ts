@@ -77,6 +77,12 @@ export const JOB_ACTIVITY_EVENT_TYPES = [
   "production_lead_assigned",
   "production_lead_changed",
   "production_lead_cleared",
+  /** Astra G9 / Phase 10 — additive approved scope changes. */
+  "scope_change_created",
+  "scope_change_proposed",
+  "scope_change_authorized",
+  "scope_change_declined",
+  "scope_change_voided",
 ] as const;
 
 export type JobActivityEventType = (typeof JOB_ACTIVITY_EVENT_TYPES)[number];

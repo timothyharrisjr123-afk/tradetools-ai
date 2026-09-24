@@ -10,6 +10,7 @@ import {
   buildJobPaymentWorkspace,
   proposalAcceptanceContractTotalCents,
 } from "@/app/lib/jobPaymentWorkspace";
+import { fetchJobContractTotalCents } from "@/app/lib/jobScopeChangePersistence";
 import { parseProposalPaymentTermsRow } from "@/app/lib/proposalPaymentTerms";
 import { isUuidLike } from "@/app/lib/uuid";
 import { resolveCanonicalJobStage } from "@/app/lib/jobLifecycleMapper";
@@ -143,7 +144,7 @@ export async function GET(_req: Request, context: RouteContext) {
         }
       : null;
     const transactionRows = (transactions ?? []) as JobPaymentTransactionRow[];
-    const contractTotalCents = proposalAcceptanceContractTotalCents({
+    const acceptanceOnlyCents = proposalAcceptanceContractTotalCents({
       customerChosenTotalCents:
         typeof acceptance?.customer_chosen_total_cents === "number"
           ? acceptance.customer_chosen_total_cents
@@ -153,6 +154,15 @@ export async function GET(_req: Request, context: RouteContext) {
           ? acceptance.accepted_total_cents
           : null,
     });
+    let currentContractTotalCents = acceptanceOnlyCents;
+    try {
+      currentContractTotalCents = await fetchJobContractTotalCents(supabase, {
+        company_id: companyId,
+        job_id: jobId,
+      });
+    } catch {
+      currentContractTotalCents = acceptanceOnlyCents;
+    }
     const workspace = buildJobPaymentWorkspace({
       jobStage: canonical,
       accepted: Boolean(acceptance),
@@ -168,6 +178,7 @@ export async function GET(_req: Request, context: RouteContext) {
         typeof acceptance?.accepted_total_cents === "number"
           ? acceptance.accepted_total_cents
           : null,
+      currentContractTotalCents,
       terms: parseProposalPaymentTermsRow(termsRow),
       jobPaymentActive: !jobArchived && jobStatus === "active",
     });
@@ -180,7 +191,7 @@ export async function GET(_req: Request, context: RouteContext) {
       requests: requestRows,
       transactions: transactionRows,
       refunds: (refunds ?? []) as JobPaymentRefundRow[],
-      acceptedTotalCents: contractTotalCents,
+      acceptedTotalCents: currentContractTotalCents,
     });
 
     return NextResponse.json({

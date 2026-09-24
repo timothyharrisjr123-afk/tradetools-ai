@@ -1,6 +1,7 @@
 /**
  * Astra G7 — derived field brief (read-only projection of owned facts).
  * Not a second document store. Not mutable field scope.
+ * Astra G9: authorized scope-change summaries + pending proposed warnings.
  */
 
 export type FieldBriefContact = {
@@ -86,6 +87,41 @@ function formatAddress(parts: {
   return joined || null;
 }
 
+function cleanSummaries(values: readonly string[] | null | undefined): string[] {
+  if (!values?.length) return [];
+  return values
+    .map((v) => String(v ?? "").trim())
+    .filter(Boolean);
+}
+
+/**
+ * Pending proposed warning: prefer specific line wording
+ * ("Additional decking — Pending approval") when a description is available.
+ */
+export function buildPendingProposedWarning(
+  pendingProposedSummaries: readonly string[] | null | undefined
+): string | null {
+  const pending = cleanSummaries(pendingProposedSummaries);
+  if (pending.length === 0) return null;
+  if (pending.length === 1) {
+    const one = pending[0];
+    if (/pending approval/i.test(one)) return one;
+    return `${one} — Pending approval`;
+  }
+  return `${pending.length} pending scope changes — Pending approval`;
+}
+
+export function buildApprovedChangesLabel(
+  authorizedChangeSummaries: readonly string[] | null | undefined,
+  explicitLabel?: string | null
+): string | null {
+  const explicit = trimOrNull(explicitLabel);
+  if (explicit) return explicit;
+  const authorized = cleanSummaries(authorizedChangeSummaries);
+  if (authorized.length === 0) return null;
+  return authorized.join("; ");
+}
+
 export function buildFieldBriefViewModel(input: {
   customerName?: string | null;
   customerPhone?: string | null;
@@ -104,6 +140,10 @@ export function buildFieldBriefViewModel(input: {
   crewLabel?: string | null;
   approvedScopeLabel?: string | null;
   approvedChangesLabel?: string | null;
+  /** Astra G9 — authorized scope-change line/header summaries for field work. */
+  authorizedChangeSummaries?: readonly string[] | null;
+  /** Astra G9 — proposed (not authorized) summaries; never treated as authorized work. */
+  pendingProposedSummaries?: readonly string[] | null;
   measurementSummary?: string | null;
   accessNotes?: string | null;
   proposedDiffersFromAuthorized?: boolean;
@@ -129,6 +169,20 @@ export function buildFieldBriefViewModel(input: {
   const telUrl = buildTelUrl(phone);
   const mapsUrl = buildMapsUrl(addressLine);
 
+  const approvedChangesLabel = buildApprovedChangesLabel(
+    input.authorizedChangeSummaries,
+    input.approvedChangesLabel
+  );
+
+  const pendingWarning = buildPendingProposedWarning(
+    input.pendingProposedSummaries
+  );
+  const warningProposedVsAuthorized =
+    pendingWarning ??
+    (input.proposedDiffersFromAuthorized
+      ? "Proposed work differs from currently authorized work."
+      : null);
+
   return {
     contact: {
       customerName: trimOrNull(input.customerName),
@@ -150,12 +204,10 @@ export function buildFieldBriefViewModel(input: {
     },
     authorizedWork: {
       approvedScopeLabel: trimOrNull(input.approvedScopeLabel),
-      approvedChangesLabel: trimOrNull(input.approvedChangesLabel),
+      approvedChangesLabel,
       measurementSummary: trimOrNull(input.measurementSummary),
       accessNotes: trimOrNull(input.accessNotes),
-      warningProposedVsAuthorized: input.proposedDiffersFromAuthorized
-        ? "Proposed work differs from currently authorized work."
-        : null,
+      warningProposedVsAuthorized,
     },
     tasks: (input.tasks ?? []).map((task) => ({
       id: task.id,

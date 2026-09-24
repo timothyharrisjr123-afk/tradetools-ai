@@ -57,6 +57,13 @@ import {
   type JobAttentionSafeItem,
 } from "@/app/lib/jobAttentionReadModel";
 import { useJobPayments } from "@/app/lib/useJobPayments";
+import { useJobScopeChanges } from "@/app/lib/useJobScopeChanges";
+import {
+  buildAuthorizedChangeSummariesFromScopeChanges,
+  buildPendingProposedSummariesFromScopeChanges,
+  canShowProposeScopeChangeCta,
+  JOB_CARD_SCOPE_CHANGE_PENDING_OVERVIEW_LABEL,
+} from "@/app/lib/jobScopeChangeViewModel";
 import {
   companyTimezoneForScheduling,
   formatScheduleWindowLabel,
@@ -121,6 +128,7 @@ import JobCardPaymentsWorkspace from "@/app/tools/roofing/jobCard/JobCardPayment
 import JobCardProposalsTab, {
   JobCardProposalsAddHeaderButton,
 } from "@/app/tools/roofing/jobCard/JobCardProposalsTab";
+import JobCardScopeChangesPanel from "@/app/tools/roofing/jobCard/JobCardScopeChangesPanel";
 import { JobCardCreateProposalModal } from "@/app/tools/roofing/jobCard/JobCardCreateProposalModal";
 import JobCardMeasurementsWorkspace from "@/app/tools/roofing/jobCard/JobCardMeasurementsWorkspace";
 import JobCardMeasurementCapture from "@/app/tools/roofing/jobCard/JobCardMeasurementCapture";
@@ -201,6 +209,7 @@ export default function JobCardClient({
     enabled: true,
   });
   const jobPayments = useJobPayments(currentJobId);
+  const jobScopeChanges = useJobScopeChanges(currentJobId);
   const companyMembers = useCompanyMembers(Boolean(currentJobId));
   const jobTasks = useJobCardTasks({
     jobId: currentJobId,
@@ -749,6 +758,43 @@ export default function JobCardClient({
 
   const suppressCommercial = companyMembers.restrictedFieldRole;
 
+  const hasAcceptedAgreement = jobHasCanonicalAcceptedAgreement(
+    jobAcceptedProposalIds
+  );
+  const scopeChangeAuthoringAllowed = canShowProposeScopeChangeCta({
+    hasAcceptedAgreement,
+    canAuthor: companyMembers.canAuthorProposals,
+    jobStage: hydratedJobRecord
+      ? resolveCanonicalJobStage(hydratedJobRecord)
+      : null,
+    jobDisposition: hydratedJobRecord?.status ?? null,
+    hasProposedAlready: jobScopeChanges.rows.some(
+      (row) => row.status === "proposed"
+    ),
+  });
+
+  const authorizedChangeSummaries =
+    buildAuthorizedChangeSummariesFromScopeChanges(
+      jobScopeChanges.rows.map((row) => ({
+        status: row.status,
+        reason: row.reason,
+        lines: (row.lines ?? []).map((line) => ({
+          description: line.description,
+          change_kind: line.changeKind,
+        })),
+      }))
+    );
+  const pendingProposedSummaries =
+    buildPendingProposedSummariesFromScopeChanges(
+      jobScopeChanges.rows.map((row) => ({
+        status: row.status,
+        reason: row.reason,
+        lines: (row.lines ?? []).map((line) => ({
+          description: line.description,
+        })),
+      }))
+    );
+
   const productionLeadAssignedTo = hydratedJobRecord?.assigned_to ?? null;
   const productionLeadCrewLabel = hydratedJobRecord?.crew_label ?? null;
   const productionLeadLabel = companyMembers.labelFor(productionLeadAssignedTo);
@@ -841,6 +887,8 @@ export default function JobCardClient({
     approvedScopeLabel: jobHasCanonicalAcceptedAgreement(jobAcceptedProposalIds)
       ? display.proposalLabel
       : null,
+    authorizedChangeSummaries,
+    pendingProposedSummaries,
     measurementSummary: prepare.selected
       ? formatMeasurementQuantityLine(prepare.selected)
       : null,
@@ -1298,19 +1346,23 @@ export default function JobCardClient({
                         : "No measurement"
                     }
                     operationalStateLabel={
-                      !suppressCommercial && jobCardActionEligibility.canApproveJob
-                        ? (() => {
-                            const proposalId = String(
-                              hydratedJobRecord?.active_proposal_id ?? ""
-                            ).trim();
-                            const signed =
-                              proposalId.length > 0 &&
-                              jobSignedProposalIds[proposalId] === true;
-                            return signed
-                              ? `Customer accepted proposal\nSigned\n${JOB_CARD_AWAITING_CONTRACTOR_APPROVAL}`
-                              : `Customer accepted proposal\n${JOB_CARD_AWAITING_CONTRACTOR_APPROVAL}`;
-                          })()
-                        : null
+                      !suppressCommercial &&
+                      pendingProposedSummaries.length > 0
+                        ? `${JOB_CARD_SCOPE_CHANGE_PENDING_OVERVIEW_LABEL}\nReview in Proposals`
+                        : !suppressCommercial &&
+                            jobCardActionEligibility.canApproveJob
+                          ? (() => {
+                              const proposalId = String(
+                                hydratedJobRecord?.active_proposal_id ?? ""
+                              ).trim();
+                              const signed =
+                                proposalId.length > 0 &&
+                                jobSignedProposalIds[proposalId] === true;
+                              return signed
+                                ? `Customer accepted proposal\nSigned\n${JOB_CARD_AWAITING_CONTRACTOR_APPROVAL}`
+                                : `Customer accepted proposal\n${JOB_CARD_AWAITING_CONTRACTOR_APPROVAL}`;
+                            })()
+                          : null
                     }
                     paymentStatusLabel={
                       suppressCommercial
@@ -1533,6 +1585,23 @@ export default function JobCardClient({
                       router.push(action.href);
                       void proposalId;
                     }}
+                    scopeChangesPanel={
+                      hasAcceptedAgreement ? (
+                        <JobCardScopeChangesPanel
+                          canAuthor={companyMembers.canAuthorProposals}
+                          canProposeNew={scopeChangeAuthoringAllowed}
+                          originalAgreementCents={
+                            jobScopeChanges.contractTotalCents == null
+                              ? null
+                              : jobScopeChanges.contractTotalCents -
+                                jobScopeChanges.rows
+                                  .filter((r) => r.status === "authorized")
+                                  .reduce((s, r) => s + r.priceDeltaCents, 0)
+                          }
+                          scopeChanges={jobScopeChanges}
+                        />
+                      ) : null
+                    }
                   />
                 </JobCardSectionPanel>
 

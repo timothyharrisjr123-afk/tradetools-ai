@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+import { useEffect } from "react";
 import CustomerRequestReviewCard from "@/app/components/proposals/CustomerRequestReviewCard";
 import { PROPOSAL_DELIVERY_ACTION_HINT } from "@/app/lib/proposalDeliveryAttemptViewModel";
 import { useJobProposalCustomerRequests } from "@/app/lib/useProposalCustomerRequests";
@@ -24,7 +26,6 @@ import {
   formatJobCardProposalRowPackageBadge,
   partitionJobCardProposalRows,
 } from "./jobCardProposalsTabModel";
-import { useEffect } from "react";
 
 type JobCardProposalsTabProps = {
   rows: readonly JobCardProposalRowView[];
@@ -42,6 +43,8 @@ type JobCardProposalsTabProps = {
   sentHistoryDefaultOpen?: boolean;
   listStatus?: "idle" | "loading" | "ready_empty" | "ready_items" | "error";
   listError?: string | null;
+  /** Astra G9 — accepted-agreement scope-change panel (no new Job Card tab). */
+  scopeChangesPanel?: ReactNode;
 };
 
 function AddProposalButton({
@@ -341,6 +344,7 @@ export default function JobCardProposalsTab({
   sentHistoryDefaultOpen = false,
   listStatus = rows.length > 0 ? "ready_items" : "ready_empty",
   listError = null,
+  scopeChangesPanel = null,
 }: JobCardProposalsTabProps) {
   const hasRows = rows.length > 0;
   const showUnavailable = listStatus === "error" && !hasRows;
@@ -491,6 +495,7 @@ export default function JobCardProposalsTab({
           </div>
         </div>
       ) : null}
+      {scopeChangesPanel}
     </div>
   );
 }

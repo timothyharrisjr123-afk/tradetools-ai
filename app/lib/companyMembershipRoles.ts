@@ -38,6 +38,10 @@ export const COMPANY_MEMBERSHIP_PRESET_LABELS: Record<
 export type CompanyCapability =
   | "company_admin"
   | "member_admin"
+  /**
+   * Commercial authoring (proposals + Astra G9 scope-change propose/price/send).
+   * No separate scope_change capability — reuse proposal_author.
+   */
   | "proposal_author"
   | "payment_admin"
   | "payment_request"

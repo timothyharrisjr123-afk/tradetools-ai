@@ -30,6 +30,8 @@ export type CompanyMembersClientState = {
   canPauseResume: boolean;
   /** Astra G8 — Lost / Close / Reopen. */
   canFinalizeDisposition: boolean;
+  /** Astra G9 — propose / price / send scope changes (proposal_author). */
+  canAuthorProposals: boolean;
   restrictedFieldRole: boolean;
   loading: boolean;
   error: string | null;
@@ -130,6 +132,7 @@ export function useCompanyMembers(enabled = true): CompanyMembersClientState {
     canAssignTasks: caps?.has("task_assign") === true,
     canPauseResume: caps?.has("job_pause_resume") === true,
     canFinalizeDisposition: caps?.has("job_disposition_finalize") === true,
+    canAuthorProposals: caps?.has("proposal_author") === true,
     restrictedFieldRole:
       viewerPreset != null && isRestrictedFieldRole(viewerPreset),
     loading,

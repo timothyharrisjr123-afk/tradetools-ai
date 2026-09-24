@@ -2,6 +2,9 @@
  * Payment Stage 2A — canonical Job Card Payments read model.
  *
  * Contract total: 053 customer-chosen cents when present, else accepted_total.
+ * Astra G9: prefer `currentContractTotalCents` when provided (acceptance base +
+ * authorized scope-change deltas via job_contract_total_cents_v1). Do not rewrite
+ * acceptance.accepted_total_cents or payment-request snapshots.
  * Received: canonical gross (one contribution per PaymentIntent / 053 identity).
  * Collectible remaining: max(0, contract − gross). Refunds do not reopen due.
  * Cash net: max(0, gross − refunded) — internal, not Remaining.
@@ -871,15 +874,23 @@ export function buildJobPaymentWorkspace(input: {
   refunds?: readonly JobPaymentRefundRow[];
   customerChosenTotalCents?: number | null;
   acceptedTotalCents?: number | null;
+  /**
+   * Astra G9 current contract total (acceptance + authorized deltas).
+   * When set, overrides acceptance-only cents for workspace Remaining/Contract.
+   */
+  currentContractTotalCents?: number | null;
   terms?: ProposalPaymentTerms | null;
   jobPaymentActive?: boolean;
 }): JobPaymentWorkspaceView {
   const connected = Boolean(input.account);
   const chargesEnabled = input.account?.charges_enabled === true;
-  const contractTotalCents = proposalAcceptanceContractTotalCents({
+  const acceptanceOnlyCents = proposalAcceptanceContractTotalCents({
     customerChosenTotalCents: input.customerChosenTotalCents,
     acceptedTotalCents: input.acceptedTotalCents,
   });
+  const override = asNonNegativeInt(input.currentContractTotalCents ?? null);
+  const contractTotalCents =
+    override != null ? override : acceptanceOnlyCents;
   const receivedGrossCents = jobPaymentWorkspaceGrossCents(input.transactions);
   const refunds = input.refunds ?? [];
   const refundedCents = jobPaymentWorkspaceRefundedCents(refunds);
