@@ -17,7 +17,7 @@ import { isUuidLike } from "@/app/lib/uuid";
 import { createClient } from "@/app/lib/supabase/server";
 
 export const PAYMENT_COPY_LINK_MINT_METADATA = {
-  source: "contractor_preview_qa",
+  source: "payment_request_communication",
 } as const;
 
 export type CreateAcceptedPaymentPublicLinkInput = {

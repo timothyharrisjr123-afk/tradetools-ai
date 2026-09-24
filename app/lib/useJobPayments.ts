@@ -6,11 +6,26 @@ import type { JobPaymentWorkspaceView } from "@/app/lib/jobPaymentWorkspace";
 import type { CollectAmountMode } from "@/app/lib/jobPaymentTypes";
 import { isUuidLike } from "@/app/lib/uuid";
 
+export type JobPaymentDeliveryAttemptView = {
+  id: string;
+  status: string;
+  attemptNumber: number;
+  recipientRedacted: string | null;
+  contractorNote: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+  providerAcceptedAt: string | null;
+  deliveredAt: string | null;
+  failedAt: string | null;
+  bouncedAt: string | null;
+};
+
 export type JobPaymentsLoadStatus = "idle" | "loading" | "ready" | "error";
 
 export type JobPaymentsState = {
   view: JobCardPaymentViewModel | null;
   workspace: JobPaymentWorkspaceView | null;
+  deliveryAttemptsByRequestId: Record<string, JobPaymentDeliveryAttemptView[]>;
   /** Transport/projection load status — never invents business money truth. */
   loadStatus: JobPaymentsLoadStatus;
   reload: () => Promise<void>;
@@ -18,7 +33,12 @@ export type JobPaymentsState = {
     amountMode: CollectAmountMode;
     percentageBps?: number;
     fixedAmount?: string;
-  }) => Promise<{ ok: boolean; code?: string }>;
+  }) => Promise<{ ok: boolean; code?: string; requestId?: string }>;
+  emailPaymentRequest: (input: {
+    paymentRequestId: string;
+    contractorNote?: string | null;
+    resend?: boolean;
+  }) => Promise<{ ok: boolean; code?: string; message?: string }>;
   cancelCurrentRequest: () => Promise<{ ok: boolean; code?: string }>;
   copyPaymentLink: () => Promise<{ ok: boolean; url?: string; code?: string }>;
   issueRefund: (
@@ -29,6 +49,9 @@ export type JobPaymentsState = {
   ) => Promise<{ ok: boolean; code?: string }>;
   collectBusy: boolean;
   collectError: string | null;
+  emailBusy: boolean;
+  emailError: string | null;
+  emailSuccess: string | null;
   cancelBusy: boolean;
   copyBusy: boolean;
   copyError: string | null;
@@ -39,26 +62,35 @@ export type JobPaymentsState = {
 async function fetchJobPayments(jobId: string): Promise<{
   view: JobCardPaymentViewModel;
   workspace: JobPaymentWorkspaceView | null;
+  deliveryAttemptsByRequestId: Record<string, JobPaymentDeliveryAttemptView[]>;
 } | null> {
   const paymentRes = await fetch(`/api/jobs/${jobId}/payment-requests`);
   const payment = (await paymentRes.json()) as {
     ok?: boolean;
     view?: JobCardPaymentViewModel;
     workspace?: JobPaymentWorkspaceView;
+    deliveryAttemptsByRequestId?: Record<string, JobPaymentDeliveryAttemptView[]>;
   };
   if (!paymentRes.ok || !payment.view) return null;
   return {
     view: payment.view,
     workspace: payment.workspace ?? null,
+    deliveryAttemptsByRequestId: payment.deliveryAttemptsByRequestId ?? {},
   };
 }
 
 export function useJobPayments(jobId: string | null | undefined): JobPaymentsState {
   const [view, setView] = useState<JobCardPaymentViewModel | null>(null);
   const [workspace, setWorkspace] = useState<JobPaymentWorkspaceView | null>(null);
+  const [deliveryAttemptsByRequestId, setDeliveryAttemptsByRequestId] = useState<
+    Record<string, JobPaymentDeliveryAttemptView[]>
+  >({});
   const [loadStatus, setLoadStatus] = useState<JobPaymentsLoadStatus>("idle");
   const [collectBusy, setCollectBusy] = useState(false);
   const [collectError, setCollectError] = useState<string | null>(null);
+  const [emailBusy, setEmailBusy] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailSuccess, setEmailSuccess] = useState<string | null>(null);
   const [cancelBusy, setCancelBusy] = useState(false);
   const [copyBusy, setCopyBusy] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
@@ -70,9 +102,11 @@ export function useJobPayments(jobId: string | null | undefined): JobPaymentsSta
     (result: {
       view: JobCardPaymentViewModel;
       workspace: JobPaymentWorkspaceView | null;
+      deliveryAttemptsByRequestId: Record<string, JobPaymentDeliveryAttemptView[]>;
     }) => {
       setView(result.view);
       setWorkspace(result.workspace);
+      setDeliveryAttemptsByRequestId(result.deliveryAttemptsByRequestId);
       setLoadStatus("ready");
     },
     []
@@ -81,6 +115,7 @@ export function useJobPayments(jobId: string | null | undefined): JobPaymentsSta
   const applyError = useCallback(() => {
     setView(null);
     setWorkspace(null);
+    setDeliveryAttemptsByRequestId({});
     setLoadStatus("error");
   }, []);
 
@@ -88,6 +123,7 @@ export function useJobPayments(jobId: string | null | undefined): JobPaymentsSta
     if (!isUuidLike(id)) {
       setView(null);
       setWorkspace(null);
+      setDeliveryAttemptsByRequestId({});
       setLoadStatus("idle");
       return;
     }
@@ -104,6 +140,7 @@ export function useJobPayments(jobId: string | null | undefined): JobPaymentsSta
     if (!isUuidLike(id)) {
       setView(null);
       setWorkspace(null);
+      setDeliveryAttemptsByRequestId({});
       setLoadStatus("idle");
       return;
     }
@@ -160,10 +197,14 @@ export function useJobPayments(jobId: string | null | undefined): JobPaymentsSta
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
-        const payload = (await response.json()) as { ok?: boolean; code?: string };
+        const payload = (await response.json()) as {
+          ok?: boolean;
+          code?: string;
+          id?: string;
+        };
         if (payload.ok) {
           await reload();
-          return { ok: true };
+          return { ok: true, requestId: payload.id };
         }
         const code = payload.code ?? "invalid_payload";
         setCollectError(collectErrorCopy(code));
@@ -174,6 +215,63 @@ export function useJobPayments(jobId: string | null | undefined): JobPaymentsSta
         return { ok: false, code: "internal_error" };
       } finally {
         setCollectBusy(false);
+      }
+    },
+    [id, reload]
+  );
+
+  const emailPaymentRequest = useCallback(
+    async (input: {
+      paymentRequestId: string;
+      contractorNote?: string | null;
+      resend?: boolean;
+    }) => {
+      if (!isUuidLike(id) || !isUuidLike(input.paymentRequestId)) {
+        return { ok: false, code: "invalid_payload" };
+      }
+      setEmailBusy(true);
+      setEmailError(null);
+      setEmailSuccess(null);
+      try {
+        const response = await fetch(
+          `/api/jobs/${id}/payment-requests/${input.paymentRequestId}/email`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contractorNote: input.contractorNote ?? null,
+              resend: input.resend === true,
+            }),
+          }
+        );
+        const payload = (await response.json().catch(() => ({}))) as {
+          ok?: boolean;
+          code?: string;
+          message?: string;
+          replayed?: boolean;
+        };
+        await reload();
+        if (payload.ok) {
+          setEmailSuccess(
+            payload.replayed
+              ? "Payment request email already sent."
+              : "Payment request emailed."
+          );
+          return { ok: true };
+        }
+        const code = payload.code ?? "invalid_payload";
+        const message =
+          payload.message ??
+          (code === "missing_customer_email"
+            ? "Add a customer email before emailing. You can still copy the payment link."
+            : "Could not email the payment request.");
+        setEmailError(message);
+        return { ok: false, code, message };
+      } catch {
+        setEmailError("Could not email the payment request.");
+        return { ok: false, code: "internal_error" };
+      } finally {
+        setEmailBusy(false);
       }
     },
     [id, reload]
@@ -272,14 +370,19 @@ export function useJobPayments(jobId: string | null | undefined): JobPaymentsSta
   return {
     view,
     workspace,
+    deliveryAttemptsByRequestId,
     loadStatus,
     reload,
     collectPayment,
+    emailPaymentRequest,
     cancelCurrentRequest,
     copyPaymentLink,
     issueRefund,
     collectBusy,
     collectError,
+    emailBusy,
+    emailError,
+    emailSuccess,
     cancelBusy,
     copyBusy,
     copyError,

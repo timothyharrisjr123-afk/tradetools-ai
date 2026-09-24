@@ -18,6 +18,7 @@ import {
   JOB_LIFECYCLE_COMPLETE_TRANSITIONS_ENABLED,
   JOB_LIFECYCLE_PRODUCTION_TRANSITIONS_ENABLED,
   JOB_LIFECYCLE_SCHEDULED_TRANSITIONS_ENABLED,
+  SYSTEM_RESERVED_JOB_ACTIVITY_EVENT_TYPES,
   type CanonicalJobStage,
   type JobActivityEventType,
   type OperationalJobDisposition,
@@ -189,20 +190,11 @@ export function buildRecordJobActivityPayload(
       `Invalid job activity event type: ${eventType}`
     );
   }
+  // All current Activity types are system-owned (no authenticated manual writers).
   if (
-    eventType === "job_created" ||
-    eventType === "stage_changed" ||
-    eventType === "disposition_changed" ||
-    eventType === "job_scheduled" ||
-    eventType === "job_rescheduled" ||
-    eventType === "job_unscheduled" ||
-    eventType === "job_work_started" ||
-    eventType === "job_work_completed" ||
-    eventType === "scope_change_created" ||
-    eventType === "scope_change_proposed" ||
-    eventType === "scope_change_authorized" ||
-    eventType === "scope_change_declined" ||
-    eventType === "scope_change_voided"
+    (SYSTEM_RESERVED_JOB_ACTIVITY_EVENT_TYPES as readonly string[]).includes(
+      eventType
+    )
   ) {
     throw new JobLifecyclePersistenceError(
       `Job activity event type is reserved for lifecycle writers: ${eventType}`

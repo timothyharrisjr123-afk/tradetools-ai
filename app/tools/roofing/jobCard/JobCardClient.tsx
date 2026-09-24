@@ -1618,24 +1618,36 @@ export default function JobCardClient({
                   <JobCardPaymentsWorkspace
                     workspace={jobPayments.workspace}
                     loadStatus={jobPayments.loadStatus}
+                    deliveryAttempts={
+                      jobPayments.workspace?.currentRequest?.id
+                        ? jobPayments.deliveryAttemptsByRequestId[
+                            jobPayments.workspace.currentRequest.id
+                          ] ?? []
+                        : []
+                    }
                     onCollectPayment={
                       jobPayments.workspace?.canCollectPayment
                         ? jobPayments.collectPayment
                         : undefined
                     }
+                    onEmailPaymentRequest={jobPayments.emailPaymentRequest}
                     onCancelCurrentRequest={
                       jobPayments.workspace?.currentRequest?.status === "open"
                         ? jobPayments.cancelCurrentRequest
                         : undefined
                     }
                     onCopyPaymentLink={
-                      jobPayments.workspace?.currentRequest
+                      jobPayments.workspace?.currentRequest ||
+                      jobPayments.workspace?.accepted
                         ? jobPayments.copyPaymentLink
                         : undefined
                     }
                     onIssueRefund={jobPayments.issueRefund}
                     collectBusy={jobPayments.collectBusy}
                     collectError={jobPayments.collectError}
+                    emailBusy={jobPayments.emailBusy}
+                    emailError={jobPayments.emailError}
+                    emailSuccess={jobPayments.emailSuccess}
                     cancelBusy={jobPayments.cancelBusy}
                     copyBusy={jobPayments.copyBusy}
                     refundBusy={jobPayments.refundBusy}

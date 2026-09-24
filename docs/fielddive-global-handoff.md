@@ -2,6 +2,56 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-24 — PHASE 11 COMPLETE: Collection communication (Astra G10)
+
+==================================================
+PHASE 11 — COLLECTION COMMUNICATION  
+STATUS: **COMPLETE** (code/architecture closed; production provider-event verification residual)
+==================================================
+
+- **Astra source:** Astra §15–16 + numbered **G10** Payment-request communication
+- **Base HEAD (pre-commit):** `2e1edc9d22cde6867c9b03d1c9ad41c5eca93c03` (Phase 10 finalize)
+- **Commit:** `feat(payments): add collection communication`
+- **Main:** **not** pushed. **No** deploy. **No** Phase 12.
+
+### Locked product truth
+
+- **Payment REQUEST** = canonical financial artifact; **COMMUNICATION** = message about that artifact (independent)
+- Email failure **never** rolls back request creation, amount, kind, financial status, or invents a replacement request
+- **Existing active** `open|processing` request always wins — Email / Resend / Copy link reuse it (no second writer)
+- **CREATE + EMAIL** are two durable ops; partial success: request preserved + Retry email + Copy link
+- Dedicated delivery table: `job_payment_request_delivery_attempts` (does **not** misuse `proposal_delivery_attempts`)
+- Reuses Resend client + single webhook `/api/webhooks/resend` with extended correlation (proposal **or** payment-request attempts)
+- Public path remains canonical `/p/[token]` — no second payment route; no FieldDive receipt system
+- **No** due_at / overdue / late-payment invention; **no** automated reminders; **no** SMS; **no** CRM thread
+- Capability: existing `payment_request` (Owner/Admin, Office/Sales); refund stays `payment_admin`
+- Phase 10 contract truth preserved: current total via `job_contract_total_cents_v1`; historical request snapshots immutable
+- Activity chronology only: `payment_request_emailed` | `payment_request_email_failed`
+- Routine loading semantic-color rule deferred to **Phase 12.5** (do not use warning yellow for routine loading)
+
+### Migration
+
+- File: `supabase/migrations/20260924120000_phase11_payment_request_delivery.sql`
+- **STAGING** `tjtrhdckinjtorgbkirm`: applied + ledger remote includes `20260924120000`
+- **PRODUCTION** `rhquhnujjnzjhweypavd`: applied + ledger remote includes `20260924120000` (phase-closure, after staging)
+- Ordinary CLI link restored/remains **staging**
+
+### Production Resend ops status
+
+- **CODE/ARCHITECTURE COMPLETE**
+- **PRODUCTION PROVIDER EVENT VERIFIED:** **NO** — residual ops: production `RESEND_WEBHOOK_SECRET` still not registered (endpoint historically `webhook_not_configured` until secret set). Classification **B**: external/manual Resend dashboard + Vercel env + promote. Do not fake delivered proof. Do not weaken Svix verification.
+
+### Proof
+
+- Desktop + true-390 under `tmp/fielddive-ui-review/phase11-collection-communication/`
+- Proven job: `[R3G-046-VISUAL] Clean Approved` (`c34d3539-…`) — contract `$18,950`, progress request `$450`, historical `$18,500` rows unchanged
+- Provider send against `@example.com` returns durable **failed** attempts; request remains `open`; Resend + Copy link available; public `/p/[token]` shows Progress payment `$450`
+
+### Explicit next
+
+**NEXT: PHASE 12 — CUSTOMER-FACING AGREEMENT / PAYMENT / CLOSEOUT PROOF**  
+Do **not** implement Phase 12 from this checkpoint alone.
+
 ## 2026-09-23 — PHASE 10 COMPLETE: Minimal approved scope changes (Astra G9)
 
 ==================================================
@@ -14,7 +64,7 @@ STATUS: **COMPLETE** (final truth/integration correction closed)
 - **Architecture commit:** `10f6c0b` `feat(proposals): add approved scope changes`
 - **Integration commit:** `739760d` `fix(proposals): complete Phase 10 scope-change integration`
 - **Final truth correction:** `fix(proposals): finalize Phase 10 scope-change truth` (tip `main` after this close)
-- **Main:** **not** pushed. **No** deploy. **No** Phase 11. **No** Phase 12.5.
+- **Main:** **not** pushed. **No** deploy. **Phase 11 complete** (see top). **No** Phase 12.5.
 
 ### Final truth / integration correction (same phase)
 
@@ -32,7 +82,7 @@ Three screenshot-proven defects closed on real product routes (not harness):
 - Proven on authenticated Job Card / public `/scope-changes/[token]` routes (not harness-only).
 - Follow-up fixes: quantity/unit authoring fields; list-route `serializeScopeChangeLine` import; public review qty/unit display; Activity chronology visibility for `scope_change_*`.
 - Screenshots: `tmp/fielddive-ui-review/phase10-approved-scope-changes/real-product/`
-- **Main:** **not** pushed. **No** deploy. **No** Phase 11.
+- **Main:** **not** pushed. **No** deploy. Phase 11 closed separately (see top).
 
 ### Locked product truth
 
@@ -50,7 +100,7 @@ Three screenshot-proven defects closed on real product routes (not harness):
 - **Activity (append-only):** `scope_change_created` | `proposed` | `authorized` | `declined` | `voided`
 - **Public token:** hash-only; resolve/authorize service_role; no client-trusted company/job ids
 - **UX home:** Proposals domain under accepted agreement + Production Overview contextual entry; **no** new Job Card tab
-- **Phase 11 collection deferred**
+- **Phase 11 collection:** **COMPLETE** (see top of handoff)
 
 ### Migration
 
@@ -77,10 +127,10 @@ Three screenshot-proven defects closed on real product routes (not harness):
 - **ASTRA-ALIGNED IMPROVEMENT:** hash-only public access tokens mirroring proposal public-access patterns; financial-conflict read-only context on public authorize
 - **NEW DIRECTION:** **NONE**
 
-### Explicit next
+### Explicit next (superseded)
 
-**NEXT: PHASE 11 — COLLECTION COMMUNICATION**  
-Do **not** implement Phase 11 from this checkpoint alone.
+**PHASE 11 — COLLECTION COMMUNICATION** is **COMPLETE** (see top of handoff).  
+**NEXT: PHASE 12 — CUSTOMER-FACING AGREEMENT / PAYMENT / CLOSEOUT PROOF**
 
 ## 2026-09-23 — PHASE 9 COMPLETE: Lifecycle / disposition recovery (Astra G8)
 

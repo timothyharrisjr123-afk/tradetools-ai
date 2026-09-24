@@ -7,6 +7,7 @@ import {
   type CollectAmountMode,
 } from "@/app/lib/jobPaymentTypes";
 import { parseCollectFixedAmountToCents } from "@/app/lib/jobPaymentMoney";
+import { requireCapabilitySession } from "@/app/lib/requireCapabilitySession";
 import { isUuidLike } from "@/app/lib/uuid";
 import { createClient } from "@/app/lib/supabase/server";
 
@@ -52,6 +53,12 @@ export async function POST(req: Request, context: { params: Promise<{ jobId: str
     if (!companyId) {
       return NextResponse.json({ ok: false, code: "forbidden" }, { status: 403 });
     }
+    const gated = await requireCapabilitySession(
+      supabase,
+      user.id,
+      "payment_request"
+    );
+    if (!gated.ok) return gated.response;
     if (!isUuidLike(jobId)) {
       return NextResponse.json({ ok: false, code: "invalid_payload" }, { status: 400 });
     }

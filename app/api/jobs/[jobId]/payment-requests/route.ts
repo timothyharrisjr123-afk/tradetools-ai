@@ -15,6 +15,7 @@ import { parseProposalPaymentTermsRow } from "@/app/lib/proposalPaymentTerms";
 import { isUuidLike } from "@/app/lib/uuid";
 import { resolveCanonicalJobStage } from "@/app/lib/jobLifecycleMapper";
 import { createClient } from "@/app/lib/supabase/server";
+import { listPaymentRequestDeliveryAttemptsForRequestWithClient } from "@/app/lib/jobPaymentRequestDeliveryPersistence";
 
 export const runtime = "nodejs";
 
@@ -194,10 +195,54 @@ export async function GET(_req: Request, context: RouteContext) {
       acceptedTotalCents: currentContractTotalCents,
     });
 
+    const deliveryByRequestId: Record<
+      string,
+      Array<{
+        id: string;
+        status: string;
+        attemptNumber: number;
+        recipientRedacted: string | null;
+        contractorNote: string | null;
+        errorMessage: string | null;
+        createdAt: string;
+        providerAcceptedAt: string | null;
+        deliveredAt: string | null;
+        failedAt: string | null;
+        bouncedAt: string | null;
+      }>
+    > = {};
+    for (const row of requestRows) {
+      try {
+        const attempts = await listPaymentRequestDeliveryAttemptsForRequestWithClient(
+          supabase,
+          {
+            company_id: companyId,
+            payment_request_id: row.id,
+          }
+        );
+        deliveryByRequestId[row.id] = attempts.map((a) => ({
+          id: a.id,
+          status: a.status,
+          attemptNumber: a.attempt_number,
+          recipientRedacted: a.recipient_email_redacted,
+          contractorNote: a.contractor_note_snapshot,
+          errorMessage: a.error_message_safe,
+          createdAt: a.created_at,
+          providerAcceptedAt: a.provider_accepted_at,
+          deliveredAt: a.delivered_at,
+          failedAt: a.failed_at,
+          bouncedAt: a.bounced_at,
+        }));
+      } catch {
+        deliveryByRequestId[row.id] = [];
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       workspace,
       view,
+      deliveryAttemptsByRequestId: deliveryByRequestId,
       requests: requestRows.map((row) => ({
         id: row.id,
         kind: row.kind,

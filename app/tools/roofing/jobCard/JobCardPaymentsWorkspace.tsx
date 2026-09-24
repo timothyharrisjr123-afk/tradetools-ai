@@ -17,16 +17,22 @@ import {
   JOB_PAYMENT_INFORMATION_UNAVAILABLE,
   type CollectAmountMode,
 } from "@/app/lib/jobPaymentTypes";
-import type { JobPaymentsLoadStatus } from "@/app/lib/useJobPayments";
+import type { JobPaymentsLoadStatus, JobPaymentDeliveryAttemptView } from "@/app/lib/useJobPayments";
 
 type JobCardPaymentsWorkspaceProps = {
   workspace: JobPaymentWorkspaceView | null;
   loadStatus?: JobPaymentsLoadStatus;
+  deliveryAttempts?: JobPaymentDeliveryAttemptView[];
   onCollectPayment?: (input: {
     amountMode: CollectAmountMode;
     percentageBps?: number;
     fixedAmount?: string;
-  }) => Promise<{ ok: boolean; code?: string }>;
+  }) => Promise<{ ok: boolean; code?: string; requestId?: string }>;
+  onEmailPaymentRequest?: (input: {
+    paymentRequestId: string;
+    contractorNote?: string | null;
+    resend?: boolean;
+  }) => Promise<{ ok: boolean; code?: string; message?: string }>;
   onCancelCurrentRequest?: () => Promise<{ ok: boolean; code?: string }>;
   onCopyPaymentLink?: () => Promise<{ ok: boolean; url?: string; code?: string }>;
   onIssueRefund?: (
@@ -37,6 +43,9 @@ type JobCardPaymentsWorkspaceProps = {
   ) => Promise<{ ok: boolean; code?: string }>;
   collectBusy?: boolean;
   collectError?: string | null;
+  emailBusy?: boolean;
+  emailError?: string | null;
+  emailSuccess?: string | null;
   cancelBusy?: boolean;
   copyBusy?: boolean;
   copyError?: string | null;
@@ -128,12 +137,17 @@ function HistoryRow({
 export default function JobCardPaymentsWorkspace({
   workspace,
   loadStatus = "idle",
+  deliveryAttempts = [],
   onCollectPayment,
+  onEmailPaymentRequest,
   onCancelCurrentRequest,
   onCopyPaymentLink,
   onIssueRefund,
   collectBusy = false,
   collectError = null,
+  emailBusy = false,
+  emailError = null,
+  emailSuccess = null,
   cancelBusy = false,
   copyBusy = false,
   copyError = null,
@@ -141,6 +155,11 @@ export default function JobCardPaymentsWorkspace({
   refundError = null,
 }: JobCardPaymentsWorkspaceProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [emailNote, setEmailNote] = useState("");
+  const [pendingEmailAfterCollect, setPendingEmailAfterCollect] = useState<{
+    requestId: string;
+    message: string;
+  } | null>(null);
   const [refundEvent, setRefundEvent] =
     useState<JobPaymentWorkspaceTimelineEvent | null>(null);
   const historyGroups = useMemo(
@@ -268,39 +287,208 @@ export default function JobCardPaymentsWorkspace({
             {formatJobPaymentWorkspaceAmount(current.amountCents)}
           </p>
           <p className="mt-1 text-sm text-slate-500">{currentStatusLabel(current.status)}</p>
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          {(current.status === "open" || current.status === "processing") &&
+          onEmailPaymentRequest ? (
+            <div className="mt-4 space-y-2" data-jobcard-payments-email>
+              <label className="block space-y-1 text-sm">
+                <span className="font-medium text-slate-700">
+                  Optional note{" "}
+                  <span className="font-normal text-slate-400">(email only)</span>
+                </span>
+                <textarea
+                  className="min-h-[72px] w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                  maxLength={500}
+                  value={emailNote}
+                  onChange={(e) => setEmailNote(e.target.value)}
+                  data-jobcard-payments-email-note
+                />
+              </label>
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                <button
+                  type="button"
+                  disabled={emailBusy}
+                  onClick={() => {
+                    void onEmailPaymentRequest({
+                      paymentRequestId: current.id,
+                      contractorNote: emailNote,
+                      resend: deliveryAttempts.length > 0,
+                    });
+                  }}
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-md bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                  data-jobcard-payments-email-send
+                >
+                  {emailBusy
+                    ? "Sending…"
+                    : deliveryAttempts.length > 0
+                      ? "Resend email"
+                      : "Email payment request"}
+                </button>
+                {onCopyPaymentLink ? (
+                  <button
+                    type="button"
+                    disabled={copyBusy}
+                    onClick={() => {
+                      void onCopyPaymentLink();
+                    }}
+                    className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-slate-200 px-4 text-sm font-semibold text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                    data-jobcard-payments-copy-link
+                  >
+                    {copyBusy ? "Copying…" : JOB_CARD_PAYMENTS_COPY_LINK_CTA}
+                  </button>
+                ) : null}
+                {current.status === "open" && onCancelCurrentRequest ? (
+                  <button
+                    type="button"
+                    disabled={cancelBusy}
+                    onClick={() => {
+                      void onCancelCurrentRequest();
+                    }}
+                    className="inline-flex min-h-11 w-full items-center justify-center rounded-md px-4 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                    data-jobcard-payments-cancel
+                  >
+                    {cancelBusy ? "Cancelling…" : JOB_CARD_PAYMENTS_CANCEL_REQUEST_CTA}
+                  </button>
+                ) : null}
+              </div>
+              {emailSuccess ? (
+                <p className="text-sm text-slate-600" data-jobcard-payments-email-success>
+                  {emailSuccess}
+                </p>
+              ) : null}
+              {emailError ? (
+                <p className="text-sm text-amber-900" data-jobcard-payments-email-error role="status">
+                  {emailError}
+                </p>
+              ) : null}
+              {copyError ? (
+                <p className="text-sm text-slate-600" data-jobcard-payments-copy-error>
+                  {copyError}
+                </p>
+              ) : null}
+            </div>
+          ) : (
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+              {onCopyPaymentLink ? (
+                <button
+                  type="button"
+                  disabled={copyBusy}
+                  onClick={() => {
+                    void onCopyPaymentLink();
+                  }}
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-slate-200 px-4 text-sm font-semibold text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                  data-jobcard-payments-copy-link
+                >
+                  {copyBusy ? "Copying…" : JOB_CARD_PAYMENTS_COPY_LINK_CTA}
+                </button>
+              ) : null}
+              {current.status === "open" && onCancelCurrentRequest ? (
+                <button
+                  type="button"
+                  disabled={cancelBusy}
+                  onClick={() => {
+                    void onCancelCurrentRequest();
+                  }}
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-md px-4 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                  data-jobcard-payments-cancel
+                >
+                  {cancelBusy ? "Cancelling…" : JOB_CARD_PAYMENTS_CANCEL_REQUEST_CTA}
+                </button>
+              ) : null}
+              {copyError ? (
+                <p className="mt-2 text-sm text-slate-600" data-jobcard-payments-copy-error>
+                  {copyError}
+                </p>
+              ) : null}
+            </div>
+          )}
+          {deliveryAttempts.length > 0 ? (
+            <div className="mt-5" data-jobcard-payments-delivery-history>
+              <h4 className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                Email delivery
+              </h4>
+              <ul className="mt-2 divide-y divide-slate-100">
+                {deliveryAttempts.map((attempt) => {
+                  const label =
+                    attempt.status === "delivered"
+                      ? "Delivered"
+                      : attempt.status === "bounced"
+                        ? "Bounced"
+                        : attempt.status === "failed"
+                          ? "Email wasn’t sent"
+                          : attempt.status === "provider_accepted" ||
+                              attempt.status === "attempted"
+                            ? "Submitted"
+                            : attempt.status === "delayed"
+                              ? "Delivery delayed"
+                              : attempt.status;
+                  const tone =
+                    attempt.status === "failed" || attempt.status === "bounced"
+                      ? "text-amber-950"
+                      : "text-slate-700";
+                  return (
+                    <li key={attempt.id} className="py-2 text-sm">
+                      <p className={`font-medium ${tone}`}>
+                        Attempt {attempt.attemptNumber} · {label}
+                      </p>
+                      {attempt.recipientRedacted ? (
+                        <p className="text-xs text-slate-500">
+                          To {attempt.recipientRedacted}
+                        </p>
+                      ) : null}
+                      {attempt.errorMessage ? (
+                        <p className="text-xs text-amber-900">{attempt.errorMessage}</p>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      {pendingEmailAfterCollect ? (
+        <section
+          className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3"
+          data-jobcard-payments-partial-success
+          role="status"
+        >
+          <p className="text-sm font-semibold text-slate-900">
+            Payment request created.
+          </p>
+          <p className="mt-1 text-sm text-slate-600">{pendingEmailAfterCollect.message}</p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            {onEmailPaymentRequest ? (
+              <button
+                type="button"
+                disabled={emailBusy}
+                className="inline-flex min-h-11 items-center justify-center rounded-md bg-slate-900 px-4 text-sm font-semibold text-white disabled:opacity-60"
+                onClick={() => {
+                  void onEmailPaymentRequest({
+                    paymentRequestId: pendingEmailAfterCollect.requestId,
+                    contractorNote: emailNote,
+                    resend: true,
+                  }).then((r) => {
+                    if (r.ok) setPendingEmailAfterCollect(null);
+                  });
+                }}
+              >
+                Retry email
+              </button>
+            ) : null}
             {onCopyPaymentLink ? (
               <button
                 type="button"
                 disabled={copyBusy}
+                className="inline-flex min-h-11 items-center justify-center rounded-md border border-slate-200 px-4 text-sm font-semibold text-slate-800"
                 onClick={() => {
                   void onCopyPaymentLink();
                 }}
-                className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-slate-200 px-4 text-sm font-semibold text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-                data-jobcard-payments-copy-link
               >
-                {copyBusy ? "Copying…" : JOB_CARD_PAYMENTS_COPY_LINK_CTA}
-              </button>
-            ) : null}
-            {current.status === "open" && onCancelCurrentRequest ? (
-              <button
-                type="button"
-                disabled={cancelBusy}
-                onClick={() => {
-                  void onCancelCurrentRequest();
-                }}
-                className="inline-flex min-h-11 w-full items-center justify-center rounded-md px-4 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-                data-jobcard-payments-cancel
-              >
-                {cancelBusy ? "Cancelling…" : JOB_CARD_PAYMENTS_CANCEL_REQUEST_CTA}
+                {JOB_CARD_PAYMENTS_COPY_LINK_CTA}
               </button>
             ) : null}
           </div>
-          {copyError ? (
-            <p className="mt-2 text-sm text-slate-600" data-jobcard-payments-copy-error>
-              {copyError}
-            </p>
-          ) : null}
         </section>
       ) : null}
 
@@ -399,8 +587,26 @@ export default function JobCardPaymentsWorkspace({
             setSheetOpen(false);
           }}
           onSubmit={(input) => {
-            void onCollectPayment(input).then((result) => {
-              if (result.ok) setSheetOpen(false);
+            void onCollectPayment(input).then(async (result) => {
+              if (!result.ok) return;
+              setSheetOpen(false);
+              // Two durable ops: create/reuse (done) then optional first email.
+              if (result.requestId && onEmailPaymentRequest) {
+                const emailed = await onEmailPaymentRequest({
+                  paymentRequestId: result.requestId,
+                  contractorNote: emailNote,
+                });
+                if (!emailed.ok) {
+                  setPendingEmailAfterCollect({
+                    requestId: result.requestId,
+                    message:
+                      emailed.message ??
+                      "Email wasn’t sent. You can retry or copy the payment link.",
+                  });
+                } else {
+                  setPendingEmailAfterCollect(null);
+                }
+              }
             });
           }}
         />

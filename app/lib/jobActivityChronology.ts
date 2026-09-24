@@ -453,7 +453,9 @@ export function classifyJobActivityEvent(
     event.event_type === "scope_change_proposed" ||
     event.event_type === "scope_change_authorized" ||
     event.event_type === "scope_change_declined" ||
-    event.event_type === "scope_change_voided"
+    event.event_type === "scope_change_voided" ||
+    event.event_type === "payment_request_emailed" ||
+    event.event_type === "payment_request_email_failed"
   ) {
     return JOB_ACTIVITY_VISIBILITY.CONTRACTOR_VISIBLE;
   }
@@ -710,6 +712,25 @@ function composeEventRow(
           : "work_approved",
       title: titleByType[event.event_type] ?? "Scope change",
       detail,
+      occurredAt: event.occurred_at,
+      actor,
+      source: "durable",
+      sourceIds: [event.id],
+    };
+  }
+
+  if (
+    event.event_type === "payment_request_emailed" ||
+    event.event_type === "payment_request_email_failed"
+  ) {
+    return {
+      id: event.id,
+      kind: "work_approved",
+      title:
+        event.event_type === "payment_request_emailed"
+          ? "Payment request emailed"
+          : "Payment request email failed",
+      detail: null,
       occurredAt: event.occurred_at,
       actor,
       source: "durable",

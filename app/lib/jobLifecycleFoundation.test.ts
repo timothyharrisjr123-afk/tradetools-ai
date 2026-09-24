@@ -31,7 +31,7 @@ import {
   TRANSITION_JOB_STAGE_RPC_V1,
   transitionJobStageViaRpc,
 } from "./jobLifecyclePersistence";
-import { JOB_LIFECYCLE_SCHEDULED_TRANSITIONS_ENABLED, AUTHENTICATED_MANUAL_JOB_ACTIVITY_EVENT_TYPES, SYSTEM_RESERVED_JOB_ACTIVITY_EVENT_TYPES } from "./jobLifecycleTypes";
+import { JOB_LIFECYCLE_SCHEDULED_TRANSITIONS_ENABLED, AUTHENTICATED_MANUAL_JOB_ACTIVITY_EVENT_TYPES, JOB_ACTIVITY_EVENT_TYPES, SYSTEM_RESERVED_JOB_ACTIVITY_EVENT_TYPES } from "./jobLifecycleTypes";
 import { jobDraftToInsertRow } from "./jobStore";
 import {
   mapDbJobStageToBoardColumnKey,
@@ -483,16 +483,10 @@ describe("RPC payload guards", () => {
   });
 
   test("reserved Activity types cannot be client-built", () => {
-    assert.deepEqual([...SYSTEM_RESERVED_JOB_ACTIVITY_EVENT_TYPES], [
-      "job_created",
-      "stage_changed",
-      "disposition_changed",
-      "job_scheduled",
-      "job_rescheduled",
-      "job_unscheduled",
-      "job_work_started",
-      "job_work_completed",
-    ]);
+    assert.deepEqual(
+      [...SYSTEM_RESERVED_JOB_ACTIVITY_EVENT_TYPES],
+      [...JOB_ACTIVITY_EVENT_TYPES]
+    );
     assert.deepEqual([...AUTHENTICATED_MANUAL_JOB_ACTIVITY_EVENT_TYPES], []);
     for (const eventType of SYSTEM_RESERVED_JOB_ACTIVITY_EVENT_TYPES) {
       assert.throws(() =>

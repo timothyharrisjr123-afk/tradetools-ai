@@ -190,6 +190,7 @@ export async function markProviderEventStateWithClient(
     apply_state: DeliveryProviderApplyState;
     apply_detail?: string | null;
     delivery_attempt_id?: string | null;
+    payment_request_delivery_attempt_id?: string | null;
     company_id?: string | null;
     applied_at?: string | null;
   }
@@ -200,6 +201,10 @@ export async function markProviderEventStateWithClient(
   };
   if (input.delivery_attempt_id !== undefined) {
     patch.delivery_attempt_id = input.delivery_attempt_id;
+  }
+  if (input.payment_request_delivery_attempt_id !== undefined) {
+    patch.payment_request_delivery_attempt_id =
+      input.payment_request_delivery_attempt_id;
   }
   if (input.company_id !== undefined) {
     patch.company_id = input.company_id;
