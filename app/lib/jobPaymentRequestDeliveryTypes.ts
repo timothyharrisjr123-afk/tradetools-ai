@@ -101,7 +101,7 @@ export function normalizeRecipientEmailForPaymentDelivery(email: string): string
 
 export function buildPaymentRecipientDeliveryFieldsFromEmail(email: string): {
   recipient_email_hash: string;
-  recipient_email_redacted: string;
+  recipient_email_redacted: string | null;
 } {
   return buildRecipientDeliveryFieldsFromEmail(email);
 }

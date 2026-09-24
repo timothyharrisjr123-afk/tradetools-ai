@@ -18,6 +18,10 @@ import {
   type CollectAmountMode,
 } from "@/app/lib/jobPaymentTypes";
 import type { JobPaymentsLoadStatus, JobPaymentDeliveryAttemptView } from "@/app/lib/useJobPayments";
+import {
+  PAYMENT_REQUEST_EMAIL_ACTION_LABELS,
+  resolvePaymentRequestEmailAction,
+} from "@/app/lib/jobPaymentRequestEmailAction";
 
 type JobCardPaymentsWorkspaceProps = {
   workspace: JobPaymentWorkspaceView | null;
@@ -226,6 +230,7 @@ export default function JobCardPaymentsWorkspace({
   }
 
   const current = workspace.currentRequest;
+  const emailAction = resolvePaymentRequestEmailAction(deliveryAttempts);
   const showCollect =
     workspace.canCollectPayment && onCollectPayment && current == null;
   const showQuietStatus = current == null && workspace.statusLabel.length > 0;
@@ -311,17 +316,16 @@ export default function JobCardPaymentsWorkspace({
                     void onEmailPaymentRequest({
                       paymentRequestId: current.id,
                       contractorNote: emailNote,
-                      resend: deliveryAttempts.length > 0,
+                      resend: emailAction !== "email",
                     });
                   }}
                   className="inline-flex min-h-11 w-full items-center justify-center rounded-md bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                   data-jobcard-payments-email-send
+                  data-jobcard-payments-email-action={emailAction}
                 >
                   {emailBusy
                     ? "Sending…"
-                    : deliveryAttempts.length > 0
-                      ? "Resend email"
-                      : "Email payment request"}
+                    : PAYMENT_REQUEST_EMAIL_ACTION_LABELS[emailAction]}
                 </button>
                 {onCopyPaymentLink ? (
                   <button
@@ -350,6 +354,12 @@ export default function JobCardPaymentsWorkspace({
                   </button>
                 ) : null}
               </div>
+              {emailAction === "retry" && !emailBusy && !pendingEmailAfterCollect ? (
+                <p className="text-sm text-slate-600" data-jobcard-payments-email-retry-hint>
+                  This payment request is still open. The email wasn’t sent — retry, or copy
+                  the payment link and share it directly.
+                </p>
+              ) : null}
               {emailSuccess ? (
                 <p className="text-sm text-slate-600" data-jobcard-payments-email-success>
                   {emailSuccess}

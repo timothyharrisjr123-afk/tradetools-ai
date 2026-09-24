@@ -150,7 +150,7 @@ describe("Astra G10 API + capability wiring", () => {
     assert.match(ui, /data-jobcard-payments-email-send/);
     assert.match(ui, /data-jobcard-payments-delivery-history/);
     assert.match(ui, /data-jobcard-payments-partial-success/);
-    assert.match(ui, /Email payment request|Resend email/);
+    assert.match(ui, /PAYMENT_REQUEST_EMAIL_ACTION_LABELS\[emailAction\]/);
   });
 
   test("copy-link metadata cleaned for communication source", () => {

@@ -344,6 +344,7 @@ type FixtureId = keyof typeof FIXTURES | "activity" | "customer-refund";
 
 const CUSTOMER_REFUND_PAYMENT: PublicPaymentViewModel = {
   state: "payments_complete_with_refund",
+  contractSummary: null,
   kind: null,
   amountLabel: null,
   kindLabel: null,

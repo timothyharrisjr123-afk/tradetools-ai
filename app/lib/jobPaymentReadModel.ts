@@ -21,6 +21,7 @@ import {
 } from "@/app/lib/jobPaymentTypes";
 
 export type {
+  PublicPaymentContractSummary,
   PublicPaymentHistoryItem,
   PublicPaymentOriginalTerms,
   PublicPaymentViewModel,

@@ -4,7 +4,10 @@ import type { PublicPaymentViewModel } from "@/app/lib/jobPaymentReadModel";
 import { isCustomerPaymentPayableState } from "@/app/lib/jobPaymentCustomerPresenter";
 import { formatUsdFromCents } from "@/app/lib/jobPaymentMoney";
 import {
+  PUBLIC_PAYMENT_APPROVED_CHANGES_LABEL,
+  PUBLIC_PAYMENT_CURRENT_CONTRACT_LABEL,
   PUBLIC_PAYMENT_HISTORY_HEADING,
+  PUBLIC_PAYMENT_ORIGINAL_AGREEMENT_LABEL,
 } from "@/app/lib/jobPaymentTypes";
 import {
   PROPOSAL_CUSTOMER_PACKET_ACCEPT_SUCCESS_NEXT,
@@ -129,6 +132,35 @@ export default function ProposalPacketPurchase({
         <p className="mt-1.5 text-[13.5px] leading-[1.55] text-[#64748b]">
           {differentiators.slice(0, 3).join(" · ")}
         </p>
+      ) : null}
+
+      {payment?.contractSummary ? (
+        <>
+          <div className={PROPOSAL_PACKET_PURCHASE_DIVIDER} />
+          <dl className="space-y-1.5 text-[13.5px]" data-public-contract-summary>
+            <div className="flex min-w-0 items-baseline justify-between gap-4">
+              <dt className="text-[#64748b]">{PUBLIC_PAYMENT_ORIGINAL_AGREEMENT_LABEL}</dt>
+              <dd className="shrink-0 tabular-nums text-[#334155]">
+                {payment.contractSummary.originalAgreementLabel}
+              </dd>
+            </div>
+            <div className="flex min-w-0 items-baseline justify-between gap-4">
+              <dt className="text-[#64748b]">{PUBLIC_PAYMENT_APPROVED_CHANGES_LABEL}</dt>
+              <dd className="shrink-0 tabular-nums text-[#334155]">
+                {payment.contractSummary.authorizedChangesLabel}
+              </dd>
+            </div>
+            <div className="flex min-w-0 items-baseline justify-between gap-4 font-semibold">
+              <dt className="text-[#0b1f33]">{PUBLIC_PAYMENT_CURRENT_CONTRACT_LABEL}</dt>
+              <dd
+                className="shrink-0 tabular-nums text-[#0b1f33]"
+                data-public-current-contract
+              >
+                {payment.contractSummary.currentContractLabel}
+              </dd>
+            </div>
+          </dl>
+        </>
       ) : null}
 
       {state === "processing" ? (

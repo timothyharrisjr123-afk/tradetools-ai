@@ -101,6 +101,16 @@ export type PublicPaymentOriginalTerms = {
   balanceLine: string | null;
 };
 
+/**
+ * Original accepted agreement vs current contract (Phase 10 rollup).
+ * Present only when authorized changes moved the current total.
+ */
+export type PublicPaymentContractSummary = {
+  originalAgreementLabel: string;
+  authorizedChangesLabel: string;
+  currentContractLabel: string;
+};
+
 export type PublicPaymentViewModel = {
   state: PublicPaymentViewState;
   kind: JobPaymentKind | null;
@@ -115,6 +125,7 @@ export type PublicPaymentViewModel = {
   methodLabel: string | null;
   history: PublicPaymentHistoryItem[];
   originalTerms: PublicPaymentOriginalTerms | null;
+  contractSummary: PublicPaymentContractSummary | null;
 };
 
 export type PublicCheckoutRequestSnapshot = {
@@ -418,15 +429,42 @@ function originalTermsFor(
 }
 
 function baseVm(
-  partial: Omit<PublicPaymentViewModel, "history" | "originalTerms"> & {
+  partial: Omit<PublicPaymentViewModel, "history" | "originalTerms" | "contractSummary"> & {
     history?: PublicPaymentHistoryItem[];
     originalTerms?: PublicPaymentOriginalTerms | null;
+    contractSummary?: PublicPaymentContractSummary | null;
   }
 ): PublicPaymentViewModel {
   return {
     history: partial.history ?? [],
     originalTerms: partial.originalTerms ?? null,
+    contractSummary: partial.contractSummary ?? null,
     ...partial,
+  };
+}
+
+function isCents(value: number | null | undefined): value is number {
+  return value != null && Number.isInteger(value) && value >= 0;
+}
+
+/**
+ * Null when either total is unknown or they match — a job without authorized
+ * changes shows no "changes $0" clutter.
+ */
+export function buildPublicContractSummary(input: {
+  originalAgreementCents: number | null | undefined;
+  currentContractCents: number | null | undefined;
+}): PublicPaymentContractSummary | null {
+  if (!isCents(input.originalAgreementCents) || !isCents(input.currentContractCents)) {
+    return null;
+  }
+  const delta = input.currentContractCents - input.originalAgreementCents;
+  if (delta === 0) return null;
+  const deltaLabel = formatUsdFromCents(Math.abs(delta));
+  return {
+    originalAgreementLabel: formatUsdFromCents(input.originalAgreementCents),
+    authorizedChangesLabel: delta > 0 ? `+${deltaLabel}` : `−${deltaLabel}`,
+    currentContractLabel: formatUsdFromCents(input.currentContractCents),
   };
 }
 
@@ -475,17 +513,38 @@ export function buildProspectiveDepositPaymentViewModel(input: {
   });
 }
 
-export function buildPublicPaymentViewModel(input: {
+type BuildPublicPaymentViewModelInput = {
   requests: readonly JobPaymentRequestRow[];
   transactions?: readonly JobPaymentTransactionRow[];
   refunds?: readonly JobPaymentRefundRow[];
   returnHint?: "pending" | "cancelled" | null;
   accepted?: boolean;
   terms?: ProposalPaymentTerms | null;
+  /** Current contract total (`job_contract_total_cents_v1` for accepted jobs). */
   contractTotalCents?: number | null;
+  /** Original accepted agreement total — historical, never rewritten. */
+  originalAgreementCents?: number | null;
   proposalVersionId?: string | null;
   acceptanceId?: string | null;
-}): PublicPaymentViewModel | null {
+};
+
+export function buildPublicPaymentViewModel(
+  input: BuildPublicPaymentViewModelInput
+): PublicPaymentViewModel | null {
+  const vm = buildPublicPaymentViewModelCore(input);
+  if (!vm || !input.accepted) return vm;
+  return {
+    ...vm,
+    contractSummary: buildPublicContractSummary({
+      originalAgreementCents: input.originalAgreementCents,
+      currentContractCents: input.contractTotalCents,
+    }),
+  };
+}
+
+function buildPublicPaymentViewModelCore(
+  input: BuildPublicPaymentViewModelInput
+): PublicPaymentViewModel | null {
   const transactions = input.transactions ?? [];
   const refunds = input.refunds ?? [];
   const current = customerCurrentRequest(input.requests, input.proposalVersionId);

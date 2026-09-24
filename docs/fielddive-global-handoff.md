@@ -2,6 +2,18 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-24 — PHASE 11 FINAL CORRECTION: current-contract truth + email action wording
+
+- **Commit:** `fix(payments): finalize Phase 11 communication truth` on top of `5609855` (not amended). **Not** pushed. **No** deploy. **No** Phase 12.
+- **Public `/p/[token]` current contract:** `loadPublicProposalByToken` now passes `job_contract_total_cents_v1` (base acceptance + authorized scope-change deltas) as `contractTotalCents`, and the acceptance's contractual cents (`customer_chosen_total_cents ?? accepted_total_cents`, mirroring `proposal_acceptance_contract_total_cents_v1`) as `originalAgreementCents`. Root cause: the page previously used the comparison/selected option total, which is `null` for some accepted proposals and never included authorized changes.
+- **Presenter:** `PublicPaymentViewModel.contractSummary` (`buildPublicContractSummary`) — shown only when accepted **and** current ≠ original. Rows: Original agreement / Approved changes (`+$X` / `−$X`) / Current contract total. No summary (no "$0 changes" clutter) for normal jobs. Request snapshots are untouched; the frozen request amount still comes from the request row.
+- **Email action wording** (`app/lib/jobPaymentRequestEmailAction.ts`, client-safe): derived from durable delivery attempts (latest by `attemptNumber`): none → **Email request**; latest `prepared`/`attempted`/`failed` → **Retry email**; latest `provider_accepted`/`delayed`/`delivered`/`bounced`/`complained` → **Resend email**. Retry and resend both send `resend: true` → new attempt on the **same** request (server semantics unchanged).
+- **Retry hint:** when the action is Retry, the Job Card states the request is still open, the email wasn't sent, and offers retry or Copy payment link.
+- **Proof job:** `[R3G-046-VISUAL] Clean Approved` (`c34d3539-…`): original $18,500, +$450 authorized, current $18,950, open $450 progress request. Normal job `R3E-044-VISUAL due` (`5728f9fa-…`): no summary rows.
+- **Screenshots:** `tmp/fielddive-ui-review/phase11-collection-communication/final-correction/` (01 desktop Retry email, 02 desktop public current contract, 03 true 390 public, 04 normal job no changes).
+- **Tests:** `app/lib/astraG10FinalCorrection.test.ts` (15). Phase 11 regression set: 425/425 across 18 files.
+- **Residual (launch/ops prerequisite, unchanged):** production provider delivery events are **not verified**. Production `RESEND_WEBHOOK_SECRET` must be created in the Resend dashboard and set in Vercel Production, then promoted. Code/architecture complete; do not fake delivered proof.
+
 ## 2026-09-24 — PHASE 11 COMPLETE: Collection communication (Astra G10)
 
 ==================================================

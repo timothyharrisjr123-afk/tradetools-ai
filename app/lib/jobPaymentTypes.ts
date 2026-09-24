@@ -192,6 +192,9 @@ export const PUBLIC_PAYMENT_CONTRACTOR_REQUESTED =
 export const PUBLIC_PAYMENT_STRIPE_NOTE =
   "You'll continue to Stripe Checkout. The amount is set.";
 export const PUBLIC_PAYMENT_HISTORY_HEADING = "Payments";
+export const PUBLIC_PAYMENT_ORIGINAL_AGREEMENT_LABEL = "Original agreement";
+export const PUBLIC_PAYMENT_APPROVED_CHANGES_LABEL = "Approved changes";
+export const PUBLIC_PAYMENT_CURRENT_CONTRACT_LABEL = "Current contract total";
 export const PUBLIC_PAYMENT_ORIGINAL_TERMS_HEADING = "Original proposal terms";
 export const PUBLIC_PAYMENT_PENDING_EXPLANATION =
   "Your payment is processing. This can take a short time for cards and longer for bank payments. You do not need to pay again.";

@@ -516,7 +516,7 @@ export async function sendPaymentRequestEmailForContractor(
   const sendResult = await sendResendEmailViaApi({
     resendApiKey: config.resendApiKey,
     resendFrom: config.resendFrom,
-    replyTo: config.replyTo,
+    replyTo: config.replyTo ?? null,
     to: normalizedRecipient,
     subject: finalTemplate.subject,
     html: finalTemplate.html,

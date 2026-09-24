@@ -31,6 +31,7 @@ import { readProposalPaymentTerms } from "@/app/lib/proposalPaymentTermsPersiste
 import { DEFAULT_PROPOSAL_PAYMENT_TERMS } from "@/app/lib/proposalPaymentTerms";
 import { readProposalPublicOptionChoiceCurrent } from "@/app/lib/proposalPublicOptionChoicePersistence";
 import { isUuidLike } from "@/app/lib/uuid";
+import { fetchJobContractTotalCents } from "@/app/lib/jobScopeChangePersistence";
 
 async function getAcceptanceForToken(input: {
   companyId: string;
@@ -40,6 +41,7 @@ async function getAcceptanceForToken(input: {
 }): Promise<{
   id: string;
   acceptedAt: string;
+  contractTotalCents?: number | null;
   signedAt?: string | null;
   signerPrintedName?: string | null;
 } | null> {
@@ -47,7 +49,7 @@ async function getAcceptanceForToken(input: {
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from("proposal_acceptances")
-      .select("id,accepted_at")
+      .select("id,accepted_at,customer_chosen_total_cents,accepted_total_cents")
       .eq("company_id", input.companyId)
       .eq("proposal_id", input.proposalId)
       .eq("proposal_version_id", input.proposalVersionId)
@@ -57,7 +59,17 @@ async function getAcceptanceForToken(input: {
     if (error || !data?.accepted_at) return null;
     const acceptedAt = String(data.accepted_at);
     const acceptanceId = String(data.id ?? "").trim();
-    if (!acceptanceId) return { id: "", acceptedAt };
+    // Mirrors proposal_acceptance_contract_total_cents_v1 (the rollup's base).
+    const chosenCents = (data as { customer_chosen_total_cents?: number | null })
+      .customer_chosen_total_cents;
+    const acceptedCents = (data as { accepted_total_cents?: number | null })
+      .accepted_total_cents;
+    const contractTotalCents = Number.isInteger(chosenCents)
+      ? (chosenCents as number)
+      : Number.isInteger(acceptedCents)
+        ? (acceptedCents as number)
+        : null;
+    if (!acceptanceId) return { id: "", acceptedAt, contractTotalCents };
     const { data: signature, error: signatureError } = await supabase
       .from("proposal_signatures")
       .select("signed_at,signer_printed_name")
@@ -66,11 +78,12 @@ async function getAcceptanceForToken(input: {
       .eq("signer_slot", "customer_primary")
       .maybeSingle();
     if (signatureError || !signature?.signed_at) {
-      return { id: acceptanceId, acceptedAt };
+      return { id: acceptanceId, acceptedAt, contractTotalCents };
     }
     return {
       id: acceptanceId,
       acceptedAt,
+      contractTotalCents,
       signedAt: String(signature.signed_at),
       signerPrintedName: signature.signer_printed_name
         ? String(signature.signer_printed_name)
@@ -259,13 +272,29 @@ export async function loadPublicProposalByToken(
         })
       : { requests: [], transactions: [], refunds: [] };
 
+    // Accepted jobs owe the current contract (base + authorized scope changes),
+    // not the original option total.
+    let currentContractCents: number | null = null;
+    if (acceptance && isUuidLike(jobId)) {
+      try {
+        currentContractCents = await fetchJobContractTotalCents(supabase, {
+          company_id: result.tracking.company_id,
+          job_id: jobId,
+        });
+      } catch {
+        currentContractCents = null;
+      }
+    }
+
+    const originalAgreementCents = acceptance?.contractTotalCents ?? selectedTotalCents;
     const payment = buildPublicPaymentViewModel({
       requests: loaded.requests,
       transactions: loaded.transactions,
       refunds: loaded.refunds,
       accepted: Boolean(acceptance),
       terms,
-      contractTotalCents: selectedTotalCents,
+      contractTotalCents: currentContractCents ?? originalAgreementCents,
+      originalAgreementCents,
       proposalVersionId: result.tracking.proposal_version_id,
       acceptanceId: acceptance?.id ? acceptance.id : null,
     });
