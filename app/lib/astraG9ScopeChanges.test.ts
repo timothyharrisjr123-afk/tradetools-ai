@@ -412,6 +412,27 @@ describe("Astra G9 field brief wiring", () => {
       /Proposed work differs/
     );
   });
+
+  test("authorized changes alone are authorized work — no empty-scope contradiction", () => {
+    const model = buildFieldBriefViewModel({
+      approvedScopeLabel: null,
+      authorizedChangeSummaries: ["Ridge vent upgrade"],
+      pendingProposedSummaries: [],
+    });
+    assert.equal(model.authorizedWork.approvedScopeLabel, null);
+    assert.equal(
+      model.authorizedWork.approvedChangesLabel,
+      "Ridge vent upgrade"
+    );
+    const brief = read("app/tools/roofing/jobCard/JobCardFieldBrief.tsx");
+    assert.match(brief, /approvedChangesLabel \?/);
+    assert.match(brief, /No authorized scope on file/);
+    // Empty copy only when both base and authorized changes are absent.
+    assert.match(
+      brief,
+      /approvedScopeLabel \?[\s\S]*approvedChangesLabel \?[\s\S]*No authorized scope on file/
+    );
+  });
 });
 
 describe("Astra G9 persistence wrappers", () => {

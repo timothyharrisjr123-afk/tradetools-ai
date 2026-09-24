@@ -6,13 +6,26 @@
 
 ==================================================
 PHASE 10 — MINIMAL APPROVED SCOPE CHANGES  
-STATUS: **COMPLETE**
+STATUS: **COMPLETE** (final truth/integration correction closed)
 ==================================================
 
 - **Astra source:** Astra §14 Production → approved scope change; Astra numbered **G9**
 - **Base HEAD (pre-commit):** `08d1f0beaeb05c6ec0fe640a304972a00f4d6682`
-- **Commit:** `feat(proposals): add approved scope changes` (tip `main` after Phase 10 close)
-- **Main:** **not** pushed. **No** deploy. **No** Phase 11.
+- **Architecture commit:** `10f6c0b` `feat(proposals): add approved scope changes`
+- **Integration commit:** `739760d` `fix(proposals): complete Phase 10 scope-change integration`
+- **Final truth correction:** `fix(proposals): finalize Phase 10 scope-change truth` (tip `main` after this close)
+- **Main:** **not** pushed. **No** deploy. **No** Phase 11. **No** Phase 12.5.
+
+### Final truth / integration correction (same phase)
+
+Three screenshot-proven defects closed on real product routes (not harness):
+
+1. **Payments:** idle/`!workspace` empty copy falsely claimed “after a proposal is accepted.” Unresolved load now shows loading; resolved null uses unavailable — never acceptance-missing flash. Live workspace already recognized acceptance + Phase 10 rollup (`$18,950`; history snapshots remain `$18,500`).
+2. **Field brief:** “No authorized scope on file” contradicted authorized Ridge vent when base label lagged secondary acceptance facts. Empty copy only when both base and authorized changes are absent; authorized changes alone count as authorized work; pending stays separate.
+3. **Public financial_conflict:** after known 409, ordinary **Approve scope change** no longer invites fail-retry — **Authorization blocked** + server-authoritative **Check again**.
+
+- Screenshots: `tmp/fielddive-ui-review/phase10-approved-scope-changes/final-correction/`
+- Proven job: `[R3G-046-VISUAL] Clean Approved` (`c34d3539-…`)
 
 ### Real-product integration proof (same day)
 
@@ -49,13 +62,14 @@ STATUS: **COMPLETE**
 ### Proof
 
 - Desktop + true-390 under `tmp/fielddive-ui-review/phase10-approved-scope-changes/`
+- Final correction desktop: `tmp/fielddive-ui-review/phase10-approved-scope-changes/final-correction/`
 - Harness: `/dev-harness/phase10-scope-changes` (safe static fixtures; no Auth users)
 - Mobile dims proven: viewport width **390**, `scrollWidth ≤ 390` (observed **375**)
 
 ### Tests (targeted clean suite)
 
-- G9 A+B + G8 + G7 + Phase 8 Job Card + payment workspace + lifecycle eligibility: **129 pass / 0 fail**
-- G9 focused: **43 pass / 0 fail**
+- G9 A+B + payment workspace truth/rollup + field-brief + financial_conflict blocked CTA: **73 pass / 0 fail** (final-correction targeted)
+- Prior G9 focused / broader suites retained from architecture + integration closes
 
 ### Astra classification
 

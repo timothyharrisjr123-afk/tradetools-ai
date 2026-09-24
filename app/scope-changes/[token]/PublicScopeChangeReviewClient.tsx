@@ -398,15 +398,40 @@ export default function PublicScopeChangeReviewClient({
               {error}
             </p>
           ) : null}
-          <button
-            type="button"
-            className={`${JOB_CARD_PROPOSALS_PRIMARY_BUTTON_CLASS} w-full`}
-            disabled={busy || !name.trim() || payload.signatureRequired}
-            onClick={() => void onAuthorize()}
-            data-scope-change-approve
-          >
-            Approve scope change
-          </button>
+          {financialReview ? (
+            <div className="space-y-2" data-scope-change-authorization-blocked>
+              <p
+                className="text-sm font-semibold text-slate-900"
+                data-scope-change-approve-blocked
+              >
+                Authorization blocked
+              </p>
+              <p className="text-sm text-slate-600">
+                Approval stays blocked for this change until financial review
+                clears. Check again after contract or payment truth changes —
+                the server decides whether authorization can proceed.
+              </p>
+              <button
+                type="button"
+                className={`${JOB_CARD_PROPOSALS_PRIMARY_BUTTON_CLASS} w-full opacity-60`}
+                disabled={busy || !name.trim() || payload.signatureRequired}
+                onClick={() => void onAuthorize()}
+                data-scope-change-approve-recheck
+              >
+                {busy ? "Checking…" : "Check again"}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className={`${JOB_CARD_PROPOSALS_PRIMARY_BUTTON_CLASS} w-full`}
+              disabled={busy || !name.trim() || payload.signatureRequired}
+              onClick={() => void onAuthorize()}
+              data-scope-change-approve
+            >
+              Approve scope change
+            </button>
+          )}
         </section>
       ) : (
         <p className="text-sm text-slate-600">

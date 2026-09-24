@@ -221,6 +221,23 @@ describe("Astra G9 Group B — UX surfaces", () => {
     assert.equal(scopeChangeRequiresCustomerSignature({}), false);
   });
 
+  test("public financial_conflict blocks ordinary Approve CTA", () => {
+    const client = read(
+      "app/scope-changes/[token]/PublicScopeChangeReviewClient.tsx"
+    );
+    assert.match(client, /financial_conflict/);
+    assert.match(client, /data-scope-change-financial-review/);
+    assert.match(client, /data-scope-change-authorization-blocked/);
+    assert.match(client, /Authorization blocked/);
+    assert.match(client, /data-scope-change-approve-recheck/);
+    assert.match(client, /Check again/);
+    // Ordinary Approve must not remain the active CTA while financialReview is set.
+    assert.match(
+      client,
+      /financialReview \? \([\s\S]*Authorization blocked[\s\S]*\) : \([\s\S]*data-scope-change-approve/
+    );
+  });
+
   test("persistence authorize payload includes token_hash", () => {
     const persist = read("app/lib/jobScopeChangePersistence.ts");
     assert.match(persist, /token_hash: tokenHash/);

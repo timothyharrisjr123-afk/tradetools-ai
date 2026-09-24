@@ -580,6 +580,34 @@ describe("Payments tab routing", () => {
     assert.match(ui, /workspace\.nextStep\?\.connectHref/);
   });
 
+  test("Payments never claims acceptance-missing while load is unresolved", () => {
+    const ui = read("app/tools/roofing/jobCard/JobCardPaymentsWorkspace.tsx");
+    assert.doesNotMatch(
+      ui,
+      /Payment details will appear here after a proposal is accepted/
+    );
+    assert.match(ui, /loadStatus === "loading" \|\| loadStatus === "idle"/);
+    assert.match(ui, /data-jobcard-payments-loading/);
+    assert.match(ui, /JOB_PAYMENT_INFORMATION_UNAVAILABLE/);
+  });
+
+  test("currentContractTotalCents overrides acceptance-only rollup for Contract", () => {
+    const workspace = buildJobPaymentWorkspace({
+      jobStage: "approved",
+      accepted: true,
+      account: ACCOUNT,
+      requests: [],
+      transactions: [],
+      customerChosenTotalCents: 1850000,
+      acceptedTotalCents: 1850000,
+      currentContractTotalCents: 1895000,
+    });
+    assert.equal(workspace.accepted, true);
+    assert.equal(workspace.contractTotalCents, 1895000);
+    assert.equal(workspace.summaryRows.find((r) => r.label === "Contract")?.cents, 1895000);
+    assert.match(workspace.statusLabel, /No active payment request/i);
+  });
+
   test("tab rail scrolls the active tab into view", () => {
     const tabs = read("app/tools/roofing/jobCard/JobCardTabs.tsx");
     assert.match(tabs, /scrollJobCardTabIntoRailView/);

@@ -148,7 +148,9 @@ export default function JobCardPaymentsWorkspace({
     [workspace]
   );
 
-  if (loadStatus === "loading" && !workspace) {
+  // Unresolved load must never claim "acceptance missing" — that false flash
+  // contradicted jobs that already have a canonical accepted agreement.
+  if ((loadStatus === "loading" || loadStatus === "idle") && !workspace) {
     return (
       <div
         className="flex flex-col gap-4"
@@ -184,8 +186,12 @@ export default function JobCardPaymentsWorkspace({
 
   if (!workspace) {
     return (
-      <p className="text-sm text-slate-600" data-jobcard-payments-empty>
-        Payment details will appear here after a proposal is accepted.
+      <p
+        className="text-sm text-slate-600"
+        data-jobcard-payments-unavailable
+        role="status"
+      >
+        {JOB_PAYMENT_INFORMATION_UNAVAILABLE}
       </p>
     );
   }

@@ -885,8 +885,12 @@ export default function JobCardClient({
     productionLeadLabel,
     crewLabel: productionLeadCrewLabel,
     approvedScopeLabel: jobHasCanonicalAcceptedAgreement(jobAcceptedProposalIds)
-      ? display.proposalLabel
-      : null,
+      ? display.proposalLabel || "Accepted agreement"
+      : // Authorized scope changes imply a canonical acceptance exists even if
+        // acceptance secondary facts have not resolved yet — avoid empty flash.
+        authorizedChangeSummaries.length > 0
+        ? "Accepted agreement"
+        : null,
     authorizedChangeSummaries,
     pendingProposedSummaries,
     measurementSummary: prepare.selected

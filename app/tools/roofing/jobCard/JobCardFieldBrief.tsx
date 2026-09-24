@@ -139,11 +139,21 @@ export default function JobCardFieldBrief({
           <p className="mt-1.5 text-sm font-medium leading-snug text-slate-900 [overflow-wrap:anywhere]">
             {authorizedWork.approvedScopeLabel}
           </p>
+        ) : authorizedWork.approvedChangesLabel ? (
+          // Authorized changes still count as authorized work when base
+          // line-level scope cannot be projected yet — never contradict.
+          null
         ) : (
           <p className="mt-1.5 text-sm text-slate-400">No authorized scope on file</p>
         )}
         {authorizedWork.approvedChangesLabel ? (
-          <p className="mt-1 text-sm text-slate-600 [overflow-wrap:anywhere]">
+          <p
+            className={`text-sm [overflow-wrap:anywhere] ${
+              authorizedWork.approvedScopeLabel
+                ? "mt-1 text-slate-600"
+                : "mt-1.5 font-medium leading-snug text-slate-900"
+            }`}
+          >
             {authorizedWork.approvedChangesLabel}
           </p>
         ) : null}
