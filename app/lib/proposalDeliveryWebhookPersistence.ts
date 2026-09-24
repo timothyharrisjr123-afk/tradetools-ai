@@ -20,6 +20,14 @@ import {
   type DeliveryProviderApplyState,
   type ResendWebhookEventType,
 } from "@/app/lib/proposalDeliveryWebhookNormalize";
+import {
+  applyPaymentRequestDeliveryProviderStatusWithClient,
+  findPaymentRequestDeliveryAttemptByProviderMessageIdWithClient,
+} from "@/app/lib/jobPaymentRequestDeliveryPersistence";
+import type {
+  PaymentRequestDeliveryAttemptRow,
+  PaymentRequestDeliveryAttemptStatus,
+} from "@/app/lib/jobPaymentRequestDeliveryTypes";
 
 export const PROPOSAL_DELIVERY_PROVIDER_EVENTS_TABLE =
   "proposal_delivery_provider_events";
@@ -394,6 +402,70 @@ export async function processProviderEventAgainstAttemptWithClient(
   return { apply_state, apply_detail, attempt: result.attempt };
 }
 
+/** Phase 11 — apply one inbox event to a payment-request delivery attempt. */
+export async function processProviderEventAgainstPaymentAttemptWithClient(
+  supabase: SupabaseClient,
+  input: {
+    event: ProposalDeliveryProviderEventRow;
+    attempt: PaymentRequestDeliveryAttemptRow;
+    nowIso: string;
+  }
+): Promise<{
+  apply_state: DeliveryProviderApplyState;
+  apply_detail: string;
+  attempt: PaymentRequestDeliveryAttemptRow;
+}> {
+  const target = mapResendEventToTargetStatus(input.event.event_type);
+  const decision =
+    target == null
+      ? "noop"
+      : resolveDeliveryStatusApplyDecision(
+          input.attempt.status as ProposalDeliveryAttemptStatus,
+          target
+        );
+  const tsCol = target ? timestampColumnForDeliveryStatus(target) : null;
+
+  let attempt = input.attempt;
+  if (decision === "apply" && target && tsCol) {
+    attempt = await applyPaymentRequestDeliveryProviderStatusWithClient(supabase, {
+      company_id: input.attempt.company_id,
+      attempt_id: input.attempt.id,
+      status: target as PaymentRequestDeliveryAttemptStatus,
+      timestampColumn: tsCol as
+        | "delayed_at"
+        | "delivered_at"
+        | "bounced_at"
+        | "failed_at"
+        | "complained_at"
+        | "provider_accepted_at",
+      occurred_at: input.event.provider_created_at ?? input.nowIso,
+    });
+  }
+
+  const applied = decision === "apply" && Boolean(tsCol);
+  const apply_state: DeliveryProviderApplyState = applied ? "applied" : "ignored";
+  const apply_detail = applied
+    ? "payment_request_delivery_attempt"
+    : `payment_${decision}`;
+
+  await markProviderEventStateWithClient(supabase, {
+    event_id: input.event.id,
+    apply_state,
+    apply_detail,
+    delivery_attempt_id: null,
+    company_id: input.attempt.company_id,
+    payment_request_delivery_attempt_id: input.attempt.id,
+    applied_at: input.nowIso,
+  });
+
+  return { apply_state, apply_detail, attempt };
+}
+
+/**
+ * Webhook-before-accept race: resolve inbox events that arrived before the
+ * attempt recorded its provider message id. Covers proposal and
+ * payment-request attempts; each event leaves `unresolved` at most once.
+ */
 export async function reconcileUnresolvedEventsForProviderMessageIdWithClient(
   supabase: SupabaseClient,
   providerMessageId: string,
@@ -403,21 +475,41 @@ export async function reconcileUnresolvedEventsForProviderMessageIdWithClient(
     supabase,
     providerMessageId
   );
-  if (!attempt) return 0;
+  const paymentAttempt = attempt
+    ? null
+    : await findPaymentRequestDeliveryAttemptByProviderMessageIdWithClient(
+        supabase,
+        providerMessageId
+      );
+  if (!attempt && !paymentAttempt) return 0;
 
   const unresolved = await listUnresolvedProviderEventsForEmailIdWithClient(
     supabase,
     providerMessageId
   );
   let applied = 0;
-  let current = attempt;
+  if (attempt) {
+    let current = attempt;
+    for (const event of unresolved) {
+      const result = await processProviderEventAgainstAttemptWithClient(supabase, {
+        event,
+        attempt: current,
+        nowIso: now().toISOString(),
+      });
+      if (result.attempt) current = result.attempt;
+      if (result.apply_state === "applied") applied += 1;
+    }
+    return applied;
+  }
+
+  let currentPayment = paymentAttempt as PaymentRequestDeliveryAttemptRow;
   for (const event of unresolved) {
-    const result = await processProviderEventAgainstAttemptWithClient(supabase, {
+    const result = await processProviderEventAgainstPaymentAttemptWithClient(supabase, {
       event,
-      attempt: current,
+      attempt: currentPayment,
       nowIso: now().toISOString(),
     });
-    if (result.attempt) current = result.attempt;
+    currentPayment = result.attempt;
     if (result.apply_state === "applied") applied += 1;
   }
   return applied;

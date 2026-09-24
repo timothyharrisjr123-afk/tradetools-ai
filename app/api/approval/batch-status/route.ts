@@ -1,35 +1,18 @@
 import { NextResponse } from "next/server";
-import { getApprovalRecord } from "@/app/lib/kv";
 
-export async function POST(req: Request) {
-  try {
-    const body = await req.json().catch(() => ({}));
-    const tokens = Array.isArray(body?.tokens) ? body.tokens : [];
-    const statuses: Record<string, { status: string; viewedAt: string | null; approvedAt: string | null }> = {};
+import {
+  LEGACY_KV_APPROVAL_GONE_MESSAGE,
+  legacyDeliveryRouteGoneBody,
+} from "@/app/lib/legacyDeliveryRouteRetirement";
 
-    for (const token of tokens) {
-      const t = typeof token === "string" ? token.trim() : "";
-      if (!t) continue;
-      const rec = await getApprovalRecord(t);
-      if (rec) {
-        const recAny = rec as { status?: string; viewedAt?: string };
-        const resolvedStatus =
-          rec.approvedAt
-            ? "approved"
-            : (recAny.status ?? "sent_pending");
-        statuses[t] = {
-          status: resolvedStatus,
-          viewedAt: recAny.viewedAt ?? null,
-          approvedAt: rec.approvedAt ?? null,
-        };
-      }
-    }
+export const runtime = "nodejs";
 
-    return NextResponse.json({ statuses });
-  } catch {
-    return NextResponse.json(
-      { error: "Failed to fetch batch status" },
-      { status: 500 }
-    );
-  }
+/**
+ * TOMBSTONE — legacy anonymous KV approval status lookup.
+ * Canonical customer acceptance: /p/{token}.
+ */
+export async function POST() {
+  return NextResponse.json(legacyDeliveryRouteGoneBody(LEGACY_KV_APPROVAL_GONE_MESSAGE), {
+    status: 410,
+  });
 }

@@ -224,7 +224,23 @@ export async function markPaymentRequestDeliveryAttemptProviderAcceptedWithClien
   if (error) {
     throw new ProposalDeliveryAttemptPersistenceError(error.message, error.code);
   }
-  return mapRow(data as Record<string, unknown>);
+  const row = mapRow(data as Record<string, unknown>);
+
+  // Webhook-before-accept race: unresolved inbox events → this attempt.
+  try {
+    const { reconcileUnresolvedEventsForProviderMessageIdWithClient } = await import(
+      "@/app/lib/proposalDeliveryWebhookPersistence"
+    );
+    await reconcileUnresolvedEventsForProviderMessageIdWithClient(
+      supabase,
+      input.provider_message_id,
+      now
+    );
+  } catch {
+    // Non-fatal: attempt remains provider_accepted; unresolved events retry later.
+  }
+
+  return row;
 }
 
 export async function markPaymentRequestDeliveryAttemptFailedWithClient(
