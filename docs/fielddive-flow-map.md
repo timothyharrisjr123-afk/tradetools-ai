@@ -181,7 +181,7 @@ Proposal send, invoice, payment link, and customer payment path.
 
 - Send proposal: `RoofingClient.tsx` Delivery bar (~5354–5420), `/api/email/send`, `/api/proposal/generate`, `/api/email/generate`
 - Payments and scheduling: `SavedClient.tsx`, `/api/payments/*`, `/api/email/followup`
-- Approval batch: `/api/approval/batch-status`
+- Approval batch: `/api/approval/batch-status` (410 tombstone since Phase 12)
 
 **Current status:**  
 Split across New Job (send) and Command Center (deposits, schedule, offline pay, checkout).

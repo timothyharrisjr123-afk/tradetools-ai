@@ -2,6 +2,48 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-24 — PHASE 12 COMPLETE: Customer project record / closeout proof (Astra G11)
+
+==================================================
+PHASE 12 — CUSTOMER PROJECT RECORD / CLOSEOUT PROOF  
+STATUS: **COMPLETE**
+==================================================
+
+- **Base HEAD:** `f59d1ae`. **Commits:** `fix(core): close pre-Phase 12 truth gaps` (`391586c`, Group A) + `feat(closeout): add Astra G11 customer project record`. **Not** pushed. **No** deploy.
+
+### Group A prerequisites (commit `391586c`)
+
+- `supabase/migrations/20260924150000_activity_event_type_constraint_canonical.sql` — activity `event_type` CHECK matches the canonical TS list; applied **STAGING** then **PRODUCTION**; parity test in `app/lib/phase12PrerequisiteTruth.test.ts`.
+- `/api/approval/batch-status` → 410 tombstone.
+- Payment-request email webhook: early provider events (before the attempt row gets its provider id) are reconciled on accept, same as proposal attempts.
+- Legacy paid→Completed audit: `"paid"` is derived only from `stage = complete`; DB rows use canonical lane/stage; no legacy path promotes a paid job to Completed.
+
+### Locked product truth
+
+- One composed **Project record** on the existing `/p/[token]` route — no portal, no second route, no closeout status, no closeout email/PDF, no receipt/warranty workflow, no photo/attachment sharing.
+- Read model: `app/lib/publicProjectRecordViewModel.ts` (pure) fed by `getProjectRecordFactsForJob` in `proposalPublicAccessOrchestrator.server.ts` (company + job scoped): acceptance, authorized scope changes + lines + approvals, `job_contract_total_cents_v1` (null → "Payment details unavailable — contact your contractor"), payment requests/transactions/refunds, `jobs.stage`/`completed_at`, `companies.timezone`.
+- Money uses the shared payment-workspace helpers (same numbers as the Job Card). Refunds are shown but do not reopen the collectible balance. Paid-in-full copy switches to "…on this project" when authorized changes exist. No invoice/overdue/late/final-payment/net-cash wording.
+- **Work complete · {date}** only when `stage = complete` (company timezone). Closed/lost/on-hold show no completion row and no disposition wording.
+- When the record renders, it owns contract summary + payment history; the purchase block keeps Pay only.
+- Media guard: `publicSafeMediaUrl` rejects `job-attachments` / signed-storage URLs for cover and logo.
+- Contractor: Job Card Overview **Closeout** block (complete only) with **Review closeout** (read-only rows) and **Copy customer link**. No editor, no ready/shared/sent state.
+- **Customer link:** `POST /api/jobs/[jobId]/customer-record-link`, server-gated by `proposal_author` (Owner/Admin, Office/Sales; Production Lead + Field User denied). Mints only (`source: customer_record_share`), mutates nothing else. 30-day expiry. Each copy mints a **new** token; earlier tokens stay valid until their own expiry (non-superseding mint — intentional, so a link already sent to a customer keeps working).
+
+### Migration
+
+- Feature needs **none**. Ordinary CLI link remains **staging**.
+
+### Proof
+
+- Real route on production fixtures (safe reads; only token mints): accepted + change + open request, completed + balance, refund, closed-not-complete, normal job, lost, on-hold — desktop 1280 + true 390 (`scrollWidth` 390) under `tmp/fielddive-ui-review/phase12-customer-project-record/`, plus Job Card closeout (compact, expanded, link copied, 390).
+- Completed + fully paid: no production fixture exists; covered by unit tests (`app/lib/phase12CustomerProjectRecord.test.ts`).
+- Tests: `phase12PrerequisiteTruth.test.ts` (9) + `phase12CustomerProjectRecord.test.ts` (27).
+
+### Explicit next
+
+**NEXT: PHASE 12.5 — WHOLE-APP PAID UI + COHESION AUDIT**  
+Do **not** implement Phase 12.5 from this checkpoint alone.
+
 ## 2026-09-24 — PHASE 11 FINAL CORRECTION: current-contract truth + email action wording
 
 - **Commit:** `fix(payments): finalize Phase 11 communication truth` on top of `5609855` (not amended). **Not** pushed. **No** deploy. **No** Phase 12.
@@ -1066,7 +1108,7 @@ STATUS: **COMPLETE**
 | `estimateStore` + LS estimates | Distinct `estimates` shelf; **cannot** create jobs or mutate `jobs.stage` (FD-P1-02 quarantine proven) | Zero remaining estimate rows/Board residual actions; delete store |
 | RoofingClient packet path | Canonical new-job birth inside monolith | Extract packet only when estimator chrome deleted |
 | `/tools/roofing/ai` localStorage | Browser-only voice notes; **not** DB truth; different key than RoofingClient voice | Unify voice store or delete AI shelf |
-| `/api/approval/batch-status` route | Read-only residual; Board sync **disabled** | Delete route when no estimate `approvalToken`s remain |
+| `/api/approval/batch-status` route | **410 tombstone** since Phase 12 Group A (no KV reads) | Delete route file in later cleanup |
 | Dead `CustomersAdminClient.tsx` / `PriceBookAdminClient.tsx` files | Unmounted; pages no longer write | Delete files in later cleanup |
 
 ### Proof: retained writers do not compete with canonical truth
@@ -1074,7 +1116,7 @@ STATUS: **COMPLETE**
 - **estimateStore:** no `jobs` writes; no `jobs.stage`; packet uses `createJob` only. Customer `findOrCreate` on estimate upsert is residual **only if** legacy estimate save still runs — Board no longer auto-sends / follow-up emails / KV-approve-syncs into that shelf for contractual truth.
 - **service_items:** no proposal/pricing consumer; Catalog owns `catalog_items`. Admin price-book redirected.
 - **admin customers:** page no longer mounts insert/delete UI; Advanced href removed.
-- **KV approval:** mutators 410; batch-status sync no longer writes estimateStore.
+- **KV approval:** mutators 410; batch-status is a 410 tombstone (Phase 12 Group A).
 
 ### Remaining P1 / future cutover debt (NOT closed)
 

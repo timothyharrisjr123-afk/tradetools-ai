@@ -184,9 +184,13 @@ export const JOB_PAYMENT_INFORMATION_UNAVAILABLE =
 export const PUBLIC_PAYMENT_PAID_IN_FULL_TITLE = "Paid in full";
 export const PUBLIC_PAYMENT_PAID_IN_FULL_EXPLANATION =
   "No further payment is due on this proposal.";
+export const PUBLIC_PAYMENT_PAID_IN_FULL_PROJECT_EXPLANATION =
+  "No further payment is due on this project.";
 export const PUBLIC_PAYMENT_PAYMENTS_COMPLETE_TITLE = "Payments complete";
 export const PUBLIC_PAYMENT_PAYMENTS_COMPLETE_EXPLANATION =
   "A refund was recorded. No further payment is due on this proposal.";
+export const PUBLIC_PAYMENT_PAYMENTS_COMPLETE_PROJECT_EXPLANATION =
+  "A refund was recorded. No further payment is due on this project.";
 export const PUBLIC_PAYMENT_CONTRACTOR_REQUESTED =
   "Your contractor requested this payment.";
 export const PUBLIC_PAYMENT_STRIPE_NOTE =

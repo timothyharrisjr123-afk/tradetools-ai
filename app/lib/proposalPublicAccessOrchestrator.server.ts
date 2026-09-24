@@ -31,7 +31,14 @@ import { readProposalPaymentTerms } from "@/app/lib/proposalPaymentTermsPersiste
 import { DEFAULT_PROPOSAL_PAYMENT_TERMS } from "@/app/lib/proposalPaymentTerms";
 import { readProposalPublicOptionChoiceCurrent } from "@/app/lib/proposalPublicOptionChoicePersistence";
 import { isUuidLike } from "@/app/lib/uuid";
-import { fetchJobContractTotalCents } from "@/app/lib/jobScopeChangePersistence";
+import {
+  fetchJobContractTotalCentsOrNull,
+  listAuthorizedScopeChangesWithApprovals,
+} from "@/app/lib/jobScopeChangePersistence";
+import {
+  buildPublicProjectRecordViewModel,
+  type PublicProjectRecordScopeChangeInput,
+} from "@/app/lib/publicProjectRecordViewModel";
 
 async function getAcceptanceForToken(input: {
   companyId: string;
@@ -191,6 +198,74 @@ async function getPaymentForJob(input: {
   }
 }
 
+/**
+ * Job facts for the project record, scoped by the token's company and the
+ * proposal's own job. Never reads attachments.
+ */
+async function getProjectRecordFactsForJob(input: {
+  companyId: string;
+  jobId: string;
+}): Promise<{
+  currentContractCents: number | null;
+  scopeChanges: PublicProjectRecordScopeChangeInput[];
+  job: { stage: string | null; completedAt: string | null } | null;
+  timeZone: string | null;
+}> {
+  const supabase = createAdminClient();
+  const scope = { company_id: input.companyId, job_id: input.jobId };
+  const [currentContractCents, changes, jobRow, companyRow] = await Promise.all([
+    fetchJobContractTotalCentsOrNull(supabase, scope).catch(() => null),
+    listAuthorizedScopeChangesWithApprovals(supabase, scope).catch(() => []),
+    supabase
+      .from("jobs")
+      .select("stage,completed_at")
+      .eq("company_id", input.companyId)
+      .eq("id", input.jobId)
+      .maybeSingle()
+      .then(
+        ({ data }) => data as { stage?: string | null; completed_at?: string | null } | null,
+        () => null
+      ),
+    supabase
+      .from("companies")
+      .select("timezone")
+      .eq("id", input.companyId)
+      .maybeSingle()
+      .then(
+        ({ data }) => data as { timezone?: string | null } | null,
+        () => null
+      ),
+  ]);
+  return {
+    currentContractCents,
+    scopeChanges: changes.map((row) => ({
+      id: row.scope_change.id,
+      company_id: row.scope_change.company_id,
+      job_id: row.scope_change.job_id,
+      status: row.scope_change.status,
+      reason: row.scope_change.reason,
+      authorized_at: row.scope_change.authorized_at,
+      price_delta_cents: row.scope_change.price_delta_cents,
+      lines: row.lines.map((line) => ({
+        id: line.id,
+        change_kind: line.change_kind,
+        description: line.description,
+        quantity: line.quantity ?? null,
+        unit: line.unit ?? null,
+        line_delta_cents: line.line_delta_cents,
+        sort_order: line.sort_order,
+      })),
+      approval: row.approval
+        ? { approved_at: row.approval.approved_at, approved_by_name: row.approval.approved_by_name }
+        : null,
+    })),
+    job: jobRow
+      ? { stage: jobRow.stage ?? null, completedAt: jobRow.completed_at ?? null }
+      : null,
+    timeZone: String(companyRow?.timezone ?? "").trim() || null,
+  };
+}
+
 export async function loadPublicProposalByToken(
   rawToken: string,
   viewMetadata: ProposalPublicAccessCustomerViewMetadata = {},
@@ -273,41 +348,70 @@ export async function loadPublicProposalByToken(
       : { requests: [], transactions: [], refunds: [] };
 
     // Accepted jobs owe the current contract (base + authorized scope changes),
-    // not the original option total.
-    let currentContractCents: number | null = null;
-    if (acceptance && isUuidLike(jobId)) {
-      try {
-        currentContractCents = await fetchJobContractTotalCents(supabase, {
-          company_id: result.tracking.company_id,
-          job_id: jobId,
-        });
-      } catch {
-        currentContractCents = null;
-      }
-    }
+    // not the original option total. Unreadable rollup → unavailable, never $0.
+    const hasJob = isUuidLike(jobId);
+    const recordFacts =
+      acceptance && hasJob
+        ? await getProjectRecordFactsForJob({
+            companyId: result.tracking.company_id,
+            jobId,
+          })
+        : null;
+    const currentContractCents = recordFacts?.currentContractCents ?? null;
+    const contractTotalUnavailable = Boolean(acceptance && hasJob && currentContractCents == null);
 
     const originalAgreementCents = acceptance?.contractTotalCents ?? selectedTotalCents;
+    const hasAuthorizedChanges = (recordFacts?.scopeChanges.length ?? 0) > 0;
     const payment = buildPublicPaymentViewModel({
       requests: loaded.requests,
       transactions: loaded.transactions,
       refunds: loaded.refunds,
       accepted: Boolean(acceptance),
       terms,
-      contractTotalCents: currentContractCents ?? originalAgreementCents,
+      contractTotalCents: hasJob && acceptance ? currentContractCents : originalAgreementCents,
       originalAgreementCents,
       proposalVersionId: result.tracking.proposal_version_id,
       acceptanceId: acceptance?.id ? acceptance.id : null,
+      contractTotalUnavailable,
+      hasAuthorizedChanges,
     });
+
+    const packet = result.document.packet;
+    const packageLabel =
+      packet.comparison?.options.find((option) => option.isCurrent)?.label ??
+      packet.estimate?.label ??
+      null;
+    const projectRecord = acceptance
+      ? buildPublicProjectRecordViewModel({
+          companyId: result.tracking.company_id,
+          jobId: hasJob ? jobId : null,
+          acceptance: {
+            acceptedAt: acceptance.acceptedAt,
+            signedAt: acceptance.signedAt ?? null,
+            signerPrintedName: acceptance.signerPrintedName ?? null,
+          },
+          packageLabel,
+          scopeChanges: recordFacts?.scopeChanges ?? [],
+          originalAgreementCents: acceptance.contractTotalCents ?? null,
+          currentContractCents,
+          requests: loaded.requests,
+          transactions: loaded.transactions,
+          refunds: loaded.refunds,
+          job: recordFacts?.job ?? null,
+          timeZone: recordFacts?.timeZone ?? null,
+        })
+      : null;
 
     return {
       ...result,
       document: {
         ...result.document,
         packet: {
-          ...result.document.packet,
+          ...packet,
           payment,
           paymentTerms: terms,
           selectedTotalCents,
+          projectRecord,
         },
       },
     };

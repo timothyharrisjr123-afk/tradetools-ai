@@ -207,10 +207,15 @@ describe("Phase 11 final — public current-contract truth", () => {
       join(ROOT, "app/lib/proposalPublicAccessOrchestrator.server.ts"),
       "utf8"
     );
-    assert.match(src, /fetchJobContractTotalCents\(/);
+    assert.match(src, /fetchJobContractTotalCentsOrNull\(/);
     assert.match(src, /customer_chosen_total_cents,accepted_total_cents/);
     assert.match(src, /acceptance\?\.contractTotalCents \?\? selectedTotalCents/);
-    assert.match(src, /contractTotalCents: currentContractCents \?\? originalAgreementCents/);
+    // Phase 12: an unreadable rollup on an accepted job is unavailable, never the original.
+    assert.match(
+      src,
+      /contractTotalCents: hasJob && acceptance \? currentContractCents : originalAgreementCents/
+    );
+    assert.match(src, /contractTotalUnavailable/);
   });
 
   test("public purchase panel renders the summary rows", () => {

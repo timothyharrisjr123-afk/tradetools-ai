@@ -84,12 +84,23 @@ const COVER_MEDIA_CONTENT_KEYS = [
   "public_url",
 ] as const;
 
-function readHttpUrl(value: unknown): string | null {
+/**
+ * Job attachments are internal-only (private bucket, expiring signed URLs).
+ * A frozen proposal must never republish one as public cover or logo media.
+ */
+const PRIVATE_MEDIA_URL_PATTERN = /\/job-attachments\/|\/storage\/v1\/object\/sign\//i;
+
+export function publicSafeMediaUrl(value: unknown): string | null {
   if (typeof value !== "string") {
     return null;
   }
   const trimmed = value.trim();
-  return HTTP_URL_PATTERN.test(trimmed) ? trimmed : null;
+  if (!HTTP_URL_PATTERN.test(trimmed)) return null;
+  return PRIVATE_MEDIA_URL_PATTERN.test(trimmed) ? null : trimmed;
+}
+
+function readHttpUrl(value: unknown): string | null {
+  return publicSafeMediaUrl(value);
 }
 
 function readCoverMediaUrlFromPageContent(
@@ -128,11 +139,7 @@ function resolveCoverMediaUrl(
     }
   }
 
-  if (companyLogoUrl && HTTP_URL_PATTERN.test(companyLogoUrl)) {
-    return companyLogoUrl;
-  }
-
-  return null;
+  return publicSafeMediaUrl(companyLogoUrl);
 }
 
 export function formatCustomerPacketPriceCents(cents: number): string {
@@ -447,6 +454,9 @@ function buildCoverFromPublicDto(dto: ProposalPublicGraphDto): ProposalCustomerP
   const pricingComplete = isPublicProposalPricingComplete(dto);
   const coverVm = buildProposalCoverViewModel(documentContext, { pricingComplete });
   const companyName = coverVm.company.companyName;
+  const rawLogoUrl = coverVm.company.logoUrl;
+  const safeLogoUrl =
+    rawLogoUrl && PRIVATE_MEDIA_URL_PATTERN.test(rawLogoUrl) ? null : rawLogoUrl;
 
   return {
     proposalLabel: PROPOSAL_CUSTOMER_PACKET_PROPOSAL_LABEL,
@@ -456,7 +466,7 @@ function buildCoverFromPublicDto(dto: ProposalPublicGraphDto): ProposalCustomerP
     company: {
       companyName,
       preparedByLabel: companyName,
-      logoUrl: coverVm.company.logoUrl,
+      logoUrl: safeLogoUrl,
       logoMonogram: coverVm.company.logoMonogram ?? monogramFromCompanyName(companyName),
       brandPrimaryColor: coverVm.company.brandPrimaryColor,
       brandSecondaryColor: coverVm.company.brandSecondaryColor,

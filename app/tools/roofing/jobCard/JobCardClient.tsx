@@ -123,6 +123,8 @@ import JobCardProductionLeadControl from "@/app/tools/roofing/jobCard/JobCardPro
 import JobCardFieldBrief from "@/app/tools/roofing/jobCard/JobCardFieldBrief";
 import JobCardForwardLifecycleAction from "@/app/tools/roofing/jobCard/JobCardForwardLifecycleAction";
 import JobCardScheduleSection from "@/app/tools/roofing/jobCard/JobCardScheduleSection";
+import JobCardCloseoutSummary from "@/app/tools/roofing/jobCard/JobCardCloseoutSummary";
+import { buildJobCardCloseoutViewModel } from "@/app/lib/jobCardCloseoutViewModel";
 import JobCardScheduleWorkspacePanel from "@/app/tools/roofing/jobCard/JobCardScheduleWorkspacePanel";
 import JobCardPaymentsWorkspace from "@/app/tools/roofing/jobCard/JobCardPaymentsWorkspace";
 import JobCardProposalsTab, {
@@ -761,6 +763,17 @@ export default function JobCardClient({
   const hasAcceptedAgreement = jobHasCanonicalAcceptedAgreement(
     jobAcceptedProposalIds
   );
+  const jobCardCloseout = suppressCommercial
+    ? null
+    : buildJobCardCloseoutViewModel({
+        stage: canonicalJobStage,
+        completedAt: hydratedJobRecord?.completed_at ?? null,
+        timeZone: companyTimezone,
+        accepted: hasAcceptedAgreement,
+        signed: Object.values(jobSignedProposalIds).some((value) => value === true),
+        workspace: jobPayments.workspace,
+        scopeChanges: jobScopeChanges.rows,
+      });
   const scopeChangeAuthoringAllowed = canShowProposeScopeChangeCta({
     hasAcceptedAgreement,
     canAuthor: companyMembers.canAuthorProposals,
@@ -1467,6 +1480,13 @@ export default function JobCardClient({
                       </section>
                     }
                   />
+                  {jobCardCloseout && currentJobId ? (
+                    <JobCardCloseoutSummary
+                      model={jobCardCloseout}
+                      jobId={currentJobId}
+                      canShareCustomerLink={companyMembers.canAuthorProposals}
+                    />
+                  ) : null}
                   <JobCardScheduleSection
                     canSchedule={
                       overviewPrimary?.kind === "schedule"

@@ -46,6 +46,8 @@ type ProposalPacketPurchaseProps = {
   accepted: boolean;
   acceptedOnLabel: string | null;
   action: ProposalPurchaseAction;
+  /** The project record shows contract and history; don't repeat them here. */
+  recordOwnsDetails?: boolean;
 };
 
 function dueAmountLabel(input: {
@@ -83,6 +85,7 @@ export default function ProposalPacketPurchase({
   accepted,
   acceptedOnLabel,
   action,
+  recordOwnsDetails = false,
 }: ProposalPacketPurchaseProps) {
   const state = payment?.state ?? null;
   const dueLabel = dueAmountLabel({
@@ -134,7 +137,7 @@ export default function ProposalPacketPurchase({
         </p>
       ) : null}
 
-      {payment?.contractSummary ? (
+      {payment?.contractSummary && !recordOwnsDetails ? (
         <>
           <div className={PROPOSAL_PACKET_PURCHASE_DIVIDER} />
           <dl className="space-y-1.5 text-[13.5px]" data-public-contract-summary>
@@ -252,7 +255,7 @@ export default function ProposalPacketPurchase({
         </>
       ) : null}
 
-      {payment?.history && payment.history.length > 0 ? (
+      {payment?.history && payment.history.length > 0 && !recordOwnsDetails ? (
         <>
           <div className={PROPOSAL_PACKET_PURCHASE_DIVIDER} />
           <div>

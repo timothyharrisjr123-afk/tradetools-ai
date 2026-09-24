@@ -15,6 +15,7 @@ import ProposalPacketComparison from "./ProposalPacketComparison";
 import ProposalPacketDetailsContact from "./ProposalPacketDetailsContact";
 import ProposalPacketFooter from "./ProposalPacketFooter";
 import ProposalPacketHero from "./ProposalPacketHero";
+import ProposalPacketProjectRecord from "./ProposalPacketProjectRecord";
 import ProposalPacketPurchase from "./ProposalPacketPurchase";
 import ProposalPacketScope from "./ProposalPacketScope";
 import ProposalPacketStickyPurchaseBar from "./ProposalPacketStickyPurchaseBar";
@@ -219,6 +220,16 @@ export default function ProposalPacket({
               accepted={accepted}
               acceptedOnLabel={acceptedOnLabel}
               action={purchaseAction}
+              recordOwnsDetails={packet.projectRecord != null}
+            />
+          </section>
+        ) : null}
+
+        {packet.projectRecord ? (
+          <section className={PROPOSAL_PACKET_STORY_SECTION} aria-label="Project record">
+            <ProposalPacketProjectRecord
+              record={packet.projectRecord}
+              publicAccessToken={mode === "public" ? publicAccessToken : null}
             />
           </section>
         ) : null}

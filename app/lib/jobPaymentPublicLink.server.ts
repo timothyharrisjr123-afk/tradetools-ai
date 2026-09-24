@@ -20,11 +20,25 @@ export const PAYMENT_COPY_LINK_MINT_METADATA = {
   source: "payment_request_communication",
 } as const;
 
+/**
+ * Phase 12 customer project record share. Uncategorized (non-superseding)
+ * 30-day customer_view token; every share mints a new token and earlier
+ * shares stay valid until they expire.
+ */
+export const CUSTOMER_RECORD_SHARE_MINT_METADATA = {
+  source: "customer_record_share",
+} as const;
+
+export type AcceptedPublicLinkSource =
+  | typeof PAYMENT_COPY_LINK_MINT_METADATA.source
+  | typeof CUSTOMER_RECORD_SHARE_MINT_METADATA.source;
+
 export type CreateAcceptedPaymentPublicLinkInput = {
   companyId: string;
   jobId: string;
   userId: string;
   origin: string;
+  source?: AcceptedPublicLinkSource;
 };
 
 export type CreateAcceptedPaymentPublicLinkResult =
@@ -81,7 +95,10 @@ export async function createAcceptedPaymentPublicLink(
     proposal_id: proposalId,
     proposal_version_id: proposalVersionId,
     expires_at: buildPublicReviewLinkExpiresAt(),
-    metadata_json: { ...PAYMENT_COPY_LINK_MINT_METADATA },
+    metadata_json:
+      input.source === CUSTOMER_RECORD_SHARE_MINT_METADATA.source
+        ? { ...CUSTOMER_RECORD_SHARE_MINT_METADATA }
+        : { ...PAYMENT_COPY_LINK_MINT_METADATA },
     created_by: userId,
   });
 

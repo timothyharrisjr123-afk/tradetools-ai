@@ -8,6 +8,7 @@
 import type { PackageAccent } from "@/app/lib/proposalPackagePresentation";
 import type { PublicPaymentViewModel } from "@/app/lib/jobPaymentReadModel";
 import type { ProposalPaymentTerms } from "@/app/lib/proposalPaymentTerms";
+import type { PublicProjectRecordViewModel } from "@/app/lib/publicProjectRecordViewModel";
 
 export type ProposalCustomerPacketCompanyIdentity = {
   companyName: string | null;
@@ -158,6 +159,8 @@ export type ProposalCustomerPacketViewModel = {
   payment?: PublicPaymentViewModel | null;
   paymentTerms?: ProposalPaymentTerms | null;
   selectedTotalCents?: number | null;
+  /** Phase 12 composed customer project record (accepted proposals only). */
+  projectRecord?: PublicProjectRecordViewModel | null;
 };
 
 export const PROPOSAL_CUSTOMER_PACKET_PROPOSAL_LABEL = "Your roofing proposal";

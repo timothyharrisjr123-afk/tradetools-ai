@@ -20,6 +20,7 @@ import {
   UPDATE_JOB_SCOPE_CHANGE_DRAFT_RPC_V1,
   VOID_JOB_SCOPE_CHANGE_RPC_V1,
   type JobScopeChange,
+  type JobScopeChangeApproval,
   type JobScopeChangeErrorCode,
   type JobScopeChangeLine,
   type JobScopeChangeLineInput,
@@ -708,6 +709,103 @@ export async function fetchJobContractTotalCents(
   }
   const cents = Number(data ?? 0);
   return Number.isFinite(cents) ? Math.trunc(cents) : 0;
+}
+
+/** Null when the rollup has no accepted basis — callers must not show $0. */
+export async function fetchJobContractTotalCentsOrNull(
+  supabase: Pick<SupabaseClient, "rpc">,
+  input: { company_id: string; job_id: string }
+): Promise<number | null> {
+  const companyId = parseUuid(input.company_id, "company_id");
+  const jobId = parseUuid(input.job_id, "job_id");
+  const { data, error } = await supabase.rpc("job_contract_total_cents_v1", {
+    p_company_id: companyId,
+    p_job_id: jobId,
+  });
+  if (error || data == null) return null;
+  const cents = Number(data);
+  return Number.isFinite(cents) ? Math.trunc(cents) : null;
+}
+
+const SCOPE_CHANGE_APPROVAL_SELECT =
+  "id,company_id,scope_change_id,approved_at,approved_by_name,approved_by_email,approval_method,evidence_json,proposal_signature_id,created_at";
+
+export async function listScopeChangeApprovals(
+  supabase: SupabaseQuery,
+  input: { company_id: string; scope_change_ids: readonly string[] }
+): Promise<JobScopeChangeApproval[]> {
+  const companyId = parseUuid(input.company_id, "company_id");
+  const ids = input.scope_change_ids.map((id) => parseUuid(id, "scope_change_id"));
+  if (ids.length === 0) return [];
+  const { data, error } = await supabase
+    .from("job_scope_change_approvals")
+    .select(SCOPE_CHANGE_APPROVAL_SELECT)
+    .eq("company_id", companyId)
+    .in("scope_change_id", ids)
+    .order("approved_at", { ascending: true });
+  if (error) {
+    throw new JobScopeChangePersistenceError(
+      `listScopeChangeApprovals failed: ${error.message}`
+    );
+  }
+  return (data ?? []).map((raw) => {
+    const row = raw as Record<string, unknown>;
+    return {
+      id: String(row.id),
+      company_id: String(row.company_id),
+      scope_change_id: String(row.scope_change_id),
+      approved_at: String(row.approved_at),
+      approved_by_name: String(row.approved_by_name ?? ""),
+      approved_by_email: row.approved_by_email == null ? null : String(row.approved_by_email),
+      approval_method: "public_token",
+      evidence_json:
+        row.evidence_json != null && typeof row.evidence_json === "object"
+          ? (row.evidence_json as Record<string, unknown>)
+          : null,
+      proposal_signature_id:
+        row.proposal_signature_id == null ? null : String(row.proposal_signature_id),
+      created_at: String(row.created_at),
+    };
+  });
+}
+
+export type AuthorizedScopeChangeRecord = JobScopeChangeWithLines & {
+  approval: JobScopeChangeApproval | null;
+};
+
+/** Authorized changes for one company + job, with lines and approval evidence. */
+export async function listAuthorizedScopeChangesWithApprovals(
+  supabase: SupabaseQuery,
+  input: { company_id: string; job_id: string }
+): Promise<AuthorizedScopeChangeRecord[]> {
+  const companyId = parseUuid(input.company_id, "company_id");
+  const jobId = parseUuid(input.job_id, "job_id");
+  const authorized = (await listScopeChangesForJob(supabase, input)).filter(
+    (row) => row.status === "authorized" && row.company_id === companyId && row.job_id === jobId
+  );
+  if (authorized.length === 0) return [];
+  const ids = authorized.map((row) => row.id);
+  const { data: lines, error: linesError } = await supabase
+    .from("job_scope_change_lines")
+    .select(SCOPE_CHANGE_LINE_SELECT)
+    .eq("company_id", companyId)
+    .in("scope_change_id", ids)
+    .order("sort_order", { ascending: true });
+  if (linesError) {
+    throw new JobScopeChangePersistenceError(
+      `listAuthorizedScopeChangesWithApprovals lines failed: ${linesError.message}`
+    );
+  }
+  const parsedLines = parseLineRows(lines);
+  const approvals = await listScopeChangeApprovals(supabase, {
+    company_id: companyId,
+    scope_change_ids: ids,
+  });
+  return authorized.map((scope_change) => ({
+    scope_change,
+    lines: parsedLines.filter((line) => line.scope_change_id === scope_change.id),
+    approval: approvals.find((row) => row.scope_change_id === scope_change.id) ?? null,
+  }));
 }
 
 export function authorizedDeltasSumCents(

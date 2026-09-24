@@ -23,10 +23,12 @@ import {
   PUBLIC_PAYMENT_NO_PAYMENT_DUE_NOW,
   PUBLIC_PAYMENT_NO_PAYMENT_REQUIRED,
   PUBLIC_PAYMENT_PAID_IN_FULL_EXPLANATION,
+  PUBLIC_PAYMENT_PAID_IN_FULL_PROJECT_EXPLANATION,
   PUBLIC_PAYMENT_PAID_IN_FULL_TITLE,
   PUBLIC_PAYMENT_PAY_DEPOSIT_CTA,
   PUBLIC_PAYMENT_PAY_NOW_CTA,
   PUBLIC_PAYMENT_PAYMENTS_COMPLETE_EXPLANATION,
+  PUBLIC_PAYMENT_PAYMENTS_COMPLETE_PROJECT_EXPLANATION,
   PUBLIC_PAYMENT_PAYMENTS_COMPLETE_TITLE,
   PUBLIC_PAYMENT_PROCESSING_EXPLANATION,
   PUBLIC_PAYMENT_PROCESSING_TITLE,
@@ -526,7 +528,21 @@ type BuildPublicPaymentViewModelInput = {
   originalAgreementCents?: number | null;
   proposalVersionId?: string | null;
   acceptanceId?: string | null;
+  /** Job rollup could not be read: never fall back to snapshots or $0. */
+  contractTotalUnavailable?: boolean;
+  /** Authorized scope changes exist — completion copy speaks of the project. */
+  hasAuthorizedChanges?: boolean;
 };
+
+function projectWordingExplanation(explanation: string | null): string | null {
+  if (explanation === PUBLIC_PAYMENT_PAID_IN_FULL_EXPLANATION) {
+    return PUBLIC_PAYMENT_PAID_IN_FULL_PROJECT_EXPLANATION;
+  }
+  if (explanation === PUBLIC_PAYMENT_PAYMENTS_COMPLETE_EXPLANATION) {
+    return PUBLIC_PAYMENT_PAYMENTS_COMPLETE_PROJECT_EXPLANATION;
+  }
+  return explanation;
+}
 
 export function buildPublicPaymentViewModel(
   input: BuildPublicPaymentViewModelInput
@@ -535,10 +551,15 @@ export function buildPublicPaymentViewModel(
   if (!vm || !input.accepted) return vm;
   return {
     ...vm,
-    contractSummary: buildPublicContractSummary({
-      originalAgreementCents: input.originalAgreementCents,
-      currentContractCents: input.contractTotalCents,
-    }),
+    explanation: input.hasAuthorizedChanges
+      ? projectWordingExplanation(vm.explanation)
+      : vm.explanation,
+    contractSummary: input.contractTotalUnavailable
+      ? null
+      : buildPublicContractSummary({
+          originalAgreementCents: input.originalAgreementCents,
+          currentContractCents: input.contractTotalCents,
+        }),
   };
 }
 
@@ -549,7 +570,8 @@ function buildPublicPaymentViewModelCore(
   const refunds = input.refunds ?? [];
   const current = customerCurrentRequest(input.requests, input.proposalVersionId);
   const paid = latestPaidRequest(input.requests);
-  const contractTotalCents = contractTotalFrom(input);
+  const contractTotalCents =
+    input.accepted && input.contractTotalUnavailable ? null : contractTotalFrom(input);
   const grossCents = jobPaymentWorkspaceGrossCents(transactions);
   const refundedCents = jobPaymentWorkspaceRefundedCents(refunds);
   const collectibleCents = jobPaymentCollectibleRemainingCents({
