@@ -14,6 +14,13 @@ STATUS: **COMPLETE**
 - **Commit:** `feat(proposals): add approved scope changes` (tip `main` after Phase 10 close)
 - **Main:** **not** pushed. **No** deploy. **No** Phase 11.
 
+### Real-product integration proof (same day)
+
+- Proven on authenticated Job Card / public `/scope-changes/[token]` routes (not harness-only).
+- Follow-up fixes: quantity/unit authoring fields; list-route `serializeScopeChangeLine` import; public review qty/unit display; Activity chronology visibility for `scope_change_*`.
+- Screenshots: `tmp/fielddive-ui-review/phase10-approved-scope-changes/real-product/`
+- **Main:** **not** pushed. **No** deploy. **No** Phase 11.
+
 ### Locked product truth
 
 - **Original accepted agreement is immutable** — frozen proposal pages/options/line items, acceptance rows, signature evidence, accepted totals, and public/sent history are never mutated in place

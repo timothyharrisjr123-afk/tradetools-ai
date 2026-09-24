@@ -242,86 +242,140 @@ function DraftEditor({
           {lines.map((line, index) => (
             <li
               key={`line-${index}`}
-              className="grid gap-2 rounded-md border border-slate-100 p-3 sm:grid-cols-[7rem_1fr_7rem_auto]"
+              className="space-y-2 rounded-md border border-slate-100 p-3"
+              data-scope-change-line
             >
-              <select
-                className="rounded-md border border-slate-200 px-2 py-2 text-sm"
-                value={line.changeKind}
-                onChange={(e) => {
-                  const changeKind = e.target.value as "add" | "remove";
-                  setLines((prev) =>
-                    prev.map((row, i) =>
-                      i === index
-                        ? {
-                            ...row,
-                            changeKind,
-                            lineDeltaCents:
-                              changeKind === "add"
-                                ? Math.abs(row.lineDeltaCents)
-                                : -Math.abs(row.lineDeltaCents),
-                          }
-                        : row
-                    )
-                  );
-                }}
-              >
-                <option value="add">Add</option>
-                <option value="remove">Remove</option>
-              </select>
-              <input
-                className="rounded-md border border-slate-200 px-3 py-2 text-sm"
-                placeholder="Description"
-                value={line.description}
-                maxLength={240}
-                onChange={(e) => {
-                  const description = e.target.value;
-                  setLines((prev) =>
-                    prev.map((row, i) =>
-                      i === index ? { ...row, description } : row
-                    )
-                  );
-                }}
-              />
-              <input
-                className="rounded-md border border-slate-200 px-3 py-2 text-sm"
-                type="number"
-                step="0.01"
-                placeholder="Delta $"
-                value={
-                  line.lineDeltaCents === 0
-                    ? ""
-                    : (line.lineDeltaCents / 100).toString()
-                }
-                onChange={(e) => {
-                  const dollars = Number(e.target.value);
-                  const cents = Number.isFinite(dollars)
-                    ? Math.round(dollars * 100)
-                    : 0;
-                  setLines((prev) =>
-                    prev.map((row, i) =>
-                      i === index
-                        ? {
-                            ...row,
-                            lineDeltaCents:
-                              row.changeKind === "remove"
-                                ? -Math.abs(cents)
-                                : Math.abs(cents),
-                          }
-                        : row
-                    )
-                  );
-                }}
-              />
-              <button
-                type="button"
-                className={JOB_CARD_PROPOSALS_SECONDARY_BUTTON_CLASS}
-                onClick={() =>
-                  setLines((prev) => prev.filter((_, i) => i !== index))
-                }
-                disabled={lines.length <= 1}
-              >
-                Remove
-              </button>
+              <div className="grid gap-2 sm:grid-cols-[7rem_1fr_auto]">
+                <select
+                  className="rounded-md border border-slate-200 px-2 py-2 text-sm"
+                  value={line.changeKind}
+                  data-scope-change-line-kind
+                  onChange={(e) => {
+                    const changeKind = e.target.value as "add" | "remove";
+                    setLines((prev) =>
+                      prev.map((row, i) =>
+                        i === index
+                          ? {
+                              ...row,
+                              changeKind,
+                              lineDeltaCents:
+                                changeKind === "add"
+                                  ? Math.abs(row.lineDeltaCents)
+                                  : -Math.abs(row.lineDeltaCents),
+                            }
+                          : row
+                      )
+                    );
+                  }}
+                >
+                  <option value="add">Add</option>
+                  <option value="remove">Remove</option>
+                </select>
+                <input
+                  className="rounded-md border border-slate-200 px-3 py-2 text-sm"
+                  placeholder="Description"
+                  value={line.description}
+                  maxLength={240}
+                  data-scope-change-line-description
+                  onChange={(e) => {
+                    const description = e.target.value;
+                    setLines((prev) =>
+                      prev.map((row, i) =>
+                        i === index ? { ...row, description } : row
+                      )
+                    );
+                  }}
+                />
+                <button
+                  type="button"
+                  className={JOB_CARD_PROPOSALS_SECONDARY_BUTTON_CLASS}
+                  onClick={() =>
+                    setLines((prev) => prev.filter((_, i) => i !== index))
+                  }
+                  disabled={lines.length <= 1}
+                >
+                  Remove
+                </button>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <label className="block space-y-1 text-sm">
+                  <span className="text-slate-500">Quantity (optional)</span>
+                  <input
+                    className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                    type="number"
+                    step="any"
+                    placeholder="Qty"
+                    value={line.quantity ?? ""}
+                    data-scope-change-line-quantity
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      const quantity =
+                        raw.trim() === ""
+                          ? null
+                          : Number.isFinite(Number(raw))
+                            ? Number(raw)
+                            : null;
+                      setLines((prev) =>
+                        prev.map((row, i) =>
+                          i === index ? { ...row, quantity } : row
+                        )
+                      );
+                    }}
+                  />
+                </label>
+                <label className="block space-y-1 text-sm">
+                  <span className="text-slate-500">Unit (optional)</span>
+                  <input
+                    className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                    placeholder="e.g. lf, sheets"
+                    value={line.unit ?? ""}
+                    maxLength={40}
+                    data-scope-change-line-unit
+                    onChange={(e) => {
+                      const unit = e.target.value.trim() ? e.target.value : null;
+                      setLines((prev) =>
+                        prev.map((row, i) =>
+                          i === index ? { ...row, unit } : row
+                        )
+                      );
+                    }}
+                  />
+                </label>
+                <label className="block space-y-1 text-sm">
+                  <span className="text-slate-500">Line delta ($)</span>
+                  <input
+                    className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={
+                      line.lineDeltaCents === 0
+                        ? ""
+                        : (line.lineDeltaCents / 100).toString()
+                    }
+                    data-scope-change-line-delta
+                    onChange={(e) => {
+                      const dollars = Number(e.target.value);
+                      const cents = Number.isFinite(dollars)
+                        ? Math.round(dollars * 100)
+                        : 0;
+                      setLines((prev) =>
+                        prev.map((row, i) =>
+                          i === index
+                            ? {
+                                ...row,
+                                lineDeltaCents:
+                                  row.changeKind === "remove"
+                                    ? -Math.abs(cents)
+                                    : Math.abs(cents),
+                              }
+                            : row
+                        )
+                      );
+                    }}
+                  />
+                </label>
+              </div>
             </li>
           ))}
         </ul>

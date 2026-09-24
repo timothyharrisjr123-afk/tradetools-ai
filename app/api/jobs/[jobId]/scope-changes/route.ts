@@ -12,6 +12,7 @@ import {
   scopeChangeRpcFailureResponse,
   scopeChangeRpcSuccessBody,
   serializeScopeChange,
+  serializeScopeChangeLine,
 } from "@/app/lib/jobScopeChangeApi";
 import { JOB_SCOPE_CHANGE_AUTHOR_CAPABILITY } from "@/app/lib/jobScopeChangeTypes";
 import { requireCapabilitySession } from "@/app/lib/requireCapabilitySession";

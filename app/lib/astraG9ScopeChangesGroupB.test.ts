@@ -137,6 +137,7 @@ describe("Astra G9 Group B — API routes", () => {
     assert.match(list, /listScopeChangesForJob/);
     assert.match(list, /createJobScopeChangeViaRpc/);
     assert.match(list, /getUserCompanyId/);
+    assert.match(list, /serializeScopeChangeLine/);
   });
 
   test("payment workspace prefers job_contract_total_cents_v1", () => {
@@ -199,6 +200,9 @@ describe("Astra G9 Group B — UX surfaces", () => {
     );
     assert.match(panel, /data-jobcard-propose-scope-change/);
     assert.match(panel, /data-scope-change-draft-editor/);
+    assert.match(panel, /data-scope-change-line-quantity/);
+    assert.match(panel, /data-scope-change-line-unit/);
+    assert.match(panel, /data-scope-change-line-delta/);
     assert.match(panel, /data-scope-change-propose/);
     assert.match(panel, /data-scope-change-save/);
     assert.match(panel, /data-scope-change-void/);

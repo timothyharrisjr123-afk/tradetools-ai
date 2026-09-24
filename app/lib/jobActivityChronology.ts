@@ -448,7 +448,12 @@ export function classifyJobActivityEvent(
     event.event_type === "disposition_changed" ||
     event.event_type === "production_lead_assigned" ||
     event.event_type === "production_lead_changed" ||
-    event.event_type === "production_lead_cleared"
+    event.event_type === "production_lead_cleared" ||
+    event.event_type === "scope_change_created" ||
+    event.event_type === "scope_change_proposed" ||
+    event.event_type === "scope_change_authorized" ||
+    event.event_type === "scope_change_declined" ||
+    event.event_type === "scope_change_voided"
   ) {
     return JOB_ACTIVITY_VISIBILITY.CONTRACTOR_VISIBLE;
   }
@@ -668,6 +673,43 @@ function composeEventRow(
       kind: "work_approved",
       title,
       detail: null,
+      occurredAt: event.occurred_at,
+      actor,
+      source: "durable",
+      sourceIds: [event.id],
+    };
+  }
+
+  if (
+    event.event_type === "scope_change_created" ||
+    event.event_type === "scope_change_proposed" ||
+    event.event_type === "scope_change_authorized" ||
+    event.event_type === "scope_change_declined" ||
+    event.event_type === "scope_change_voided"
+  ) {
+    const titleByType: Record<string, string> = {
+      scope_change_created: "Scope change drafted",
+      scope_change_proposed: "Scope change proposed",
+      scope_change_authorized: "Scope change authorized",
+      scope_change_declined: "Scope change declined",
+      scope_change_voided: "Scope change voided",
+    };
+    const delta = payload?.price_delta_cents;
+    const detail =
+      typeof delta === "number" && Number.isFinite(delta)
+        ? `Delta ${(delta / 100).toLocaleString("en-US", {
+            style: "currency",
+            currency: "USD",
+          })}`
+        : null;
+    return {
+      id: event.id,
+      kind:
+        event.event_type === "scope_change_authorized"
+          ? "proposal_accepted"
+          : "work_approved",
+      title: titleByType[event.event_type] ?? "Scope change",
+      detail,
       occurredAt: event.occurred_at,
       actor,
       source: "durable",

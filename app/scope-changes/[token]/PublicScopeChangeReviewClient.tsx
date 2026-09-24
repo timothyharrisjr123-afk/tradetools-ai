@@ -260,10 +260,22 @@ export default function PublicScopeChangeReviewClient({
               className="flex items-start justify-between gap-3 px-3 py-2.5 text-sm"
             >
               <div>
-                <span className="font-medium text-slate-500">
-                  {line.changeKind === "add" ? "Add" : "Remove"}
-                </span>{" "}
-                <span className="text-slate-900">{line.description}</span>
+                <p className="text-slate-900">
+                  <span className="font-medium text-slate-500">
+                    {line.changeKind === "add" ? "Add" : "Remove"}
+                  </span>{" "}
+                  {line.description}
+                </p>
+                {line.quantity != null || line.unit ? (
+                  <p className="text-slate-500">
+                    {[
+                      line.quantity != null ? String(line.quantity) : null,
+                      line.unit,
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                  </p>
+                ) : null}
               </div>
               <span className="shrink-0 font-semibold text-slate-900">
                 {formatScopeChangeDeltaLabel(line.lineDeltaCents)}
