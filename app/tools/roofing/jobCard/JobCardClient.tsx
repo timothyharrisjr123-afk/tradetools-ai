@@ -146,7 +146,10 @@ import {
 } from "@/app/lib/propertyAddressNormalize";
 import type { JobCardDisplayModel } from "@/app/tools/roofing/jobCard/jobCardDisplayTypes";
 import type { JobScheduleWorkspaceSubmit } from "@/app/tools/roofing/jobCard/JobScheduleWorkspace";
-import { buildFieldBriefViewModel } from "@/app/lib/fieldBriefModel";
+import {
+  buildFieldBriefViewModel,
+  resolveFieldBriefApprovedScopeLabel,
+} from "@/app/lib/fieldBriefModel";
 import JobCardSecondaryPanels from "@/app/tools/roofing/jobCard/JobCardSecondaryPanels";
 
 export default function JobCardClient({
@@ -897,13 +900,19 @@ export default function JobCardClient({
     scheduleWindowLabel,
     productionLeadLabel,
     crewLabel: productionLeadCrewLabel,
-    approvedScopeLabel: jobHasCanonicalAcceptedAgreement(jobAcceptedProposalIds)
-      ? display.proposalLabel || "Accepted agreement"
-      : // Authorized scope changes imply a canonical acceptance exists even if
-        // acceptance secondary facts have not resolved yet — avoid empty flash.
-        authorizedChangeSummaries.length > 0
-        ? "Accepted agreement"
-        : null,
+    approvedScopeLabel: resolveFieldBriefApprovedScopeLabel({
+      acceptedProposalIds: jobAcceptedProposalIds,
+      packageLabelsByProposalId: listedJobDraftPackageLabels,
+      activeProposalId: hydratedJobRecord?.active_proposal_id ?? null,
+      hasAuthorizedChanges: authorizedChangeSummaries.length > 0,
+    }),
+    authorizedWorkStatus:
+      acceptanceFactsReady &&
+      listedJobDraftStatus !== "loading" &&
+      listedJobDraftStatus !== "idle"
+        ? "ready"
+        : "loading",
+    accessNotes: jobCardSchedule.active?.notes ?? null,
     authorizedChangeSummaries,
     pendingProposedSummaries,
     measurementSummary: prepare.selected
@@ -1614,14 +1623,6 @@ export default function JobCardClient({
                         <JobCardScopeChangesPanel
                           canAuthor={companyMembers.canAuthorProposals}
                           canProposeNew={scopeChangeAuthoringAllowed}
-                          originalAgreementCents={
-                            jobScopeChanges.contractTotalCents == null
-                              ? null
-                              : jobScopeChanges.contractTotalCents -
-                                jobScopeChanges.rows
-                                  .filter((r) => r.status === "authorized")
-                                  .reduce((s, r) => s + r.priceDeltaCents, 0)
-                          }
                           scopeChanges={jobScopeChanges}
                         />
                       ) : null

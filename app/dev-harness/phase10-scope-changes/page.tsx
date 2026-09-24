@@ -101,13 +101,37 @@ const draftRow: JobScopeChangeClientRow = {
   ],
 };
 
+const NEGATIVE_AUTHORIZED_DELTA = -300_000;
+
+const negativeAuthorizedRow: JobScopeChangeClientRow = {
+  ...authorizedRow,
+  id: "sc-auth-neg",
+  reason: "Customer kept existing gutters",
+  priceDeltaCents: NEGATIVE_AUTHORIZED_DELTA,
+  lines: [
+    {
+      changeKind: "remove",
+      description: "Gutter replacement",
+      quantity: 180,
+      unit: "lf",
+      unitPriceCents: null,
+      lineDeltaCents: NEGATIVE_AUTHORIZED_DELTA,
+      sortOrder: 0,
+    },
+  ],
+};
+
 function fixtureState(
   rows: JobScopeChangeClientRow[],
-  contractTotalCents: number
+  contractTotalCents: number | null,
+  options: {
+    loadStatus?: JobScopeChangesState["loadStatus"];
+    replayUrl?: string | null;
+  } = {}
 ): JobScopeChangesState {
   return {
     rows,
-    loadStatus: "ready",
+    loadStatus: options.loadStatus ?? "ready",
     error: null,
     contractTotalCents,
     refresh: async () => {},
@@ -119,10 +143,13 @@ function fixtureState(
       ok: false,
       message: "Harness is read-only.",
     }),
-    runAction: async () => ({
-      ok: false,
-      message: "Harness is read-only.",
-    }),
+    runAction: async () =>
+      options.replayUrl !== undefined
+        ? { ok: true, publicReviewUrl: options.replayUrl }
+        : {
+            ok: false,
+            message: "Harness is read-only.",
+          },
   };
 }
 
@@ -361,16 +388,14 @@ export default function Phase10ScopeChangesHarnessPage() {
         <JobCardScopeChangesPanel
           canAuthor
           canProposeNew
-          originalAgreementCents={ORIGINAL_CENTS}
           scopeChanges={acceptedPanel}
         />
       </Section>
 
-      <Section title="2 · Draft scope change history context" testId="draft-history">
+      <Section title="2 · Draft scope change — resume persisted lines" testId="draft-history">
         <JobCardScopeChangesPanel
           canAuthor
-          canProposeNew={false}
-          originalAgreementCents={ORIGINAL_CENTS}
+          canProposeNew
           scopeChanges={draftPanel}
         />
       </Section>
@@ -379,8 +404,50 @@ export default function Phase10ScopeChangesHarnessPage() {
         <JobCardScopeChangesPanel
           canAuthor
           canProposeNew={false}
-          originalAgreementCents={ORIGINAL_CENTS}
           scopeChanges={proposedPanel}
+        />
+      </Section>
+
+      <Section title="3a · Negative authorized basis (signed)" testId="negative-basis">
+        <JobCardScopeChangesPanel
+          canAuthor
+          canProposeNew
+          scopeChanges={fixtureState(
+            [negativeAuthorizedRow],
+            ORIGINAL_CENTS + NEGATIVE_AUTHORIZED_DELTA
+          )}
+        />
+      </Section>
+
+      <Section title="3b · Contract total unavailable" testId="unavailable-basis">
+        <JobCardScopeChangesPanel
+          canAuthor
+          canProposeNew
+          scopeChanges={fixtureState([authorizedRow], null, { loadStatus: "error" })}
+        />
+      </Section>
+
+      <Section title="3c · Review link recovery (success)" testId="link-recovery">
+        <JobCardScopeChangesPanel
+          canAuthor
+          canProposeNew={false}
+          scopeChanges={fixtureState(
+            [authorizedRow, proposedRow],
+            ORIGINAL_CENTS + AUTHORIZED_DELTA,
+            { replayUrl: "http://localhost:3000/scope-changes/harness-token" }
+          )}
+        />
+      </Section>
+
+      <Section title="3d · Proposed but link not minted (partial)" testId="link-missing">
+        <JobCardScopeChangesPanel
+          canAuthor
+          canProposeNew={false}
+          scopeChanges={fixtureState(
+            [authorizedRow, proposedRow],
+            ORIGINAL_CENTS + AUTHORIZED_DELTA,
+            { replayUrl: null }
+          )}
         />
       </Section>
 

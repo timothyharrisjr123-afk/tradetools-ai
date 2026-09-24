@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { formatUsdFromCents } from "@/app/lib/jobPaymentMoney";
 import { formatScopeChangeDeltaLabel } from "@/app/lib/jobScopeChangeViewModel";
 import { JOB_SCOPE_CHANGE_STATUS_LABELS } from "@/app/lib/jobScopeChangeTypes";
-import { JOB_CARD_PROPOSALS_PRIMARY_BUTTON_CLASS } from "@/app/tools/roofing/jobCard/jobCardProposalsTabModel";
+import { buttonClass } from "@/app/components/ui/buttonStyles";
+import { FORM_INPUT } from "@/app/components/ui/formStyles";
 
 type PublicLine = {
   changeKind: "add" | "remove";
@@ -323,7 +324,8 @@ export default function PublicScopeChangeReviewClient({
           <label className="block space-y-1 text-sm">
             <span className="font-medium text-slate-700">Your name</span>
             <input
-              className="w-full rounded-md border border-slate-200 px-3 py-2"
+              className={FORM_INPUT}
+              autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               data-scope-change-approver-name
@@ -334,8 +336,9 @@ export default function PublicScopeChangeReviewClient({
               Email <span className="font-normal text-slate-400">(optional)</span>
             </span>
             <input
-              className="w-full rounded-md border border-slate-200 px-3 py-2"
+              className={FORM_INPUT}
               type="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
@@ -345,8 +348,11 @@ export default function PublicScopeChangeReviewClient({
               className="space-y-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-3 text-sm text-amber-950"
               data-scope-change-financial-review
             >
-              <p className="font-semibold">Financial review required</p>
-              <p>{financialReview.message}</p>
+              <p className="font-semibold">Payment review needed</p>
+              <p>
+                This change would lower your total below what has already been
+                paid or requested.
+              </p>
               <dl className="grid gap-1">
                 {financialReview.liveContractTotalCents != null ? (
                   <div className="flex justify-between gap-3">
@@ -404,32 +410,31 @@ export default function PublicScopeChangeReviewClient({
                 className="text-sm font-semibold text-slate-900"
                 data-scope-change-approve-blocked
               >
-                Authorization blocked
+                This change can’t be approved online yet
               </p>
               <p className="text-sm text-slate-600">
-                Approval stays blocked for this change until financial review
-                clears. Check again after contract or payment truth changes —
-                the server decides whether authorization can proceed.
+                Contact your contractor to review the payments on this job.
+                Once they’ve sorted it out, you can try approving again.
               </p>
               <button
                 type="button"
-                className={`${JOB_CARD_PROPOSALS_PRIMARY_BUTTON_CLASS} w-full opacity-60`}
+                className={buttonClass("secondary", { fullWidth: true })}
                 disabled={busy || !name.trim() || payload.signatureRequired}
                 onClick={() => void onAuthorize()}
                 data-scope-change-approve-recheck
               >
-                {busy ? "Checking…" : "Check again"}
+                {busy ? "Submitting approval…" : "Try approving again"}
               </button>
             </div>
           ) : (
             <button
               type="button"
-              className={`${JOB_CARD_PROPOSALS_PRIMARY_BUTTON_CLASS} w-full`}
+              className={buttonClass("commit", { fullWidth: true })}
               disabled={busy || !name.trim() || payload.signatureRequired}
               onClick={() => void onAuthorize()}
               data-scope-change-approve
             >
-              Approve scope change
+              {busy ? "Submitting approval…" : "Approve scope change"}
             </button>
           )}
         </section>

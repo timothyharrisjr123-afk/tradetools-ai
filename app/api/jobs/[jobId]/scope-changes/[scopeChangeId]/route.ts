@@ -185,7 +185,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
             : typeof body?.timing_note === "string"
               ? body.timing_note
               : null,
-      lines,
+      lines: lines ?? undefined,
     });
 
     if (!result.ok) return scopeChangeRpcFailureResponse(result);

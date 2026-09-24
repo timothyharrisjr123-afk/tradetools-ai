@@ -110,10 +110,31 @@ export function boardScheduleLoadBanner(
   readStatus: PlannedScheduleReadStatus
 ): string | null {
   if (readStatus === 'loading') {
-    return 'Loading planned schedules…';
+    return 'Checking schedules…';
   }
   if (readStatus === 'error') {
     return 'Could not load planned schedules. Schedule actions are blocked until refresh succeeds.';
   }
   return null;
+}
+
+/** Loading is neutral; only a failed read is an error. */
+export function boardScheduleLoadTone(
+  readStatus: PlannedScheduleReadStatus
+): 'neutral' | 'error' | null {
+  if (readStatus === 'loading') return 'neutral';
+  if (readStatus === 'error') return 'error';
+  return null;
+}
+
+/**
+ * Per-card integrity copy. While the schedule read is loading or failed the
+ * single board-level notice owns the message, so cards never repeat it.
+ */
+export function boardCardScheduleIntegrityLabel(
+  coherence: PlannedScheduleCoherence,
+  readStatus: PlannedScheduleReadStatus
+): string | null {
+  if (!plannedScheduleReadIsAuthoritative(readStatus)) return null;
+  return plannedScheduleIntegrityLabel(coherence);
 }

@@ -25,6 +25,8 @@ export type FieldBriefSchedule = {
 };
 
 export type FieldBriefAuthorizedWork = {
+  /** Loading must never render as "no authorized scope". */
+  status: "loading" | "ready";
   approvedScopeLabel: string | null;
   approvedChangesLabel: string | null;
   measurementSummary: string | null;
@@ -122,6 +124,42 @@ export function buildApprovedChangesLabel(
   return authorized.join("; ");
 }
 
+export const FIELD_BRIEF_SCOPE_ON_PROPOSAL_LABEL =
+  "Accepted agreement — see the accepted proposal for scope details" as const;
+
+const STATUS_ONLY_SCOPE_LABELS = new Set([
+  "accepted",
+  "signed",
+  "accepted agreement",
+  "sent",
+  "draft",
+]);
+
+/**
+ * Authorized base scope for the field brief: the accepted proposal's selected
+ * package, never a lifecycle status word such as "Accepted" or "Signed".
+ */
+export function resolveFieldBriefApprovedScopeLabel(input: {
+  acceptedProposalIds: Readonly<Record<string, boolean>>;
+  packageLabelsByProposalId: Readonly<Record<string, string | null>>;
+  activeProposalId?: string | null;
+  hasAuthorizedChanges?: boolean;
+}): string | null {
+  const accepted = Object.entries(input.acceptedProposalIds)
+    .filter(([, value]) => value === true)
+    .map(([id]) => id);
+  const active = trimOrNull(input.activeProposalId);
+  const acceptedId =
+    (active && accepted.includes(active) ? active : null) ?? accepted[0] ?? null;
+  if (acceptedId) {
+    const label = trimOrNull(input.packageLabelsByProposalId[acceptedId]);
+    if (label && !STATUS_ONLY_SCOPE_LABELS.has(label.toLowerCase())) return label;
+    return FIELD_BRIEF_SCOPE_ON_PROPOSAL_LABEL;
+  }
+  if (input.hasAuthorizedChanges) return FIELD_BRIEF_SCOPE_ON_PROPOSAL_LABEL;
+  return null;
+}
+
 export function buildFieldBriefViewModel(input: {
   customerName?: string | null;
   customerPhone?: string | null;
@@ -146,6 +184,8 @@ export function buildFieldBriefViewModel(input: {
   pendingProposedSummaries?: readonly string[] | null;
   measurementSummary?: string | null;
   accessNotes?: string | null;
+  /** Defaults to ready for callers that already resolved their facts. */
+  authorizedWorkStatus?: "loading" | "ready";
   proposedDiffersFromAuthorized?: boolean;
   tasks?: readonly {
     id: string;
@@ -203,6 +243,7 @@ export function buildFieldBriefViewModel(input: {
       crewLabel: trimOrNull(input.crewLabel),
     },
     authorizedWork: {
+      status: input.authorizedWorkStatus ?? "ready",
       approvedScopeLabel: trimOrNull(input.approvedScopeLabel),
       approvedChangesLabel,
       measurementSummary: trimOrNull(input.measurementSummary),

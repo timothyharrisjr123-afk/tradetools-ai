@@ -1,20 +1,33 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { formatUsdFromCents } from "@/app/lib/jobPaymentMoney";
+import { useState } from "react";
+import InlineNotice from "@/app/components/ui/InlineNotice";
+import LoadingState from "@/app/components/ui/LoadingState";
+import MoneyRow from "@/app/components/ui/MoneyRow";
+import { buttonClass } from "@/app/components/ui/buttonStyles";
+import {
+  FORM_INPUT,
+  FORM_LABEL,
+  FORM_LABEL_TEXT,
+  FORM_OPTIONAL,
+  FORM_TEXTAREA,
+} from "@/app/components/ui/formStyles";
 import {
   JOB_CARD_PROPOSE_SCOPE_CHANGE_LABEL,
   JOB_CARD_SCOPE_CHANGES_HEADING,
+  SCOPE_CHANGE_BASIS_UNAVAILABLE_MESSAGE,
+  SCOPE_CHANGE_GET_REVIEW_LINK_LABEL,
+  SCOPE_CHANGE_PROPOSE_ACTION_LABEL,
   buildScopeChangeEditorTotals,
   buildScopeChangeHistoryRow,
-  formatScopeChangeDeltaLabel,
-  sumLineDeltasCents,
+  describeScopeChangeProposeOutcome,
+  hydrateScopeChangeDraftLines,
+  resolveScopeChangeEditorBasis,
+  scopeChangeHistoryTotalCopy,
+  sumClientLineDeltasCents,
+  type ScopeChangeEditorBasis,
+  type ScopeChangeProposeOutcome,
 } from "@/app/lib/jobScopeChangeViewModel";
-import {
-  JOB_CARD_PROPOSALS_PRIMARY_BUTTON_CLASS,
-  JOB_CARD_PROPOSALS_ROW_PRIMARY_BUTTON_CLASS,
-  JOB_CARD_PROPOSALS_SECONDARY_BUTTON_CLASS,
-} from "@/app/tools/roofing/jobCard/jobCardProposalsTabModel";
 import type {
   JobScopeChangeClientRow,
   JobScopeChangeLineClient,
@@ -24,7 +37,6 @@ import type {
 type JobCardScopeChangesPanelProps = {
   canAuthor: boolean;
   canProposeNew: boolean;
-  originalAgreementCents: number | null;
   scopeChanges: JobScopeChangesState;
 };
 
@@ -43,57 +55,78 @@ function emptyLine(kind: "add" | "remove" = "add"): DraftLine {
 }
 
 function TotalsBlock({
-  originalAgreementCents,
-  previouslyAuthorizedDeltasCents,
+  basis,
   thisChangeDeltaCents,
 }: {
-  originalAgreementCents: number;
-  previouslyAuthorizedDeltasCents: number;
+  basis: ScopeChangeEditorBasis;
   thisChangeDeltaCents: number;
 }) {
+  if (basis.status !== "ready") {
+    return (
+      <div className="space-y-2" data-scope-change-totals data-basis={basis.status}>
+        <dl className="grid gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-sm">
+          <MoneyRow label="This change" cents={thisChangeDeltaCents} format="delta" />
+          <MoneyRow
+            label="Current contract total"
+            cents={null}
+            unknownLabel={basis.status === "loading" ? "Checking…" : "Unavailable"}
+          />
+        </dl>
+        {basis.status === "unavailable" ? (
+          <InlineNotice tone="warning" data-scope-change-basis-unavailable>
+            {SCOPE_CHANGE_BASIS_UNAVAILABLE_MESSAGE}
+          </InlineNotice>
+        ) : null}
+      </div>
+    );
+  }
   const totals = buildScopeChangeEditorTotals({
-    originalAgreementCents,
-    previouslyAuthorizedDeltasCents,
+    originalAgreementCents: basis.originalAgreementCents,
+    previouslyAuthorizedDeltasCents: basis.previouslyAuthorizedDeltasCents,
     thisChangeDeltaCents,
   });
-  const rows: { label: string; value: string }[] = [
-    {
-      label: "Original agreement",
-      value: formatUsdFromCents(totals.originalAgreementCents),
-    },
-    {
-      label: "Previously authorized changes",
-      value: formatScopeChangeDeltaLabel(totals.previouslyAuthorizedDeltasCents),
-    },
-    {
-      label: "Current contract total",
-      value: formatUsdFromCents(totals.currentContractCents),
-    },
-    {
-      label: "This change",
-      value: formatScopeChangeDeltaLabel(totals.thisChangeDeltaCents),
-    },
-    {
-      label: "Proposed new total",
-      value: formatUsdFromCents(totals.proposedNewTotalCents),
-    },
-  ];
   return (
     <dl
-      className="grid gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-3 text-sm"
+      className="grid gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-sm"
       data-scope-change-totals
+      data-basis="ready"
     >
-      {rows.map((row) => (
-        <div key={row.label} className="flex items-start justify-between gap-3">
-          <dt className="text-slate-500">{row.label}</dt>
-          <dd className="font-semibold text-slate-900">{row.value}</dd>
-        </div>
-      ))}
+      <MoneyRow label="Original agreement" cents={totals.originalAgreementCents} />
+      <MoneyRow
+        label="Previously authorized changes"
+        cents={totals.previouslyAuthorizedDeltasCents}
+        format="delta"
+        data-scope-change-previously-authorized
+      />
+      <MoneyRow label="Current contract total" cents={totals.currentContractCents} />
+      <MoneyRow
+        label="This change"
+        cents={totals.thisChangeDeltaCents}
+        format="delta"
+        data-scope-change-this-delta
+      />
+      <MoneyRow
+        label="Proposed new total"
+        hint="Not applied until the customer approves"
+        cents={totals.proposedNewTotalCents}
+        emphasis
+        data-scope-change-proposed-total
+      />
     </dl>
   );
 }
 
-function HistoryList({ rows }: { rows: readonly JobScopeChangeClientRow[] }) {
+function HistoryList({
+  rows,
+  canAuthor,
+  busyRowId,
+  onGetReviewLink,
+}: {
+  rows: readonly JobScopeChangeClientRow[];
+  canAuthor: boolean;
+  busyRowId: string | null;
+  onGetReviewLink: (row: JobScopeChangeClientRow) => void;
+}) {
   if (rows.length === 0) {
     return (
       <p className="text-sm text-slate-500" data-scope-change-history-empty>
@@ -104,18 +137,24 @@ function HistoryList({ rows }: { rows: readonly JobScopeChangeClientRow[] }) {
   return (
     <ul className="divide-y divide-slate-100" data-scope-change-history>
       {rows.map((row) => {
-        const view = buildScopeChangeHistoryRow({ change: {
-          id: row.id,
-          status: row.status as never,
-          price_delta_cents: row.priceDeltaCents,
-          basis_contract_total_cents: row.basisContractTotalCents,
-          reason: row.reason,
-          proposed_at: row.proposedAt,
-          authorized_at: row.authorizedAt,
-          created_at: row.createdAt,
-        }});
+        const view = buildScopeChangeHistoryRow({
+          change: {
+            id: row.id,
+            status: row.status as never,
+            price_delta_cents: row.priceDeltaCents,
+            basis_contract_total_cents: row.basisContractTotalCents,
+            reason: row.reason,
+            proposed_at: row.proposedAt,
+            authorized_at: row.authorizedAt,
+            created_at: row.createdAt,
+          },
+        });
         return (
-          <li key={row.id} className="flex items-start justify-between gap-3 py-3">
+          <li
+            key={row.id}
+            className="flex flex-wrap items-start justify-between gap-3 py-3"
+            data-scope-change-history-row={row.status}
+          >
             <div className="min-w-0 space-y-0.5">
               <p className="text-sm font-semibold text-slate-900">
                 {view.statusLabel}
@@ -126,10 +165,21 @@ function HistoryList({ rows }: { rows: readonly JobScopeChangeClientRow[] }) {
               {view.reason ? (
                 <p className="truncate text-sm text-slate-600">{view.reason}</p>
               ) : null}
-              <p className="text-xs text-slate-500">
-                New total {view.newTotalLabel}
+              <p className="text-[13px] text-slate-500" data-scope-change-history-total>
+                {scopeChangeHistoryTotalCopy(row.status, view.newTotalLabel)}
               </p>
             </div>
+            {canAuthor && row.status === "proposed" ? (
+              <button
+                type="button"
+                className={buttonClass("secondary", { size: "sm" })}
+                disabled={busyRowId === row.id}
+                onClick={() => onGetReviewLink(row)}
+                data-scope-change-get-review-link
+              >
+                {busyRowId === row.id ? "Creating link…" : SCOPE_CHANGE_GET_REVIEW_LINK_LABEL}
+              </button>
+            ) : null}
           </li>
         );
       })}
@@ -138,8 +188,7 @@ function HistoryList({ rows }: { rows: readonly JobScopeChangeClientRow[] }) {
 }
 
 function DraftEditor({
-  originalAgreementCents,
-  previouslyAuthorizedDeltasCents,
+  basis,
   initial,
   busy,
   error,
@@ -148,11 +197,8 @@ function DraftEditor({
   onPropose,
   onVoid,
 }: {
-  originalAgreementCents: number;
-  previouslyAuthorizedDeltasCents: number;
+  basis: ScopeChangeEditorBasis;
   initial: {
-    scopeChangeId: string | null;
-    rowVersion: number;
     reason: string;
     timingNote: string;
     lines: DraftLine[];
@@ -177,27 +223,29 @@ function DraftEditor({
   const [lines, setLines] = useState<DraftLine[]>(
     initial?.lines?.length ? initial.lines : [emptyLine("add")]
   );
-  const delta = sumLineDeltasCents(lines);
+  const delta = sumClientLineDeltasCents(lines);
+  const proposeBlocked = basis.status !== "ready";
 
   return (
     <div
-      className="space-y-4 rounded-md border border-slate-200 bg-white p-4"
+      className="space-y-4 rounded-lg border border-slate-200 bg-white p-4"
       data-scope-change-draft-editor
     >
       <div className="space-y-1">
-        <h3 className="text-sm font-semibold text-slate-900">
+        <h3 className="text-base font-semibold text-slate-900">
           Scope change draft
         </h3>
         <p className="text-sm text-slate-600">
-          Add or remove structured work. Sending asks for customer approval — it
-          does not change the contract total until authorized.
+          Add or remove structured work. Proposing creates a customer review
+          link for you to share — no email is sent, and the contract total does
+          not change until the customer approves.
         </p>
       </div>
 
-      <label className="block space-y-1 text-sm">
-        <span className="font-medium text-slate-700">Reason</span>
+      <label className={FORM_LABEL}>
+        <span className={FORM_LABEL_TEXT}>Reason</span>
         <textarea
-          className="min-h-[72px] w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+          className={FORM_TEXTAREA}
           value={reason}
           maxLength={500}
           onChange={(e) => setReason(e.target.value)}
@@ -205,12 +253,12 @@ function DraftEditor({
         />
       </label>
 
-      <label className="block space-y-1 text-sm">
-        <span className="font-medium text-slate-700">
-          Timing note <span className="font-normal text-slate-400">(optional)</span>
+      <label className={FORM_LABEL}>
+        <span className={FORM_LABEL_TEXT}>
+          Timing note <span className={FORM_OPTIONAL}>(optional)</span>
         </span>
         <input
-          className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+          className={FORM_INPUT}
           value={timingNote}
           maxLength={240}
           onChange={(e) => setTimingNote(e.target.value)}
@@ -219,92 +267,102 @@ function DraftEditor({
       </label>
 
       <div className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm font-medium text-slate-700">Lines</p>
           <div className="flex gap-2">
             <button
               type="button"
-              className={JOB_CARD_PROPOSALS_SECONDARY_BUTTON_CLASS}
+              className={buttonClass("secondary", { size: "sm" })}
               onClick={() => setLines((prev) => [...prev, emptyLine("add")])}
             >
-              Add line
+              Add work
             </button>
             <button
               type="button"
-              className={JOB_CARD_PROPOSALS_SECONDARY_BUTTON_CLASS}
+              className={buttonClass("secondary", { size: "sm" })}
               onClick={() => setLines((prev) => [...prev, emptyLine("remove")])}
             >
-              Remove line
+              Remove work
             </button>
           </div>
         </div>
         <ul className="space-y-3">
           {lines.map((line, index) => (
             <li
-              key={`line-${index}`}
-              className="space-y-2 rounded-md border border-slate-100 p-3"
+              key={line.id ?? `line-${index}`}
+              className="space-y-2 rounded-lg border border-slate-100 p-3"
               data-scope-change-line
             >
-              <div className="grid gap-2 sm:grid-cols-[7rem_1fr_auto]">
-                <select
-                  className="rounded-md border border-slate-200 px-2 py-2 text-sm"
-                  value={line.changeKind}
-                  data-scope-change-line-kind
-                  onChange={(e) => {
-                    const changeKind = e.target.value as "add" | "remove";
-                    setLines((prev) =>
-                      prev.map((row, i) =>
-                        i === index
-                          ? {
-                              ...row,
-                              changeKind,
-                              lineDeltaCents:
-                                changeKind === "add"
-                                  ? Math.abs(row.lineDeltaCents)
-                                  : -Math.abs(row.lineDeltaCents),
-                            }
-                          : row
-                      )
-                    );
-                  }}
-                >
-                  <option value="add">Add</option>
-                  <option value="remove">Remove</option>
-                </select>
-                <input
-                  className="rounded-md border border-slate-200 px-3 py-2 text-sm"
-                  placeholder="Description"
-                  value={line.description}
-                  maxLength={240}
-                  data-scope-change-line-description
-                  onChange={(e) => {
-                    const description = e.target.value;
-                    setLines((prev) =>
-                      prev.map((row, i) =>
-                        i === index ? { ...row, description } : row
-                      )
-                    );
-                  }}
-                />
-                <button
-                  type="button"
-                  className={JOB_CARD_PROPOSALS_SECONDARY_BUTTON_CLASS}
-                  onClick={() =>
-                    setLines((prev) => prev.filter((_, i) => i !== index))
-                  }
-                  disabled={lines.length <= 1}
-                >
-                  Remove
-                </button>
+              <div className="grid gap-2 sm:grid-cols-[8rem_1fr_auto]">
+                <label className={FORM_LABEL}>
+                  <span className={FORM_LABEL_TEXT}>Change</span>
+                  <select
+                    className={FORM_INPUT}
+                    value={line.changeKind}
+                    data-scope-change-line-kind
+                    onChange={(e) => {
+                      const changeKind = e.target.value as "add" | "remove";
+                      setLines((prev) =>
+                        prev.map((row, i) =>
+                          i === index
+                            ? {
+                                ...row,
+                                changeKind,
+                                lineDeltaCents:
+                                  changeKind === "add"
+                                    ? Math.abs(row.lineDeltaCents)
+                                    : -Math.abs(row.lineDeltaCents),
+                              }
+                            : row
+                        )
+                      );
+                    }}
+                  >
+                    <option value="add">Add</option>
+                    <option value="remove">Remove</option>
+                  </select>
+                </label>
+                <label className={FORM_LABEL}>
+                  <span className={FORM_LABEL_TEXT}>Description</span>
+                  <input
+                    className={FORM_INPUT}
+                    value={line.description}
+                    maxLength={240}
+                    data-scope-change-line-description
+                    onChange={(e) => {
+                      const description = e.target.value;
+                      setLines((prev) =>
+                        prev.map((row, i) =>
+                          i === index ? { ...row, description } : row
+                        )
+                      );
+                    }}
+                  />
+                </label>
+                <div className="flex items-end">
+                  <button
+                    type="button"
+                    className={buttonClass("quiet", { size: "sm" })}
+                    onClick={() =>
+                      setLines((prev) => prev.filter((_, i) => i !== index))
+                    }
+                    disabled={lines.length <= 1}
+                    aria-label={`Delete line ${index + 1}`}
+                  >
+                    Delete line
+                  </button>
+                </div>
               </div>
               <div className="grid gap-2 sm:grid-cols-3">
-                <label className="block space-y-1 text-sm">
-                  <span className="text-slate-500">Quantity (optional)</span>
+                <label className={FORM_LABEL}>
+                  <span className={FORM_LABEL_TEXT}>
+                    Quantity <span className={FORM_OPTIONAL}>(optional)</span>
+                  </span>
                   <input
-                    className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                    className={FORM_INPUT}
                     type="number"
+                    inputMode="decimal"
                     step="any"
-                    placeholder="Qty"
                     value={line.quantity ?? ""}
                     data-scope-change-line-quantity
                     onChange={(e) => {
@@ -323,10 +381,12 @@ function DraftEditor({
                     }}
                   />
                 </label>
-                <label className="block space-y-1 text-sm">
-                  <span className="text-slate-500">Unit (optional)</span>
+                <label className={FORM_LABEL}>
+                  <span className={FORM_LABEL_TEXT}>
+                    Unit <span className={FORM_OPTIONAL}>(optional)</span>
+                  </span>
                   <input
-                    className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                    className={FORM_INPUT}
                     placeholder="e.g. lf, sheets"
                     value={line.unit ?? ""}
                     maxLength={40}
@@ -341,17 +401,20 @@ function DraftEditor({
                     }}
                   />
                 </label>
-                <label className="block space-y-1 text-sm">
-                  <span className="text-slate-500">Line delta ($)</span>
+                <label className={FORM_LABEL}>
+                  <span className={FORM_LABEL_TEXT}>
+                    {line.changeKind === "remove" ? "Credit ($)" : "Price ($)"}
+                  </span>
                   <input
-                    className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                    className={FORM_INPUT}
                     type="number"
+                    inputMode="decimal"
                     step="0.01"
                     placeholder="0.00"
                     value={
                       line.lineDeltaCents === 0
                         ? ""
-                        : (line.lineDeltaCents / 100).toString()
+                        : (Math.abs(line.lineDeltaCents) / 100).toString()
                     }
                     data-scope-change-line-delta
                     onChange={(e) => {
@@ -381,51 +444,47 @@ function DraftEditor({
         </ul>
       </div>
 
-      <TotalsBlock
-        originalAgreementCents={originalAgreementCents}
-        previouslyAuthorizedDeltasCents={previouslyAuthorizedDeltasCents}
-        thisChangeDeltaCents={delta}
-      />
+      <TotalsBlock basis={basis} thisChangeDeltaCents={delta} />
 
       {error ? (
-        <p className="text-sm text-red-700" data-scope-change-error>
+        <InlineNotice tone="error" data-scope-change-error>
           {error}
-        </p>
+        </InlineNotice>
       ) : null}
 
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          className={JOB_CARD_PROPOSALS_ROW_PRIMARY_BUTTON_CLASS}
+          className={buttonClass("primary")}
+          disabled={busy || proposeBlocked}
+          onClick={() => void onPropose({ reason, timingNote, lines })}
+          data-scope-change-propose
+        >
+          {busy ? "Working…" : SCOPE_CHANGE_PROPOSE_ACTION_LABEL}
+        </button>
+        <button
+          type="button"
+          className={buttonClass("secondary")}
           disabled={busy}
           onClick={() => void onSave({ reason, timingNote, lines })}
           data-scope-change-save
         >
           Save draft
         </button>
-        <button
-          type="button"
-          className={JOB_CARD_PROPOSALS_PRIMARY_BUTTON_CLASS}
-          disabled={busy}
-          onClick={() => void onPropose({ reason, timingNote, lines })}
-          data-scope-change-propose
-        >
-          Propose / Send
-        </button>
         {onVoid ? (
           <button
             type="button"
-            className={JOB_CARD_PROPOSALS_SECONDARY_BUTTON_CLASS}
+            className={buttonClass("quiet")}
             disabled={busy}
             onClick={() => void onVoid()}
             data-scope-change-void
           >
-            Void
+            Void draft
           </button>
         ) : null}
         <button
           type="button"
-          className={JOB_CARD_PROPOSALS_SECONDARY_BUTTON_CLASS}
+          className={buttonClass("quiet")}
           disabled={busy}
           onClick={onCancel}
         >
@@ -436,25 +495,85 @@ function DraftEditor({
   );
 }
 
+function ProposeOutcomeNotice({
+  outcome,
+  onDismiss,
+}: {
+  outcome: ScopeChangeProposeOutcome;
+  onDismiss: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  if (outcome.kind === "link_missing") {
+    return (
+      <InlineNotice
+        tone="warning"
+        data-scope-change-review-link-missing
+        action={
+          <button type="button" className={buttonClass("quiet", { size: "sm" })} onClick={onDismiss}>
+            Dismiss
+          </button>
+        }
+      >
+        {outcome.message}
+      </InlineNotice>
+    );
+  }
+  return (
+    <InlineNotice
+      tone="info"
+      data-scope-change-review-link
+      action={
+        <button type="button" className={buttonClass("quiet", { size: "sm" })} onClick={onDismiss}>
+          Dismiss
+        </button>
+      }
+    >
+      <p>{outcome.message}</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <button
+          type="button"
+          className={buttonClass("secondary", { size: "sm" })}
+          data-scope-change-copy-review-link
+          onClick={() => {
+            void navigator.clipboard
+              ?.writeText(outcome.url)
+              .then(() => setCopied(true))
+              .catch(() => setCopied(false));
+          }}
+        >
+          {copied ? "Link copied" : "Copy link"}
+        </button>
+        <a
+          className={buttonClass("quiet", { size: "sm" })}
+          href={outcome.url}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Open review page
+        </a>
+      </div>
+    </InlineNotice>
+  );
+}
+
 export default function JobCardScopeChangesPanel({
   canAuthor,
   canProposeNew,
-  originalAgreementCents,
   scopeChanges,
 }: JobCardScopeChangesPanelProps) {
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [publicReviewUrl, setPublicReviewUrl] = useState<string | null>(null);
+  const [outcome, setOutcome] = useState<ScopeChangeProposeOutcome | null>(null);
+  const [linkBusyRowId, setLinkBusyRowId] = useState<string | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
   const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
 
-  const authorizedSum = useMemo(
-    () =>
-      scopeChanges.rows
-        .filter((row) => row.status === "authorized")
-        .reduce((sum, row) => sum + row.priceDeltaCents, 0),
-    [scopeChanges.rows]
-  );
+  const basis = resolveScopeChangeEditorBasis({
+    loadStatus: scopeChanges.loadStatus,
+    contractTotalCents: scopeChanges.contractTotalCents,
+    rows: scopeChanges.rows,
+  });
 
   const draftRow =
     scopeChanges.rows.find((row) => row.id === activeDraftId) ??
@@ -465,11 +584,24 @@ export default function JobCardScopeChangesPanel({
   const showProposeCta =
     canAuthor && canProposeNew && !hasProposed && !editing;
 
-  const baseAgreement = originalAgreementCents ?? 0;
-  const previouslyAuthorized =
-    scopeChanges.contractTotalCents != null && originalAgreementCents != null
-      ? scopeChanges.contractTotalCents - originalAgreementCents
-      : authorizedSum;
+  async function getReviewLink(row: JobScopeChangeClientRow) {
+    setLinkBusyRowId(row.id);
+    setLinkError(null);
+    try {
+      const replay = await scopeChanges.runAction({
+        scopeChangeId: row.id,
+        action: "propose",
+        expectedRowVersion: row.rowVersion,
+      });
+      if (!replay.ok) {
+        setLinkError(replay.message ?? "The review link could not be created.");
+        return;
+      }
+      setOutcome(describeScopeChangeProposeOutcome(replay.publicReviewUrl));
+    } finally {
+      setLinkBusyRowId(null);
+    }
+  }
 
   return (
     <section
@@ -478,60 +610,50 @@ export default function JobCardScopeChangesPanel({
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-slate-900">
+          <h3 className="text-base font-semibold text-slate-900">
             {JOB_CARD_SCOPE_CHANGES_HEADING}
           </h3>
           <p className="text-sm text-slate-600">
-            Additive changes to the accepted agreement. Propose does not update
-            the contract total until the customer authorizes.
+            Changes to the accepted agreement. The contract total only changes
+            when the customer approves.
           </p>
         </div>
         {showProposeCta ? (
           <button
             type="button"
-            className={JOB_CARD_PROPOSALS_PRIMARY_BUTTON_CLASS}
+            className={buttonClass("secondary")}
             data-jobcard-propose-scope-change
             onClick={() => {
               setActiveDraftId(draftRow?.id ?? null);
               setEditing(true);
               setError(null);
-              setPublicReviewUrl(null);
+              setOutcome(null);
             }}
           >
-            {JOB_CARD_PROPOSE_SCOPE_CHANGE_LABEL}
+            {draftRow ? "Continue scope change draft" : JOB_CARD_PROPOSE_SCOPE_CHANGE_LABEL}
           </button>
         ) : null}
       </div>
 
-      {publicReviewUrl ? (
-        <div
-          className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-950"
-          data-scope-change-review-link
-        >
-          Customer review link ready.{" "}
-          <a
-            className="font-semibold underline"
-            href={publicReviewUrl}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Open review page
-          </a>
-        </div>
+      {outcome ? (
+        <ProposeOutcomeNotice outcome={outcome} onDismiss={() => setOutcome(null)} />
+      ) : null}
+      {linkError ? (
+        <InlineNotice tone="error" data-scope-change-review-link-error>
+          {linkError}
+        </InlineNotice>
       ) : null}
 
       {editing ? (
         <DraftEditor
-          originalAgreementCents={baseAgreement}
-          previouslyAuthorizedDeltasCents={Math.max(0, previouslyAuthorized)}
+          key={draftRow?.id ?? "new"}
+          basis={basis}
           initial={
             draftRow
               ? {
-                  scopeChangeId: draftRow.id,
-                  rowVersion: draftRow.rowVersion,
                   reason: draftRow.reason ?? "",
                   timingNote: draftRow.timingNote ?? "",
-                  lines: [emptyLine("add")],
+                  lines: hydrateScopeChangeDraftLines(draftRow.lines),
                 }
               : null
           }
@@ -590,6 +712,7 @@ export default function JobCardScopeChangesPanel({
                   return;
                 }
                 scopeChangeId = created.scopeChangeId;
+                setActiveDraftId(scopeChangeId);
                 rowVersion = created.rowVersion ?? 1;
               } else {
                 const saved = await scopeChanges.saveDraft({
@@ -611,10 +734,12 @@ export default function JobCardScopeChangesPanel({
                 expectedRowVersion: rowVersion,
               });
               if (!proposed.ok) {
-                setError(proposed.message ?? "Propose failed.");
+                setError(
+                  `${proposed.message ?? "Propose failed."} Your draft is saved.`
+                );
                 return;
               }
-              setPublicReviewUrl(proposed.publicReviewUrl ?? null);
+              setOutcome(describeScopeChangeProposeOutcome(proposed.publicReviewUrl));
               setEditing(false);
             } finally {
               setBusy(false);
@@ -645,12 +770,19 @@ export default function JobCardScopeChangesPanel({
         />
       ) : null}
 
-      {scopeChanges.loadStatus === "loading" ? (
-        <p className="text-sm text-slate-500">Loading scope changes…</p>
-      ) : scopeChanges.error ? (
-        <p className="text-sm text-red-700">{scopeChanges.error}</p>
+      {scopeChanges.loadStatus === "loading" && scopeChanges.rows.length === 0 ? (
+        <LoadingState label="Loading scope changes…" />
+      ) : scopeChanges.loadStatus === "error" ? (
+        <InlineNotice tone="error" data-scope-change-load-error>
+          {scopeChanges.error ?? "Scope changes could not be loaded."}
+        </InlineNotice>
       ) : (
-        <HistoryList rows={scopeChanges.rows} />
+        <HistoryList
+          rows={scopeChanges.rows}
+          canAuthor={canAuthor}
+          busyRowId={linkBusyRowId}
+          onGetReviewLink={(row) => void getReviewLink(row)}
+        />
       )}
     </section>
   );

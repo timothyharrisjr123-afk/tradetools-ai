@@ -85,9 +85,11 @@ import {
   isActiveJobDisposition,
   resolveDbBoardJobActionEligibility,
 } from "@/app/lib/jobLifecycleActionEligibility";
+import InlineNotice from "@/app/components/ui/InlineNotice";
+import LoadingState from "@/app/components/ui/LoadingState";
 import {
+  boardCardScheduleIntegrityLabel,
   boardScheduleLoadBanner,
-  plannedScheduleIntegrityLabel,
   plannedScheduleReadIsAuthoritative,
   resolvePlannedScheduleCoherence,
 } from "@/app/lib/jobScheduleStageCoherence";
@@ -3810,7 +3812,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
         columnKey === "in_progress" ||
         columnKey === "paid" ||
         columnKey === "approved"
-          ? plannedScheduleIntegrityLabel(coherence)
+          ? boardCardScheduleIntegrityLabel(coherence, r3fSchedulesLoadStatus)
           : null;
       const canApprove = canonicalActions?.canApproveJob ?? false;
       const boardAttention =
@@ -4184,7 +4186,9 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
             data-focused-canonical-column={focusedCanonicalColumn ?? ""}
           >
             {statusFilter === "all" && !boardReady && !boardReadError && (
-              <div className="py-12 text-center text-sm text-slate-500">Loading jobs…</div>
+              <div className="flex justify-center py-12">
+                <LoadingState label="Loading jobs…" data-jobs-board-loading />
+              </div>
             )}
             {statusFilter === "all" && boardReadError && (
               <div className="w-full space-y-3">
@@ -4258,14 +4262,20 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                   />
                 ) : !companyJobSearch.active ? (
                   <>
-                {scheduleLoadBanner ? (
-                  <p
-                    className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+                {scheduleLoadBanner && r3fSchedulesLoadStatus === "loading" ? (
+                  <LoadingState
+                    label={scheduleLoadBanner}
+                    data-board-schedule-load-banner
+                    data-board-schedule-load-status={r3fSchedulesLoadStatus}
+                  />
+                ) : scheduleLoadBanner ? (
+                  <InlineNotice
+                    tone="error"
                     data-board-schedule-load-banner
                     data-board-schedule-load-status={r3fSchedulesLoadStatus}
                   >
                     {scheduleLoadBanner}
-                  </p>
+                  </InlineNotice>
                 ) : null}
 
                 {boardFilterZeroMatch ? (

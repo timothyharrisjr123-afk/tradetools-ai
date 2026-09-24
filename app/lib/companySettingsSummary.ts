@@ -124,7 +124,12 @@ export type CompanyPricingSummaryInput = {
   salesTaxRatePct: number | null;
 };
 
-export function summarizePricing(input: CompanyPricingSummaryInput | null): string {
+export function summarizePricing(
+  input: CompanyPricingSummaryInput | null,
+  loadStatus: CompanyPaymentsSummaryLoadStatus = "ready"
+): string {
+  if (loadStatus === "loading") return "Checking…";
+  if (loadStatus === "error") return "Couldn't load pricing";
   if (!input || !input.configured) return "Not set up";
 
   const parts: string[] = [];
@@ -138,7 +143,13 @@ export function summarizePricing(input: CompanyPricingSummaryInput | null): stri
   return parts.length > 0 ? parts.join(" · ") : "Configured";
 }
 
-export function summarizeTimezone(timezone: string | null): string {
+export function summarizeTimezone(
+  timezone: string | null,
+  loadStatus: CompanyPaymentsSummaryLoadStatus = "ready"
+): string {
+  // Resolved-empty copy only after the read settles.
+  if (loadStatus === "loading") return "Checking…";
+  if (loadStatus === "error") return "Could not load your timezone";
   const trimmed = (timezone ?? "").trim();
   return trimmed.length > 0 ? trimmed : "No timezone set";
 }

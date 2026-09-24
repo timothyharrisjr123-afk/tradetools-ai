@@ -135,7 +135,13 @@ export default function JobCardFieldBrief({
       {/* Authorized work + measurement / access */}
       <div className="border-t border-slate-100 pt-4">
         <QuietLabel>Authorized work</QuietLabel>
-        {authorizedWork.approvedScopeLabel ? (
+        {authorizedWork.status === "loading" &&
+        !authorizedWork.approvedScopeLabel &&
+        !authorizedWork.approvedChangesLabel ? (
+          <p className="mt-1.5 text-sm text-slate-500" data-field-brief-scope-loading>
+            Checking authorized work…
+          </p>
+        ) : authorizedWork.approvedScopeLabel ? (
           <p className="mt-1.5 text-sm font-medium leading-snug text-slate-900 [overflow-wrap:anywhere]">
             {authorizedWork.approvedScopeLabel}
           </p>
@@ -157,19 +163,19 @@ export default function JobCardFieldBrief({
             {authorizedWork.approvedChangesLabel}
           </p>
         ) : null}
-        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
-          {authorizedWork.measurementSummary ? (
-            <span>{authorizedWork.measurementSummary}</span>
-          ) : null}
-          {authorizedWork.measurementSummary && authorizedWork.accessNotes ? (
-            <span className="text-slate-300" aria-hidden>
-              ·
-            </span>
-          ) : null}
-          {authorizedWork.accessNotes ? (
-            <span className="[overflow-wrap:anywhere]">{authorizedWork.accessNotes}</span>
-          ) : null}
-        </div>
+        {authorizedWork.measurementSummary ? (
+          <p className="mt-2 text-[13px] text-slate-500">
+            {authorizedWork.measurementSummary}
+          </p>
+        ) : null}
+        {authorizedWork.accessNotes ? (
+          <div className="mt-3" data-field-brief-access-notes>
+            <QuietLabel>Site &amp; schedule notes</QuietLabel>
+            <p className="mt-1 text-sm text-slate-700 [overflow-wrap:anywhere]">
+              {authorizedWork.accessNotes}
+            </p>
+          </div>
+        ) : null}
       </div>
 
       {/* Assigned / open tasks */}

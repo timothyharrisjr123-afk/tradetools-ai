@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRight } from "lucide-react";
+import InlineNotice from "@/app/components/ui/InlineNotice";
 import type { CompanyBrandingProfile } from "@/app/lib/companyBrandingProfile";
 import {
   countMissingBrandingDetails,
@@ -181,6 +182,7 @@ export default function CompanySettingsClient({
   const [payments, setPayments] = useState<CompanyPaymentsStatus | null>(null);
   const [paymentsStatus, setPaymentsStatus] = useState<"loading" | "ready" | "error">("loading");
   const [pricing, setPricing] = useState<CompanyPricingSummaryInput | null>(null);
+  const [pricingStatus, setPricingStatus] = useState<"loading" | "ready" | "error">("loading");
   const [timezone, setTimezone] = useState<string | null>(null);
   const [timezoneStatus, setTimezoneStatus] = useState<"loading" | "ready" | "error">("loading");
 
@@ -257,7 +259,13 @@ export default function CompanySettingsClient({
   useEffect(() => {
     void refreshPayments();
     void refreshTimezone();
-    void loadCompanyPricingSummary(companyId).then(setPricing);
+    setPricingStatus("loading");
+    void loadCompanyPricingSummary(companyId)
+      .then((next) => {
+        setPricing(next);
+        setPricingStatus("ready");
+      })
+      .catch(() => setPricingStatus("error"));
   }, [companyId, refreshPayments, refreshTimezone]);
 
   const showToast = (message: string) => {
@@ -353,9 +361,7 @@ export default function CompanySettingsClient({
       </header>
 
       {loadError ? (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          {loadError}
-        </div>
+        <InlineNotice tone="error">{loadError}</InlineNotice>
       ) : null}
 
       {toast ? (
@@ -403,18 +409,14 @@ export default function CompanySettingsClient({
             />
             <SummaryRow
               label="Pricing"
-              detail={summarizePricing(pricing)}
+              detail={summarizePricing(pricing, pricingStatus)}
               action="Manage"
               href="/tools/settings/pricing"
               testId="pricing"
             />
             <SummaryRow
               label="Preferences"
-              detail={
-                timezoneStatus === "error"
-                  ? "Could not load your timezone"
-                  : summarizeTimezone(timezone)
-              }
+              detail={summarizeTimezone(timezone, timezoneStatus)}
               action="Edit"
               onClick={() => setEditor("preferences")}
               testId="preferences"

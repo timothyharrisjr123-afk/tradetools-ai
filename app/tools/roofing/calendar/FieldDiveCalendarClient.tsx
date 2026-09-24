@@ -35,6 +35,15 @@ import type {
 import { occupancyWindowsFromUnknownEvents } from "@/app/lib/jobScheduleWorkspace";
 import { buildDbJobCardHref } from "@/app/lib/jobBoardAdapter";
 import { useRouter } from "next/navigation";
+import EmptyState from "@/app/components/ui/EmptyState";
+import InlineNotice from "@/app/components/ui/InlineNotice";
+import LoadingState from "@/app/components/ui/LoadingState";
+import { buttonClass } from "@/app/components/ui/buttonStyles";
+import {
+  buildMobileAgendaDays,
+  defaultAgendaScheduleDate,
+  formatAgendaDayLabel,
+} from "@/app/lib/calendarMobileAgenda";
 
 type CalendarView = "month" | "week";
 
@@ -347,7 +356,7 @@ export default function FieldDiveCalendarClient({
   return (
     <FieldDiveAppShell activeNav="calendar">
       <div
-        className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6"
+        className="min-h-screen bg-slate-50"
         data-fielddive-calendar
         data-calendar-schedule-status={scheduleLoadStatus}
         data-calendar-range-start={firstVisibleOn}
@@ -355,7 +364,7 @@ export default function FieldDiveCalendarClient({
       >
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl font-semibold text-slate-900">Calendar</h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Calendar</h1>
             <p className="text-sm text-slate-500">{monthLabel}</p>
             {(() => {
               const status = resolveCompanyTimezoneCanonicalStatus({
@@ -386,29 +395,35 @@ export default function FieldDiveCalendarClient({
               return null;
             })()}
             {scheduleLoadStatus === "error" ? (
-              <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2" data-calendar-schedule-error>
-                <p className="text-xs text-amber-800">
-                  Could not load schedules. Existing dates remain until a successful refresh.
-                </p>
-                <button
-                  type="button"
-                  className="mt-1 text-xs font-semibold text-amber-900 underline"
-                  onClick={() => void load()}
-                  data-calendar-schedule-retry
-                >
-                  Retry
-                </button>
-              </div>
+              <InlineNotice
+                tone="error"
+                className="mt-2"
+                data-calendar-schedule-error
+                action={
+                  <button
+                    type="button"
+                    className={buttonClass("secondary", { size: "sm" })}
+                    onClick={() => void load()}
+                    data-calendar-schedule-retry
+                  >
+                    Retry
+                  </button>
+                }
+              >
+                Could not load schedules. Existing dates remain until a successful refresh.
+              </InlineNotice>
             ) : null}
             {scheduleLoadStatus === "blocked" ? (
-              <p className="mt-2 text-xs text-slate-600" data-calendar-schedule-blocked>
+              <p className="mt-2 text-sm text-slate-600" data-calendar-schedule-blocked>
                 Schedule dates cannot be shown until company timezone is available. This is not an empty calendar.
               </p>
             ) : null}
             {scheduleLoadStatus === "loading" ? (
-              <p className="mt-1 text-xs text-slate-500" data-calendar-schedule-loading>
-                Loading schedules…
-              </p>
+              <LoadingState
+                label="Loading schedules…"
+                className="mt-1"
+                data-calendar-schedule-loading
+              />
             ) : null}
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -483,7 +498,17 @@ export default function FieldDiveCalendarClient({
                     onClick={() => void openCreate(iso)}
                   />
                   <div className="relative z-10 pointer-events-none">
-                    <div className="text-xs font-medium text-slate-500">{iso.slice(8)}</div>
+                    {iso === todayCivilIso(timezone) ? (
+                      <div
+                        className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1 text-xs font-semibold text-white"
+                        data-calendar-today
+                        aria-label="Today"
+                      >
+                        {iso.slice(8)}
+                      </div>
+                    ) : (
+                      <div className="text-xs font-medium text-slate-500">{iso.slice(8)}</div>
+                    )}
                     <div className="mt-1 space-y-1 overflow-hidden pointer-events-auto">
                       {visibleEvents.map((event) => (
                         <button
@@ -495,7 +520,7 @@ export default function FieldDiveCalendarClient({
                           }}
                           className={`w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/80 ${
                             event.stage === "production"
-                              ? "bg-emerald-50 text-emerald-900"
+                              ? "bg-blue-50 text-blue-900"
                               : event.stage === "complete"
                                 ? "bg-slate-100 text-slate-800"
                                 : "bg-sky-50 text-sky-900"
@@ -537,31 +562,62 @@ export default function FieldDiveCalendarClient({
         </div>
 
         <div className="space-y-3 sm:hidden" data-calendar-mobile-agenda>
-          {visibleDays
-            .filter((iso) => view === "week" || Number(iso.slice(5, 7)) === cursor.month + 1)
-            .map((iso) => {
+          {(() => {
+            const rangeDays = visibleDays.filter(
+              (iso) => view === "week" || Number(iso.slice(5, 7)) === cursor.month + 1
+            );
+            const todayIso = todayCivilIso(timezone);
+            const scheduleDate = defaultAgendaScheduleDate(rangeDays, todayIso);
+            return scheduleDate ? (
+              <button
+                type="button"
+                className={buttonClass("secondary", { fullWidth: true })}
+                onClick={() => void openCreate(scheduleDate)}
+                data-calendar-mobile-schedule
+              >
+                Schedule work
+              </button>
+            ) : null;
+          })()}
+          {scheduleLoadStatus !== "ready" ? null : (() => {
+            const rangeDays = visibleDays.filter(
+              (iso) => view === "week" || Number(iso.slice(5, 7)) === cursor.month + 1
+            );
+            const todayIso = todayCivilIso(timezone);
+            const agendaDays = buildMobileAgendaDays({
+              days: rangeDays,
+              todayIso,
+              hasWork: (iso) => events.some((event) => eventOverlapsDay(event, iso)),
+            });
+            const anyWork = agendaDays.some((iso) =>
+              events.some((event) => eventOverlapsDay(event, iso))
+            );
+            if (!anyWork && !agendaDays.includes(todayIso)) {
+              return (
+                <EmptyState
+                  title={view === "week" ? "No scheduled work this week" : `No scheduled work in ${monthLabel}`}
+                  data-calendar-mobile-empty
+                />
+              );
+            }
+            return agendaDays.map((iso) => {
               const dayEvents = events.filter((event) => eventOverlapsDay(event, iso));
               return (
-                <section key={iso} className="rounded-xl border border-slate-200 bg-white p-3">
+                <section
+                  key={iso}
+                  className={`rounded-xl border bg-white p-3 ${iso === todayIso ? "border-blue-200" : "border-slate-200"}`}
+                  data-calendar-mobile-day={iso}
+                >
                   <div className="flex items-center justify-between gap-2">
-                    <h2 className="text-sm font-semibold text-slate-800">{iso}</h2>
-                    <button
-                      type="button"
-                      className="text-sm font-semibold text-cyan-700"
-                      onClick={() => void openCreate(iso)}
-                    >
-                      Schedule
-                    </button>
+                    <h2 className="text-sm font-semibold text-slate-800">
+                      {formatAgendaDayLabel(iso, todayIso)}
+                    </h2>
                   </div>
                   {dayEvents.length === 0 ? (
                     <p className="mt-2 text-sm text-slate-500">
-                      {scheduleLoadStatus === "ready"
-                        ? "No scheduled work"
-                        : scheduleLoadStatus === "error"
-                          ? "Schedules could not be loaded."
-                          : scheduleLoadStatus === "blocked"
-                            ? "Timezone required to show this day."
-                            : "Loading schedules…"}
+                      {anyWork
+                        ? "Nothing scheduled today."
+                        : `No scheduled work ${view === "week" ? "this week" : "this month"}.`}
                     </p>
                   ) : (
                     <ul className="mt-2 space-y-2">
@@ -571,7 +627,7 @@ export default function FieldDiveCalendarClient({
                             type="button"
                             className={`w-full rounded-md px-2 py-2 text-left ${
                               event.stage === "production"
-                                ? "bg-emerald-50"
+                                ? "bg-blue-50"
                                 : event.stage === "complete"
                                   ? "bg-slate-100"
                                 : "bg-slate-50"
@@ -582,11 +638,11 @@ export default function FieldDiveCalendarClient({
                             <div className="flex items-center justify-between gap-2">
                               <p className="text-sm font-medium text-slate-800">{event.customerName}</p>
                               {event.stage === "production" ? (
-                                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+                                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[12px] font-semibold text-blue-800">
                                   Production
                                 </span>
                               ) : event.stage === "complete" ? (
-                                <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                                <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[12px] font-semibold text-slate-700">
                                   Complete
                                 </span>
                               ) : null}
@@ -606,7 +662,8 @@ export default function FieldDiveCalendarClient({
                   )}
                 </section>
               );
-            })}
+            });
+          })()}
         </div>
       </div>
 

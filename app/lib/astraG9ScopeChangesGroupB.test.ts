@@ -228,13 +228,16 @@ describe("Astra G9 Group B — UX surfaces", () => {
     assert.match(client, /financial_conflict/);
     assert.match(client, /data-scope-change-financial-review/);
     assert.match(client, /data-scope-change-authorization-blocked/);
-    assert.match(client, /Authorization blocked/);
+    assert.match(client, /can’t be approved online yet/);
     assert.match(client, /data-scope-change-approve-recheck/);
-    assert.match(client, /Check again/);
+    // The recheck control re-submits authorization, so it must say so.
+    assert.match(client, /Try approving again/);
+    assert.doesNotMatch(client, /Check again/);
+    assert.doesNotMatch(client, /server decides/);
     // Ordinary Approve must not remain the active CTA while financialReview is set.
     assert.match(
       client,
-      /financialReview \? \([\s\S]*Authorization blocked[\s\S]*\) : \([\s\S]*data-scope-change-approve/
+      /financialReview \? \([\s\S]*can’t be approved online yet[\s\S]*\) : \([\s\S]*data-scope-change-approve/
     );
   });
 
