@@ -3,13 +3,12 @@
 import { useState } from "react";
 import { buttonClass } from "@/app/components/ui/buttonStyles";
 import { formatMoneyRowValue } from "@/app/components/ui/MoneyRow";
-import { COMPLETE_BAND } from "@/app/components/ui/surfaceStyles";
 import { JOB_PAYMENT_MIN_AMOUNT_CENTS } from "@/app/lib/jobPaymentTypes";
 import { JOB_CARD_OVERVIEW_COMPLETION_UNAVAILABLE } from "@/app/lib/jobCardOverviewComposition";
 import {
   OVERVIEW_FACT_LABEL,
+  OVERVIEW_FACT_TEXT,
   OVERVIEW_META,
-  OVERVIEW_STATE_TITLE,
 } from "./jobCardOverviewStyles";
 import {
   JOB_CARD_CLOSEOUT_COPY_FAILED,
@@ -38,7 +37,7 @@ type JobCardCloseoutSummaryProps = {
 };
 
 /** Amounts shown in the leading money group are not repeated in the review rows. */
-const LEADING_MONEY_ROW_KEYS = new Set(["contract", "remaining"]);
+const LEADING_MONEY_ROW_KEYS = new Set(["remaining"]);
 
 export default function JobCardCloseoutSummary({
   model,
@@ -93,7 +92,7 @@ export default function JobCardCloseoutSummary({
     <section
       className={
         leading
-          ? COMPLETE_BAND
+          ? "max-w-[56rem] border-b border-slate-200 pb-6"
           : "border-t border-slate-100 pt-4"
       }
       data-jobcard-closeout
@@ -102,7 +101,7 @@ export default function JobCardCloseoutSummary({
     >
       {leading ? (
         <>
-          <h3 className={OVERVIEW_STATE_TITLE} data-jobcard-closeout-completion>
+          <h3 className="text-[22px] font-semibold leading-tight tracking-tight text-slate-950" data-jobcard-closeout-completion>
             {model.completionTitle}
           </h3>
           <p className="mt-0.5 text-sm text-slate-600" data-jobcard-closeout-completed-on>
@@ -127,23 +126,15 @@ export default function JobCardCloseoutSummary({
                     {balanceRemains ? formatMoneyRowValue(model.remainingCents) : "None"}
                   </dd>
                 </div>
-                <div className="flex items-baseline justify-between gap-4">
-                  <dt className={OVERVIEW_FACT_LABEL}>Contract total</dt>
-                  <dd className="whitespace-nowrap text-slate-700">
-                    {formatMoneyRowValue(model.contractTotalCents)}
-                  </dd>
-                </div>
                 {currentRequest ? (
                   <div
                     className="flex items-baseline justify-between gap-4"
                     data-jobcard-closeout-request
                   >
                     <dt className={OVERVIEW_FACT_LABEL}>
-                      {currentRequest.label} request · {currentRequest.hint}
+                      {currentRequest.label} request
                     </dt>
-                    <dd className="whitespace-nowrap text-slate-700">
-                      {formatMoneyRowValue(currentRequest.amountCents)}
-                    </dd>
+                    <dd className={OVERVIEW_FACT_TEXT}>{currentRequest.hint}</dd>
                   </div>
                 ) : null}
               </dl>

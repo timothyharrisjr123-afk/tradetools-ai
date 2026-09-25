@@ -6,7 +6,6 @@ import FieldDiveAppShell from "@/app/tools/roofing/FieldDiveAppShell";
 import { LAST_DB_JOB_ID_STORAGE_KEY } from "@/app/lib/jobBoardAdapter";
 import { findApproveJobAcceptanceItem } from "@/app/lib/boardGuardedMovement";
 import { filterJobCardWorkspaceAttentionItems } from "@/app/lib/jobCardWorkspaceAttention";
-import MoneyRow from "@/app/components/ui/MoneyRow";
 import { jobPaymentCurrentRequestKindLabel } from "@/app/lib/jobPaymentWorkspace";
 import {
   REOPEN_AND_COMPLETE_CONFIRM_BODY,
@@ -152,7 +151,7 @@ import {
   resolveFieldBriefApprovedScopeLabel,
 } from "@/app/lib/fieldBriefModel";
 import { resolveJobCardOverviewSituation } from "@/app/lib/jobCardOverviewSituation";
-import { buildJobCardOverviewComposition } from "@/app/lib/jobCardOverviewComposition";
+import { buildJobCardOverviewComposition, showOverviewPaymentSignal } from "@/app/lib/jobCardOverviewComposition";
 import { formatProductionStartedAt } from "@/app/lib/jobProductionTypes";
 import { formatProjectRecordDate } from "@/app/lib/publicProjectRecordViewModel";
 import JobCardSecondaryPanels from "@/app/tools/roofing/jobCard/JobCardSecondaryPanels";
@@ -996,12 +995,12 @@ export default function JobCardClient({
       }
     : null;
   /** Complete jobs: closeout owns money, wherever it renders. */
-  const overviewShowsMoneySummary =
-    !suppressCommercial &&
-    !jobCardCloseout &&
-    (overviewComposition.money === "supporting" ||
-      (overviewComposition.money === "agreement_only" &&
-        paymentsWorkspace?.contractTotalCents != null));
+  const overviewShowsMoneySummary = showOverviewPaymentSignal({
+    suppressCommercial,
+    closeoutOwnsMoney: Boolean(jobCardCloseout),
+    hasCurrentRequest: Boolean(overviewCurrentRequest),
+    readFailed: jobPayments.loadStatus === "error",
+  });
   const overviewLeadControl = currentJobId ? (
     <JobCardProductionLeadControl
       jobId={currentJobId}
@@ -1474,6 +1473,7 @@ export default function JobCardClient({
                   titleVisuallyHidden
                 >
                   <JobCardOverviewSummary
+                    operationalLayout
                     state={overviewComposition.state}
                     stateFactActions={{
                       lead: overviewComposition.leadInState ? overviewLeadControl : null,
@@ -1505,59 +1505,22 @@ export default function JobCardClient({
                         ? (paymentsWorkspace?.overviewStatusLabel ?? null)
                         : null
                     }
-                    financialSummary={
-                      !overviewShowsMoneySummary
-                        ? null
-                        : jobPayments.loadStatus === "loading" &&
-                            !paymentsWorkspace?.overviewStatusLabel
-                          ? (
-                              <p className="text-sm text-slate-500">
-                                Loading payment status…
-                              </p>
-                            )
-                          : paymentsWorkspace?.overviewStatusLabel
-                            ? (
-                                <div data-jobcard-overview-payment-block className="space-y-2">
-                                  <p
-                                    className="text-sm text-slate-700"
-                                    data-jobcard-overview-payment
-                                  >
-                                    {paymentsWorkspace.overviewStatusLabel}
-                                  </p>
-                                  {paymentsWorkspace.contractTotalCents != null ? (
-                                    <dl className="space-y-1.5 text-sm tabular-nums">
-                                      <MoneyRow
-                                        label="Remaining"
-                                        cents={paymentsWorkspace.collectibleRemainingCents}
-                                        data-jobcard-overview-money="remaining"
-                                      />
-                                      <MoneyRow
-                                        label="Contract total"
-                                        cents={paymentsWorkspace.contractTotalCents}
-                                        data-jobcard-overview-money="contract"
-                                      />
-                                      {overviewCurrentRequest ? (
-                                        <MoneyRow
-                                          label={`Current request · ${overviewCurrentRequest.label}`}
-                                          hint={overviewCurrentRequest.hint}
-                                          cents={overviewCurrentRequest.amountCents}
-                                          data-jobcard-overview-money="request"
-                                        />
-                                      ) : null}
-                                    </dl>
-                                  ) : null}
-                                  <button
-                                    type="button"
-                                    className={OVERVIEW_LINK}
-                                    onClick={() => setJobCardTab("payments")}
-                                    data-jobcard-overview-open-payments
-                                  >
-                                    Open Payments
-                                  </button>
-                                </div>
-                              )
-                            : null
-                    }
+                    financialSummary={overviewShowsMoneySummary ? (
+                      <div data-jobcard-overview-payment-block className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                        <p className="text-sm text-slate-600" data-jobcard-overview-payment>
+                          {jobPayments.loadStatus === "error"
+                            ? "Payment status could not be refreshed."
+                            : overviewCurrentRequest
+                              ? `${overviewCurrentRequest.label} request · ${overviewCurrentRequest.hint}`
+                              : null}
+                        </p>
+                        <button type="button" className={OVERVIEW_LINK}
+                          onClick={() => setJobCardTab("payments")}
+                          data-jobcard-overview-open-payments>
+                          Open Payments
+                        </button>
+                      </div>
+                    ) : null}
                     suppressCommercial={suppressCommercial}
                     primaryAction={
                       overviewPrimary ? (
@@ -1578,6 +1541,7 @@ export default function JobCardClient({
                     }
                     fieldBrief={
                       <JobCardFieldBrief
+                        overviewMode={canonicalJobStage === "complete" ? "record" : "work"}
                         model={fieldBriefModel}
                         quietPhotoHint
                         omitIdentityHero

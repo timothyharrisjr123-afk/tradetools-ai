@@ -436,8 +436,9 @@ describe("Phase 12.5 G2 — state-dependent Overview", () => {
     assert.match(client, /leadingSection=\{/);
     assert.match(client, /overviewSituation\.closeoutLeads/);
     assert.doesNotMatch(client, /data-jobcard-activity-rail/);
-    assert.match(client, /data-jobcard-overview-money="remaining"/);
-    assert.match(client, /data-jobcard-overview-money="request"/);
+    assert.match(client, /overviewShowsMoneySummary = showOverviewPaymentSignal/);
+    assert.doesNotMatch(client, /data-jobcard-overview-money="remaining"/);
+    assert.match(client, /Open Payments/);
   });
 });
 

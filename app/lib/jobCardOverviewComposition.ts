@@ -135,7 +135,7 @@ export function buildJobCardOverviewComposition(
       : null,
     leadInState: false,
     scheduleInState: false,
-    briefShowsScheduleLead: true,
+    briefShowsScheduleLead: !NO_SCOPE_KINDS.has(kind) || input.productionLeadLabel !== "Unassigned",
     briefShowsPlanned: !COMPLETE_KINDS.has(kind),
     showAuthorizedWork: !NO_SCOPE_KINDS.has(kind),
     authorizedWorkHeading:
@@ -190,4 +190,15 @@ export function buildJobCardOverviewComposition(
     return { ...base, state: { ...base.state, facts }, money: "closeout" };
   }
   return base;
+}
+
+/** Overview signals current requests/read failures, not routine active-job balances. */
+export function showOverviewPaymentSignal(input: {
+  suppressCommercial: boolean;
+  closeoutOwnsMoney: boolean;
+  hasCurrentRequest: boolean;
+  readFailed: boolean;
+}): boolean {
+  return !input.suppressCommercial && !input.closeoutOwnsMoney &&
+    (input.hasCurrentRequest || input.readFailed);
 }

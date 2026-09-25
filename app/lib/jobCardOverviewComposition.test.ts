@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 import {
   buildJobCardOverviewComposition,
+  showOverviewPaymentSignal,
   JOB_CARD_OVERVIEW_ACCEPTED_WORK_HEADING,
   JOB_CARD_OVERVIEW_AUTHORIZED_WORK_HEADING,
   JOB_CARD_OVERVIEW_SCHEDULE_CHECKING,
@@ -116,6 +117,7 @@ describe("Job Card Overview composition", () => {
       assert.equal(c.showAuthorizedWork, false, kind);
       assert.deepEqual(factKeys(c), [], kind);
       assert.equal(c.money, "agreement_only", kind);
+      assert.equal(c.briefShowsScheduleLead, false, kind);
     }
   });
 
@@ -135,7 +137,26 @@ describe("Job Card Overview composition", () => {
       join(process.cwd(), "app/tools/roofing/jobCard/JobCardClient.tsx"),
       "utf8"
     );
-    assert.match(client, /overviewShowsMoneySummary =\s*!suppressCommercial &&\s*!jobCardCloseout &&/);
+    assert.match(client, /overviewShowsMoneySummary = showOverviewPaymentSignal/);
     assert.match(client, /overviewOwnsPlanSummary=\{overviewComposition\.scheduleInState\}/);
+  });
+});
+
+describe("Overview payment signal ownership", () => {
+  const input = { suppressCommercial: false, closeoutOwnsMoney: false, hasCurrentRequest: false, readFailed: false };
+  test("routine active work has no financial summary; a current request or failed read has a destination", () => {
+    assert.equal(showOverviewPaymentSignal(input), false);
+    assert.equal(showOverviewPaymentSignal({ ...input, hasCurrentRequest: true }), true);
+    assert.equal(showOverviewPaymentSignal({ ...input, readFailed: true }), true);
+  });
+  test("closeout owns money once and field roles never see commercial signals", () => {
+    for (const facts of [{ hasCurrentRequest: true }, { readFailed: true }, { hasCurrentRequest: true, readFailed: true }]) {
+      assert.equal(showOverviewPaymentSignal({ ...input, ...facts, closeoutOwnsMoney: true }), false);
+      assert.equal(showOverviewPaymentSignal({ ...input, ...facts, suppressCommercial: true }), false);
+    }
+  });
+  test("known responsibility remains available in preparation without inventing an assignment", () => {
+    const assigned = compose("proposal_sent", { productionLeadLabel: "Dana Ruiz" });
+    assert.equal(assigned.briefShowsScheduleLead, true);
   });
 });

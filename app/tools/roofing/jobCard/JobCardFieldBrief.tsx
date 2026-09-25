@@ -41,7 +41,13 @@ type JobCardFieldBriefProps = {
   onOpenTasks?: () => void;
   /** Route to scope details in its owning domain (commercial viewers only). */
   onOpenProposals?: () => void;
+  /** Opt-in canonical Overview presentation; other callers retain their layout. */
+  overviewMode?: "work" | "record";
 };
+
+function OverviewGroup({ enabled, children }: { enabled: boolean; children: ReactNode }) {
+  return enabled ? <div className="min-w-0 space-y-2">{children}</div> : <>{children}</>;
+}
 
 export default function JobCardFieldBrief({
   model,
@@ -55,6 +61,7 @@ export default function JobCardFieldBrief({
   tasksReadStatus = "ready",
   onOpenTasks,
   onOpenProposals,
+  overviewMode,
 }: JobCardFieldBriefProps) {
   const { contact, schedule, authorizedWork, tasks } = model;
   const warning = authorizedWork.warningProposedVsAuthorized;
@@ -98,6 +105,26 @@ export default function JobCardFieldBrief({
     !authorizedWork.approvedScopeLabel &&
     !authorizedWork.approvedChangesLabel;
 
+  const siteContext = (
+    <>
+      {authorizedWork.accessNotes ? (
+        <div className={overviewMode ? undefined : "pt-2"} data-field-brief-access-notes>
+          <p className={OVERVIEW_FACT_LABEL}>Site &amp; schedule notes</p>
+          <p className={`${OVERVIEW_BODY} [overflow-wrap:anywhere]`}>{authorizedWork.accessNotes}</p>
+        </div>
+      ) : null}
+      {utilities ? (overviewMode ? utilities : <div className="pt-2">{utilities}</div>) : null}
+      {overviewMode === "record" ? (
+        <div>
+          <p className={OVERVIEW_FACT_LABEL}>Production lead</p>
+          <p className={OVERVIEW_FACT_TEXT_QUIET}>{schedule.productionLeadLabel}</p>
+          {schedule.crewLabel ? <p className={OVERVIEW_META}>{schedule.crewLabel}</p> : null}
+          {leadAction}
+        </div>
+      ) : null}
+    </>
+  );
+
   return (
     <div
       className="space-y-6"
@@ -124,7 +151,8 @@ export default function JobCardFieldBrief({
 
       {/* Work: what is authorized, what is pending, and site constraints on it */}
       {showAuthorizedWork ? (
-        <section className="space-y-2" data-field-brief-work>
+        <section className={overviewMode ? "grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:gap-8" : "space-y-2"} data-field-brief-work>
+          <OverviewGroup enabled={Boolean(overviewMode)}>
           <h3 className={OVERVIEW_GROUP_HEADING}>{authorizedWorkHeading}</h3>
           {scopeLoading ? (
             <p className={OVERVIEW_META} data-field-brief-scope-loading>
@@ -177,15 +205,15 @@ export default function JobCardFieldBrief({
           {authorizedWork.measurementSummary ? (
             <p className={OVERVIEW_META}>Measurement · {authorizedWork.measurementSummary}</p>
           ) : null}
-          {authorizedWork.accessNotes ? (
-            <div className="pt-2" data-field-brief-access-notes>
-              <p className={OVERVIEW_FACT_LABEL}>Site &amp; schedule notes</p>
-              <p className={`${OVERVIEW_BODY} [overflow-wrap:anywhere]`}>
-                {authorizedWork.accessNotes}
-              </p>
-            </div>
-          ) : null}
-          {utilities ? <div className="pt-2">{utilities}</div> : null}
+          </OverviewGroup>
+          {overviewMode === "record" ? (
+            <details className="min-w-0 text-sm text-slate-600" data-field-brief-record-context>
+              <summary className="min-h-11 cursor-pointer py-2 font-medium text-slate-700">Site &amp; responsibility</summary>
+              <div className="space-y-3 pt-2">{siteContext}</div>
+            </details>
+          ) : overviewMode ? (
+            <div className="min-w-0 space-y-3">{siteContext}</div>
+          ) : siteContext}
         </section>
       ) : authorizedWork.measurementSummary || authorizedWork.accessNotes || utilities ? (
         <section className="space-y-2" data-field-brief-preparation>
@@ -260,7 +288,7 @@ export default function JobCardFieldBrief({
       ) : null}
 
       {/* Plan and responsibility when the state region does not own them */}
-      {showScheduleLead ? (
+      {showScheduleLead && overviewMode !== "record" ? (
         <section
           className="flex flex-wrap gap-x-10 gap-y-3 border-t border-slate-100 pt-5"
           data-field-brief-schedule-lead

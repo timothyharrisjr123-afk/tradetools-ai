@@ -35,6 +35,8 @@ type JobCardOverviewSummaryProps = {
   /** Callers without a field brief (estimator view, review harnesses) only. */
   proposalLabel?: string | null;
   measurementLabel?: string | null;
+  /** Canonical Overview only; legacy estimator/harness presentations stay unchanged. */
+  operationalLayout?: boolean;
 };
 
 function DetailRow({ label, text }: { label: string; text: ReactNode }) {
@@ -58,6 +60,7 @@ export default function JobCardOverviewSummary({
   leadingSection = null,
   proposalLabel = null,
   measurementLabel = null,
+  operationalLayout = false,
 }: JobCardOverviewSummaryProps) {
   const showMoney = !suppressCommercial && Boolean(financialSummary || paymentStatusLabel);
   const detailRows = fieldBrief
@@ -81,7 +84,9 @@ export default function JobCardOverviewSummary({
         data-jobcard-overview-kind={state?.kind}
         className={
           state
-            ? `rounded-lg ${SURFACE_TONED} px-4 py-4 sm:px-5 min-[1200px]:flex min-[1200px]:items-start min-[1200px]:justify-between min-[1200px]:gap-8`
+            ? operationalLayout
+              ? "max-w-[56rem] border-b border-slate-200 pb-6 min-[1200px]:flex min-[1200px]:items-start min-[1200px]:justify-between min-[1200px]:gap-8"
+              : `rounded-lg ${SURFACE_TONED} px-4 py-4 sm:px-5 min-[1200px]:flex min-[1200px]:items-start min-[1200px]:justify-between min-[1200px]:gap-8`
             : primaryAction
               ? "space-y-3"
               : "hidden"
@@ -90,7 +95,7 @@ export default function JobCardOverviewSummary({
         {state ? (
           <div data-jobcard-overview-operational className="min-w-0 space-y-3">
             <div className="space-y-1">
-              <h3 className={OVERVIEW_STATE_TITLE} data-jobcard-overview-state-title>
+              <h3 className={operationalLayout ? "text-[22px] font-semibold leading-tight tracking-tight text-slate-950" : OVERVIEW_STATE_TITLE} data-jobcard-overview-state-title>
                 {state.title}
               </h3>
               {state.notes.map((note) => (
@@ -107,7 +112,7 @@ export default function JobCardOverviewSummary({
                 {state.facts.map((fact) => (
                   <div
                     key={fact.key}
-                    className="min-w-0"
+                    className={`min-w-0 ${operationalLayout && fact.key === "lead" ? "col-span-2 sm:col-span-1" : ""}`}
                     data-jobcard-overview-fact={fact.key}
                   >
                     <dt className={OVERVIEW_FACT_LABEL}>{fact.label}</dt>
@@ -131,7 +136,7 @@ export default function JobCardOverviewSummary({
       {fieldBrief || showMoney ? (
         <div
           className={
-            fieldBrief && showMoney
+            fieldBrief && showMoney && !operationalLayout
               ? "space-y-6 min-[1200px]:grid min-[1200px]:grid-cols-[minmax(0,46rem)_minmax(15rem,20rem)] min-[1200px]:justify-between min-[1200px]:gap-x-12 min-[1200px]:space-y-0"
               : "space-y-6"
           }
@@ -144,9 +149,9 @@ export default function JobCardOverviewSummary({
           {showMoney ? (
             <section
               data-jobcard-overview-financial
-              className={`space-y-2 *:max-w-sm ${fieldBrief ? "border-t border-slate-100 pt-5 min-[1200px]:border-t-0 min-[1200px]:pt-0 min-[1200px]:*:max-w-none" : ""}`}
+              className={operationalLayout ? "max-w-[46rem] border-t border-slate-100 pt-3" : `space-y-2 *:max-w-sm ${fieldBrief ? "border-t border-slate-100 pt-5 min-[1200px]:border-t-0 min-[1200px]:pt-0 min-[1200px]:*:max-w-none" : ""}`}
             >
-              <h3 className={OVERVIEW_GROUP_HEADING}>Payments</h3>
+              <h3 className={operationalLayout ? "sr-only" : OVERVIEW_GROUP_HEADING}>Payments</h3>
               {financialSummary ?? (
                 <p className="text-sm text-slate-700" data-jobcard-overview-payment>
                   {paymentStatusLabel}
