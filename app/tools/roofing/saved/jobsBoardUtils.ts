@@ -371,14 +371,7 @@ export function timeInStageTone(anchorIso: string | null): TimeInStageTone {
 
 export function timeInStageToneClass(tone: TimeInStageTone): string {
   switch (tone) {
-    case "very_aged":
-      return "text-rose-400/60";
-    case "aged":
-      return "text-amber-700/55";
-    case "normal":
-      return "text-slate-400";
-    case "fresh":
-      return "text-emerald-600/65";
+    // Age alone is not an overdue commitment, so it never carries risk color.
     default:
       return "text-slate-400";
   }
@@ -959,6 +952,38 @@ export function loadBoardViewState(): BoardViewState {
 export function saveBoardViewState(state: BoardViewState) {
   if (typeof window === "undefined") return;
   sessionStorage.setItem(JOBS_BOARD_VIEW_STATE_STORAGE_KEY, JSON.stringify(state));
+}
+
+export const JOBS_BOARD_VIEW_MODE_PREFERENCE_KEY =
+  "fielddive.jobsBoard.viewModePreference" as const;
+
+/** Only a deliberate Board/List toggle is a preference; defaults are not. */
+export function loadExplicitBoardViewModePreference(): BoardViewMode | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(JOBS_BOARD_VIEW_MODE_PREFERENCE_KEY);
+    return raw === "list" || raw === "board" ? raw : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveExplicitBoardViewModePreference(mode: BoardViewMode) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(JOBS_BOARD_VIEW_MODE_PREFERENCE_KEY, mode);
+  } catch {
+    // Storage unavailable: the choice still applies for this page.
+  }
+}
+
+/** Phones default to the compact List unless the user chose otherwise. */
+export function resolveInitialBoardViewMode(input: {
+  explicit: BoardViewMode | null;
+  isPhone: boolean;
+}): BoardViewMode {
+  if (input.explicit) return input.explicit;
+  return input.isPhone ? "list" : BOARD_DEFAULT_VIEW_MODE;
 }
 
 export function isBoardFiltersActive(args: {

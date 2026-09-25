@@ -6,8 +6,9 @@ import FieldDiveAppShell from "@/app/tools/roofing/FieldDiveAppShell";
 import { LAST_DB_JOB_ID_STORAGE_KEY } from "@/app/lib/jobBoardAdapter";
 import { findApproveJobAcceptanceItem } from "@/app/lib/boardGuardedMovement";
 import { filterJobCardWorkspaceAttentionItems } from "@/app/lib/jobCardWorkspaceAttention";
+import MoneyRow from "@/app/components/ui/MoneyRow";
+import { jobPaymentCurrentRequestKindLabel } from "@/app/lib/jobPaymentWorkspace";
 import {
-  JOB_CARD_AWAITING_CONTRACTOR_APPROVAL,
   REOPEN_AND_COMPLETE_CONFIRM_BODY,
   REOPEN_AND_COMPLETE_CONFIRM_TITLE,
   resolveJobCardOverviewPrimaryAction,
@@ -62,7 +63,6 @@ import {
   buildAuthorizedChangeSummariesFromScopeChanges,
   buildPendingProposedSummariesFromScopeChanges,
   canShowProposeScopeChangeCta,
-  JOB_CARD_SCOPE_CHANGE_PENDING_OVERVIEW_LABEL,
 } from "@/app/lib/jobScopeChangeViewModel";
 import {
   companyTimezoneForScheduling,
@@ -150,6 +150,10 @@ import {
   buildFieldBriefViewModel,
   resolveFieldBriefApprovedScopeLabel,
 } from "@/app/lib/fieldBriefModel";
+import {
+  formatJobCardOverviewSituationLabel,
+  resolveJobCardOverviewSituation,
+} from "@/app/lib/jobCardOverviewSituation";
 import JobCardSecondaryPanels from "@/app/tools/roofing/jobCard/JobCardSecondaryPanels";
 
 export default function JobCardClient({
@@ -776,6 +780,8 @@ export default function JobCardClient({
         signed: Object.values(jobSignedProposalIds).some((value) => value === true),
         workspace: jobPayments.workspace,
         scopeChanges: jobScopeChanges.rows,
+        paymentsLoading:
+          jobPayments.loadStatus === "loading" || jobPayments.loadStatus === "idle",
       });
   const scopeChangeAuthoringAllowed = canShowProposeScopeChangeCta({
     hasAcceptedAgreement,
@@ -850,6 +856,32 @@ export default function JobCardClient({
       currentJobId,
     ]
   );
+
+  const overviewSituation = resolveJobCardOverviewSituation({
+    stage: hydratedJobRecord ? canonicalJobStage : null,
+    disposition: hydratedJobRecord?.status ?? null,
+    hasDraftProposal: Boolean(listedJobDraftProposalId),
+    hasSentProposal: listedJobDraftSummaries.some((row) =>
+      Boolean(row.latest_sent_version_id)
+    ),
+    acceptedAwaitingApproval: jobCardActionEligibility.canApproveJob,
+    signed: (() => {
+      const proposalId = String(hydratedJobRecord?.active_proposal_id ?? "").trim();
+      return proposalId.length > 0 && jobSignedProposalIds[proposalId] === true;
+    })(),
+    hasActiveSchedule: Boolean(jobCardSchedule.active),
+    productionStartedAt: hydratedJobRecord?.production_started_at ?? null,
+    pendingScopeChange: pendingProposedSummaries.length > 0,
+    proposalFactsReady:
+      acceptanceFactsReady &&
+      listedJobDraftStatus !== "loading" &&
+      listedJobDraftStatus !== "idle",
+    remainingCents:
+      jobPayments.workspace && jobPayments.workspace.contractTotalCents != null
+        ? jobPayments.workspace.collectibleRemainingCents
+        : null,
+    suppressCommercial,
+  });
 
   const display: JobCardDisplayModel = {
     customerName: identity.displayName,
@@ -1126,12 +1158,12 @@ export default function JobCardClient({
   return (
     <FieldDiveAppShell activeNav="jobs" activeSubId="job-card">
       <div
-        className="min-h-0 min-w-0 w-full overflow-x-hidden pb-8 pt-1 pl-3 pr-4 sm:pl-4 sm:pr-5 lg:pl-5 lg:pr-6"
+        className="-mx-4 -mt-4 min-h-0 min-w-0 overflow-x-hidden pb-8 sm:mx-0 sm:mt-0 sm:w-full sm:pt-1 sm:pl-4 sm:pr-5 lg:pl-5 lg:pr-6"
         data-jobcard-client="owned"
         data-jobcard-secondary-ready={jobCardSecondaryEnabled ? "true" : "false"}
       >
         <div className="w-full min-w-0 max-w-[100rem]">
-          <div className="min-w-0 overflow-x-hidden rounded-lg border border-slate-200/80 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.06)]">
+          <div className="min-w-0 overflow-x-hidden border-y border-slate-200/80 bg-white sm:rounded-lg sm:border sm:shadow-[0_1px_3px_rgba(15,23,42,0.06)]">
             <JobCardHeader
               display={display}
               isBoardOrigin={jobCardBoardOrigin}
@@ -1318,9 +1350,9 @@ export default function JobCardClient({
               onMobileActivityFocus={() => setMobileActivityFocused(true)}
               onClearMobileActivityFocus={() => setMobileActivityFocused(false)}
             />
-            <div className="grid min-h-0 grid-cols-1 min-[1200px]:grid-cols-[minmax(0,1fr)_220px] min-[1200px]:items-start">
-              <main
-                className={`min-h-0 overflow-y-auto p-5 sm:p-6 ${
+            <div className="min-h-0">
+              <div
+                className={`min-h-0 overflow-y-auto px-4 py-5 sm:p-6 ${
                   jobCardTab === "overview" &&
                   overviewPrimary &&
                   !mobileActivityFocused
@@ -1329,10 +1361,7 @@ export default function JobCardClient({
                 }`}
               >
                 {mobileActivityFocused ? (
-                  <div
-                    data-jobcard-mobile-activity-destination
-                    className="min-[1200px]:hidden"
-                  >
+                  <div data-jobcard-mobile-activity-destination>
                     <h2 className="mb-3 text-base font-semibold text-slate-900">
                       Activity
                     </h2>
@@ -1355,9 +1384,7 @@ export default function JobCardClient({
                   </div>
                 ) : null}
                 <div
-                  className={
-                    mobileActivityFocused ? "hidden min-[1200px]:block" : undefined
-                  }
+                  className={mobileActivityFocused ? "hidden" : undefined}
                 >
                 <JobCardSectionPanel
                   tabId="overview"
@@ -1371,24 +1398,26 @@ export default function JobCardClient({
                         ? formatMeasurementQuantityLine(prepare.selected)
                         : "No measurement"
                     }
-                    operationalStateLabel={
-                      !suppressCommercial &&
-                      pendingProposedSummaries.length > 0
-                        ? `${JOB_CARD_SCOPE_CHANGE_PENDING_OVERVIEW_LABEL}\nReview in Proposals`
-                        : !suppressCommercial &&
-                            jobCardActionEligibility.canApproveJob
-                          ? (() => {
-                              const proposalId = String(
-                                hydratedJobRecord?.active_proposal_id ?? ""
-                              ).trim();
-                              const signed =
-                                proposalId.length > 0 &&
-                                jobSignedProposalIds[proposalId] === true;
-                              return signed
-                                ? `Customer accepted proposal\nSigned\n${JOB_CARD_AWAITING_CONTRACTOR_APPROVAL}`
-                                : `Customer accepted proposal\n${JOB_CARD_AWAITING_CONTRACTOR_APPROVAL}`;
-                            })()
-                          : null
+                    operationalStateLabel={formatJobCardOverviewSituationLabel(
+                      overviewSituation
+                    )}
+                    allowFieldSituation
+                    leadingSection={
+                      overviewSituation.closeoutLeads &&
+                      jobCardCloseout &&
+                      currentJobId ? (
+                        <JobCardCloseoutSummary
+                          model={jobCardCloseout}
+                          jobId={currentJobId}
+                          canShareCustomerLink={companyMembers.canAuthorProposals}
+                          leading
+                          onOpenPayments={
+                            overviewSituation.kind === "complete_balance"
+                              ? () => setJobCardTab("payments")
+                              : undefined
+                          }
+                        />
+                      ) : null
                     }
                     paymentStatusLabel={
                       suppressCommercial
@@ -1396,7 +1425,7 @@ export default function JobCardClient({
                         : (jobPayments.workspace?.overviewStatusLabel ?? null)
                     }
                     financialSummary={
-                      suppressCommercial
+                      suppressCommercial || overviewSituation.closeoutLeads
                         ? null
                         : jobPayments.loadStatus === "loading" &&
                             !jobPayments.workspace?.overviewStatusLabel
@@ -1407,12 +1436,51 @@ export default function JobCardClient({
                             )
                           : jobPayments.workspace?.overviewStatusLabel
                             ? (
-                                <p
-                                  className="text-sm font-medium text-slate-800"
-                                  data-jobcard-overview-payment
-                                >
-                                  {jobPayments.workspace.overviewStatusLabel}
-                                </p>
+                                <div data-jobcard-overview-payment-block>
+                                  <p
+                                    className="text-sm font-medium text-slate-800"
+                                    data-jobcard-overview-payment
+                                  >
+                                    {jobPayments.workspace.overviewStatusLabel}
+                                  </p>
+                                  {jobPayments.workspace.contractTotalCents != null ? (
+                                    <dl className="mt-2 space-y-1 text-sm">
+                                      <MoneyRow
+                                        label="Contract total"
+                                        cents={jobPayments.workspace.contractTotalCents}
+                                        data-jobcard-overview-money="contract"
+                                      />
+                                      <MoneyRow
+                                        label="Remaining"
+                                        cents={jobPayments.workspace.collectibleRemainingCents}
+                                        data-jobcard-overview-money="remaining"
+                                      />
+                                      {jobPayments.workspace.currentRequest ? (
+                                        <MoneyRow
+                                          label={`Current request · ${jobPaymentCurrentRequestKindLabel(
+                                            jobPayments.workspace.currentRequest.kind
+                                          )}`}
+                                          hint={
+                                            jobPayments.workspace.currentRequest.status ===
+                                            "processing"
+                                              ? "Processing"
+                                              : "Open"
+                                          }
+                                          cents={jobPayments.workspace.currentRequest.amountCents}
+                                          data-jobcard-overview-money="request"
+                                        />
+                                      ) : null}
+                                    </dl>
+                                  ) : null}
+                                  <button
+                                    type="button"
+                                    className="mt-2 text-sm font-medium text-slate-700 underline-offset-2 hover:text-slate-950 hover:underline"
+                                    onClick={() => setJobCardTab("payments")}
+                                    data-jobcard-overview-open-payments
+                                  >
+                                    Open Payments
+                                  </button>
+                                </div>
                               )
                             : null
                     }
@@ -1473,7 +1541,7 @@ export default function JobCardClient({
                     recentActivitySummary={
                       <section
                         data-jobcard-overview-activity-teaser
-                        className="border-t border-slate-100 pt-4 min-[1200px]:hidden"
+                        className="border-t border-slate-100 pt-4"
                       >
                         <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-400">
                           Recent activity
@@ -1489,7 +1557,7 @@ export default function JobCardClient({
                       </section>
                     }
                   />
-                  {jobCardCloseout && currentJobId ? (
+                  {jobCardCloseout && currentJobId && !overviewSituation.closeoutLeads ? (
                     <JobCardCloseoutSummary
                       model={jobCardCloseout}
                       jobId={currentJobId}
@@ -1715,26 +1783,7 @@ export default function JobCardClient({
                   members={companyMembers.liveMembers}
                 />
                 </div>
-              </main>
-              {currentJobId ? (
-                <div
-                  className="hidden max-h-[min(70vh,36rem)] self-start overflow-hidden min-[1200px]:block"
-                  data-jobcard-activity-rail
-                >
-                  <JobCardActivityPanelWithCustomerRequests
-                    key={`${currentJobId}-${scheduleActivityTick}`}
-                    jobId={currentJobId}
-                    proposalIds={jobCardProposalRows.map((row) => row.proposalId)}
-                    jobCreatedAt={hydratedJobRecord?.created_at ?? null}
-                    proposals={listedJobDraftSummaries}
-                    sentFactsByProposalId={listedJobSentFacts}
-                    secondaryEffectsEnabled={jobCardSecondaryEnabled}
-                    ownedAcceptanceItems={jobAcceptanceActivityItems}
-                    ownedSignatureItems={jobSignatureActivityItems}
-                    skipPaymentEnrichment
-                  />
-                </div>
-              ) : null}
+              </div>
             </div>
             {jobCardTab === "overview" &&
             overviewPrimary &&

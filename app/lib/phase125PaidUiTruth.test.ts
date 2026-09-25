@@ -31,6 +31,26 @@ import {
   formatAgendaDayLabel,
 } from "@/app/lib/calendarMobileAgenda";
 import { formatMoneyRowValue } from "@/app/components/ui/MoneyRow";
+import {
+  formatJobCardOverviewSituationLabel,
+  resolveJobCardOverviewSituation,
+  type JobCardOverviewSituationInput,
+} from "@/app/lib/jobCardOverviewSituation";
+import { shouldStickyActionYield } from "@/app/lib/stickyActionYield";
+import {
+  JOB_CARD_CLOSEOUT_COPIED,
+  buildJobCardCloseoutViewModel,
+  describeCloseoutLinkCopied,
+} from "@/app/lib/jobCardCloseoutViewModel";
+import {
+  PACKET_REPEAT_JOB_TITLE,
+  resolvePacketIntakeTitle,
+} from "@/app/lib/packetIdentityEntry";
+import { JOB_ATTACHMENTS_ADD_LABEL } from "@/app/lib/jobAttachmentTypes";
+import {
+  resolveInitialBoardViewMode,
+  timeInStageToneClass,
+} from "@/app/tools/roofing/saved/jobsBoardUtils";
 
 const root = process.cwd();
 const read = (rel: string) => readFileSync(join(root, rel), "utf8");
@@ -327,5 +347,159 @@ describe("Phase 12.5 G2 — company calendar mobile agenda", () => {
     assert.doesNotMatch(cal, /: "Loading schedules…"\}/);
     assert.match(cal, /data-calendar-mobile-schedule/);
     assert.doesNotMatch(cal, /data-calendar-schedule-error>\s*<p className="text-xs text-amber-800"/);
+  });
+});
+
+const baseSituation: JobCardOverviewSituationInput = {
+  stage: "intake",
+  disposition: null,
+  hasDraftProposal: false,
+  hasSentProposal: false,
+  acceptedAwaitingApproval: false,
+  signed: false,
+  hasActiveSchedule: false,
+  productionStartedAt: null,
+  pendingScopeChange: false,
+  proposalFactsReady: true,
+  remainingCents: null,
+  suppressCommercial: false,
+};
+
+describe("Phase 12.5 G2 — state-dependent Overview", () => {
+  test("each stage has its own headline; loading never guesses", () => {
+    const at = (patch: Partial<JobCardOverviewSituationInput>) =>
+      resolveJobCardOverviewSituation({ ...baseSituation, ...patch });
+    assert.equal(at({ stage: null }).headline, null);
+    assert.equal(at({ proposalFactsReady: false }).kind, "loading");
+    assert.equal(at({}).kind, "intake");
+    assert.equal(at({ stage: "proposal", hasDraftProposal: true }).kind, "proposal_draft");
+    assert.equal(at({ stage: "proposal", hasSentProposal: true }).kind, "proposal_sent");
+    assert.equal(
+      at({ stage: "proposal", acceptedAwaitingApproval: true }).kind,
+      "accepted_awaiting_approval"
+    );
+    assert.equal(at({ stage: "approved" }).headline, "Approved — ready to schedule");
+    assert.equal(at({ stage: "scheduled", hasActiveSchedule: true }).headline, "Scheduled");
+    assert.equal(at({ stage: "production" }).headline, "Work in progress");
+  });
+
+  test("complete leads with closeout; balance vs settled vs unknown stay distinct", () => {
+    const at = (remainingCents: number | null) =>
+      resolveJobCardOverviewSituation({ ...baseSituation, stage: "complete", remainingCents });
+    assert.equal(at(45000).kind, "complete_balance");
+    assert.equal(at(45000).closeoutLeads, true);
+    assert.equal(at(0).kind, "complete_settled");
+    assert.equal(at(null).kind, "complete_money_unknown");
+    assert.notEqual(at(null).kind, "complete_settled");
+  });
+
+  test("disposition preserves stage wording; field roles see no commercial detail", () => {
+    const hold = resolveJobCardOverviewSituation({
+      ...baseSituation,
+      stage: "scheduled",
+      disposition: "on_hold",
+    });
+    assert.equal(hold.kind, "on_hold");
+    const field = resolveJobCardOverviewSituation({
+      ...baseSituation,
+      stage: "production",
+      pendingScopeChange: true,
+      suppressCommercial: true,
+    });
+    assert.deepEqual(field.details, []);
+    const office = resolveJobCardOverviewSituation({
+      ...baseSituation,
+      stage: "production",
+      pendingScopeChange: true,
+    });
+    assert.match(formatJobCardOverviewSituationLabel(office) ?? "", /review in Proposals/);
+  });
+
+  test("Job Card wires closeout as leading section and drops the permanent Activity rail", () => {
+    const client = read("app/tools/roofing/jobCard/JobCardClient.tsx");
+    assert.match(client, /leadingSection=\{/);
+    assert.match(client, /overviewSituation\.closeoutLeads/);
+    assert.doesNotMatch(client, /data-jobcard-activity-rail/);
+    assert.match(client, /data-jobcard-overview-money="remaining"/);
+    assert.match(client, /data-jobcard-overview-money="request"/);
+  });
+});
+
+describe("Phase 12.5 G2 — closeout sharing honesty", () => {
+  test("copied is not sent; expiry comes from the server link", () => {
+    assert.match(JOB_CARD_CLOSEOUT_COPIED, /not sent/);
+    const copy = describeCloseoutLinkCopied("2026-10-24T12:00:00.000Z");
+    assert.match(copy, /works until Oct 24, 2026/);
+    assert.doesNotMatch(describeCloseoutLinkCopied(null), /until|30 days/);
+    const loading = buildJobCardCloseoutViewModel({
+      stage: "complete",
+      completedAt: null,
+      timeZone: "America/Chicago",
+      accepted: true,
+      signed: false,
+      workspace: null,
+      scopeChanges: [],
+      paymentsLoading: true,
+    })!;
+    assert.equal(loading.balanceLabel, "Checking payments…");
+    const src = read("app/tools/roofing/jobCard/JobCardCloseoutSummary.tsx");
+    assert.doesNotMatch(src, /emerald/);
+    assert.match(src, /data-jobcard-closeout-open-payments/);
+  });
+});
+
+describe("Phase 12.5 G2 — Jobs board priority and phone default", () => {
+  test("phone defaults to List unless the user chose a view", () => {
+    assert.equal(resolveInitialBoardViewMode({ explicit: null, isPhone: true }), "list");
+    assert.equal(resolveInitialBoardViewMode({ explicit: "board", isPhone: true }), "board");
+    assert.equal(resolveInitialBoardViewMode({ explicit: null, isPhone: false }), "board");
+  });
+
+  test("age is neutral and card uses Production lead", () => {
+    for (const tone of ["neutral", "warning", "danger"] as const) {
+      assert.equal(timeInStageToneClass(tone as never), "text-slate-400");
+    }
+    const card = read("app/tools/roofing/saved/components/JobsBoardCard.tsx");
+    assert.match(card, /Production lead/);
+    const header = read("app/tools/roofing/saved/components/JobsBoardHeader.tsx");
+    assert.match(header, />\s*Jobs\s*</);
+  });
+});
+
+describe("Phase 12.5 G2 — mobile overlay ownership", () => {
+  const base = {
+    activeTagName: "BUTTON",
+    activeInputType: null,
+    activeIsContentEditable: false,
+    openOverlayCount: 0,
+  };
+  test("sticky CTA yields to menus, dialogs, and text entry", () => {
+    assert.equal(shouldStickyActionYield(base), false);
+    assert.equal(shouldStickyActionYield({ ...base, openOverlayCount: 1 }), true);
+    assert.equal(shouldStickyActionYield({ ...base, activeTagName: "TEXTAREA" }), true);
+    assert.equal(
+      shouldStickyActionYield({ ...base, activeTagName: "INPUT", activeInputType: "text" }),
+      true
+    );
+    assert.equal(
+      shouldStickyActionYield({ ...base, activeTagName: "INPUT", activeInputType: "checkbox" }),
+      false
+    );
+  });
+});
+
+describe("Phase 12.5 G2 — New job and Photos wording", () => {
+  test("intake page is always New job with visible field labels", () => {
+    assert.equal(resolvePacketIntakeTitle({}), PACKET_REPEAT_JOB_TITLE);
+    const roofing = read("app/tools/roofing/RoofingClient.tsx");
+    assert.match(roofing, /Find or add customer/);
+    assert.match(roofing, /htmlFor="customer-name"/);
+    assert.doesNotMatch(roofing, /<h1>Start my first job<\/h1>/);
+  });
+
+  test("Photos add action is explicit and empty copy is not duplicated", () => {
+    assert.equal(JOB_ATTACHMENTS_ADD_LABEL, "Add photos or files");
+    const src = read("app/tools/roofing/jobCard/JobCardAttachmentsWorkspace.tsx");
+    assert.doesNotMatch(src, /No photos yet/);
   });
 });

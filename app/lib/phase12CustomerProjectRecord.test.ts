@@ -443,7 +443,9 @@ describe("Phase 12 — contractor Review closeout", () => {
       workspace: null,
       scopeChanges: [],
     })!;
-    assert.equal(vm.balanceLabel, PUBLIC_PROJECT_RECORD_MONEY_UNAVAILABLE);
+    // Contractor surface: no customer-facing "contact your contractor" copy.
+    assert.equal(vm.balanceLabel, "Payment information unavailable");
+    assert.doesNotMatch(vm.balanceLabel, /contractor|\$0/);
   });
 });
 

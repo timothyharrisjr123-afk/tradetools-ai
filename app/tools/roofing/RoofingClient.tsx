@@ -303,6 +303,8 @@ function safeUUID() {
   }
 }
 
+const PACKET_FIELD_LABEL = "text-[13px] font-medium text-slate-700";
+
 const STORAGE_KEY_ESTIMATES = "roofing_estimates";
 const STORAGE_KEY_LAST_LOADED = "roofing_last_loaded";
 const STORAGE_KEY_DEBRIS = "roofing_debris_settings";
@@ -5826,7 +5828,14 @@ Thanks,`;
                             <User className="h-3.5 w-3.5 text-slate-500" aria-hidden />
                             Customer
                           </div>
-                          <p className="mt-1 text-[10.5px] leading-snug text-slate-500">Who receives the proposal and follow-ups.</p>
+                          <h2 className="mt-1 text-base font-semibold text-slate-900" data-testid="packet-customer-heading">
+                            {selectedCustomerId ? "Customer" : "Find or add customer"}
+                          </h2>
+                          <p className="mt-0.5 text-[13px] leading-snug text-slate-500">
+                            {selectedCustomerId
+                              ? "Who receives the proposal and follow-ups."
+                              : "Type a name, email, or phone. Matching customers appear below."}
+                          </p>
                                                     <div className="mt-2 grid gap-2">
                             {selectedCustomerId ? (
                               <JobPacketSelectedIdentitySummary
@@ -5838,6 +5847,7 @@ Thanks,`;
                               />
                             ) : (
                               <>
+                            <label htmlFor="customer-name" className={PACKET_FIELD_LABEL}>Customer name</label>
                             <input
                               id="customer-name"
                               name="customer_name_field"
@@ -5847,13 +5857,14 @@ Thanks,`;
                                 setCustomerName(e.target.value);
                                 if (forceNewCustomer) setForceNewCustomer(false);
                               }}
-                              placeholder="Customer name"
+                              placeholder=""
                               autoComplete="off"
                               autoCorrect="off"
                               autoCapitalize="off"
                               spellCheck={false}
-                              className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12.5px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+                              className="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-base sm:text-[13px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
                             />
+                            <label htmlFor="customer-email" className={PACKET_FIELD_LABEL}>Email</label>
                             <input
                               id="customer-email"
                               name="customer_email_field"
@@ -5865,16 +5876,19 @@ Thanks,`;
                                 setSendError("");
                                 if (forceNewCustomer) setForceNewCustomer(false);
                               }}
-                              placeholder="Email address"
+                              placeholder=""
                               autoComplete="new-password"
                               autoCorrect="off"
                               autoCapitalize="off"
                               spellCheck={false}
                               className={
-                                "h-8.5 w-full rounded-lg border bg-white px-2.5 text-[12.5px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200 " +
+                                "min-h-11 w-full rounded-lg border bg-white px-2.5 text-base sm:text-[13px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200 " +
                                 (attentionField === "customerEmail" ? "border-sky-400 ring-2 ring-sky-200" : "border-slate-200")
                               }
                             />
+                            <label htmlFor="customer-phone" className={PACKET_FIELD_LABEL}>
+                              Phone <span className="font-normal text-slate-400">(optional)</span>
+                            </label>
                             <input
                               id="customer-phone"
                               name="customer_phone_field"
@@ -5885,12 +5899,12 @@ Thanks,`;
                                 setCustomerPhone(e.target.value);
                                 if (forceNewCustomer) setForceNewCustomer(false);
                               }}
-                              placeholder="Phone optional"
+                              placeholder=""
                               autoComplete="off"
                               autoCorrect="off"
                               autoCapitalize="off"
                               spellCheck={false}
-                              className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12.5px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+                              className="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-base sm:text-[13px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
                             />
                             {(entryMode === "packet" || entryMode === "instant") && (
                               <JobPacketCustomerCandidates
@@ -5920,7 +5934,8 @@ Thanks,`;
                             <Home className="h-3.5 w-3.5 text-slate-500" aria-hidden />
                             Property
                           </div>
-                          <p className="mt-1 text-[10.5px] leading-snug text-slate-500">Where the job is happening.</p>
+                          <h2 className="mt-1 text-base font-semibold text-slate-900" data-testid="packet-property-heading">Service property</h2>
+                          <p className="mt-0.5 text-[13px] leading-snug text-slate-500">Where the work happens. This is not the customer's mailing address.</p>
                                                     <div className="mt-2 grid gap-2">
                             {selectedPropertyId ? (
                               <JobPacketSelectedIdentitySummary
@@ -5995,6 +6010,9 @@ Thanks,`;
                               Boolean(selectedPlacesAddress) ||
                               Boolean(selectedPropertyId)) && (
                             <>
+                            <label htmlFor="job-address-line-2" className={PACKET_FIELD_LABEL}>
+                              Unit / Apt / Suite <span className="font-normal text-slate-400">(optional)</span>
+                            </label>
                             <input
                               id="job-address-line-2"
                               name="job_address2_field"
@@ -6005,11 +6023,14 @@ Thanks,`;
                                 const cleaned = event.target.value.replace(/\s+/g, " ").trim();
                                 if (cleaned !== jobAddress2) setJobAddress2(cleaned);
                               }}
-                              placeholder="Unit / Apt / Suite (optional)"
+                              placeholder=""
                               autoComplete="address-line2"
                               className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-[12.5px] font-medium text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
                             />
-                            <div className="grid grid-cols-[minmax(0,1fr)_5rem_5.75rem] gap-2">
+                            <div className="grid grid-cols-[minmax(0,1fr)_5rem_5.75rem] gap-x-2 gap-y-1">
+                              <label htmlFor="job-city" className={PACKET_FIELD_LABEL}>City</label>
+                              <label htmlFor="job-state" className={PACKET_FIELD_LABEL}>State</label>
+                              <label htmlFor="customer-job-zip" className={PACKET_FIELD_LABEL}>ZIP</label>
                               <input
                                 id="job-city"
                                 name="job_city_field"
@@ -6032,12 +6053,12 @@ Thanks,`;
                                     setJobCity(cleaned);
                                   }
                                 }}
-                                placeholder="City"
+                                placeholder=""
                                 autoComplete="off"
                                 autoCorrect="off"
                                 autoCapitalize="words"
                                 spellCheck={false}
-                                className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12.5px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+                                className="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-base sm:text-[13px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
                               />
                               <input
                                 id="job-state"
@@ -6059,12 +6080,12 @@ Thanks,`;
                                     .trim();
                                   if (cleaned !== jobState) setJobState(cleaned);
                                 }}
-                                placeholder="State"
+                                placeholder=""
                                 autoComplete="off"
                                 autoCorrect="off"
                                 autoCapitalize="characters"
                                 spellCheck={false}
-                                className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12.5px] font-medium uppercase text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+                                className="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-base sm:text-[13px] font-medium uppercase text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
                               />
                               <input
                                 id="customer-job-zip"
@@ -6093,12 +6114,12 @@ Thanks,`;
                                     if (sanitized.length === 5) tryApplyZipPreset(sanitized);
                                   }
                                 }}
-                                placeholder="ZIP"
+                                placeholder=""
                                 autoComplete="postal-code"
                                 autoCorrect="off"
                                 autoCapitalize="off"
                                 spellCheck={false}
-                                className="h-8.5 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12.5px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+                                className="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-base sm:text-[13px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
                               />
                             </div>
                             {(entryMode === "packet" || entryMode === "instant") && (
@@ -10789,7 +10810,7 @@ Thanks,`;
         ) : (
           <>
           <header className="sr-only">
-            <h1>Start my first job</h1>
+            <h1>{packetIntakeTitle}</h1>
           </header>
 
           <div className="sr-only">

@@ -8,10 +8,12 @@
  */
 
 import { formatUsdFromCents } from "@/app/lib/jobPaymentMoney";
-import { JOB_PAYMENT_MIN_AMOUNT_CENTS } from "@/app/lib/jobPaymentTypes";
+import {
+  JOB_PAYMENT_INFORMATION_UNAVAILABLE,
+  JOB_PAYMENT_MIN_AMOUNT_CENTS,
+} from "@/app/lib/jobPaymentTypes";
 import {
   formatProjectRecordDate,
-  PUBLIC_PROJECT_RECORD_MONEY_UNAVAILABLE,
   PUBLIC_PROJECT_RECORD_NO_BALANCE,
   PUBLIC_PROJECT_RECORD_WORK_COMPLETE,
 } from "@/app/lib/publicProjectRecordViewModel";
@@ -20,7 +22,22 @@ export const JOB_CARD_CLOSEOUT_HEADING = "Closeout";
 export const JOB_CARD_CLOSEOUT_REVIEW_CTA = "Review closeout";
 export const JOB_CARD_CLOSEOUT_HIDE_CTA = "Hide closeout";
 export const JOB_CARD_CLOSEOUT_COPY_LINK_CTA = "Copy customer link";
-export const JOB_CARD_CLOSEOUT_COPIED = "Customer link copied";
+export const JOB_CARD_CLOSEOUT_COPIED = "Customer link copied — not sent";
+export const JOB_CARD_CLOSEOUT_OPEN_PAYMENTS_CTA = "Open Payments";
+export const JOB_CARD_CLOSEOUT_PAYMENTS_LOADING = "Checking payments…";
+
+/** Copy confirmation; expiry comes from the server-issued link, never a hard-coded window. */
+export function describeCloseoutLinkCopied(expiresAt: string | null | undefined): string {
+  if (!expiresAt) return `${JOB_CARD_CLOSEOUT_COPIED}.`;
+  const date = new Date(expiresAt);
+  if (Number.isNaN(date.getTime())) return `${JOB_CARD_CLOSEOUT_COPIED}.`;
+  const label = date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  return `${JOB_CARD_CLOSEOUT_COPIED}. Share it with your customer — it works until ${label}.`;
+}
 export const JOB_CARD_CLOSEOUT_COPY_FAILED = "Could not copy the customer link. Try again.";
 
 export type JobCardCloseoutInput = {
@@ -36,6 +53,8 @@ export type JobCardCloseoutInput = {
     collectibleRemainingCents: number | null;
   } | null;
   scopeChanges: readonly { status: string; priceDeltaCents: number }[];
+  /** Payment read still in flight: say so instead of "unavailable". */
+  paymentsLoading?: boolean;
 };
 
 export type JobCardCloseoutRow = { key: string; label: string; value: string };
@@ -88,7 +107,10 @@ export function buildJobCardCloseoutViewModel(
   if (!input.workspace || contract == null || input.workspace.collectibleRemainingCents == null) {
     return {
       completionLabel,
-      balanceLabel: PUBLIC_PROJECT_RECORD_MONEY_UNAVAILABLE,
+      balanceLabel:
+        input.paymentsLoading && !input.workspace
+          ? JOB_CARD_CLOSEOUT_PAYMENTS_LOADING
+          : JOB_PAYMENT_INFORMATION_UNAVAILABLE,
       rows,
     };
   }

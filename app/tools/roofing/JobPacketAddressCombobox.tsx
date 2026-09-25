@@ -123,7 +123,9 @@ export function JobPacketAddressCombobox({
 
   return (
     <div className="relative">
-      <label htmlFor={inputId} className="sr-only">Property address</label>
+      <label htmlFor={inputId} className="mb-1 block text-[13px] font-medium text-slate-700">
+        {manualMode ? "Street address" : "Property address"}
+      </label>
       <input
         ref={inputRef}
         id={inputId}
@@ -144,7 +146,7 @@ export function JobPacketAddressCombobox({
         autoCorrect="off"
         autoCapitalize="off"
         spellCheck={false}
-        className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-[12.5px] font-medium text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+        className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-base sm:text-[13px] font-medium text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
       />
 
       {showPanel ? (

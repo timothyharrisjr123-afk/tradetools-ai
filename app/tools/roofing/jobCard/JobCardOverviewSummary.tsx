@@ -21,6 +21,10 @@ type JobCardOverviewSummaryProps = {
   tasksSummary?: ReactNode;
   /** Subordinate recent-activity teaser (mobile / Overview bottom). */
   recentActivitySummary?: ReactNode;
+  /** Situation copy is already role-safe, so field viewers may see it. */
+  allowFieldSituation?: boolean;
+  /** Rendered before the field brief (completed jobs: closeout/payment). */
+  leadingSection?: ReactNode;
 };
 
 function Row({ label, value }: { label: string; value: ReactNode }) {
@@ -45,6 +49,8 @@ export default function JobCardOverviewSummary({
   primaryAction = null,
   tasksSummary = null,
   recentActivitySummary = null,
+  allowFieldSituation = false,
+  leadingSection = null,
 }: JobCardOverviewSummaryProps) {
   const showMeasurement =
     Boolean(measurementLabel) &&
@@ -54,16 +60,17 @@ export default function JobCardOverviewSummary({
   return (
     <div className="space-y-6" data-jobcard-overview-truth>
       {/* 1. Current situation + primary forward action */}
+      {leadingSection}
       <section data-jobcard-overview-situation className="space-y-3">
-        {operationalStateLabel && !suppressCommercial ? (
+        {operationalStateLabel && (!suppressCommercial || allowFieldSituation) ? (
           <div data-jobcard-overview-operational className="space-y-1">
             {operationalStateLabel.split("\n").map((line, index) => (
               <p
                 key={`${index}-${line}`}
                 className={
                   index === 0
-                    ? "text-base font-semibold text-slate-950"
-                    : "text-sm font-medium text-slate-700"
+                    ? "text-lg font-semibold text-slate-950"
+                    : "text-sm font-medium text-slate-600"
                 }
               >
                 {line}

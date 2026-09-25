@@ -261,7 +261,8 @@ describe("R3B4B integration guardrails", () => {
   test("keeps attention separate from Tasks and preserves board sorting", () => {
     assert.match(boardModel, /function deriveTasksLabel/);
     assert.match(boardModel, /attention\?: JobAttentionSummary \| null/);
-    assert.equal(boardCard.includes("ListChecks"), true);
+    // Phase 12.5: tasks live in the demoted meta line; attention keeps its own marker.
+    assert.match(boardCard, /data-board-card-meta/);
     assert.equal(boardCard.includes("CircleAlert"), true);
     assert.match(board, /sortJobsForBoardColumn\(boardVisibleJobs, boardSortKey/);
     assert.equal(board.includes("sortJobsForBoardColumn(attention"), false);

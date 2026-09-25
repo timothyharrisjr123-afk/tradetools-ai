@@ -209,8 +209,8 @@ describe("workspaceSearch helpers", () => {
     );
     assert.match(list, /data-board-list-owner/);
     const actionTh = list.indexOf(">Action<");
-    const updatedTh = list.indexOf(">Updated<");
-    const ownerTh = list.indexOf(">Owner<");
+    const updatedTh = list.indexOf(">Date<");
+    const ownerTh = list.indexOf(">Production lead<");
     const stageTh = list.indexOf(">Stage<");
     assert.ok(actionTh > 0 && actionTh < updatedTh && updatedTh < ownerTh && ownerTh < stageTh);
     assert.doesNotMatch(list, />Value</);

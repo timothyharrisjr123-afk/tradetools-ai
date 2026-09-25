@@ -35,7 +35,7 @@ export default function JobCardHeader({
   const emailValue = email.trim();
 
   return (
-    <header className="border-b border-slate-200/80 bg-white px-5 pb-4 pt-3 sm:px-6">
+    <header className="border-b border-slate-200/80 bg-white px-4 pb-4 pt-3 sm:px-6">
       <Link
         href={backHref}
         className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 transition hover:text-slate-800"

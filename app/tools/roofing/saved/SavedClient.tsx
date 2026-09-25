@@ -44,6 +44,9 @@ import {
   isBoardFiltersActive,
   JOBS_BOARD_CATEGORY_GROUPS,
   loadBoardViewState,
+  loadExplicitBoardViewModePreference,
+  resolveInitialBoardViewMode,
+  saveExplicitBoardViewModePreference,
   saveBoardViewState,
   sortJobsForBoardColumn,
   sumJobsValueCents,
@@ -3179,7 +3182,12 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     setVisibleColumnKeys(saved.visibleColumnKeys);
     setUpdatedOnOrAfter(saved.updatedOnOrAfter);
     setDispositionFilter(saved.dispositionFilter);
-    setBoardViewMode(saved.viewMode);
+    setBoardViewMode(
+      resolveInitialBoardViewMode({
+        explicit: loadExplicitBoardViewModePreference(),
+        isPhone: window.matchMedia("(max-width: 639px)").matches,
+      })
+    );
   }, []);
 
   useEffect(() => {
@@ -4207,7 +4215,10 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                   query={query}
                   onQueryChange={setQuery}
                   viewMode={boardViewMode}
-                  onViewModeChange={setBoardViewMode}
+                  onViewModeChange={(mode) => {
+                    saveExplicitBoardViewModePreference(mode);
+                    setBoardViewMode(mode);
+                  }}
                   sortKey={boardSortKey}
                   onSortKeyChange={setBoardSortKey}
                   visibleColumnKeys={visibleColumnKeys}

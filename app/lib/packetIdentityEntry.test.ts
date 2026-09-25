@@ -44,8 +44,9 @@ describe("packetIdentityEntry", () => {
     assert.equal(parsed.anotherProperty, true);
   });
 
-  test("intake title: first-use vs repeat entry", () => {
-    assert.equal(resolvePacketIntakeTitle({}), PACKET_FIRST_JOB_TITLE);
+  test("intake title is always New job (Phase 12.5); first-job wording stays a CTA", () => {
+    assert.equal(resolvePacketIntakeTitle({}), PACKET_REPEAT_JOB_TITLE);
+    assert.equal(PACKET_FIRST_JOB_TITLE, "Start my first job");
     assert.equal(
       resolvePacketIntakeTitle({ hasSelectedCustomer: true }),
       PACKET_REPEAT_JOB_TITLE

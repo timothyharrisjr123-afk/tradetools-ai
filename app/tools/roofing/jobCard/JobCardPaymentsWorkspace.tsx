@@ -292,6 +292,17 @@ export default function JobCardPaymentsWorkspace({
             {formatJobPaymentWorkspaceAmount(current.amountCents)}
           </p>
           <p className="mt-1 text-sm text-slate-500">{currentStatusLabel(current.status)}</p>
+          {workspace.collectibleRemainingCents != null ? (
+            <p
+              className="mt-1 text-sm text-slate-600"
+              data-jobcard-payments-current-remaining
+            >
+              Remaining on the job{" "}
+              <span className="whitespace-nowrap font-medium tabular-nums text-slate-800">
+                {formatJobPaymentWorkspaceAmount(workspace.collectibleRemainingCents)}
+              </span>
+            </p>
+          ) : null}
           {(current.status === "open" || current.status === "processing") &&
           onEmailPaymentRequest ? (
             <div className="mt-4 space-y-2" data-jobcard-payments-email>

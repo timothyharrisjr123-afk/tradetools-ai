@@ -39,9 +39,9 @@ export default function JobsBoardHeader({
     <section className="rounded-xl border border-slate-200/80 bg-white px-4 py-4 shadow-sm sm:px-5 sm:py-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-[1.75rem]">Job Board</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Jobs</h1>
           <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-600">
-            Your job pipeline from first contact through completion.
+            Every job from first contact through completion.
           </p>
         </div>
 
@@ -53,7 +53,7 @@ export default function JobsBoardHeader({
               placeholder="Search jobs, customers, addresses…"
               aria-label="Search jobs"
               enterKeyHint="search"
-              className="h-11 w-full rounded-lg border border-slate-200 bg-white py-0 pl-3 pr-10 text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:border-slate-300 focus:ring-2 focus:ring-slate-100 sm:h-10"
+              className="h-11 w-full rounded-lg border border-slate-200 bg-white py-0 pl-3 pr-10 text-base text-slate-800 placeholder:text-slate-400 outline-none focus:border-slate-300 focus:ring-2 focus:ring-slate-100 sm:h-10 sm:text-sm"
             />
             {query.trim().length > 0 ? (
               <button

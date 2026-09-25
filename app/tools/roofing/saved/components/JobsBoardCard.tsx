@@ -5,19 +5,9 @@ import {
   isBoardCardLifecycleActionTarget,
   pointerDeltaIsDrag,
 } from "@/app/lib/boardGuardedMovement";
-import {
-  CalendarClock,
-  CircleAlert,
-  Clock,
-  FileSignature,
-  FileText,
-  ListChecks,
-  MapPin,
-  UserCircle,
-} from "lucide-react";
+import { CircleAlert, MapPin, UserCircle } from "lucide-react";
 import { useEffect, useRef } from "react";
 import type { JobsBoardCardModel } from "../jobsBoardUtils";
-import { statusMetaTextClass, timeInStageToneClass } from "../jobsBoardUtils";
 
 type JobsBoardCardProps = {
   model: JobsBoardCardModel;
@@ -38,23 +28,6 @@ type JobsBoardCardProps = {
 
 const ICON_CLASS = "h-4 w-4 shrink-0 text-slate-400/90";
 const ICON_STROKE = 1.75;
-
-function IconStatusRow({
-  icon: Icon,
-  label,
-  textClassName = "text-slate-600",
-}: {
-  icon: typeof FileText;
-  label: string;
-  textClassName?: string;
-}) {
-  return (
-    <div className="flex min-w-0 items-center gap-2">
-      <Icon className={ICON_CLASS} strokeWidth={ICON_STROKE} aria-hidden />
-      <span className={`min-w-0 truncate text-xs font-medium leading-snug ${textClassName}`}>{label}</span>
-    </div>
-  );
-}
 
 function formatTimeInStageFooter(label: string | null): string | null {
   if (!label) return null;
@@ -84,7 +57,6 @@ export default function JobsBoardCard({
   subdued = false,
 }: JobsBoardCardProps) {
   const stageFooter = formatTimeInStageFooter(model.timeInStage);
-  const updatedFooter = model.lastUpdatedDisplay ?? null;
   const assignee = assigneeDisplay(model.assigneeLabel);
   const pointerRef = useRef<{
     pointerId: number;
@@ -120,7 +92,7 @@ export default function JobsBoardCard({
   return (
     <article
       className={
-        "relative flex min-h-[176px] w-full flex-col rounded-lg border bg-white transition " +
+        "relative flex w-full flex-col rounded-lg border bg-white transition " +
         (isDragging ? "opacity-40 " : "") +
         (subdued
           ? "border-slate-200/70 shadow-none hover:border-slate-300/80 hover:bg-slate-50/40"
@@ -192,7 +164,7 @@ export default function JobsBoardCard({
           onOpen();
         }}
       />
-      <div className="relative z-10 flex min-h-[176px] flex-1 flex-col pointer-events-none">
+      <div className="relative z-10 flex flex-1 flex-col pointer-events-none">
       <div className="shrink-0 px-4 pb-3 pt-3.5">
         <div className="flex min-w-0 items-start justify-between gap-2">
           <h3
@@ -276,7 +248,7 @@ export default function JobsBoardCard({
         ) : null}
         {model.productionStartedLabel ? (
           <p
-            className="mt-1.5 text-xs font-semibold text-emerald-700"
+            className="mt-1.5 text-xs font-semibold text-slate-700"
             data-board-production-started
           >
             Work started · {model.productionStartedLabel}
@@ -321,7 +293,7 @@ export default function JobsBoardCard({
           <button
             type="button"
             disabled={model.startWorkBusy}
-            className="pointer-events-auto mt-2 rounded-md bg-cyan-700 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-cyan-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70 disabled:opacity-60"
+            className="pointer-events-auto mt-2 rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/70 disabled:opacity-60"
             onClick={(event) => {
               event.stopPropagation();
               onStartWork();
@@ -347,55 +319,39 @@ export default function JobsBoardCard({
         ) : null}
       </div>
 
-      <div className="flex flex-1 flex-col justify-center border-y border-slate-100/80 bg-slate-50/25 px-4 py-2">
-        <div className="grid grid-cols-1 gap-x-5 gap-y-2.5 min-[280px]:grid-cols-2 min-[280px]:gap-y-3">
-          {model.tasksLabel ? (
-            <IconStatusRow
-              icon={ListChecks}
-              label={`Tasks ${model.tasksLabel}`}
-              textClassName="text-slate-600"
-            />
-          ) : null}
-          {model.reportStatus ? (
-            <IconStatusRow
-              icon={FileText}
-              label={model.reportStatus.label}
-              textClassName={statusMetaTextClass(model.reportStatus.tone)}
-            />
-          ) : null}
-          <IconStatusRow
-            icon={FileSignature}
-            label={model.proposalStatus.label}
-            textClassName={statusMetaTextClass(model.proposalStatus.tone)}
-          />
-          
-        </div>
-      </div>
-
-      <footer
-        className={
-          "mt-auto grid shrink-0 items-center gap-4 px-4 py-2.5 text-[11px] leading-snug text-slate-500 " +
-          (updatedFooter ? "grid-cols-1 min-[280px]:grid-cols-2" : "grid-cols-1")
-        }
-      >
-        <div className="flex min-w-0 items-center gap-2">
-          <Clock className={ICON_CLASS} strokeWidth={ICON_STROKE} aria-hidden />
-          <span className={`truncate ${timeInStageToneClass(model.timeInStageTone)}`}>
-            {stageFooter ?? "—"}
-          </span>
-        </div>
-        {updatedFooter ? (
-          <div className="flex min-w-0 items-center gap-2 min-[280px]:justify-end">
-            <CalendarClock className={ICON_CLASS} strokeWidth={ICON_STROKE} aria-hidden />
-            <span className="truncate text-slate-500">{updatedFooter}</span>
-          </div>
-        ) : null}
+      <footer className="mt-auto space-y-1 border-t border-slate-100 px-4 py-2.5 text-[13px] leading-snug">
         {assignee ? (
-          <div className="flex min-w-0 items-center gap-2" data-board-card-owner>
+          <div
+            className="flex min-w-0 items-center gap-2 text-slate-600"
+            data-board-card-owner
+          >
             <UserCircle className={ICON_CLASS} strokeWidth={ICON_STROKE} aria-hidden />
-            <span className="truncate text-slate-500">{assignee}</span>
+            <span className="truncate">
+              <span className="text-slate-400">Production lead · </span>
+              {assignee}
+            </span>
           </div>
         ) : null}
+        <p
+          className="flex min-w-0 flex-wrap items-center gap-x-1.5 text-[12px] text-slate-400"
+          data-board-card-meta
+        >
+          <span className="truncate">{model.proposalStatus.label}</span>
+          {model.tasksLabel ? (
+            <>
+              <span aria-hidden>·</span>
+              <span className="truncate">Tasks {model.tasksLabel}</span>
+            </>
+          ) : null}
+          {stageFooter ? (
+            <>
+              <span aria-hidden>·</span>
+              <span className="truncate" data-board-card-age>
+                {stageFooter}
+              </span>
+            </>
+          ) : null}
+        </p>
       </footer>
       </div>
     </article>

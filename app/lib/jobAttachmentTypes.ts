@@ -92,7 +92,7 @@ export type JobAttachmentPendingItem = {
 };
 
 export const JOB_ATTACHMENTS_EMPTY = "No photos or files yet";
-export const JOB_ATTACHMENTS_ADD_LABEL = "Add";
+export const JOB_ATTACHMENTS_ADD_LABEL = "Add photos or files";
 export const JOB_ATTACHMENTS_TAKE_PHOTO = "Take photo";
 export const JOB_ATTACHMENTS_CHOOSE_PHOTOS = "Choose photos";
 export const JOB_ATTACHMENTS_UPLOAD_FILE = "Upload file";

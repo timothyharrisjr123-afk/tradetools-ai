@@ -53,24 +53,16 @@ export type PacketCreateOpState = {
 };
 
 /**
- * Astra G5 first-use keeps "Start my first job".
- * Repeat entry from customer/property workspace uses "New job".
+ * The intake page is always "New job". "Start my first job" stays a first-use
+ * entry CTA label (Astra G5), never a page title that depends on company history.
  */
-export function resolvePacketIntakeTitle(opts: {
+export function resolvePacketIntakeTitle(_opts: {
   hasSelectedCustomer?: boolean;
   hasSelectedProperty?: boolean;
   anotherProperty?: boolean;
   fromIdentityParams?: boolean;
 }): string {
-  if (
-    opts.hasSelectedCustomer ||
-    opts.hasSelectedProperty ||
-    opts.anotherProperty ||
-    opts.fromIdentityParams
-  ) {
-    return PACKET_REPEAT_JOB_TITLE;
-  }
-  return PACKET_FIRST_JOB_TITLE;
+  return PACKET_REPEAT_JOB_TITLE;
 }
 
 export function buildPacketEntryHref(opts: PacketIdentityEntryParams): string {

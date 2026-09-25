@@ -111,7 +111,7 @@ describe("Phase 8 mobile nav model", () => {
     assert.equal(JOB_CARD_VISIBLE_TABS.length, 7);
     assert.match(TABS, /data-jobcard-tabs-mode="desktop"/);
     assert.match(TABS, /data-jobcard-tabs-mode="mobile"/);
-    assert.match(TABS, /min-\[1200px\]:block/);
+    assert.match(TABS, /min-\[1200px\]:flex/);
     assert.match(TABS, /JOB_CARD_VISIBLE_TABS\.map/);
     assert.match(TABS, /JOB_CARD_MOBILE_PRIMARY_NAV/);
     assert.match(TABS, /JobCardMoreSheet/);
@@ -219,14 +219,15 @@ describe("Phase 8 Overview hierarchy + Activity + roles", () => {
     assert.match(FIELD_BRIEF, /No tasks yet|openTasks/);
   });
 
-  test("Activity is reduced on desktop and behind More on mobile", () => {
-    assert.match(CLIENT, /data-jobcard-activity-rail/);
-    assert.match(CLIENT, /hidden min-\[1200px\]:block/);
+  test("Activity is an on-demand destination at every width (Phase 12.5: no permanent rail)", () => {
+    assert.doesNotMatch(CLIENT, /data-jobcard-activity-rail/);
     assert.match(CLIENT, /mobileActivityFocused/);
     assert.match(CLIENT, /data-jobcard-mobile-activity-destination/);
     assert.match(ACTIVITY, /max-h-\[min\(420px,50vh\)\]/);
-    assert.match(CLIENT, /data-jobcard-activity-rail/);
-    assert.match(CLIENT, /max-h-\[min\(70vh,36rem\)\]/);
+    assert.match(
+      read("app/tools/roofing/jobCard/JobCardTabs.tsx"),
+      /data-jobcard-activity-destination-toggle/
+    );
   });
 
   test("Job actions become quiet More job actions overflow", () => {

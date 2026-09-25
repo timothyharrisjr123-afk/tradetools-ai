@@ -1,6 +1,7 @@
 "use client";
 
 import type { JobCardOverviewPrimaryAction } from "@/app/lib/jobCardForwardLifecycleAction";
+import { useStickyActionYield } from "@/app/lib/stickyActionYield";
 
 const PRIMARY_BUTTON =
   "inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto";
@@ -41,7 +42,9 @@ export default function JobCardForwardLifecycleAction({
   onReopenJob,
   onReopenAndComplete,
 }: JobCardForwardLifecycleActionProps) {
+  const stickyYields = useStickyActionYield(placement === "sticky");
   if (!action) return null;
+  if (placement === "sticky" && stickyYields) return null;
 
   const onClick =
     action.kind === "approve_job"

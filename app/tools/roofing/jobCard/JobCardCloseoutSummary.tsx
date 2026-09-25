@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { buttonClass } from "@/app/components/ui/buttonStyles";
 import {
-  JOB_CARD_CLOSEOUT_COPIED,
   JOB_CARD_CLOSEOUT_COPY_FAILED,
   JOB_CARD_CLOSEOUT_COPY_LINK_CTA,
   JOB_CARD_CLOSEOUT_HEADING,
   JOB_CARD_CLOSEOUT_HIDE_CTA,
+  JOB_CARD_CLOSEOUT_OPEN_PAYMENTS_CTA,
   JOB_CARD_CLOSEOUT_REVIEW_CTA,
+  describeCloseoutLinkCopied,
   type JobCardCloseoutViewModel,
 } from "@/app/lib/jobCardCloseoutViewModel";
 
@@ -16,16 +18,24 @@ type JobCardCloseoutSummaryProps = {
   jobId: string;
   /** `proposal_author` only; the server enforces the same capability. */
   canShareCustomerLink: boolean;
+  /** Rendered first in a completed job's Overview. */
+  leading?: boolean;
+  /** Present only when a balance remains. */
+  onOpenPayments?: () => void;
 };
 
 export default function JobCardCloseoutSummary({
   model,
   jobId,
   canShareCustomerLink,
+  leading = false,
+  onOpenPayments,
 }: JobCardCloseoutSummaryProps) {
   const [expanded, setExpanded] = useState(false);
   const [copyBusy, setCopyBusy] = useState(false);
-  const [copyStatus, setCopyStatus] = useState<"copied" | "failed" | null>(null);
+  const [copyStatus, setCopyStatus] = useState<
+    { kind: "copied"; expiresAt: string | null } | { kind: "failed" } | null
+  >(null);
 
   async function copyCustomerLink() {
     if (copyBusy) return;
@@ -37,16 +47,19 @@ export default function JobCardCloseoutSummary({
         { method: "POST" }
       );
       const data = (await response.json().catch(() => null)) as
-        | { ok?: boolean; publicUrl?: string }
+        | { ok?: boolean; publicUrl?: string; expiresAt?: string | null }
         | null;
       if (!response.ok || data?.ok !== true || typeof data.publicUrl !== "string") {
-        setCopyStatus("failed");
+        setCopyStatus({ kind: "failed" });
         return;
       }
       await navigator.clipboard.writeText(data.publicUrl);
-      setCopyStatus("copied");
+      setCopyStatus({
+        kind: "copied",
+        expiresAt: typeof data.expiresAt === "string" ? data.expiresAt : null,
+      });
     } catch {
-      setCopyStatus("failed");
+      setCopyStatus({ kind: "failed" });
     } finally {
       setCopyBusy(false);
     }
@@ -54,14 +67,22 @@ export default function JobCardCloseoutSummary({
 
   return (
     <section
-      className="border-t border-slate-100 pt-4"
+      className={
+        leading
+          ? "rounded-xl border border-slate-200 bg-white p-4"
+          : "border-t border-slate-100 pt-4"
+      }
       data-jobcard-closeout
+      data-jobcard-closeout-leading={leading ? "true" : undefined}
       aria-label={JOB_CARD_CLOSEOUT_HEADING}
     >
       <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-400">
         {JOB_CARD_CLOSEOUT_HEADING}
       </p>
-      <p className="mt-1 text-sm font-semibold text-emerald-700" data-jobcard-closeout-completion>
+      <p
+        className={`mt-1 font-semibold text-slate-900 ${leading ? "text-lg" : "text-sm"}`}
+        data-jobcard-closeout-completion
+      >
         {model.completionLabel}
       </p>
       <p className="text-sm text-slate-700" data-jobcard-closeout-balance>
@@ -73,16 +94,28 @@ export default function JobCardCloseoutSummary({
           {model.rows.map((row) => (
             <div key={row.key} className="flex min-w-0 items-baseline justify-between gap-4">
               <dt className="text-slate-500">{row.label}</dt>
-              <dd className="shrink-0 tabular-nums text-slate-800">{row.value}</dd>
+              <dd className="shrink-0 whitespace-nowrap tabular-nums text-slate-800">
+                {row.value}
+              </dd>
             </div>
           ))}
         </dl>
       ) : null}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
+        {onOpenPayments ? (
+          <button
+            type="button"
+            className={buttonClass("primary", { size: "sm" })}
+            onClick={onOpenPayments}
+            data-jobcard-closeout-open-payments
+          >
+            {JOB_CARD_CLOSEOUT_OPEN_PAYMENTS_CTA}
+          </button>
+        ) : null}
         <button
           type="button"
-          className="inline-flex min-h-[36px] items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 hover:bg-slate-50"
+          className={buttonClass("secondary", { size: "sm" })}
           onClick={() => setExpanded((value) => !value)}
           aria-expanded={expanded}
           data-jobcard-closeout-review
@@ -92,7 +125,10 @@ export default function JobCardCloseoutSummary({
         {canShareCustomerLink ? (
           <button
             type="button"
-            className="inline-flex min-h-[36px] items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:cursor-wait disabled:opacity-70"
+            className={buttonClass("secondary", {
+              size: "sm",
+              className: "disabled:cursor-wait",
+            })}
             onClick={() => void copyCustomerLink()}
             disabled={copyBusy}
             aria-busy={copyBusy || undefined}
@@ -104,10 +140,13 @@ export default function JobCardCloseoutSummary({
       </div>
       {copyStatus ? (
         <p
-          className={`mt-1.5 text-xs ${copyStatus === "copied" ? "text-slate-600" : "text-red-700"}`}
+          className={`mt-1.5 text-xs ${copyStatus.kind === "copied" ? "text-slate-600" : "text-red-700"}`}
           role="status"
+          data-jobcard-closeout-copy-status={copyStatus.kind}
         >
-          {copyStatus === "copied" ? JOB_CARD_CLOSEOUT_COPIED : JOB_CARD_CLOSEOUT_COPY_FAILED}
+          {copyStatus.kind === "copied"
+            ? describeCloseoutLinkCopied(copyStatus.expiresAt)
+            : JOB_CARD_CLOSEOUT_COPY_FAILED}
         </p>
       ) : null}
     </section>

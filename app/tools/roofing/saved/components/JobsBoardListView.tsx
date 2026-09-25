@@ -24,6 +24,70 @@ type JobsBoardListViewProps = {
   sourceBadge?: string | null;
 };
 
+function listRowDate(model: JobsBoardCardModel | null): string | null {
+  if (!model) return null;
+  if (model.completedAtLabel) return `Completed ${model.completedAtLabel}`;
+  if (model.scheduleLabel) return model.scheduleLabel;
+  return model.lastUpdatedDisplay ?? null;
+}
+
+function jobDisplayName(job: RoofingEstimate): string {
+  return (
+    job.customerName ||
+    (job as { name?: string }).name ||
+    (job as { customer?: string }).customer ||
+    "Unnamed customer"
+  );
+}
+
+function MobileRowAction({
+  job,
+  model,
+  onStartWork,
+  onCompleteJob,
+  onScheduleJob,
+  onApproveJob,
+}: {
+  job: RoofingEstimate;
+  model: JobsBoardCardModel | null;
+  onStartWork?: (job: RoofingEstimate) => void;
+  onCompleteJob?: (job: RoofingEstimate) => void;
+  onScheduleJob?: (job: RoofingEstimate) => void;
+  onApproveJob?: (job: RoofingEstimate) => void;
+}) {
+  const cls =
+    "inline-flex min-h-[44px] items-center rounded-lg border border-slate-300 bg-white px-3 text-[13px] font-semibold text-slate-800 disabled:text-slate-400";
+  if (model?.showApproveAction && onApproveJob) {
+    return (
+      <button type="button" className={cls} disabled={model.approveBusy} onClick={() => onApproveJob(job)}>
+        {model.approveBusy ? "Approving…" : "Approve"}
+      </button>
+    );
+  }
+  if (model?.showScheduleAction && onScheduleJob) {
+    return (
+      <button type="button" className={cls} onClick={() => onScheduleJob(job)}>
+        Schedule job
+      </button>
+    );
+  }
+  if (model?.showStartWorkAction && onStartWork) {
+    return (
+      <button type="button" className={cls} disabled={model.startWorkBusy} onClick={() => onStartWork(job)}>
+        {model.startWorkBusy ? "Starting…" : "Start work"}
+      </button>
+    );
+  }
+  if (model?.showCompleteJobAction && onCompleteJob) {
+    return (
+      <button type="button" className={cls} disabled={model.completeJobBusy} onClick={() => onCompleteJob(job)}>
+        {model.completeJobBusy ? "Completing…" : "Complete job"}
+      </button>
+    );
+  }
+  return null;
+}
+
 /**
  * Astra G6 hierarchy: identity → action → date → owner.
  * Stage remains as operational truth; value/status metadata are not primary.
@@ -47,7 +111,74 @@ export default function JobsBoardListView({
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200/60 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+    <>
+    <ul
+      className="divide-y divide-slate-100 overflow-hidden rounded-lg border border-slate-200/60 bg-white sm:hidden"
+      data-board-list-mobile
+    >
+      {jobs.map((job) => {
+        const columnKey = getBoardColumnKeyForJob(job);
+        const model = columnKey !== null ? buildCardModel(job, columnKey) : null;
+        const owner = model?.assigneeLabel?.trim() || null;
+        const date = listRowDate(model);
+        const name = jobDisplayName(job);
+        return (
+          <li key={job.id} className="space-y-1.5 px-4 py-3" data-board-list-mobile-row>
+            <div className="flex items-start justify-between gap-3">
+              <button
+                type="button"
+                className="min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/70"
+                aria-label={`Open job card for ${name}`}
+                data-board-list-open-job
+                onClick={() => onOpenJob(job)}
+              >
+                <span className="block truncate text-base font-semibold text-slate-900">
+                  {name}
+                </span>
+                <span className="block truncate text-sm text-slate-500">
+                  {(job.address || "").trim() || "No address on file"}
+                </span>
+              </button>
+              <span className="shrink-0 text-[13px] text-slate-500">
+                {getBoardStageLabelForJob(job)}
+              </span>
+            </div>
+            {model?.attention ? (
+              <p
+                className={`flex items-center gap-1.5 text-[13px] font-semibold ${
+                  model.showApproveAction ? "text-slate-700" : "text-amber-800"
+                }`}
+                aria-label={model.attention.accessibleLabel}
+              >
+                {model.showApproveAction ? null : (
+                  <CircleAlert className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                )}
+                <span className="truncate">{model.attention.label}</span>
+              </p>
+            ) : null}
+            {model?.dispositionLabel ? (
+              <p className="text-[13px] font-medium text-slate-600">{model.dispositionLabel}</p>
+            ) : null}
+            {date || owner ? (
+              <p className="text-[13px] text-slate-500">
+                {[date, owner ? `Production lead · ${owner}` : null]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            ) : null}
+            <MobileRowAction
+              job={job}
+              model={model}
+              onStartWork={onStartWork}
+              onCompleteJob={onCompleteJob}
+              onScheduleJob={onScheduleJob}
+              onApproveJob={onApproveJob}
+            />
+          </li>
+        );
+      })}
+    </ul>
+    <div className="hidden overflow-hidden rounded-lg border border-slate-200/60 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:block">
       <div className="overflow-x-auto [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200/70 [&::-webkit-scrollbar-track]:bg-transparent">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead>
@@ -55,8 +186,8 @@ export default function JobsBoardListView({
               <th className="px-4 py-2.5 font-medium">Customer</th>
               <th className="px-4 py-2.5 font-medium">Address</th>
               <th className="px-4 py-2.5 font-medium">Action</th>
-              <th className="px-4 py-2.5 font-medium">Updated</th>
-              <th className="px-4 py-2.5 font-medium">Owner</th>
+              <th className="px-4 py-2.5 font-medium">Date</th>
+              <th className="px-4 py-2.5 font-medium">Production lead</th>
               <th className="px-4 py-2.5 font-medium">Stage</th>
             </tr>
           </thead>
@@ -167,7 +298,7 @@ export default function JobsBoardListView({
                           event.stopPropagation();
                           onStartWork(job);
                         }}
-                        className="font-semibold text-cyan-700 hover:text-cyan-900"
+                        className="font-semibold text-slate-800 hover:text-slate-950"
                         data-board-list-start-work
                       >
                         {model.startWorkBusy ? "Starting…" : "Start work"}
@@ -190,7 +321,7 @@ export default function JobsBoardListView({
                     )}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500">
-                    {model?.lastUpdatedDisplay ?? "—"}
+                    {listRowDate(model) ?? "—"}
                   </td>
                   <td
                     className="max-w-[140px] truncate px-4 py-3 text-xs text-slate-600"
@@ -216,5 +347,6 @@ export default function JobsBoardListView({
         </table>
       </div>
     </div>
+    </>
   );
 }

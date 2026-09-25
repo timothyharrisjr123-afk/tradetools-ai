@@ -114,8 +114,9 @@ export default function JobCardTabs({
   return (
     <>
       {/* Desktop — full domain tab set (≥1200) */}
+      <div className="hidden min-w-0 max-w-full items-end border-b border-slate-200/80 bg-white min-[1200px]:flex">
       <div
-        className="hidden min-w-0 max-w-full border-b border-slate-200/80 bg-white min-[1200px]:block"
+        className="min-w-0 flex-1"
         role="tablist"
         aria-label="Job card sections"
         data-jobcard-tabs
@@ -154,6 +155,24 @@ export default function JobCardTabs({
             );
           })}
         </div>
+      </div>
+        <button
+          type="button"
+          aria-pressed={mobileActivityFocused}
+          data-jobcard-activity-destination-toggle
+          onClick={() =>
+            mobileActivityFocused
+              ? onClearMobileActivityFocus?.()
+              : onMobileActivityFocus?.()
+          }
+          className={`-mb-px mr-5 min-h-11 shrink-0 border-b-2 px-3.5 py-3 text-[13px] font-medium transition sm:mr-6 ${
+            mobileActivityFocused
+              ? "border-slate-900 text-slate-900"
+              : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700"
+          }`}
+        >
+          Activity
+        </button>
       </div>
 
       {/* Mobile — Overview | Tasks | Photos | More (<1200) */}
