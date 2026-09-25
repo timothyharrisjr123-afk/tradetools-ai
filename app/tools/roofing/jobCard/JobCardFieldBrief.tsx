@@ -100,10 +100,11 @@ export default function JobCardFieldBrief({
       </div>
     ) : null;
 
-  const scopeLoading =
-    authorizedWork.status === "loading" &&
+  const scopeUnknown =
+    authorizedWork.status !== "ready" &&
     !authorizedWork.approvedScopeLabel &&
     !authorizedWork.approvedChangesLabel;
+  const scopeLoading = scopeUnknown && authorizedWork.status === "loading";
 
   const siteContext = (
     <>
@@ -158,6 +159,10 @@ export default function JobCardFieldBrief({
             <p className={OVERVIEW_META} data-field-brief-scope-loading>
               Checking authorized work…
             </p>
+          ) : scopeUnknown ? (
+            <p className={OVERVIEW_META} data-field-brief-scope-unavailable>
+              Authorized work couldn&apos;t be checked. Reload the page to try again.
+            </p>
           ) : authorizedWork.approvedScopeLabel ? (
             <p className={`${OVERVIEW_BODY} font-medium text-slate-900 [overflow-wrap:anywhere]`}>
               {authorizedWork.approvedScopeLabel}
@@ -191,7 +196,7 @@ export default function JobCardFieldBrief({
             </p>
           ) : null}
           {onOpenProposals &&
-          !scopeLoading &&
+          !scopeUnknown &&
           (authorizedWork.approvedScopeLabel || authorizedWork.approvedChangesLabel) ? (
             <button
               type="button"

@@ -25,8 +25,8 @@ export type FieldBriefSchedule = {
 };
 
 export type FieldBriefAuthorizedWork = {
-  /** Loading must never render as "no authorized scope". */
-  status: "loading" | "ready";
+  /** Loading or a failed read must never render as "no authorized scope". */
+  status: "loading" | "ready" | "error";
   approvedScopeLabel: string | null;
   approvedChangesLabel: string | null;
   measurementSummary: string | null;
@@ -216,7 +216,7 @@ export function buildFieldBriefViewModel(input: {
   measurementSummary?: string | null;
   accessNotes?: string | null;
   /** Defaults to ready for callers that already resolved their facts. */
-  authorizedWorkStatus?: "loading" | "ready";
+  authorizedWorkStatus?: "loading" | "ready" | "error";
   proposedDiffersFromAuthorized?: boolean;
   tasks?: readonly {
     id: string;

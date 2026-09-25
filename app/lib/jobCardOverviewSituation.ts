@@ -17,6 +17,8 @@ export type JobCardOverviewSituationKind =
   | "proposal_draft"
   | "proposal_sent"
   | "proposal_none"
+  /** Acceptance truth could not be read; never presented as "no acceptance". */
+  | "proposal_facts_unavailable"
   | "accepted_awaiting_approval"
   | "approved"
   | "scheduled"
@@ -41,6 +43,8 @@ export type JobCardOverviewSituationInput = {
   pendingScopeChange: boolean;
   /** Proposal/acceptance reads settled; pre-approval headlines wait for them. */
   proposalFactsReady: boolean;
+  /** A proposal/acceptance read failed with no last-known truth to fall back on. */
+  proposalFactsUnavailable?: boolean;
   /** Null when payment truth is unknown or still loading. */
   remainingCents: number | null;
   suppressCommercial: boolean;
@@ -56,6 +60,11 @@ export type JobCardOverviewSituation = {
 
 export const JOB_CARD_SITUATION_PENDING_SCOPE_DETAIL =
   `${JOB_CARD_SCOPE_CHANGE_PENDING_OVERVIEW_LABEL} — review in Proposals` as const;
+
+export const JOB_CARD_SITUATION_PROPOSAL_FACTS_UNAVAILABLE =
+  "Customer response couldn't be checked" as const;
+export const JOB_CARD_SITUATION_PROPOSAL_FACTS_RETRY =
+  "Reload the page to check again." as const;
 
 function norm(value: string | null | undefined): string {
   return String(value ?? "").trim().toLowerCase();
@@ -155,9 +164,7 @@ export function resolveJobCardOverviewSituation(
     };
   }
 
-  if (!input.proposalFactsReady) {
-    return { kind: "loading", headline: null, details: [], closeoutLeads: false };
-  }
+  // Pending acceptance is positive canonical evidence; it never waits on other reads.
   if (input.acceptedAwaitingApproval) {
     return {
       kind: "accepted_awaiting_approval",
@@ -169,6 +176,17 @@ export function resolveJobCardOverviewSituation(
       ],
       closeoutLeads: false,
     };
+  }
+  if (!input.proposalFactsReady) {
+    if (input.proposalFactsUnavailable) {
+      return {
+        kind: "proposal_facts_unavailable",
+        headline: JOB_CARD_SITUATION_PROPOSAL_FACTS_UNAVAILABLE,
+        details: [JOB_CARD_SITUATION_PROPOSAL_FACTS_RETRY],
+        closeoutLeads: false,
+      };
+    }
+    return { kind: "loading", headline: null, details: [], closeoutLeads: false };
   }
   if (input.hasSentProposal) {
     return {

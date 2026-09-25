@@ -90,11 +90,17 @@ export default function JobCardActivityPanelWithCustomerRequests({
     if (!id || !secondaryEffectsEnabled) {
       return;
     }
-    void listJobProposalAcceptances(id).then((acceptances) => {
-      if (!cancelled) {
-        setAcceptanceItems(composeProposalAcceptanceActivityItems(acceptances));
+    listJobProposalAcceptances(id).then(
+      (acceptances) => {
+        if (!cancelled) {
+          setAcceptanceItems(composeProposalAcceptanceActivityItems(acceptances));
+        }
+      },
+      (err) => {
+        // A failed read is not "no acceptance": keep prior items.
+        if (!cancelled) console.error("[JobCardActivity] proposal acceptance read failed", err);
       }
-    });
+    );
     return () => {
       cancelled = true;
     };

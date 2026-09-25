@@ -73,13 +73,26 @@ export function composeProposalAcceptanceActivityItems(
   return items;
 }
 
+export class ProposalAcceptanceReadError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ProposalAcceptanceReadError";
+  }
+}
+
+/**
+ * Rejects with ProposalAcceptanceReadError when acceptance truth cannot be
+ * read; an empty array always means a successful read found no acceptance.
+ */
 export async function listJobProposalAcceptances(
   jobId: string
 ): Promise<AcceptanceRow[]> {
   const id = jobId.trim();
   if (!isUuidLike(id)) return [];
   const supabase = getSupabaseClient();
-  if (!supabase) return [];
+  if (!supabase) {
+    throw new ProposalAcceptanceReadError("Proposal acceptances could not be loaded.");
+  }
   const { data, error } = await supabase
     .from("proposal_acceptances")
     .select(
@@ -87,7 +100,11 @@ export async function listJobProposalAcceptances(
     )
     .eq("job_id", id)
     .order("accepted_at", { ascending: true });
-  if (error) return [];
+  if (error) {
+    throw new ProposalAcceptanceReadError(
+      error.message || "Proposal acceptances could not be loaded."
+    );
+  }
   const rows = (data ?? []) as AcceptanceRow[];
   if (rows.length === 0) return rows;
 

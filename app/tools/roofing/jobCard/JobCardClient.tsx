@@ -80,6 +80,16 @@ import {
   type ProposalAcceptanceActivityItem,
 } from "@/app/lib/proposalAcceptanceActivity";
 import {
+  acceptedProposalIdsFromRows,
+  applyProposalAcceptanceReadFailure,
+  applyProposalAcceptanceReadSuccess,
+  beginProposalAcceptanceRead,
+  createInitialProposalAcceptanceReadState,
+  proposalAcceptanceFactsKnown,
+  proposalAcceptanceFactsUnavailable,
+  type ProposalAcceptanceReadState,
+} from "@/app/lib/proposalAcceptanceReadState";
+import {
   composeProposalSignatureActivityItems,
   listJobProposalSignatures,
   type ProposalSignatureActivityItem,
@@ -273,7 +283,10 @@ export default function JobCardClient({
   const [jobAcceptedProposalIds, setJobAcceptedProposalIds] = useState<
     Record<string, boolean>
   >({});
-  const [acceptanceFactsReady, setAcceptanceFactsReady] = useState(false);
+  const [acceptanceRead, setAcceptanceRead] = useState<ProposalAcceptanceReadState>(
+    createInitialProposalAcceptanceReadState
+  );
+  const [acceptanceReadAttempt, setAcceptanceReadAttempt] = useState(0);
   const [jobSignedProposalIds, setJobSignedProposalIds] = useState<
     Record<string, boolean>
   >({});
@@ -358,7 +371,7 @@ export default function JobCardClient({
     setJobCardSecondaryEnabled(false);
     setJobScheduleSettlement(createIdleJobCardScheduleSettlement());
     setJobAcceptedProposalIds({});
-    setAcceptanceFactsReady(false);
+    setAcceptanceRead(createInitialProposalAcceptanceReadState());
     setJobSignedProposalIds({});
   }, [currentJobId]);
 
@@ -548,23 +561,43 @@ export default function JobCardClient({
       return;
     }
     let cancelled = false;
-    void listJobProposalAcceptances(currentJobId).then((acceptances) => {
-      if (cancelled) return;
-      const acceptedIds: Record<string, boolean> = {};
-      for (const row of acceptances) {
-        const proposalId = (row.proposal_id ?? "").trim();
-        if (proposalId) acceptedIds[proposalId] = true;
+    setAcceptanceRead(beginProposalAcceptanceRead);
+    listJobProposalAcceptances(currentJobId).then(
+      (acceptances) => {
+        if (cancelled) return;
+        setJobAcceptedProposalIds(acceptedProposalIdsFromRows(acceptances));
+        setAcceptanceRead(applyProposalAcceptanceReadSuccess());
+        setJobAcceptanceActivityItems(
+          composeProposalAcceptanceActivityItems(acceptances)
+        );
+      },
+      (err) => {
+        if (cancelled) return;
+        console.error("[JobCardClient] proposal acceptance read failed", err);
+        setAcceptanceRead(applyProposalAcceptanceReadFailure);
       }
-      setJobAcceptedProposalIds(acceptedIds);
-      setAcceptanceFactsReady(true);
-      setJobAcceptanceActivityItems(
-        composeProposalAcceptanceActivityItems(acceptances)
-      );
-    });
+    );
     return () => {
       cancelled = true;
     };
-  }, [jobCardSecondaryEnabled, currentJobId]);
+  }, [jobCardSecondaryEnabled, currentJobId, acceptanceReadAttempt]);
+
+  const acceptanceReadFailed = acceptanceRead.status === "error";
+  const attentionReadFailed = jobAttention.status === "error";
+  const reloadAttention = jobAttention.reload;
+  useEffect(() => {
+    if (!acceptanceReadFailed && !attentionReadFailed) return;
+    const retryFailedReads = () => {
+      if (acceptanceReadFailed) setAcceptanceReadAttempt((n) => n + 1);
+      if (attentionReadFailed) void reloadAttention();
+    };
+    window.addEventListener("focus", retryFailedReads);
+    window.addEventListener("pageshow", retryFailedReads);
+    return () => {
+      window.removeEventListener("focus", retryFailedReads);
+      window.removeEventListener("pageshow", retryFailedReads);
+    };
+  }, [acceptanceReadFailed, attentionReadFailed, reloadAttention]);
 
   useEffect(() => {
     if (!jobCardSecondaryEnabled || !currentJobId || !isUuidLike(currentJobId)) {
@@ -857,6 +890,13 @@ export default function JobCardClient({
     ]
   );
 
+  const acceptanceFactsReady = proposalAcceptanceFactsKnown(acceptanceRead);
+  /** Approve eligibility comes from attention; a failed read has not proven "no pending acceptance". */
+  const attentionFactsReady =
+    jobAttention.status === "ready-empty" || jobAttention.status === "ready-items";
+  const proposalListSettled =
+    listedJobDraftStatus !== "loading" && listedJobDraftStatus !== "idle";
+
   const overviewSituation = resolveJobCardOverviewSituation({
     stage: hydratedJobRecord ? canonicalJobStage : null,
     disposition: hydratedJobRecord?.status ?? null,
@@ -873,9 +913,10 @@ export default function JobCardClient({
     productionStartedAt: hydratedJobRecord?.production_started_at ?? null,
     pendingScopeChange: pendingProposedSummaries.length > 0,
     proposalFactsReady:
-      acceptanceFactsReady &&
-      listedJobDraftStatus !== "loading" &&
-      listedJobDraftStatus !== "idle",
+      acceptanceFactsReady && attentionFactsReady && proposalListSettled,
+    proposalFactsUnavailable:
+      proposalAcceptanceFactsUnavailable(acceptanceRead) ||
+      jobAttention.status === "error",
     remainingCents:
       jobPayments.workspace && jobPayments.workspace.contractTotalCents != null
         ? jobPayments.workspace.collectibleRemainingCents
@@ -938,10 +979,9 @@ export default function JobCardClient({
       activeProposalId: hydratedJobRecord?.active_proposal_id ?? null,
       hasAuthorizedChanges: authorizedChangeSummaries.length > 0,
     }),
-    authorizedWorkStatus:
-      acceptanceFactsReady &&
-      listedJobDraftStatus !== "loading" &&
-      listedJobDraftStatus !== "idle"
+    authorizedWorkStatus: proposalAcceptanceFactsUnavailable(acceptanceRead)
+      ? "error"
+      : acceptanceFactsReady && proposalListSettled
         ? "ready"
         : "loading",
     accessNotes: jobCardSchedule.active?.notes ?? null,
