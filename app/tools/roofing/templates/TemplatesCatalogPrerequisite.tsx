@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import LoadingState from "@/app/components/ui/LoadingState";
 import {
   formatCatalogNextStepCopy,
   formatCatalogReadinessLabel,
@@ -24,6 +25,9 @@ export default function TemplatesCatalogPrerequisite({
   if (catalogReady) {
     return null;
   }
+  if (loading && !error) {
+    return <LoadingState label="Checking catalog…" data-templates-catalog-prereq-loading />;
+  }
 
   const statusLabel = formatCatalogReadinessLabel(readiness);
   const nextStep = formatCatalogNextStepCopy(readiness);
@@ -41,8 +45,6 @@ export default function TemplatesCatalogPrerequisite({
         <p className="mt-2 text-sm text-red-800" role="alert">
           {error}
         </p>
-      ) : loading ? (
-        <p className="mt-2 text-sm text-amber-900">Checking catalog…</p>
       ) : (
         <>
           <p className="mt-2 text-sm text-amber-900">{nextStep}</p>

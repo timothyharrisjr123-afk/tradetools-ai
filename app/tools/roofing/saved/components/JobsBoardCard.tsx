@@ -5,9 +5,20 @@ import {
   isBoardCardLifecycleActionTarget,
   pointerDeltaIsDrag,
 } from "@/app/lib/boardGuardedMovement";
-import { CircleAlert, MapPin, UserCircle } from "lucide-react";
+import { CalendarPlus, CheckCircle2, CircleAlert, MapPin, Play, UserCircle } from "lucide-react";
 import { useEffect, useRef } from "react";
 import type { JobsBoardCardModel } from "../jobsBoardUtils";
+
+/**
+ * Lifecycle actions read differently at a glance across many cards:
+ * planning (cool outline), start now (dark), close out (quiet emerald).
+ */
+const BOARD_ACTION_BASE =
+  "pointer-events-auto mt-2 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 disabled:opacity-60";
+const BOARD_ACTION_PLAN = `${BOARD_ACTION_BASE} border border-blue-200 bg-white text-blue-700 hover:border-blue-300 hover:bg-blue-50/60`;
+const BOARD_ACTION_START = `${BOARD_ACTION_BASE} border border-slate-900 bg-slate-900 text-white hover:bg-slate-800`;
+const BOARD_ACTION_COMPLETE = `${BOARD_ACTION_BASE} border border-emerald-200 bg-emerald-50/70 text-emerald-800 hover:border-emerald-300 hover:bg-emerald-50`;
+const BOARD_ACTION_ICON = "h-3.5 w-3.5 shrink-0";
 
 type JobsBoardCardProps = {
   model: JobsBoardCardModel;
@@ -279,13 +290,14 @@ export default function JobsBoardCard({
         {model.showScheduleAction && onScheduleJob ? (
           <button
             type="button"
-            className="pointer-events-auto mt-2 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/70"
+            className={BOARD_ACTION_PLAN}
             data-board-schedule-job
             onClick={(event) => {
               event.stopPropagation();
               onScheduleJob();
             }}
           >
+            <CalendarPlus className={BOARD_ACTION_ICON} strokeWidth={ICON_STROKE} aria-hidden />
             Schedule job
           </button>
         ) : null}
@@ -293,13 +305,14 @@ export default function JobsBoardCard({
           <button
             type="button"
             disabled={model.startWorkBusy}
-            className="pointer-events-auto mt-2 rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/70 disabled:opacity-60"
+            className={BOARD_ACTION_START}
             onClick={(event) => {
               event.stopPropagation();
               onStartWork();
             }}
             data-board-start-work
           >
+            <Play className={BOARD_ACTION_ICON} strokeWidth={ICON_STROKE} aria-hidden />
             {model.startWorkBusy ? "Starting…" : "Start work"}
           </button>
         ) : null}
@@ -307,13 +320,14 @@ export default function JobsBoardCard({
           <button
             type="button"
             disabled={model.completeJobBusy}
-            className="pointer-events-auto mt-2 rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/70 disabled:opacity-60"
+            className={BOARD_ACTION_COMPLETE}
             onClick={(event) => {
               event.stopPropagation();
               onCompleteJob();
             }}
             data-board-complete-job
           >
+            <CheckCircle2 className={BOARD_ACTION_ICON} strokeWidth={ICON_STROKE} aria-hidden />
             {model.completeJobBusy ? "Completing…" : "Complete job"}
           </button>
         ) : null}

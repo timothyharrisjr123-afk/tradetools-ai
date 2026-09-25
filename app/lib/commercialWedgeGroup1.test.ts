@@ -41,7 +41,8 @@ describe("FieldDive auth branding", () => {
 
   test("auth presentation reuses FieldDive light surface and primary CTA tokens", () => {
     for (const src of [LOGIN, SIGNUP]) {
-      assert.match(src, /bg-slate-50/);
+      assert.match(src, /APP_PAGE_BG/);
+      assert.match(src, /FieldDiveLogoMark/);
       assert.match(src, /border-slate-200\/80/);
       assert.match(src, /FOCUSED_EDITOR_SAVE/);
       assert.match(src, /FOCUSED_EDITOR_INPUT/);

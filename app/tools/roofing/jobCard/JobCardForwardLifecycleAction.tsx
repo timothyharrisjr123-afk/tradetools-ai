@@ -89,7 +89,7 @@ export default function JobCardForwardLifecycleAction({
 
   return (
     <div
-      className="mt-3 flex justify-stretch sm:justify-end"
+      className="mt-3 flex shrink-0 justify-stretch sm:justify-end min-[1200px]:mt-0"
       data-jobcard-overview-forward={action.kind}
       data-jobcard-primary-inline="true"
     >

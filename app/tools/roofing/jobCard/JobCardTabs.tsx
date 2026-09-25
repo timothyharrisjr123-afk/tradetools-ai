@@ -18,6 +18,7 @@ import {
   type JobCardMoreDestinationId,
 } from "./jobCardMobileNav";
 import JobCardMoreSheet from "./JobCardMoreSheet";
+import { TAB_ACTIVE, TAB_FOCUS, TAB_IDLE } from "@/app/components/ui/surfaceStyles";
 
 type JobCardTabsProps = {
   activeTab: JobCardTabId;
@@ -144,10 +145,8 @@ export default function JobCardTabs({
                 }}
                 onFocus={onTabFocus}
                 onKeyDown={(event) => onDesktopKeyDown(event, index)}
-                className={`min-h-11 shrink-0 border-b-2 px-3.5 py-3 text-[13px] font-medium transition sm:px-4 ${
-                  isActive
-                    ? "border-slate-900 text-slate-900"
-                    : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700"
+                className={`min-h-11 shrink-0 border-b-2 px-3.5 py-3 text-[13px] transition sm:px-4 ${TAB_FOCUS} ${
+                  isActive ? TAB_ACTIVE : `font-medium ${TAB_IDLE}`
                 }`}
               >
                 {tab.label}
@@ -165,10 +164,8 @@ export default function JobCardTabs({
               ? onClearMobileActivityFocus?.()
               : onMobileActivityFocus?.()
           }
-          className={`-mb-px mr-5 min-h-11 shrink-0 border-b-2 px-3.5 py-3 text-[13px] font-medium transition sm:mr-6 ${
-            mobileActivityFocused
-              ? "border-slate-900 text-slate-900"
-              : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700"
+          className={`-mb-px mr-5 min-h-11 shrink-0 border-b-2 px-3.5 py-3 text-[13px] transition sm:mr-6 ${TAB_FOCUS} ${
+            mobileActivityFocused ? TAB_ACTIVE : `font-medium ${TAB_IDLE}`
           }`}
         >
           Activity
@@ -197,10 +194,8 @@ export default function JobCardTabs({
                 data-jobcard-tab={tab.id}
                 data-jobcard-mobile-primary={tab.id}
                 onClick={() => selectMobilePrimary(tab.id)}
-                className={`flex min-h-12 flex-col items-center justify-center border-b-2 px-1 text-[12px] font-semibold transition ${
-                  isActive
-                    ? "border-slate-900 text-slate-900"
-                    : "border-transparent text-slate-500"
+                className={`flex min-h-12 flex-col items-center justify-center border-b-2 px-1 text-[12px] font-semibold transition ${TAB_FOCUS} ${
+                  isActive ? TAB_ACTIVE : "border-transparent text-slate-500"
                 }`}
               >
                 {tab.label}
@@ -216,10 +211,8 @@ export default function JobCardTabs({
             data-jobcard-tab="more"
             data-jobcard-mobile-more
             onClick={() => setMoreOpen(true)}
-            className={`flex min-h-12 flex-col items-center justify-center border-b-2 px-1 text-[12px] font-semibold transition ${
-              mobileSelection === "more"
-                ? "border-slate-900 text-slate-900"
-                : "border-transparent text-slate-500"
+            className={`flex min-h-12 flex-col items-center justify-center border-b-2 px-1 text-[12px] font-semibold transition ${TAB_FOCUS} ${
+              mobileSelection === "more" ? TAB_ACTIVE : "border-transparent text-slate-500"
             }`}
           >
             More

@@ -356,7 +356,7 @@ export default function FieldDiveCalendarClient({
   return (
     <FieldDiveAppShell activeNav="calendar">
       <div
-        className="min-h-screen bg-slate-50"
+        className="min-h-screen"
         data-fielddive-calendar
         data-calendar-schedule-status={scheduleLoadStatus}
         data-calendar-range-start={firstVisibleOn}

@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { SURFACE_TONED } from "@/app/components/ui/surfaceStyles";
 
 type JobCardOverviewSummaryProps = {
   proposalLabel: string;
@@ -56,14 +57,22 @@ export default function JobCardOverviewSummary({
     Boolean(measurementLabel) &&
     !hideMeasurementRow &&
     !(suppressCommercial && fieldBrief);
+  const showSituation = Boolean(operationalStateLabel) && (!suppressCommercial || allowFieldSituation);
 
   return (
     <div className="space-y-6" data-jobcard-overview-truth>
       {/* 1. Current situation + primary forward action */}
       {leadingSection}
-      <section data-jobcard-overview-situation className="space-y-3">
-        {operationalStateLabel && (!suppressCommercial || allowFieldSituation) ? (
-          <div data-jobcard-overview-operational className="space-y-1">
+      <section
+        data-jobcard-overview-situation
+        className={
+          showSituation
+            ? `rounded-lg ${SURFACE_TONED} px-4 py-3.5 min-[1200px]:flex min-[1200px]:items-center min-[1200px]:justify-between min-[1200px]:gap-6`
+            : "space-y-3"
+        }
+      >
+        {showSituation && operationalStateLabel ? (
+          <div data-jobcard-overview-operational className="min-w-0 space-y-1">
             {operationalStateLabel.split("\n").map((line, index) => (
               <p
                 key={`${index}-${line}`}

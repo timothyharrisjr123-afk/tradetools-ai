@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { SURFACE_TONED } from "@/app/components/ui/surfaceStyles";
 import JobCardCollectPaymentSheet from "@/app/tools/roofing/jobCard/JobCardCollectPaymentSheet";
 import JobCardRefundPaymentSheet from "@/app/tools/roofing/jobCard/JobCardRefundPaymentSheet";
 import {
@@ -292,7 +293,7 @@ export default function JobCardPaymentsWorkspace({
             {workspace.statusLabel}
           </p>
         )}
-        <dl className={`grid grid-cols-1 gap-x-8 gap-y-3 ${summaryCols}`}>
+        <dl className={`grid grid-cols-1 gap-x-8 gap-y-3 rounded-lg ${SURFACE_TONED} px-4 py-3.5 ${summaryCols}`}>
           {workspace.summaryRows.map((row) => (
             <div key={row.label} className="min-w-0">
               <dt className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
@@ -546,7 +547,7 @@ export default function JobCardPaymentsWorkspace({
           >
             Collect payment
           </h3>
-          <div className="mt-3 flex flex-col gap-2">
+          <div className="mt-3 flex flex-col gap-2 sm:items-start">
             <button
               type="button"
               disabled={collectBusy}

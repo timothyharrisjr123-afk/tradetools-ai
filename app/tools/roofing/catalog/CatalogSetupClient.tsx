@@ -71,14 +71,13 @@ import {
   type CatalogItemEditDraft,
 } from "@/app/admin/catalog/catalogAdminUtils";
 import CatalogItemsWorkspace from "./CatalogItemsWorkspace";
+import { TAB_ACTIVE, TAB_FOCUS, TAB_IDLE } from "@/app/components/ui/surfaceStyles";
 import CatalogPageAlerts from "./CatalogPageAlerts";
 import CatalogPageHeader from "./CatalogPageHeader";
 import CatalogSettingsPanel from "./CatalogSettingsPanel";
 
-const TAB_BASE =
-  "shrink-0 border-b-2 px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300";
-const TAB_ACTIVE = "border-slate-900 text-slate-900";
-const TAB_INACTIVE = "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800";
+const TAB_BASE = `shrink-0 border-b-2 px-3 py-2 text-sm font-semibold transition-colors ${TAB_FOCUS}`;
+const TAB_INACTIVE = TAB_IDLE;
 
 export default function CatalogSetupClient({ companyId }: { companyId: string }) {
   const [activeTab, setActiveTab] = useState<CatalogPageTab>("all_items");

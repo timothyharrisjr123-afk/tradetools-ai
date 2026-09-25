@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { buttonClass } from "@/app/components/ui/buttonStyles";
+import { COMPLETE_BAND } from "@/app/components/ui/surfaceStyles";
 import {
   JOB_CARD_CLOSEOUT_COPY_FAILED,
   JOB_CARD_CLOSEOUT_COPY_LINK_CTA,
@@ -69,7 +70,7 @@ export default function JobCardCloseoutSummary({
     <section
       className={
         leading
-          ? "rounded-xl border border-slate-200 bg-white p-4"
+          ? COMPLETE_BAND
           : "border-t border-slate-100 pt-4"
       }
       data-jobcard-closeout

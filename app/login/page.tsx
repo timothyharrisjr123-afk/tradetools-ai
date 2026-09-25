@@ -9,6 +9,8 @@ import {
   FOCUSED_EDITOR_LABEL,
   FOCUSED_EDITOR_SAVE,
 } from "@/app/components/ui/FocusedEditor";
+import FieldDiveLogoMark from "@/app/components/brand/FieldDiveLogoMark";
+import { APP_PAGE_BG } from "@/app/components/ui/surfaceStyles";
 import {
   buildSignupHrefWithReturn,
   resolveAuthReturnPath,
@@ -48,11 +50,14 @@ function LoginPageInner() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-12 text-slate-900">
+    <main className={`min-h-screen ${APP_PAGE_BG} px-4 py-12 text-slate-900 sm:py-16`}>
       <div className="mx-auto flex max-w-md flex-col justify-center">
-        <div className="rounded-xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-7">
-          <p className="text-lg font-bold tracking-tight text-slate-900">FieldDive</p>
-          <h1 className="mt-3 text-xl font-semibold tracking-tight text-slate-900">Sign in</h1>
+        <div className="rounded-xl border border-slate-200/80 bg-white p-6 shadow-md shadow-slate-900/5 sm:p-7">
+          <div className="flex items-center gap-2.5">
+            <FieldDiveLogoMark />
+            <p className="text-lg font-bold tracking-tight text-slate-900">FieldDive</p>
+          </div>
+          <h1 className="mt-5 text-xl font-semibold tracking-tight text-slate-900">Sign in</h1>
           <p className="mt-1 text-sm leading-relaxed text-slate-600">
             Roofing jobs, proposals, and payments.
           </p>

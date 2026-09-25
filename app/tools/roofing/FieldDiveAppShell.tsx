@@ -34,6 +34,8 @@ import {
   Settings,
 } from "lucide-react";
 import { SignOutButton } from "@/app/components/auth/SignOutButton";
+import { APP_PAGE_BG } from "@/app/components/ui/surfaceStyles";
+import FieldDiveLogoMark from "@/app/components/brand/FieldDiveLogoMark";
 import {
   getVisibleNavSections,
   type FieldDiveNavIconName,
@@ -75,17 +77,6 @@ const NAV_ICONS: Record<FieldDiveNavIconName, NavIcon> = {
 
 function navItemKey(item: FieldDiveNavItemConfig): string {
   return item.key ?? item.label;
-}
-
-function FieldDiveLogoMark() {
-  return (
-    <div className="relative flex h-9 w-9 shrink-0 items-center justify-center" aria-hidden>
-      <span className="absolute left-0 top-0 h-3 w-6 rounded-[6px] bg-gradient-to-r from-sky-400 to-blue-500" />
-      <span className="absolute left-0 top-[11px] h-3 w-4 rounded-[6px] bg-gradient-to-r from-sky-500 to-blue-600" />
-      <span className="absolute left-0 top-[22px] h-3 w-3 rounded-[6px] bg-gradient-to-r from-sky-500 to-blue-600" />
-      <span className="absolute left-[15px] top-[11px] h-3 w-3 rounded-[6px] bg-gradient-to-r from-sky-400 to-cyan-400" />
-    </div>
-  );
 }
 
 function resolveSubItemVariant(sub: FieldDiveNavSubItemConfig, activeSubId?: string): NavSubItemVariant {
@@ -445,7 +436,7 @@ export default function FieldDiveAppShell({ activeNav, activeSubId, children }: 
   ));
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900" data-fielddive-app-shell>
+    <div className={`min-h-screen ${APP_PAGE_BG} text-slate-900`} data-fielddive-app-shell>
       <div className="flex min-h-screen">
         <aside
           className="sticky top-0 hidden h-screen w-[220px] shrink-0 flex-col border-r border-slate-200 bg-white lg:flex"
