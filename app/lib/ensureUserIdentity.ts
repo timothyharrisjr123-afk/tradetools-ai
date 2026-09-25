@@ -14,16 +14,40 @@ function initialProfileFullName(user: AuthUser): string {
   return fromMeta;
 }
 
+export const COMPANY_BOOTSTRAP_RPC = "bootstrap_current_user_company_v1";
+
+export type EnsureUserIdentityResult =
+  | { status: "ready"; companyId: string; created: boolean }
+  | { status: "removed" }
+  | { status: "failed"; reason: "not_authenticated" | "bootstrap_failed" | "invalid_response" };
+
+/** Maps the bootstrap RPC row onto the identity contract. Unknown shapes fail closed. */
+export function parseCompanyBootstrapResult(data: unknown): EnsureUserIdentityResult {
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row || typeof row !== "object") {
+    return { status: "failed", reason: "invalid_response" };
+  }
+  const status = (row as { status?: unknown }).status;
+  const companyId = (row as { company_id?: unknown }).company_id;
+  if (status === "removed") return { status: "removed" };
+  if ((status === "created" || status === "existing") && typeof companyId === "string" && companyId) {
+    return { status: "ready", companyId, created: status === "created" };
+  }
+  return { status: "failed", reason: "invalid_response" };
+}
+
 /**
- * Ensures the authenticated user has profile, company, and company_membership records.
- * Call after getUser() on protected pages. Idempotent — safe to call every time.
+ * Ensures the authenticated user has a profile and a company membership.
+ * Company + owner membership are created only by the bootstrap RPC (atomic, per-user
+ * serialized, idempotent); this helper never inserts companies or memberships directly.
+ * Call after getUser() on protected pages. Safe to call every time.
  * Never clears an existing profiles.full_name (display-name authority).
  */
 export async function ensureUserIdentity(
   supabase: SupabaseClient,
   user: AuthUser
-): Promise<void> {
-  if (!user?.id) return;
+): Promise<EnsureUserIdentityResult> {
+  if (!user?.id) return { status: "failed", reason: "not_authenticated" };
 
   // A) Ensure profile exists without wiping human-readable display names
   const { data: existingProfile, error: profileLookupError } = await supabase
@@ -65,45 +89,21 @@ export async function ensureUserIdentity(
     }
   }
 
-  // B) Ensure company_membership exists (and company if needed)
-  const { data: existingMembership, error: membershipSelectError } = await supabase
-    .from("company_memberships")
-    .select("company_id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (membershipSelectError) {
-    console.error("[ensureUserIdentity] Membership lookup failed:", membershipSelectError.message, { userId: user.id });
-    return;
+  // B) Ensure company + owner membership through the bootstrap authority
+  const { data, error } = await supabase.rpc(COMPANY_BOOTSTRAP_RPC);
+  if (error) {
+    console.error("[ensureUserIdentity] Company bootstrap failed:", error.message, {
+      userId: user.id,
+    });
+    return { status: "failed", reason: "bootstrap_failed" };
   }
-
-  if (!existingMembership) {
-    const { data: newCompany, error: companyError } = await supabase
-      .from("companies")
-      .insert({
-        name: "My Company",
-        owner_user_id: user.id,
-      })
-      .select("id")
-      .single();
-
-    if (companyError || !newCompany?.id) {
-      console.error("[ensureUserIdentity] Company creation failed:", companyError?.message ?? "no company id", { userId: user.id });
-      return;
-    }
-
-    const { error: membershipInsertError } = await supabase
-      .from("company_memberships")
-      .insert({
-        user_id: user.id,
-        company_id: newCompany.id,
-        role: "owner",
-      });
-
-    if (membershipInsertError) {
-      console.error("[ensureUserIdentity] Membership creation failed:", membershipInsertError.message, { userId: user.id, companyId: newCompany.id });
-    }
+  const result = parseCompanyBootstrapResult(data);
+  if (result.status === "failed") {
+    console.error("[ensureUserIdentity] Company bootstrap returned an unexpected result", {
+      userId: user.id,
+    });
   }
+  return result;
 }
 
 /**
