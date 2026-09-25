@@ -5958,371 +5958,188 @@ Thanks,`;
                             ) : (
                               <>
 <JobPacketAddressCombobox
-
                               value={jobAddress1}
-
                               suggestions={addressSuggestions}
-
                               status={placesStatus}
-
                               manualMode={addressEntryMode === "manual"}
-
                               selectedAddress={selectedPlacesAddress}
-
                               onValueChange={(value) => {
-
                                 setSuppressAddressSuggestions(false);
-
                                 setJobAddress1(value);
-
                                 setSelectedPlacesAddress(null);
-
                                 if (addressEntryMode === "search") {
-
                                   // SEARCHING must not visually or submit-wise mix with prior structured truth.
-
                                   clearStructuredAddressFields();
-
                                 }
-
                                 if (selectedPropertyId) {
-
                                   setSelectedPropertyId(null);
-
                                   setSelectedPropertyLabel(null);
-
                                 }
-
                                 if (forceNewProperty) setForceNewProperty(false);
-
                               }}
-
                               onValueBlur={(value) => {
-
                                 const cleaned = value.replace(/\s+/g, " ").trim();
-
                                 if (cleaned !== jobAddress1) setJobAddress1(cleaned);
-
                               }}
-
                               onSelect={applyPlacesSuggestion}
-
                               onManual={() => {
-
                                 abandonSession();
-
                                 setAddressEntryMode("manual");
-
                               }}
-
                               onSearch={() => {
-
                                 abandonSession();
-
                                 setAddressEntryMode("search");
-
                                 setSuppressAddressSuggestions(false);
-
                                 setSelectedPlacesAddress(null);
-
                                 clearStructuredAddressFields();
-
                               }}
-
                               onChangeSelected={() => {
-
                                 abandonSession();
-
                                 setSelectedPlacesAddress(null);
-
                                 setAddressEntryMode("search");
-
                                 setSuppressAddressSuggestions(false);
-
                                 clearStructuredAddressFields();
-
                               }}
-
                               onClear={() => {
-
                                 abandonSession();
-
                                 setSelectedPlacesAddress(null);
-
                                 setSelectedPropertyId(null);
-
                                 setSelectedPropertyLabel(null);
-
                                 setForceNewProperty(false);
-
                                 setSuppressAddressSuggestions(false);
-
                                 setAddressEntryMode("search");
-
                                 setJobAddress1("");
-
                                 clearStructuredAddressFields();
-
                               }}
-
                             />
-
                             {(addressEntryMode === "manual" ||
-
                               Boolean(selectedPlacesAddress) ||
-
                               Boolean(selectedPropertyId)) && (
-
                             <>
-
                             <label htmlFor="job-address-line-2" className={PACKET_FIELD_LABEL}>
-
                               Unit / Apt / Suite <span className="font-normal text-slate-400">(optional)</span>
-
                             </label>
-
                             <input
-
                               id="job-address-line-2"
-
                               name="job_address2_field"
-
                               type="text"
-
                               value={jobAddress2}
-
                               onChange={(event) => setJobAddress2(event.target.value)}
-
                               onBlur={(event) => {
-
                                 const cleaned = event.target.value.replace(/\s+/g, " ").trim();
-
                                 if (cleaned !== jobAddress2) setJobAddress2(cleaned);
-
                               }}
-
                               placeholder=""
-
                               autoComplete="address-line2"
-
                               className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-[12.5px] font-medium text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
-
                             />
-
                             <div className="grid grid-cols-[minmax(0,1fr)_5rem_5.75rem] gap-x-2 gap-y-1">
-
                               <label htmlFor="job-city" className={PACKET_FIELD_LABEL}>City</label>
-
                               <label htmlFor="job-state" className={PACKET_FIELD_LABEL}>State</label>
-
                               <label htmlFor="customer-job-zip" className={PACKET_FIELD_LABEL}>ZIP</label>
-
                               <input
-
                                 id="job-city"
-
                                 name="job_city_field"
-
                                 type="text"
-
                                 value={jobCity}
-
                                 onChange={(e) => {
-
                                   setJobCity(e.target.value);
-
                                   if (selectedPropertyId) {
-
                                     setSelectedPropertyId(null);
-
                                     setSelectedPropertyLabel(null);
-
                                   }
-
                                   if (forceNewProperty) setForceNewProperty(false);
-
                                 }}
-
                                 onBlur={(e) => {
-
                                   const cleaned = e.target.value
-
                                     .replace(/[^a-zA-Z\s.'-]/g, "")
-
                                     .replace(/\s+/g, " ")
-
                                     .trim();
-
                                   if (cleaned !== jobCity) {
-
                                     setJobCity(cleaned);
-
                                   }
-
                                 }}
-
                                 placeholder=""
-
                                 autoComplete="off"
-
                                 autoCorrect="off"
-
                                 autoCapitalize="words"
-
                                 spellCheck={false}
-
                                 className="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-base sm:text-[13px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
-
                               />
-
                               <input
-
                                 id="job-state"
-
                                 name="job_state_field"
-
                                 type="text"
-
                                 value={jobState}
-
                                 onChange={(e) => {
-
                                   setJobState(e.target.value);
-
                                   if (selectedPropertyId) {
-
                                     setSelectedPropertyId(null);
-
                                     setSelectedPropertyLabel(null);
-
                                   }
-
                                   if (forceNewProperty) setForceNewProperty(false);
-
                                 }}
-
                                 onBlur={(e) => {
-
                                   const cleaned = e.target.value
-
                                     .replace(/[^a-zA-Z]/g, "")
-
                                     .toUpperCase()
-
                                     .trim();
-
                                   if (cleaned !== jobState) setJobState(cleaned);
-
                                 }}
-
                                 placeholder=""
-
                                 autoComplete="off"
-
                                 autoCorrect="off"
-
                                 autoCapitalize="characters"
-
                                 spellCheck={false}
-
                                 className="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-base sm:text-[13px] font-medium uppercase text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
-
                               />
-
                               <input
-
                                 id="customer-job-zip"
-
                                 name="job_zip_field"
-
                                 type="text"
-
                                 inputMode="numeric"
-
                                 value={jobZip}
-
                                 onChange={(e) => {
-
                                   setJobZip(sanitizeZipInput(e.target.value));
-
                                   if (selectedPropertyId) {
-
                                     setSelectedPropertyId(null);
-
                                     setSelectedPropertyLabel(null);
-
                                   }
-
                                   if (forceNewProperty) setForceNewProperty(false);
-
                                 }}
-
                                 onBlur={() => {
-
                                   const sanitized = sanitizeZipInput(jobZip);
-
                                   if (sanitized !== jobZip) setJobZip(sanitized);
-
                                   if (sanitized.length === 5) tryApplyZipPreset(sanitized);
-
                                 }}
-
                                 onKeyDown={(e) => {
-
                                   if (e.key === "Enter") {
-
                                     e.preventDefault();
-
                                     const sanitized = sanitizeZipInput(jobZip);
-
                                     if (sanitized !== jobZip) setJobZip(sanitized);
-
                                     if (sanitized.length === 5) tryApplyZipPreset(sanitized);
-
                                   }
-
                                 }}
-
                                 placeholder=""
-
                                 autoComplete="postal-code"
-
                                 autoCorrect="off"
-
                                 autoCapitalize="off"
-
                                 spellCheck={false}
-
                                 className="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-base sm:text-[13px] font-medium text-slate-900 placeholder:text-slate-400 outline-none shadow-sm transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
-
                               />
-
                             </div>
-
                             {(entryMode === "packet" || entryMode === "instant") && (
-
                               <JobPacketPropertyCandidates
-
                                 candidates={propertyCandidates}
-
                                 selectedPropertyId={selectedPropertyId}
-
                                 selectedPropertyLabel={selectedPropertyLabel}
-
                                 onSelect={selectExistingProperty}
-
                                 onContinueAsNew={continueAsNewProperty}
-
                                 showContinueAsNew={
-
                                   !forceNewProperty && propertyCandidates.length > 0
-
                                 }
-
                               />
-
                             )}
-
                             ﻿                            <div className="min-h-[1rem]">
                               {autofillFromZip && (
                                 <div className="flex flex-wrap items-center gap-2">
