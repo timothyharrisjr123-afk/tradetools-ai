@@ -47,6 +47,9 @@ export type ProposalSnapshotLineQuantityView = {
   quantityDisplayLabel: string | null;
   quantitySourceLabel: string | null;
   unitLabel: string | null;
+  /** Snapshot customer unit price — display only, never recomputed. */
+  unitPriceCents?: number | null;
+  lineTotalCents?: number | null;
 };
 
 /** Read-only company branding slice from persisted context_echo (R11c). */
@@ -188,6 +191,14 @@ function buildSnapshotLineQuantityView(
     quantityDisplayLabel: trimOrNull(line.quantity_display_label),
     quantitySourceLabel: trimOrNull(line.quantity_source_label),
     unitLabel: trimOrNull(line.unit),
+    unitPriceCents:
+      line.customer_unit_price_cents != null && Number.isFinite(line.customer_unit_price_cents)
+        ? line.customer_unit_price_cents
+        : null,
+    lineTotalCents:
+      line.customer_line_total_cents != null && Number.isFinite(line.customer_line_total_cents)
+        ? line.customer_line_total_cents
+        : null,
   };
 }
 

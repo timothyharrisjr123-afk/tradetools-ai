@@ -9,6 +9,7 @@ import {
 import type { ProposalPreviewSentFrozenChrome } from "@/app/lib/proposalPreviewSentFrozenChrome";
 import type { ProposalPreviewSentRecordChrome } from "@/app/lib/proposalPreviewSentRecord";
 import {
+  PREVIEW_OPEN_AGREEMENT_LABEL,
   PREVIEW_SENT_RECORD_BACK_LABEL,
 } from "@/app/lib/proposalPreviewSentRecord";
 import ProposalPreviewActionGroup from "./ProposalPreviewActionGroup";
@@ -31,7 +32,11 @@ type ProposalPreviewHeaderProps = {
     companyId: string;
     proposalId: string;
     versionId: string;
+    /** The viewed version is the accepted agreement version. */
+    isAgreementVersion?: boolean;
   } | null;
+  /** Accepted proposal: open the frozen agreement instead of Send / Revise. */
+  agreementHref?: string | null;
 };
 
 function compactPackageLabel(label: string | null): string | null {
@@ -58,6 +63,7 @@ export default function ProposalPreviewHeader({
   backHref,
   sentRecordChrome = null,
   pdfDownload = null,
+  agreementHref = null,
 }: ProposalPreviewHeaderProps) {
   const packageLabel = compactPackageLabel(selectedPackageLabel);
   const isSentRecord = Boolean(sentRecordChrome);
@@ -87,11 +93,11 @@ export default function ProposalPreviewHeader({
             <Link
               href={backHref ?? builderHref}
               className="inline-flex min-h-[44px] items-center gap-1.5 text-[13px] font-semibold text-blue-600 transition hover:text-blue-700 sm:min-h-0"
-              data-preview-back-to-builder={isSentRecord ? undefined : "true"}
-              data-preview-back-to-job-card={isSentRecord ? "true" : undefined}
+              data-preview-back-to-builder={backHref ? undefined : "true"}
+              data-preview-back-to-job-card={backHref ? "true" : undefined}
             >
               <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
-              {isSentRecord
+              {backHref
                 ? PREVIEW_SENT_RECORD_BACK_LABEL
                 : CUSTOMER_PREVIEW_BACK_TO_BUILDER_LABEL}
             </Link>
@@ -174,11 +180,21 @@ export default function ProposalPreviewHeader({
             showSendSharing={showSendSharing}
           />
         ) : null}
+        {!isSentRecord && agreementHref ? (
+          <Link
+            href={agreementHref}
+            className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white px-3.5 text-[13px] font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 sm:min-h-9"
+            data-preview-open-agreement
+          >
+            {PREVIEW_OPEN_AGREEMENT_LABEL}
+          </Link>
+        ) : null}
         {showPdfActions && pdfDownload ? (
           <ProposalPreviewPdfActions
             companyId={pdfDownload.companyId}
             proposalId={pdfDownload.proposalId}
             versionId={pdfDownload.versionId}
+            isAgreementVersion={pdfDownload.isAgreementVersion === true}
           />
         ) : null}
       </div>

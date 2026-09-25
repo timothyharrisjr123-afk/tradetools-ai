@@ -12,6 +12,7 @@ import {
   flattenNavItems,
   getLegacyAndFutureNavItems,
   getPrimaryWorkflowNavItems,
+  getVisibleNavSections,
   hasNavHref,
 } from "./fieldDiveNavConfig";
 
@@ -120,11 +121,12 @@ describe("fieldDiveNavConfig", () => {
     }
   });
 
-  test("Advanced section is collapsed by default", () => {
+  test("Advanced/soon shelf is recorded but never rendered in navigation (Phase 12.5)", () => {
     const advanced = FIELD_DIVE_NAV_SECTIONS.find((section) => section.id === "legacyAndFuture");
     assert.ok(advanced);
-    assert.equal(advanced.label, "Advanced");
-    assert.equal(advanced.collapsedByDefault, true);
+    assert.equal(advanced.hiddenFromNavigation, true);
+    const visible = getVisibleNavSections().map((section) => section.id);
+    assert.deepEqual(visible, ["operations", "setup"]);
   });
 
   test("marks future placeholders as soon without href", () => {

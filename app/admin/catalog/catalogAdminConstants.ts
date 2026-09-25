@@ -95,7 +95,8 @@ export const CATALOG_PILL_BASE =
 export const CATALOG_PILL_PROPOSAL_VISIBLE = `${CATALOG_PILL_BASE} bg-slate-50 text-slate-700 ring-slate-200`;
 export const CATALOG_PILL_PROPOSAL_GROUPED = `${CATALOG_PILL_BASE} bg-slate-50 text-slate-600 ring-slate-200/90`;
 export const CATALOG_PILL_PROPOSAL_HIDDEN = `${CATALOG_PILL_BASE} bg-slate-100 text-slate-500 ring-slate-200/80`;
-export const CATALOG_PILL_STATUS_ACTIVE = `${CATALOG_PILL_BASE} bg-emerald-50/70 text-emerald-800/90 ring-emerald-200/60`;
+/** Active is the normal state — plain text, not a badge. */
+export const CATALOG_PILL_STATUS_ACTIVE = "text-[13px] text-slate-500";
 export const CATALOG_PILL_STATUS_INACTIVE = `${CATALOG_PILL_BASE} bg-slate-100 text-slate-500 ring-slate-200/80`;
 export const CATALOG_PILL_STATUS_NEEDS_PRICE = `${CATALOG_PILL_BASE} bg-amber-50 text-amber-900 ring-amber-300/70`;
 

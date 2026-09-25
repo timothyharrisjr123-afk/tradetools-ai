@@ -1,11 +1,16 @@
+import { TEMPLATES_CREATE_ANOTHER_ACTION } from "./templatesWorkspaceFlow";
+
 type TemplatesPageHeaderProps = {
   onAddTemplate?: () => void;
+  /** Once a usable template exists, creating another is a secondary task. */
+  hasUsableTemplate?: boolean;
   addTemplateDisabled?: boolean;
   addTemplateDisabledTitle?: string;
 };
 
 export default function TemplatesPageHeader({
   onAddTemplate,
+  hasUsableTemplate = false,
   addTemplateDisabled = false,
   addTemplateDisabledTitle,
 }: TemplatesPageHeaderProps) {
@@ -28,14 +33,17 @@ export default function TemplatesPageHeader({
           onClick={onAddTemplate}
           disabled={addTemplateDisabled}
           title={addTemplateDisabled ? addTemplateDisabledTitle : undefined}
-          className={`inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-md border px-3.5 py-2 text-sm font-semibold shadow-sm transition ${
+          className={`inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-md border px-3.5 py-2 text-sm font-semibold transition ${
             addTemplateDisabled
               ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
-              : "border-blue-300 bg-blue-600 text-white hover:bg-blue-700"
+              : hasUsableTemplate
+                ? "border-slate-300 bg-white text-slate-800 hover:bg-slate-50"
+                : "border-slate-900 bg-slate-900 text-white shadow-sm hover:bg-slate-800"
           }`}
           data-templates-add-template="true"
+          data-templates-add-template-emphasis={hasUsableTemplate ? "secondary" : "primary"}
         >
-          + Template
+          {hasUsableTemplate ? TEMPLATES_CREATE_ANOTHER_ACTION : "+ Template"}
         </button>
       ) : null}
     </header>

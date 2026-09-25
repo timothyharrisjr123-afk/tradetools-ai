@@ -105,6 +105,38 @@ export function classifyCatalogCoverageCompatibility(
   return "incompatible";
 }
 
+const UNITS_FOR_SOURCE_CATEGORY: Record<CoverageBasisCategory, readonly CatalogUnit[]> = {
+  roof_square: ["square"],
+  square_feet: ["sqft"],
+  linear_feet: ["linear_foot"],
+  each: ["each"],
+  tons: [],
+};
+
+const SOURCE_CATEGORY_NOUN: Record<CoverageBasisCategory, string> = {
+  roof_square: "roof squares",
+  square_feet: "square feet",
+  linear_feet: "linear feet",
+  each: "item counts",
+  tons: "tons",
+};
+
+/**
+ * Display-only check: in adjusted mode the proposal quantity arrives in the quantity
+ * source's own units, so a sell unit of a different dimension prices the wrong thing.
+ * Never rewrites unit, price, or quantity — the contractor decides.
+ */
+export function catalogUnitQuantityMismatchNote(input: {
+  quantity_source: QuantitySource;
+  unit: CatalogUnit;
+  unitLabel: string;
+}): string | null {
+  const category = coverageBasisCategoryForQuantitySource(input.quantity_source);
+  if (category === "fixed" || category === "unmapped") return null;
+  if (UNITS_FOR_SOURCE_CATEGORY[category].includes(input.unit)) return null;
+  return `Unit is ${input.unitLabel}, but quantity is in ${SOURCE_CATEGORY_NOUN[category]}. Check the unit before quoting.`;
+}
+
 export function catalogCoverageCompatibilityBlocksRawModeSwitch(
   status: CatalogCoverageCompatibilityStatus
 ): boolean {

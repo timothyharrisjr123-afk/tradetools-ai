@@ -5,6 +5,8 @@ import { Download } from "lucide-react";
 
 import {
   CONTRACTOR_PDF_DOWNLOAD_LABEL,
+  CONTRACTOR_PDF_DOWNLOAD_ORIGINAL_AGREEMENT_LABEL,
+  CONTRACTOR_PDF_DOWNLOAD_SIGNED_AGREEMENT_LABEL,
   CONTRACTOR_PDF_DOWNLOAD_SIGNED_LABEL,
   CONTRACTOR_PDF_PREPARING_LABEL,
   CONTRACTOR_PDF_UNAVAILABLE_MESSAGE,
@@ -25,6 +27,7 @@ type ProposalPreviewPdfActionsProps = {
   companyId: string;
   proposalId: string;
   versionId: string;
+  isAgreementVersion?: boolean;
 };
 
 /**
@@ -35,6 +38,7 @@ export default function ProposalPreviewPdfActions({
   companyId,
   proposalId,
   versionId,
+  isAgreementVersion = false,
 }: ProposalPreviewPdfActionsProps) {
   const [signedAvailable, setSignedAvailable] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -108,7 +112,11 @@ export default function ProposalPreviewPdfActions({
           onClick={() => onDownload(PROPOSAL_PDF_ARTIFACT_SENT)}
         >
           <Download className="h-3.5 w-3.5" aria-hidden />
-          {preparingSent ? CONTRACTOR_PDF_PREPARING_LABEL : CONTRACTOR_PDF_DOWNLOAD_LABEL}
+          {preparingSent
+            ? CONTRACTOR_PDF_PREPARING_LABEL
+            : isAgreementVersion
+              ? CONTRACTOR_PDF_DOWNLOAD_ORIGINAL_AGREEMENT_LABEL
+              : CONTRACTOR_PDF_DOWNLOAD_LABEL}
         </button>
         {signedAvailable ? (
           <button
@@ -123,7 +131,9 @@ export default function ProposalPreviewPdfActions({
             <Download className="h-3.5 w-3.5" aria-hidden />
             {preparingSigned
               ? CONTRACTOR_PDF_PREPARING_LABEL
-              : CONTRACTOR_PDF_DOWNLOAD_SIGNED_LABEL}
+              : isAgreementVersion
+                ? CONTRACTOR_PDF_DOWNLOAD_SIGNED_AGREEMENT_LABEL
+                : CONTRACTOR_PDF_DOWNLOAD_SIGNED_LABEL}
           </button>
         ) : null}
       </div>

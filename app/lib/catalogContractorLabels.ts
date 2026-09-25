@@ -33,9 +33,8 @@ export const CATALOG_COMMAND_BAR_PLANNED_CONTROLS = [] as const;
 
 export type CatalogCommandBarPlannedControlId = never;
 
-/** Active command-bar menus/controls (Reorder + Columns + Manage catalog). */
+/** Secondary command-bar menus (Reorder lives inside Manage catalog). */
 export const CATALOG_COMMAND_BAR_ACTIVE_CONTROLS = [
-  { id: "reorder", label: "Re-order items" },
   { id: "columns", label: "Columns" },
   { id: "manage_catalog", label: "Manage catalog" },
 ] as const;
@@ -43,7 +42,7 @@ export const CATALOG_COMMAND_BAR_ACTIVE_CONTROLS = [
 /**
  * Manage Catalog menu entries.
  * CSV download/export + upload preview/import are live (v1).
- * Reorder items is live (display order via sort_order); toolbar Re-order is primary.
+ * Reorder items is live (display order via sort_order) and is entered from this menu.
  * Connect supplier, supplier-priced starter, and Manage bulk-purchase-tax shortcut remain planned.
  */
 export const CATALOG_MANAGE_MENU_ITEMS = [
@@ -68,7 +67,7 @@ export const CATALOG_MANAGE_MENU_ITEMS = [
   {
     id: "reorder",
     label: "Reorder items",
-    detail: "Same as toolbar Re-order — Catalog display order only",
+    detail: "Catalog display order only — prices and proposals are unchanged",
     status: "live" as const,
   },
   {
@@ -159,6 +158,10 @@ export const CATALOG_CONTRACTOR_LABELS = {
   shownToCustomer: "Proposal",
   status: "Status",
   actions: "Actions",
+  tableItem: "Item",
+  sellingPrice: "Selling price",
+  quantityBasis: "Quantity basis",
+  proposalVisibility: "Proposal visibility",
   customerName: "Customer name",
   customerDescription: "Customer description",
   needsPrice: "Needs price",
@@ -178,14 +181,14 @@ export const CATALOG_CONTRACTOR_LABELS = {
 } as const;
 
 export const CATALOG_TABLE_HEADERS = [
-  "Name",
-  "Type",
-  "Measurement",
+  "Item",
+  "Selling price",
   "Unit",
-  "Unit cost",
-  "Unit price",
-  "Proposal",
+  "Quantity basis",
   "Status",
+  "Unit cost",
+  "Type",
+  "Proposal visibility",
   "Actions",
 ] as const;
 

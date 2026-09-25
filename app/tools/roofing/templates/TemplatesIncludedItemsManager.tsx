@@ -190,7 +190,8 @@ export default function TemplatesIncludedItemsManager({
 
   return (
     <section
-      className={shellClass}
+      id="templates-included-work"
+      className={`${shellClass} scroll-mt-4`}
       aria-labelledby="templates-included-items-heading"
       data-templates-included-manager
       data-templates-included-work
@@ -246,7 +247,7 @@ export default function TemplatesIncludedItemsManager({
               onAddItem();
             }}
             disabled={busy}
-            className="inline-flex items-center justify-center rounded-md border border-blue-300 bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center justify-center rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
             data-templates-add-included-work-empty
           >
             Add included work
@@ -357,27 +358,23 @@ export default function TemplatesIncludedItemsManager({
         </div>
       ) : (
         <div
-          className="mt-3 space-y-2.5"
+          className="mt-3 space-y-4"
           data-templates-included-prepared-view
           data-templates-prepared-scope-groups
         >
           {groups.map((group) => (
-            <div
-              key={group.id}
-              className="rounded-xl bg-slate-50/80 ring-1 ring-slate-200/70"
-              data-templates-included-group={group.id}
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2">
-                <p className="text-sm font-semibold text-slate-800">{group.label}</p>
-                <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold tabular-nums text-slate-600 ring-1 ring-slate-200/80">
+            <div key={group.id} data-templates-included-group={group.id}>
+              <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-slate-100 pb-1.5">
+                <p className="text-[13px] font-semibold text-slate-800">{group.label}</p>
+                <span className="text-xs tabular-nums text-slate-500">
                   {group.itemCount} included
                 </span>
               </div>
-              <ul className="grid gap-1.5 border-t border-slate-200/60 px-2.5 py-2.5 sm:grid-cols-2">
+              <ul className="grid gap-x-6 sm:grid-cols-2">
                 {group.items.map((item) => (
                   <li
                     key={item.templateItemId}
-                    className="rounded-lg bg-white px-3 py-2 ring-1 ring-slate-100"
+                    className="border-b border-slate-100/70 py-2"
                     data-templates-included-summary-item={item.templateItemId}
                     data-templates-catalog-link-status={item.status}
                   >

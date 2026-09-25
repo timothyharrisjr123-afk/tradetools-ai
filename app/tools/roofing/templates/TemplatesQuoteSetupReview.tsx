@@ -38,7 +38,12 @@ import {
   TEMPLATES_OPEN_JOBS_ACTION,
   TEMPLATES_PACKAGES_SECTION_HINT,
   TEMPLATES_PREFERRED_BADGE_LABEL,
-  TEMPLATES_PREFERRED_HELPER_COPY,
+  TEMPLATES_EDIT_SCOPE_ACTION,
+  TEMPLATES_EDIT_TERMS_ACTION,
+  TEMPLATES_FUTURE_ONLY_COPY,
+  TEMPLATES_MANAGE_OPTIONS_ACTION,
+  TEMPLATES_USED_FOR_NEW_WORK_COPY,
+  formatTemplateNotPreferredCopy,
   TEMPLATES_PROPOSAL_CONTENT_HEADING,
   TEMPLATES_PROPOSAL_CONTENT_HINT,
   TEMPLATES_REUSABLE_SETUP_EYEBROW,
@@ -55,6 +60,20 @@ import {
   type TemplateCreatesSummary,
   type TemplatesEditTabId,
 } from "./templatesWorkspaceFlow";
+
+const HERO_ACTION_CLASS =
+  "inline-flex min-h-[40px] items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-[13px] font-semibold text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50";
+
+function openTemplateSection(sectionId: string, triggerSelector: string) {
+  const section = document.getElementById(sectionId);
+  if (!section) return;
+  section.scrollIntoView({ behavior: "smooth", block: "start" });
+  const trigger = section.querySelector<HTMLButtonElement>(triggerSelector);
+  if (trigger && !trigger.disabled && trigger.getAttribute("aria-pressed") !== "true") {
+    const label = trigger.textContent ?? "";
+    if (!/Done adjusting/.test(label)) trigger.click();
+  }
+}
 
 type TemplatesQuoteSetupReviewProps = {
   graph: ProposalTemplateGraph;
@@ -95,6 +114,8 @@ type TemplatesQuoteSetupReviewProps = {
   onMakePreferred?: () => void;
   onClearPreferred?: () => void;
   preferenceBusy?: boolean;
+  /** Name of the preferred template when it is not the one being reviewed. */
+  preferredTemplateName?: string | null;
 };
 
 export default function TemplatesQuoteSetupReview({
@@ -125,6 +146,7 @@ export default function TemplatesQuoteSetupReview({
   onMakePreferred,
   onClearPreferred,
   preferenceBusy = false,
+  preferredTemplateName = null,
 }: TemplatesQuoteSetupReviewProps) {
   const [packagesAdjustOpen, setPackagesAdjustOpen] = useState(false);
   const [expandedStepUpOptionId, setExpandedStepUpOptionId] = useState<string | null>(
@@ -214,7 +236,7 @@ export default function TemplatesQuoteSetupReview({
                 </p>
                 {isPreferred && template.status !== "archived" ? (
                   <span
-                    className="rounded-full bg-emerald-50/90 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800 ring-1 ring-emerald-200/70"
+                    className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-700 ring-1 ring-slate-200"
                     data-templates-preferred-badge
                   >
                     {TEMPLATES_PREFERRED_BADGE_LABEL}
@@ -238,13 +260,62 @@ export default function TemplatesQuoteSetupReview({
               <p className="mt-1 text-sm text-slate-600">
                 {description ?? TEMPLATES_REUSABLE_SETUP_SUBCOPY}
               </p>
+              {template.status !== "archived" ? (
+                <p
+                  className="mt-1.5 text-sm font-medium text-slate-800"
+                  data-templates-usage-status={isPreferred ? "preferred" : "not_preferred"}
+                >
+                  {isPreferred
+                    ? TEMPLATES_USED_FOR_NEW_WORK_COPY
+                    : formatTemplateNotPreferredCopy(preferredTemplateName)}
+                </p>
+              ) : null}
+              {template.status !== "archived" ? (
+                <div className="mt-3 flex flex-wrap gap-2" data-templates-primary-actions>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      openTemplateSection("templates-included-work", "[data-templates-adjust-included-work]")
+                    }
+                    disabled={busy}
+                    className={HERO_ACTION_CLASS}
+                    data-templates-hero-action="scope"
+                  >
+                    {TEMPLATES_EDIT_SCOPE_ACTION}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      openTemplateSection("templates-proposal-content", "[data-templates-edit-customer-wording]")
+                    }
+                    disabled={busy}
+                    className={HERO_ACTION_CLASS}
+                    data-templates-hero-action="terms"
+                  >
+                    {TEMPLATES_EDIT_TERMS_ACTION}
+                  </button>
+                  {packagePresentation.mode !== "simple" ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openTemplateSection("templates-customer-options", "[data-templates-adjust-packages]")
+                      }
+                      disabled={busy}
+                      className={HERO_ACTION_CLASS}
+                      data-templates-hero-action="options"
+                    >
+                      {TEMPLATES_MANAGE_OPTIONS_ACTION}
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+              <p className="mt-2.5 text-xs text-slate-500" data-templates-future-only-note>
+                {TEMPLATES_FUTURE_ONLY_COPY}
+              </p>
               <p className="mt-1 text-xs text-slate-500" data-templates-hero-counts>
                 {countLine}
-                {isPreferred && template.status !== "archived"
-                  ? ` · ${TEMPLATES_PREFERRED_HELPER_COPY}`
-                  : null}
               </p>
-              <div className="mt-2">
+              <div className="mt-1">
                 <TemplatesIdentityEditor
                   name={template.name}
                   description={template.description ?? null}
@@ -316,7 +387,8 @@ export default function TemplatesQuoteSetupReview({
         </header>
 
         <section
-          className={TEMPLATES_WORKSPACE_SECTION_MUTED}
+          id="templates-customer-options"
+          className={`${TEMPLATES_WORKSPACE_SECTION_MUTED} scroll-mt-4`}
           aria-labelledby="templates-packages-landing-heading"
           data-templates-package-selector
           data-templates-packages-landing
@@ -501,7 +573,8 @@ export default function TemplatesQuoteSetupReview({
         />
 
         <section
-          className={TEMPLATES_WORKSPACE_SECTION}
+          id="templates-proposal-content"
+          className={`${TEMPLATES_WORKSPACE_SECTION} scroll-mt-4`}
           aria-labelledby="templates-proposal-content-heading"
           data-templates-proposal-content
         >

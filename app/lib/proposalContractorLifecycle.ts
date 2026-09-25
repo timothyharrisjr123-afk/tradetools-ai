@@ -91,6 +91,33 @@ export function isContractorProposalEditingAllowed(
   return kind !== "signed";
 }
 
+/**
+ * Builder command-bar status from version pointers — never from editability.
+ * Without the sent freeze time a changed draft reads as Sent, never an invented revision.
+ */
+export function formatBuilderVersionStatusLabel(
+  input: DeriveContractorProposalLifecycleInput
+): string {
+  const lifecycle = deriveContractorProposalLifecycle(input);
+  return lifecycle.kind === "signed" ? "Accepted" : lifecycle.statusLabel;
+}
+
+export function formatBuilderVersionStatusLabelForProposal(
+  proposal: {
+    latest_sent_version_id?: string | null;
+    signed_version_id?: string | null;
+    draft_content_changed_at?: string | null;
+  },
+  latestSentFrozenAt: string | null
+): string {
+  return formatBuilderVersionStatusLabel({
+    latestSentVersionId: proposal.latest_sent_version_id ?? null,
+    signedVersionId: proposal.signed_version_id ?? null,
+    draftContentChangedAt: proposal.draft_content_changed_at ?? null,
+    latestSentFrozenAt,
+  });
+}
+
 export function deriveContractorProposalLifecycle(
   input: DeriveContractorProposalLifecycleInput
 ): ContractorProposalLifecycle {

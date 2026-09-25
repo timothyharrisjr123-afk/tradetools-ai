@@ -20,7 +20,9 @@ import {
 import { getSupabaseClient } from "@/app/lib/supabaseClient";
 import CompanySettingsBrandingEditor from "@/app/tools/settings/CompanySettingsBrandingEditor";
 import CompanySettingsBusinessEditor from "@/app/tools/settings/CompanySettingsBusinessEditor";
-import CompanySettingsPaymentsEditor from "@/app/tools/settings/CompanySettingsPaymentsEditor";
+import CompanySettingsPaymentsEditor, {
+  COMPANY_PAYMENT_SETUP_LABEL,
+} from "@/app/tools/settings/CompanySettingsPaymentsEditor";
 import CompanySettingsPreferencesEditor from "@/app/tools/settings/CompanySettingsPreferencesEditor";
 import CompanySettingsTeamEditor from "@/app/tools/settings/CompanySettingsTeamEditor";
 import { useCompanyMembers } from "@/app/tools/roofing/jobCard/useCompanyMembers";
@@ -401,7 +403,7 @@ export default function CompanySettingsClient({
               testId="branding"
             />
             <SummaryRow
-              label="Payments"
+              label={COMPANY_PAYMENT_SETUP_LABEL}
               detail={summarizePayments(payments, paymentsStatus)}
               action="Manage"
               onClick={() => setEditor("payments")}

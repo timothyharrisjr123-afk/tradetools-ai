@@ -49,18 +49,21 @@ describe("catalogContractorLabels", () => {
     assert.equal(CATALOG_CONTRACTOR_LABELS.unitCost, "Unit cost");
     assert.equal(CATALOG_CONTRACTOR_LABELS.unitPrice, "Unit price");
     assert.equal(CATALOG_CONTRACTOR_LABELS.proposal, "Proposal");
+    assert.equal(CATALOG_CONTRACTOR_LABELS.tableItem, "Item");
+    assert.equal(CATALOG_CONTRACTOR_LABELS.sellingPrice, "Selling price");
+    assert.equal(CATALOG_CONTRACTOR_LABELS.quantityBasis, "Quantity basis");
   });
 
-  test("table headers are the P0B contractor set", () => {
+  test("table headers lead with item, selling price, unit, and quantity basis", () => {
     assert.deepEqual([...CATALOG_TABLE_HEADERS], [
-      "Name",
-      "Type",
-      "Measurement",
+      "Item",
+      "Selling price",
       "Unit",
-      "Unit cost",
-      "Unit price",
-      "Proposal",
+      "Quantity basis",
       "Status",
+      "Unit cost",
+      "Type",
+      "Proposal visibility",
       "Actions",
     ]);
     const joined = CATALOG_TABLE_HEADERS.join(" ");
@@ -123,7 +126,7 @@ describe("catalogContractorLabels", () => {
     assert.equal(CATALOG_COMMAND_BAR_PLANNED_CONTROLS.length, 0);
     assert.deepEqual(
       CATALOG_COMMAND_BAR_ACTIVE_CONTROLS.map((c) => c.label),
-      ["Re-order items", "Columns", "Manage catalog"]
+      ["Columns", "Manage catalog"]
     );
     const titles = CATALOG_SETTINGS_PLANNED_TOOLS.map((t) => t.title);
     assert.ok(titles.some((t) => t.includes("Catalog defaults")));

@@ -52,8 +52,10 @@ import {
 } from "@/app/lib/proposalPreviewSentFrozenChrome";
 import {
   asCustomerPreviewGraphFromSentRecord,
+  buildProposalPreviewSentHref,
   buildProposalPreviewSentRecordChrome,
   parseProposalPreviewSentRecordRequest,
+  PREVIEW_HISTORICAL_INCOMPLETE_NOTICE,
   validateProposalSentRecordGraph,
 } from "@/app/lib/proposalPreviewSentRecord";
 import { listJobProposalAcceptances } from "@/app/lib/proposalAcceptanceActivity";
@@ -612,6 +614,7 @@ export default function ProposalCustomerPreviewClient({
   );
 
   const estimatePage = previewDocument?.pages.find((page) => page.kind === "estimate");
+  const historicalIncomplete = Boolean(isSentRecord && previewDocument && !estimatePage);
   const selectedPackageLabel =
     estimatePage?.kind === "estimate" ? estimatePage.selectedOptionLabel : null;
   const totalLabel = persistedGraph
@@ -748,7 +751,22 @@ export default function ProposalCustomerPreviewClient({
           <div className={PREVIEW_COMMAND_SURFACE} data-preview-command-surface>
             <ProposalPreviewHeader
               builderHref={builderHref}
-              backHref={isSentRecord ? jobCardHref : undefined}
+              backHref={
+                isSentRecord || sentFrozenChrome.suppressOrdinarySend === true
+                  ? jobCardHref
+                  : undefined
+              }
+              agreementHref={
+                !isSentRecord &&
+                sentFrozenChrome.suppressOrdinarySend === true &&
+                isUuidLike(agreementAcceptance?.proposalVersionId ?? "")
+                  ? buildProposalPreviewSentHref(
+                      normalizedJobId,
+                      normalizedProposalId,
+                      agreementAcceptance!.proposalVersionId
+                    )
+                  : null
+              }
               customerName={jobIdentity.primaryLabel}
               projectAddress={jobIdentity.secondaryAddress}
               selectedPackageLabel={selectedPackageLabel}
@@ -765,18 +783,31 @@ export default function ProposalCustomerPreviewClient({
                       companyId,
                       proposalId: normalizedProposalId,
                       versionId: sentRequest.versionId,
+                      isAgreementVersion:
+                        agreementAcceptance?.proposalVersionId === sentRequest.versionId,
                     }
                   : null
               }
             />
+            {historicalIncomplete ? (
+              <p
+                className="rounded-md bg-slate-50 px-3 py-2 text-[12.5px] leading-relaxed text-slate-600 ring-1 ring-slate-200/70"
+                data-preview-historical-incomplete
+                role="note"
+              >
+                {PREVIEW_HISTORICAL_INCOMPLETE_NOTICE}
+              </p>
+            ) : null}
             {isSentRecord ? null : (
               <>
-                <ProposalPreviewReadinessSummary
-                  blockingLineCount={previewDocument.readiness.blockingLineCount}
-                  pricingComplete={previewDocument.readiness.pricingComplete}
-                  hasRecipientEmail={hasRecipientEmail}
-                  builderHref={builderHref}
-                />
+                {sentFrozenChrome.suppressOrdinarySend === true ? null : (
+                  <ProposalPreviewReadinessSummary
+                    blockingLineCount={previewDocument.readiness.blockingLineCount}
+                    pricingComplete={previewDocument.readiness.pricingComplete}
+                    hasRecipientEmail={hasRecipientEmail}
+                    builderHref={builderHref}
+                  />
+                )}
                 <ProposalPreviewRequestAwareness
                   proposalId={normalizedProposalId}
                   jobId={normalizedJobId}

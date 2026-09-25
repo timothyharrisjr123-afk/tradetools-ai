@@ -62,8 +62,10 @@ import {
   updateDraftProposalPageContent,
   updateDraftProposalPageVisibility,
   updateDraftSelectedOption,
+  listSentProposalVersionLineage,
   type ProposalDraftGraph,
 } from "@/app/lib/proposalRecordStore";
+import { formatBuilderVersionStatusLabelForProposal } from "@/app/lib/proposalContractorLifecycle";
 import { upsertUpgradeChoiceSelection } from "@/app/lib/proposalUpgradeChoiceStore";
 import {
   bodyMarkdownChanged,
@@ -148,6 +150,7 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
   const [jobLoadComplete, setJobLoadComplete] = useState(false);
 
   const [persistedGraph, setPersistedGraph] = useState<ProposalDraftGraph | null>(null);
+  const [latestSentFrozenAt, setLatestSentFrozenAt] = useState<string | null>(null);
   const [draftGraphError, setDraftGraphError] = useState<string | null>(null);
   const [draftGraphLoadComplete, setDraftGraphLoadComplete] = useState(
     !hasPersistedProposalParam
@@ -448,6 +451,24 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
       cancelled = true;
     };
   }, [companyId, persistedGraph?.proposal.template_id]);
+
+  const persistedProposalId = persistedGraph?.proposal.id ?? null;
+  const persistedLatestSentVersionId = persistedGraph?.proposal.latest_sent_version_id ?? null;
+  useEffect(() => {
+    if (!persistedProposalId || !persistedLatestSentVersionId) {
+      setLatestSentFrozenAt(null);
+      return;
+    }
+    let cancelled = false;
+    void listSentProposalVersionLineage(companyId, persistedProposalId).then((rows) => {
+      if (cancelled) return;
+      const latest = rows.find((row) => row.id === persistedLatestSentVersionId);
+      setLatestSentFrozenAt(latest?.frozen_at ?? null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [companyId, persistedProposalId, persistedLatestSentVersionId]);
 
   useEffect(() => {
     void loadPricingPolicy();
@@ -1727,14 +1748,17 @@ export default function ProposalBuilderClient({ companyId }: { companyId: string
         job={job}
         jobId={normalizedJobId}
         shellReady={shellReady}
-        showDraftSavedPill={
-          Boolean(
-            shellReady &&
-              hasPersistedProposalParam &&
-              draftGraphLoadComplete &&
-              !draftGraphError &&
-              persistedGraph != null
-          )
+        versionStatusLabel={
+          shellReady &&
+          hasPersistedProposalParam &&
+          draftGraphLoadComplete &&
+          !draftGraphError &&
+          persistedGraph != null
+            ? formatBuilderVersionStatusLabelForProposal(
+                persistedGraph.proposal,
+                latestSentFrozenAt
+              )
+            : null
         }
         selectedPackageLabel={
           shellReady

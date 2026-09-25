@@ -5,7 +5,7 @@
  */
 
 export const CATALOG_COLUMN_PREFS_STORAGE_KEY =
-  "fielddive.catalog.columnVisibility.v1" as const;
+  "fielddive.catalog.columnVisibility.v2" as const;
 
 /** Always visible — not toggleable. */
 export const CATALOG_REQUIRED_COLUMN_IDS = ["select", "name", "actions"] as const;
@@ -14,13 +14,13 @@ export type CatalogRequiredColumnId = (typeof CATALOG_REQUIRED_COLUMN_IDS)[numbe
 
 /** Toggleable table columns (Coverage/Waste/Tax stay on name detail / edit panel). */
 export const CATALOG_OPTIONAL_COLUMNS = [
-  { id: "type", label: "Type", defaultVisible: true },
-  { id: "measurement", label: "Measurement", defaultVisible: true },
+  { id: "unit_price", label: "Selling price", defaultVisible: true },
   { id: "unit", label: "Unit", defaultVisible: true },
-  { id: "unit_cost", label: "Unit cost", defaultVisible: true },
-  { id: "unit_price", label: "Unit price", defaultVisible: true },
-  { id: "proposal", label: "Proposal", defaultVisible: true },
+  { id: "measurement", label: "Quantity basis", defaultVisible: true },
   { id: "status", label: "Status", defaultVisible: true },
+  { id: "unit_cost", label: "Unit cost", defaultVisible: true },
+  { id: "type", label: "Type", defaultVisible: false },
+  { id: "proposal", label: "Proposal visibility", defaultVisible: false },
 ] as const;
 
 export type CatalogOptionalColumnId = (typeof CATALOG_OPTIONAL_COLUMNS)[number]["id"];

@@ -186,30 +186,7 @@ export default function CatalogItemToolbar({
             role="group"
             aria-label="Catalog tools"
           >
-            <button
-              type="button"
-              className={
-                reorderMode
-                  ? `${COMMAND_CONTROL_ACTIVE} ring-1 ring-amber-300/80 bg-amber-50`
-                  : COMMAND_CONTROL_ACTIVE
-              }
-              title={
-                reorderMode
-                  ? "Reorder mode is active"
-                  : reorderAvailable
-                    ? "Reorder Catalog display order"
-                    : CATALOG_REORDER_UNAVAILABLE_COPY
-              }
-              data-catalog-command="reorder"
-              data-catalog-reorder-available={reorderAvailable ? "true" : "false"}
-              disabled={reorderMode || !onEnterReorder}
-              onClick={() => onEnterReorder?.()}
-              aria-pressed={reorderMode}
-            >
-              <span>{reorderMode ? "Reordering…" : "Re-order items"}</span>
-            </button>
-
-            <details className="relative" data-catalog-columns-menu>
+            <details className="relative hidden md:block" data-catalog-columns-menu>
               <summary className={COMMAND_CONTROL_ACTIVE} aria-label="Columns">
                 <span>Columns</span>
               </summary>
@@ -218,7 +195,7 @@ export default function CatalogItemToolbar({
                   Show columns
                 </p>
                 <p className="mb-2 px-1.5 text-[11px] leading-relaxed text-slate-500">
-                  Name and Actions always stay visible. Coverage, waste, and tax stay on the item
+                  Item and Actions always stay visible. Coverage, waste, and tax stay on the item
                   detail panel.
                 </p>
                 <ul className="space-y-0.5">
@@ -252,7 +229,11 @@ export default function CatalogItemToolbar({
               </div>
             </details>
 
-            <details className="relative" data-catalog-manage-menu>
+            <details
+              className="relative"
+              data-catalog-manage-menu
+              data-catalog-reorder-available={reorderAvailable ? "true" : "false"}
+            >
               <summary className={COMMAND_CONTROL_ACTIVE} aria-label="Manage catalog">
                 <span>Manage catalog</span>
               </summary>

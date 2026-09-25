@@ -60,7 +60,7 @@ describe("V2B1 Builder shell", () => {
     const constants = read(
       "app/tools/roofing/proposals/builder/proposalBuilderConstants.ts"
     );
-    assert.match(constants, /BUILDER_CUSTOMER_REVIEW_LABEL = "Customer review"/);
+    assert.match(constants, /BUILDER_CUSTOMER_REVIEW_LABEL = "Review proposal"/);
     assert.match(actions, /BUILDER_CUSTOMER_REVIEW_LABEL/);
     assert.match(actions, /data-builder-customer-review-action/);
     assert.match(actions, /data-builder-preview-action/);

@@ -204,6 +204,8 @@ export type WorkbenchScopeLine = {
   qtyLabel: string;
   qtyUnresolved: boolean;
   amountLabel: string;
+  /** "qty × unit price" when the snapshot has a priced unit rate; null otherwise. */
+  unitMathLabel?: string | null;
   statusKind: WorkbenchEstimateLineStatusKind;
   hiddenFromCustomer: boolean;
   detailMeta: WorkbenchLineDetailMeta;
@@ -639,6 +641,29 @@ function wouldSuppressFromDocument(
   return true;
 }
 
+export function formatWorkbenchUnitMathLabel(input: {
+  statusKind: WorkbenchEstimateLineStatusKind;
+  qtyLabel: string;
+  qtyUnresolved: boolean;
+  unitPriceCents: number | null | undefined;
+  /** Snapshot line total and the amount shown — must agree or the breakdown is hidden. */
+  snapshotLineTotalCents: number | null | undefined;
+  displayedLineCents: number | null | undefined;
+}): string | null {
+  if (input.statusKind !== "priced" || input.qtyUnresolved) return null;
+  if (input.unitPriceCents == null || !Number.isFinite(input.unitPriceCents)) return null;
+  if (
+    input.snapshotLineTotalCents == null ||
+    input.displayedLineCents == null ||
+    input.snapshotLineTotalCents !== input.displayedLineCents
+  ) {
+    return null;
+  }
+  const qty = input.qtyLabel.trim();
+  if (!qty || qty === "—") return null;
+  return `${qty} × ${formatPriceCents(input.unitPriceCents)}`;
+}
+
 function buildScopeLine(
   row: ProposalPreviewLineRow,
   lineView: ProposalBuilderLineCustomerView | undefined,
@@ -654,6 +679,14 @@ function buildScopeLine(
     qtyLabel: qtyState.qtyLabel,
     qtyUnresolved: qtyState.qtyUnresolved,
     amountLabel: readyAmountLabel(classification.statusKind, lineView!),
+    unitMathLabel: formatWorkbenchUnitMathLabel({
+      statusKind: classification.statusKind,
+      qtyLabel: qtyState.qtyLabel,
+      qtyUnresolved: qtyState.qtyUnresolved,
+      unitPriceCents: snapshotQty?.unitPriceCents,
+      snapshotLineTotalCents: snapshotQty?.lineTotalCents,
+      displayedLineCents: lineView?.customerLinePriceCents,
+    }),
     statusKind: classification.statusKind,
     hiddenFromCustomer,
     detailMeta: buildDetailMeta(row, qtyState.quantityStatusLabel, snapshotQty?.unitLabel),

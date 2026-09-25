@@ -20,15 +20,20 @@ describe("catalogColumnVisibility", () => {
     assert.deepEqual([...CATALOG_REQUIRED_COLUMN_IDS], ["select", "name", "actions"]);
   });
 
-  test("defaults show all optional columns", () => {
+  test("defaults lead with selling columns and subordinate admin columns", () => {
     const defaults = defaultCatalogOptionalColumnVisibility();
-    for (const col of CATALOG_OPTIONAL_COLUMNS) {
-      assert.equal(defaults[col.id], true);
-    }
-    assert.equal(
-      countVisibleOptionalCatalogColumns(defaults),
-      CATALOG_OPTIONAL_COLUMNS.length
+    assert.deepEqual(
+      CATALOG_OPTIONAL_COLUMNS.map((c) => c.id),
+      ["unit_price", "unit", "measurement", "status", "unit_cost", "type", "proposal"]
     );
+    assert.equal(defaults.unit_price, true);
+    assert.equal(defaults.unit, true);
+    assert.equal(defaults.measurement, true);
+    assert.equal(defaults.status, true);
+    assert.equal(defaults.unit_cost, true);
+    assert.equal(defaults.type, false);
+    assert.equal(defaults.proposal, false);
+    assert.equal(countVisibleOptionalCatalogColumns(defaults), 5);
   });
 
   test("normalize toggles optional columns and ignores unknown keys", () => {
@@ -68,6 +73,7 @@ describe("catalogColumnVisibility", () => {
     const visibility = defaultCatalogOptionalColumnVisibility();
     visibility.unit = false;
     assert.equal(isCatalogOptionalColumnVisible(visibility, "unit"), false);
-    assert.equal(isCatalogOptionalColumnVisible(visibility, "type"), true);
+    assert.equal(isCatalogOptionalColumnVisible(visibility, "type"), false);
+    assert.equal(isCatalogOptionalColumnVisible(visibility, "unit_price"), true);
   });
 });

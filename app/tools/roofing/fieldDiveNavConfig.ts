@@ -40,6 +40,8 @@ export type FieldDiveNavSectionConfig = {
   label: string;
   /** When true, section starts collapsed in the sidebar (Advanced). */
   collapsedByDefault?: boolean;
+  /** Kept as a record of retired/unavailable entries; never rendered in the sidebar. */
+  hiddenFromNavigation?: boolean;
   items: FieldDiveNavItemConfig[];
 };
 
@@ -125,6 +127,7 @@ export const FIELD_DIVE_NAV_SECTIONS: FieldDiveNavSectionConfig[] = [
     id: "legacyAndFuture",
     label: "Advanced",
     collapsedByDefault: true,
+    hiddenFromNavigation: true,
     items: [
       {
         key: null,
@@ -182,6 +185,12 @@ export const FIELD_DIVE_NAV_SECTIONS: FieldDiveNavSectionConfig[] = [
     ],
   },
 ];
+
+export function getVisibleNavSections(
+  sections: FieldDiveNavSectionConfig[] = FIELD_DIVE_NAV_SECTIONS
+): FieldDiveNavSectionConfig[] {
+  return sections.filter((section) => !section.hiddenFromNavigation);
+}
 
 export function flattenNavItems(
   sections: FieldDiveNavSectionConfig[] = FIELD_DIVE_NAV_SECTIONS

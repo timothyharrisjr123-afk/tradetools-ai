@@ -15,7 +15,7 @@ export const PREVIEW_HEADER =
   "rounded-xl border border-slate-200/70 bg-white/95 shadow-[0_4px_16px_rgba(15,23,42,0.04)]";
 
 export const PREVIEW_HEADER_INNER =
-  "flex items-start justify-between gap-3 px-4 py-3 sm:items-center sm:gap-4 sm:px-5 sm:py-3.5";
+  "flex flex-col items-stretch gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5 sm:py-3.5";
 
 /** Command + optional blocker chip stack above the document */
 export const PREVIEW_COMMAND_SURFACE = "space-y-2";

@@ -102,7 +102,7 @@ describe("V2B6 final Builder consolidation", () => {
     assert.match(client, /if \(actionId !== "preview"\) return/);
     assert.match(client, /buildProposalCustomerPreviewHref\(jobId, proposalId\)/);
     assert.match(guidance, /CUSTOMER_REVIEW_NEEDS_DRAFT_COPY/);
-    assert.match(guidance, /Customer review needs a saved proposal draft/);
+    assert.match(guidance, /Review is available once there is a saved proposal draft/);
     assert.doesNotMatch(guidance, /roadmap phase/);
     assert.doesNotMatch(actions, /roadmap phase/);
   });

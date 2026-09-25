@@ -35,7 +35,7 @@ import {
 } from "lucide-react";
 import { SignOutButton } from "@/app/components/auth/SignOutButton";
 import {
-  FIELD_DIVE_NAV_SECTIONS,
+  getVisibleNavSections,
   type FieldDiveNavIconName,
   type FieldDiveNavItemConfig,
   type FieldDiveNavSectionConfig,
@@ -432,7 +432,7 @@ export default function FieldDiveAppShell({ activeNav, activeSubId, children }: 
     }));
   };
 
-  const navSections = FIELD_DIVE_NAV_SECTIONS.map((section) => (
+  const navSections = getVisibleNavSections().map((section) => (
     <NavSidebarSection
       key={section.id}
       section={section}

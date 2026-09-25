@@ -27,6 +27,7 @@ import {
   isCatalogOptionalColumnVisible,
   type CatalogOptionalColumnVisibility,
 } from "@/app/lib/catalogColumnVisibility";
+import { catalogUnitQuantityMismatchNote } from "@/app/lib/catalogCoverageCompatibility";
 import { formatCatalogQuantityDriversLine } from "../catalogAdminUtils";
 import {
   CATALOG_PILL_PROPOSAL_GROUPED,
@@ -93,6 +94,82 @@ function statusPillClass(item: CatalogItem): string {
   if (tone === "needs_price") return CATALOG_PILL_STATUS_NEEDS_PRICE;
   if (tone === "inactive") return CATALOG_PILL_STATUS_INACTIVE;
   return CATALOG_PILL_STATUS_ACTIVE;
+}
+
+function catalogUnitMismatchNoteFor(item: CatalogItem): string | null {
+  return catalogUnitQuantityMismatchNote({
+    quantity_source: item.quantity_source,
+    unit: item.unit,
+    unitLabel: catalogUnitLabel(item.unit),
+  });
+}
+
+function CatalogMobileItemList({
+  items,
+  selectedItemId,
+  savingItemId,
+  togglingActiveId,
+  onEditToggle,
+}: {
+  items: CatalogItem[];
+  selectedItemId: string | null;
+  savingItemId: string | null;
+  togglingActiveId: string | null;
+  onEditToggle: (item: CatalogItem) => void;
+}) {
+  return (
+    <ul className="divide-y divide-slate-100 bg-white md:hidden" data-catalog-mobile-list>
+      {items.map((item) => {
+        const display = catalogItemDisplayName(item);
+        const status = formatCatalogItemStatus(item);
+        const unitMismatchNote = catalogUnitMismatchNoteFor(item);
+        const isSaving = savingItemId === item.id;
+        const isEditing = selectedItemId === item.id;
+        return (
+          <li
+            key={item.id}
+            className={`flex items-start gap-3 px-4 py-3 ${!item.active ? "opacity-70" : ""}`}
+            data-catalog-mobile-row={item.id}
+          >
+            <div className="min-w-0 flex-1">
+              <p className="text-[15px] font-medium leading-snug text-slate-900">{display.primary}</p>
+              <p className="mt-0.5 text-sm text-slate-700">
+                <CatalogPriceTableCell cents={item.unit_price_cents} />
+                <span className="text-slate-500"> / {catalogUnitLabel(item.unit).toLowerCase()}</span>
+              </p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                {quantitySourceLabel(item.quantity_source)}
+                {status !== "Active" ? (
+                  <>
+                    {" · "}
+                    <span className={statusPillClass(item)}>{status}</span>
+                  </>
+                ) : null}
+              </p>
+              {unitMismatchNote ? (
+                <p className="mt-1 text-xs text-amber-800" data-catalog-unit-mismatch={item.id}>
+                  {unitMismatchNote}
+                </p>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              onClick={() => onEditToggle(item)}
+              disabled={
+                isSaving ||
+                togglingActiveId === item.id ||
+                (savingItemId != null && !isSaving)
+              }
+              className="inline-flex min-h-11 shrink-0 items-center rounded-md border border-slate-300 bg-white px-3.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              data-catalog-mobile-edit={item.id}
+            >
+              {isEditing ? "Close" : "Edit"}
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
 }
 
 function SelectAllCheckbox({
@@ -187,7 +264,17 @@ export default function CatalogItemTable({
   const selectionDisabled = busy || visibleIds.length === 0 || reorderMode;
 
   return (
-    <div className="overflow-x-auto bg-white">
+    <>
+    {!reorderMode ? (
+      <CatalogMobileItemList
+        items={flatItems}
+        selectedItemId={selectedItemId}
+        savingItemId={savingItemId}
+        togglingActiveId={togglingActiveId}
+        onEditToggle={onEditToggle}
+      />
+    ) : null}
+    <div className={reorderMode ? "overflow-x-auto bg-white" : "hidden overflow-x-auto bg-white md:block"}>
       <table
         className="w-full table-auto text-sm"
         style={{ minWidth: `${minWidthRem}rem` }}
@@ -213,23 +300,23 @@ export default function CatalogItemTable({
                 />
               )}
             </th>
-            <th className={TABLE_TH_WIDE}>{CATALOG_CONTRACTOR_LABELS.name}</th>
-            {showType ? <th className={TABLE_TH}>{CATALOG_CONTRACTOR_LABELS.type}</th> : null}
-            {showMeasurement ? (
-              <th className={TABLE_TH_WIDE}>{CATALOG_CONTRACTOR_LABELS.measurement}</th>
+            <th className={TABLE_TH_WIDE}>{CATALOG_CONTRACTOR_LABELS.tableItem}</th>
+            {showUnitPrice ? (
+              <th className={TABLE_TH_COMPACT}>{CATALOG_CONTRACTOR_LABELS.sellingPrice}</th>
             ) : null}
             {showUnit ? <th className={TABLE_TH}>{CATALOG_CONTRACTOR_LABELS.unit}</th> : null}
-            {showUnitCost ? (
-              <th className={TABLE_TH_COMPACT}>{CATALOG_CONTRACTOR_LABELS.unitCost}</th>
-            ) : null}
-            {showUnitPrice ? (
-              <th className={TABLE_TH_COMPACT}>{CATALOG_CONTRACTOR_LABELS.unitPrice}</th>
-            ) : null}
-            {showProposal ? (
-              <th className={TABLE_TH_COMPACT}>{CATALOG_CONTRACTOR_LABELS.proposal}</th>
+            {showMeasurement ? (
+              <th className={TABLE_TH_WIDE}>{CATALOG_CONTRACTOR_LABELS.quantityBasis}</th>
             ) : null}
             {showStatus ? (
               <th className={TABLE_TH_COMPACT}>{CATALOG_CONTRACTOR_LABELS.status}</th>
+            ) : null}
+            {showUnitCost ? (
+              <th className={TABLE_TH_COMPACT}>{CATALOG_CONTRACTOR_LABELS.unitCost}</th>
+            ) : null}
+            {showType ? <th className={TABLE_TH}>{CATALOG_CONTRACTOR_LABELS.type}</th> : null}
+            {showProposal ? (
+              <th className={TABLE_TH_COMPACT}>{CATALOG_CONTRACTOR_LABELS.proposalVisibility}</th>
             ) : null}
             <th className={TABLE_TH_ACTION}>{CATALOG_CONTRACTOR_LABELS.actions}</th>
           </tr>
@@ -244,6 +331,7 @@ export default function CatalogItemTable({
             const quantityDriversLine = formatCatalogQuantityDriversLine(item);
             const status = formatCatalogItemStatus(item);
             const proposalLabel = formatProposalVisibilityShort(item.customer_visibility);
+            const unitMismatchNote = catalogUnitMismatchNoteFor(item);
             const isFirst = index === 0;
             const isLast = index === flatItems.length - 1;
 
@@ -330,28 +418,41 @@ export default function CatalogItemTable({
                         {quantityDriversLine}
                       </span>
                     ) : null}
+                    {unitMismatchNote ? (
+                      <span
+                        className="mt-1 block max-w-[22rem] whitespace-normal text-xs font-normal text-amber-800"
+                        data-catalog-unit-mismatch={item.id}
+                      >
+                        {unitMismatchNote}
+                      </span>
+                    ) : null}
                   </td>
-                  {showType ? (
-                    <td className={TABLE_TD}>
-                      <span className="text-slate-600">{catalogItemTypeLabel(item.item_type)}</span>
+                  {showUnitPrice ? (
+                    <td className={`${TABLE_TD_COMPACT} font-semibold text-slate-900`}>
+                      <CatalogPriceTableCell cents={item.unit_price_cents} />
                     </td>
+                  ) : null}
+                  {showUnit ? (
+                    <td className={TABLE_TD_UNIT}>{catalogUnitLabel(item.unit)}</td>
                   ) : null}
                   {showMeasurement ? (
                     <td className={`${TABLE_TD_WIDE} max-w-[10rem] truncate text-slate-600`}>
                       {quantitySourceLabel(item.quantity_source)}
                     </td>
                   ) : null}
-                  {showUnit ? (
-                    <td className={TABLE_TD_UNIT}>{catalogUnitLabel(item.unit)}</td>
+                  {showStatus ? (
+                    <td className={TABLE_TD_COMPACT}>
+                      <span className={statusPillClass(item)}>{status}</span>
+                    </td>
                   ) : null}
                   {showUnitCost ? (
-                    <td className={TABLE_TD_COMPACT}>
+                    <td className={`${TABLE_TD_COMPACT} text-slate-500`}>
                       <CatalogPriceTableCell cents={item.unit_cost_cents} emptyLabel="—" />
                     </td>
                   ) : null}
-                  {showUnitPrice ? (
-                    <td className={TABLE_TD_COMPACT}>
-                      <CatalogPriceTableCell cents={item.unit_price_cents} />
+                  {showType ? (
+                    <td className={TABLE_TD}>
+                      <span className="text-slate-600">{catalogItemTypeLabel(item.item_type)}</span>
                     </td>
                   ) : null}
                   {showProposal ? (
@@ -359,11 +460,6 @@ export default function CatalogItemTable({
                       <span className={proposalPillClass(item.customer_visibility)}>
                         {proposalLabel}
                       </span>
-                    </td>
-                  ) : null}
-                  {showStatus ? (
-                    <td className={TABLE_TD_COMPACT}>
-                      <span className={statusPillClass(item)}>{status}</span>
                     </td>
                   ) : null}
                   <td
@@ -406,5 +502,6 @@ export default function CatalogItemTable({
         </tbody>
       </table>
     </div>
+    </>
   );
 }

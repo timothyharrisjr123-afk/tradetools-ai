@@ -77,22 +77,23 @@ describe("Catalog P0B–P0D page shell", () => {
     assert.ok(!table.includes("Grouped by type"));
   });
 
-  test("command bar has Search, Filters, Reorder, Columns, Manage catalog, and Add", () => {
+  test("command bar leads with Search and Filters; Reorder lives in Manage catalog", () => {
     const source = readAdminComponent("CatalogItemToolbar.tsx");
     assert.ok(source.includes("Search catalog"));
     assert.ok(source.includes("CATALOG_FILTERS_SORT_LABEL") || source.includes(CATALOG_FILTERS_SORT_LABEL));
     assert.equal(CATALOG_FILTERS_SORT_LABEL, "Filters");
     assert.ok(source.includes("Show inactive"));
     assert.ok(source.includes("Add catalog item"));
-    assert.ok(source.includes('data-catalog-command="reorder"'));
+    assert.equal(source.includes('data-catalog-command="reorder"'), false);
     assert.ok(source.includes("onEnterReorder"));
     assert.ok(source.includes("data-catalog-columns-menu"));
+    assert.match(source, /relative hidden md:block" data-catalog-columns-menu/);
     assert.ok(source.includes("data-catalog-manage-menu"));
     assert.ok(source.includes("onColumnVisibilityChange"));
     assert.equal(CATALOG_COMMAND_BAR_PLANNED_CONTROLS.length, 0);
     assert.deepEqual(
       CATALOG_COMMAND_BAR_ACTIVE_CONTROLS.map((c) => c.label),
-      ["Re-order items", "Columns", "Manage catalog"]
+      ["Columns", "Manage catalog"]
     );
     assert.equal(CATALOG_COMING_SOON_LABEL, "Coming soon");
   });
@@ -277,16 +278,12 @@ describe("Catalog P0B–P0D page shell", () => {
     assert.equal(/supplier sync is active|material ordering is live/i.test(modal + setup), false);
   });
 
-  test("All items shows Open Templates next action when catalog ready", () => {
+  test("All items has no permanent ready-for-templates banner after setup", () => {
     const workspace = readCatalogFile("CatalogItemsWorkspace.tsx");
     const setup = readCatalogFile("CatalogSetupClient.tsx");
-    assert.ok(workspace.includes("data-catalog-next-templates"));
-    assert.ok(workspace.includes("data-catalog-open-templates"));
-    assert.ok(workspace.includes("Open Templates"));
-    assert.ok(workspace.includes("Create proposals from a Job Card"));
-    assert.ok(setup.includes("catalogReadyForTemplates"));
-    assert.ok(setup.includes('readiness.state === "ready_for_templates"'));
-    assert.ok(workspace.includes("Create proposals from a Job Card"));
+    assert.equal(workspace.includes("data-catalog-next-templates"), false);
+    assert.equal(workspace.includes("Catalog ready for templates"), false);
+    assert.equal(setup.includes("catalogReadyForTemplates"), false);
     assert.equal(/href=.*Create proposal|Create proposal button/i.test(workspace), false);
   });
 
@@ -434,14 +431,14 @@ describe("Catalog P0B–P0D page shell", () => {
 
   test("table headers contract matches supported columns", () => {
     assert.deepEqual([...CATALOG_TABLE_HEADERS], [
-      "Name",
-      "Type",
-      "Measurement",
+      "Item",
+      "Selling price",
       "Unit",
-      "Unit cost",
-      "Unit price",
-      "Proposal",
+      "Quantity basis",
       "Status",
+      "Unit cost",
+      "Type",
+      "Proposal visibility",
       "Actions",
     ]);
   });
@@ -462,8 +459,8 @@ describe("Catalog P0B–P0D page shell", () => {
     const bar = readAdminComponent("CatalogBulkActionBar.tsx");
     const add = readAdminComponent("AddCatalogItemModal.tsx");
     assert.ok(workspace.includes("!showInactive"));
-    assert.ok(toolbar.includes("Re-order items"));
-    assert.ok(toolbar.includes("Reordering…"));
+    assert.ok(toolbar.includes("CATALOG_MANAGE_MENU_ITEMS"));
+    assert.ok(toolbar.includes('item.id === "reorder"'));
     assert.match(bar, /Supplier sync, material ordering/);
     assert.ok(!bar.includes("PRIMARY_BUTTON"));
     assert.equal(

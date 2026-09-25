@@ -154,7 +154,7 @@ describe("Phase 6 Builder quantity status UI wiring", () => {
     assert.match(settingsClient, /LOCKED_WASTE_MODEL/);
     // Cohesion Cut 1 shows the locked waste model in contractor wording.
     assert.match(settingsClient, /WASTE_MODEL_LABELS/);
-    assert.match(settingsClient, /<dt className="text-slate-500">Waste<\/dt>/);
+    assert.match(settingsClient, /<dt className="text-slate-500">Waste allowance<\/dt>/);
     // Still display-only: no editable waste control.
     assert.doesNotMatch(settingsClient, /updateField\("wasteModel"/);
   });

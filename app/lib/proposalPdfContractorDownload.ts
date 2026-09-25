@@ -28,6 +28,11 @@ import { isUuidLike } from "@/app/lib/uuid";
 
 export const CONTRACTOR_PDF_DOWNLOAD_LABEL = "Download PDF" as const;
 export const CONTRACTOR_PDF_DOWNLOAD_SIGNED_LABEL = "Download signed PDF" as const;
+/** Accepted agreement version: the sent artifact is the original agreement. */
+export const CONTRACTOR_PDF_DOWNLOAD_ORIGINAL_AGREEMENT_LABEL =
+  "Download original agreement" as const;
+export const CONTRACTOR_PDF_DOWNLOAD_SIGNED_AGREEMENT_LABEL =
+  "Download signed agreement" as const;
 export const CONTRACTOR_PDF_PREPARING_LABEL = "Preparing PDF…" as const;
 export const CONTRACTOR_PDF_UNAVAILABLE_MESSAGE = "PDF unavailable. Try again." as const;
 

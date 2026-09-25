@@ -128,7 +128,9 @@ describe("Template Flow V1 — presentation truth + quiet infrastructure", () =>
     assert.ok(included.includes("data-templates-adjust-included-work"));
     assert.ok(included.includes("embedded"));
     assert.ok(included.includes("data-templates-prepared-scope-groups"));
-    assert.ok(included.includes("ring-1 ring-slate-200/70"));
+    // Phase 12.5 G3: prepared scope is a flat list under group headings (no card-in-card).
+    assert.equal(included.includes("rounded-lg bg-white px-3 py-2 ring-1 ring-slate-100"), false);
+    assert.ok(included.includes('id="templates-included-work"'));
     assert.ok(upgrades.includes("data-templates-adjust-available-upgrades"));
     assert.ok(upgrades.includes("data-templates-available-upgrades-empty"));
     assert.ok(upgrades.includes("TEMPLATES_ADD_OPTIONAL_UPGRADE_ACTION"));

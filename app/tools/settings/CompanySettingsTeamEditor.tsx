@@ -116,11 +116,9 @@ export default function CompanySettingsTeamEditor({
       description="Who can work this company’s jobs — keep it simple."
       dirty={Boolean(removeUserId)}
       saving={Boolean(busyUserId)}
-      saveDisabled={Boolean(removeUserId) || Boolean(busyUserId)}
+      readOnly
       error={localError || error}
       onClose={onClose}
-      onSave={onClose}
-      saveLabel="Done"
     >
       <div data-company-settings-editor="team" className="space-y-3">
         {loading ? (

@@ -1517,6 +1517,7 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
     <div className="mx-auto w-full max-w-[92rem] space-y-4">
       <TemplatesPageHeader
         onAddTemplate={handleOpenGuidedCreate}
+        hasUsableTemplate={companyTemplates.some((row) => row.status !== "archived")}
         addTemplateDisabled={addTemplateDisabled}
         addTemplateDisabledTitle={addTemplateDisabledTitle}
       />
@@ -1620,6 +1621,11 @@ export default function TemplatesSetupClient({ companyId }: { companyId: string 
                     : undefined
                 }
                 preferenceBusy={preferenceBusy}
+                preferredTemplateName={
+                  preferredTemplateId != null && preferredTemplateId !== selectedTemplateId
+                    ? companyTemplates.find((row) => row.id === preferredTemplateId)?.name ?? null
+                    : null
+                }
               />
             ) : null}
           </div>

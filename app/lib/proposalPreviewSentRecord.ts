@@ -16,6 +16,10 @@ import type {
 export const PREVIEW_SENT_RECORD_VIEW = "sent" as const;
 export const PREVIEW_SENT_RECORD_STATUS_LABEL = "Sent proposal" as const;
 export const PREVIEW_SENT_RECORD_BACK_LABEL = "Back to Job Card" as const;
+export const PREVIEW_OPEN_AGREEMENT_LABEL = "View original agreement" as const;
+/** Frozen version saved without its full document pages — shown as-is, never rebuilt. */
+export const PREVIEW_HISTORICAL_INCOMPLETE_NOTICE =
+  "This older sent version was saved before full proposal pages were stored. Only the pages captured when it was sent are shown; nothing has been rebuilt from current templates." as const;
 export const PREVIEW_SENT_RECORD_MISSING_VERSION =
   "This sent proposal could not be opened." as const;
 export const PREVIEW_SENT_RECORD_NOT_FROZEN =

@@ -96,6 +96,7 @@ type TemplatesSelectedWorkspaceProps = {
   onMakePreferred?: () => void;
   onClearPreferred?: () => void;
   preferenceBusy?: boolean;
+  preferredTemplateName?: string | null;
 };
 
 export default function TemplatesSelectedWorkspace({
@@ -140,6 +141,7 @@ export default function TemplatesSelectedWorkspace({
   onMakePreferred,
   onClearPreferred,
   preferenceBusy = false,
+  preferredTemplateName = null,
 }: TemplatesSelectedWorkspaceProps) {
   const contentSaveBlocked = savingSectionId != null;
   const managerBusy = structureBusy != null || contentSaveBlocked;
@@ -179,6 +181,7 @@ export default function TemplatesSelectedWorkspace({
           onMakePreferred={onMakePreferred}
           onClearPreferred={onClearPreferred}
           preferenceBusy={preferenceBusy}
+          preferredTemplateName={preferredTemplateName}
         />
       </div>
     );

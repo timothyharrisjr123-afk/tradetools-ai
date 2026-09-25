@@ -46,7 +46,9 @@ type FocusedEditorProps = {
   message?: string | null;
   error?: string | null;
   onClose: () => void;
-  onSave: () => void;
+  onSave?: () => void;
+  /** Read-only panel: one Close action instead of Cancel plus a disabled Save. */
+  readOnly?: boolean;
   children: ReactNode;
 };
 
@@ -63,6 +65,7 @@ export default function FocusedEditor({
   error = null,
   onClose,
   onSave,
+  readOnly = false,
   children,
 }: FocusedEditorProps) {
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -181,26 +184,39 @@ export default function FocusedEditor({
               {message}
             </p>
           ) : null}
-          <div className="flex items-center justify-end gap-2">
-            <button
-              type="button"
-              className={FOCUSED_EDITOR_CANCEL}
-              onClick={requestClose}
-              disabled={saving}
-              data-focused-editor-cancel
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className={saveClass}
-              onClick={onSave}
-              disabled={saveLooksDisabled}
-              data-focused-editor-save
-            >
-              {saving ? savingLabel : saveLabel}
-            </button>
-          </div>
+          {readOnly ? (
+            <div className="flex items-center justify-end">
+              <button
+                type="button"
+                className={`${FOCUSED_EDITOR_CANCEL} border border-slate-200 text-slate-800`}
+                onClick={requestClose}
+                data-focused-editor-close-action
+              >
+                Close
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                className={FOCUSED_EDITOR_CANCEL}
+                onClick={requestClose}
+                disabled={saving}
+                data-focused-editor-cancel
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={saveClass}
+                onClick={onSave}
+                disabled={saveLooksDisabled}
+                data-focused-editor-save
+              >
+                {saving ? savingLabel : saveLabel}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

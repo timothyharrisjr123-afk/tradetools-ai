@@ -121,7 +121,7 @@ export default function TemplatesTemplateLibraryRow({
             </h3>
             {isPreferred && !archived ? (
               <span
-                className="rounded-full bg-emerald-50/90 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800 ring-1 ring-emerald-200/70"
+                className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-700 ring-1 ring-slate-200"
                 data-templates-library-preferred-badge={template.id}
               >
                 {TEMPLATES_PREFERRED_BADGE_LABEL}

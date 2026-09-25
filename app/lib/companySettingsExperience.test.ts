@@ -154,9 +154,13 @@ describe("Company Settings save model", () => {
   test("the focused editor owns the only Save and Cancel", () => {
     assert.equal((FOCUSED_EDITOR.match(/data-focused-editor-save/g) ?? []).length, 1);
     assert.equal((FOCUSED_EDITOR.match(/data-focused-editor-cancel/g) ?? []).length, 1);
+    assert.equal((FOCUSED_EDITOR.match(/data-focused-editor-close-action/g) ?? []).length, 1);
     for (const editor of EDITORS) {
       assert.match(editor, /<FocusedEditor/);
-      assert.equal((editor.match(/onSave=/g) ?? []).length, 1);
+      const readOnly = /\n\s+readOnly\s*\n/.test(editor);
+      // Read-only panels (payments, team) get one Close action, never Cancel + disabled Done.
+      assert.equal((editor.match(/onSave=/g) ?? []).length, readOnly ? 0 : 1);
+      assert.doesNotMatch(editor, /saveLabel="Done"/);
       // No editor ships its own second save control.
       assert.doesNotMatch(editor, /Save changes|Save and close/i);
     }
@@ -165,7 +169,10 @@ describe("Company Settings save model", () => {
   test("closing a dirty editor prompts before discarding", () => {
     assert.match(FOCUSED_EDITOR, /FOCUSED_EDITOR_DIRTY_PROMPT/);
     assert.match(FOCUSED_EDITOR, /if \(dirty && !window\.confirm/);
-    for (const editor of EDITORS) assert.match(editor, /dirty=\{(?:touched|false)\}/);
+    for (const editor of EDITORS) {
+      if (/\n\s+readOnly\s*\n/.test(editor)) continue;
+      assert.match(editor, /dirty=\{(?:touched|false)\}/);
+    }
   });
 
   test("editors mount fresh so drafts always seed from saved truth", () => {
@@ -262,7 +269,7 @@ describe("Mobile navigation", () => {
     assert.match(APP_SHELL, /min-h-\[44px\]/);
     // One nav definition renders both sidebar and sheet.
     assert.equal((APP_SHELL.match(/\{navSections\}/g) ?? []).length, 2);
-    assert.equal((APP_SHELL.match(/FIELD_DIVE_NAV_SECTIONS\.map/g) ?? []).length, 1);
+    assert.equal((APP_SHELL.match(/getVisibleNavSections\(\)\.map/g) ?? []).length, 1);
   });
 
   test("every required destination is reachable from the shared nav", () => {
@@ -310,7 +317,7 @@ describe("Pricing visual normalization", () => {
     assert.doesNotMatch(PRICING_CLIENT, /text-white\//);
     assert.doesNotMatch(PRICING_CLIENT, /min-h-screen/);
     assert.doesNotMatch(PRICING_CLIENT, /border-cyan-|text-cyan-|bg-cyan-/);
-    assert.match(PRICING_CLIENT, /bg-blue-600/);
+    assert.match(PRICING_CLIENT, /bg-slate-900/);
     assert.doesNotMatch(PRICING_CLIENT, /bg-white\/95/);
   });
 

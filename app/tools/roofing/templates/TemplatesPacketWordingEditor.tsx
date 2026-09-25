@@ -99,7 +99,7 @@ export default function TemplatesPacketWordingEditor({
           <p className="text-xs text-slate-500">{TEMPLATES_PACKET_EDITOR_HINT}</p>
           <button
             type="button"
-            className="shrink-0 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+            className="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-50"
             onClick={() => setEditing(true)}
             disabled={locked}
             data-templates-edit-customer-wording

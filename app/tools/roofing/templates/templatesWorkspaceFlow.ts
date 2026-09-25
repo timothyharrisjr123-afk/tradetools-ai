@@ -95,6 +95,20 @@ export const TEMPLATES_PREFERRED_FOR_ROOFING_COPY =
 export const TEMPLATES_REUSABLE_SETUP_EYEBROW = "Template" as const;
 export const TEMPLATES_REUSABLE_SETUP_SUBCOPY =
   "Review what this prepares for future proposals." as const;
+/** Inspected template vs the preferred template used for new work. */
+export const TEMPLATES_USED_FOR_NEW_WORK_COPY =
+  "Used for new proposals started from a Job Card." as const;
+export function formatTemplateNotPreferredCopy(preferredName: string | null): string {
+  return preferredName
+    ? `Not used for new proposals — ${preferredName} is your preferred template.`
+    : "No preferred template yet. Make this preferred to start new proposals from it.";
+}
+export const TEMPLATES_FUTURE_ONLY_COPY =
+  "Changes apply to proposals prepared after you save. Sent proposals never change, and existing drafts keep what they were prepared with." as const;
+export const TEMPLATES_EDIT_SCOPE_ACTION = "Edit scope" as const;
+export const TEMPLATES_EDIT_TERMS_ACTION = "Edit terms & warranty" as const;
+export const TEMPLATES_MANAGE_OPTIONS_ACTION = "Manage customer options" as const;
+export const TEMPLATES_CREATE_ANOTHER_ACTION = "Create another template" as const;
 export const TEMPLATES_PACKAGES_SECTION_HEADING = "Packages" as const;
 export const TEMPLATES_PACKAGES_SECTION_HINT =
   "Select a package to review included work." as const;

@@ -8,6 +8,9 @@ import type { CompanyPaymentsStatus } from "@/app/tools/settings/companySettings
 export const PAYMENTS_CONNECTION_COPY =
   "Customers pay securely through Stripe Checkout. Available payment methods are shown by Stripe at checkout.";
 
+/** Company-level Stripe connection; distinct from job-level Payments. */
+export const COMPANY_PAYMENT_SETUP_LABEL = "Payment setup";
+
 /** Load truth for Stripe connection — never collapse unknown into disconnected. */
 export type PaymentsConnectionLoadStatus = "loading" | "ready" | "error";
 
@@ -82,15 +85,11 @@ export default function CompanySettingsPaymentsEditor({
   return (
     <FocusedEditor
       open
-      title="Payments"
-      description="How customers pay you."
-      dirty={false}
-      saving={false}
-      saveDisabled
-      saveLabel="Done"
+      title={COMPANY_PAYMENT_SETUP_LABEL}
+      description="The Stripe account customers pay into. Job payments are collected from each Job Card."
+      readOnly
       error={error}
       onClose={onClose}
-      onSave={onClose}
     >
       <div data-company-settings-editor="payments" className="space-y-1">
         <div className="flex items-baseline justify-between gap-3">

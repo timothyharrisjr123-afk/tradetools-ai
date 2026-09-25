@@ -150,7 +150,7 @@ const LIFECYCLE_LABELS: Record<ProposalBuilderLifecycleActionId, string> = {
 
 /** Client enables Customer review only after a saved draft graph has loaded. */
 export const CUSTOMER_REVIEW_NEEDS_DRAFT_COPY =
-  "Customer review needs a saved proposal draft.";
+  "Review is available once there is a saved proposal draft.";
 
 export const CUSTOMER_PREVIEW_READY_COPY = "Customer preview is ready.";
 export const CONTRACTOR_PREVIEW_REVIEW_COPY =

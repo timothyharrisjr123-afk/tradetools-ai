@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import type {
   WorkbenchScopeLine,
   WorkbenchScopeSection,
@@ -245,7 +245,24 @@ export default function ProposalBuilderWorkbenchReadyScopeZone({
                               </span>
                             )}
                           </div>
-                          <p className={`${amountClass} [grid-area:price]`}>{line.amountLabel}</p>
+                          <div className="[grid-area:price] text-right">
+                            <p className={amountClass}>{line.amountLabel}</p>
+                            {line.unitMathLabel ? (
+                              <p
+                                className="mt-0.5 text-[11.5px] tabular-nums text-slate-500"
+                                data-builder-line-unit-math
+                              >
+                                {line.unitMathLabel.split(" × ").map((part, index) => (
+                                  <Fragment key={index}>
+                                    {index > 0 ? " " : null}
+                                    <span className="whitespace-nowrap">
+                                      {index > 0 ? `× ${part}` : part}
+                                    </span>
+                                  </Fragment>
+                                ))}
+                              </p>
+                            ) : null}
+                          </div>
                           <div className="flex items-start justify-end [grid-area:menu] sm:items-center">
                             <ProposalBuilderWorkbenchRowMenu
                               rowId={line.templateItemId}

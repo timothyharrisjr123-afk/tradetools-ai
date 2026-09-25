@@ -34,20 +34,20 @@ const sectionTitleClass = "text-sm font-semibold text-slate-900";
 const sectionDescClass = "mt-0.5 text-sm text-slate-500";
 
 const savePrimaryClass =
-  "inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 sm:w-auto";
+  "inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 sm:w-auto";
 
 const saveSubduedClass =
   "inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-slate-200 px-4 text-sm font-semibold text-slate-500 transition disabled:cursor-not-allowed sm:w-auto";
 
 /** Contractor-facing wording for the locked engine values. */
 const QUANTITY_ROUNDING_LABELS: Record<string, string> = {
-  exact: "Exact measurements",
-  round_up: "Rounded up",
+  exact: "Used as measured, not rounded",
+  round_up: "Rounded up to whole units",
 };
 
 const WASTE_MODEL_LABELS: Record<string, string> = {
-  adjusted_measurement: "Included in measurements",
-  percentage: "Percentage added",
+  adjusted_measurement: "Already in your measured quantities",
+  percentage: "Added as a percentage",
 };
 
 type SaveStatus =
@@ -179,7 +179,7 @@ export default function CompanyPricingPolicySettingsClient({
           {loading
             ? "Loading your pricing rules."
             : configured
-              ? "Your default profitability and tax rates for new proposals."
+              ? "Defaults for new proposals: how cost-based items are priced, the profit floor, and tax."
               : "Start from these suggested rates, then save to make them yours."}
         </p>
       </header>
@@ -198,7 +198,9 @@ export default function CompanyPricingPolicySettingsClient({
           <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
             <div className={sectionClass}>
               <h2 className={sectionTitleClass}>Pricing method</h2>
-              <p className={sectionDescClass}>How profit is applied to your costs.</p>
+              <p className={sectionDescClass} data-pricing-method-applies>
+                Used only for items priced from their cost. Items with a set selling price keep that price.
+              </p>
               <div className="mt-2.5">
                 <label htmlFor="profitability-type" className={labelClass}>
                   Profitability type
@@ -223,7 +225,7 @@ export default function CompanyPricingPolicySettingsClient({
             <div className={sectionClass}>
               <h2 className={sectionTitleClass}>Profitability</h2>
               <p className={sectionDescClass}>
-                Your default {methodNoun} and minimum acceptable {methodNoun}.
+                Default {methodNoun} sets the price of cost-based items. Minimum {methodNoun} is a check on the finished proposal; it never changes prices.
               </p>
               <div className="mt-2.5 grid gap-3 sm:grid-cols-2 sm:gap-4">
                 <div>
@@ -256,6 +258,9 @@ export default function CompanyPricingPolicySettingsClient({
                   <p className={hintClass}>Must be at or below the default.</p>
                 </div>
               </div>
+              <p className={`${hintClass} mt-2.5`} data-pricing-unknown-cost-note>
+                Profit can only be calculated when costs are known. If an item has a selling price but no cost, the proposal&apos;s {methodNoun} can&apos;t be checked and is flagged instead.
+              </p>
             </div>
 
             <div className={sectionClass}>
@@ -299,17 +304,19 @@ export default function CompanyPricingPolicySettingsClient({
 
             <div className={sectionClass} data-pricing-measurement-section>
               <h2 className={sectionTitleClass}>Measurement assumptions</h2>
-              <p className={sectionDescClass}>How proposal quantities are interpreted.</p>
+              <p className={sectionDescClass}>
+                How measured quantities carry into proposals. This doesn&apos;t check how accurate a measurement is.
+              </p>
               <dl className="mt-2.5 space-y-2 text-sm">
                 <div className="flex items-baseline justify-between gap-3">
-                  <dt className="text-slate-500">Quantities</dt>
+                  <dt className="text-slate-500">Quantity rounding</dt>
                   <dd className="font-medium text-slate-900">
                     {QUANTITY_ROUNDING_LABELS[LOCKED_QUANTITY_ROUNDING] ??
                       LOCKED_QUANTITY_ROUNDING}
                   </dd>
                 </div>
                 <div className="flex items-baseline justify-between gap-3">
-                  <dt className="text-slate-500">Waste</dt>
+                  <dt className="text-slate-500">Waste allowance</dt>
                   <dd className="font-medium text-slate-900">
                     {WASTE_MODEL_LABELS[LOCKED_WASTE_MODEL] ?? LOCKED_WASTE_MODEL}
                   </dd>
@@ -348,7 +355,7 @@ export default function CompanyPricingPolicySettingsClient({
                 {saveStatus.kind === "saving" ? "Saving…" : "Save pricing rules"}
               </button>
               {saveStatus.kind === "saved" ? (
-                <span className="text-sm font-medium text-emerald-700" role="status">
+                <span className="text-sm font-medium text-slate-600" role="status">
                   Saved.
                 </span>
               ) : null}

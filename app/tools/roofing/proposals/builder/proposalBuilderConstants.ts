@@ -397,11 +397,11 @@ export const BUILDER_DISABLED_ACTION =
   "inline-flex items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-400 cursor-not-allowed";
 
 /** Primary Builder CTA — opens existing Preview route. */
-export const BUILDER_CUSTOMER_REVIEW_LABEL = "Customer review";
+export const BUILDER_CUSTOMER_REVIEW_LABEL = "Review proposal";
 
-/** R17B — enabled Customer review lifecycle action in Builder command bar. */
+/** R17B — enabled Review proposal lifecycle action in Builder command bar. */
 export const BUILDER_PREVIEW_ENABLED_ACTION =
-  "inline-flex min-h-[44px] items-center justify-center rounded-lg bg-blue-600 px-4 text-[13px] font-semibold text-white shadow-sm transition hover:bg-blue-700";
+  "inline-flex min-h-[44px] items-center justify-center rounded-lg bg-slate-900 px-4 text-[13px] font-semibold text-white shadow-sm transition hover:bg-slate-800";
 
 export const BUILDER_OPTION_TAB =
   "rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50";

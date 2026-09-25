@@ -52,6 +52,17 @@ import {
   timeInStageToneClass,
 } from "@/app/tools/roofing/saved/jobsBoardUtils";
 
+import { catalogUnitQuantityMismatchNote } from "@/app/lib/catalogCoverageCompatibility";
+import { CATALOG_TABLE_HEADERS } from "@/app/lib/catalogContractorLabels";
+import { formatWorkbenchUnitMathLabel } from "@/app/lib/proposalBuilderWorkbenchEstimatePresenter";
+import { formatBuilderVersionStatusLabelForProposal } from "@/app/lib/proposalContractorLifecycle";
+import {
+  CONTRACTOR_PDF_DOWNLOAD_ORIGINAL_AGREEMENT_LABEL,
+  CONTRACTOR_PDF_DOWNLOAD_SIGNED_AGREEMENT_LABEL,
+} from "@/app/lib/proposalPdfContractorDownload";
+import { TEMPLATES_FUTURE_ONLY_COPY } from "@/app/tools/roofing/templates/templatesWorkspaceFlow";
+import { getVisibleNavSections } from "@/app/tools/roofing/fieldDiveNavConfig";
+
 const root = process.cwd();
 const read = (rel: string) => readFileSync(join(root, rel), "utf8");
 
@@ -501,5 +512,127 @@ describe("Phase 12.5 G2 — New job and Photos wording", () => {
     assert.equal(JOB_ATTACHMENTS_ADD_LABEL, "Add photos or files");
     const src = read("app/tools/roofing/jobCard/JobCardAttachmentsWorkspace.tsx");
     assert.doesNotMatch(src, /No photos yet/);
+  });
+});
+
+describe("Phase 12.5 G3 - settings and pricing", () => {
+  test("read-only panels have one Close action and payment setup naming", () => {
+    const editor = read("app/components/ui/FocusedEditor.tsx");
+    assert.equal((editor.match(/data-focused-editor-close-action/g) ?? []).length, 1);
+    const payments = read("app/tools/settings/CompanySettingsPaymentsEditor.tsx");
+    assert.match(payments, /"Payment setup"/);
+  });
+
+  test("advanced shelf is hidden from navigation", () => {
+    const labels = getVisibleNavSections().map((section) => section.label);
+    assert.ok(!labels.includes("Advanced"));
+  });
+
+  test("pricing copy explains cost-based pricing, unknown cost, and no accuracy promise", () => {
+    const src = read("app/tools/settings/pricing/CompanyPricingPolicySettingsClient.tsx");
+    assert.match(src, /data-pricing-unknown-cost-note/);
+    assert.match(src, /Items with a set selling price keep that price/);
+    assert.match(src, /never changes prices/);
+    assert.match(src, /doesn&apos;t check how accurate a measurement is/);
+  });
+});
+
+describe("Phase 12.5 G3 - catalog", () => {
+  test("table leads with selling terms; cost is subordinate", () => {
+    assert.deepEqual(CATALOG_TABLE_HEADERS.slice(0, 5), [
+      "Item",
+      "Selling price",
+      "Unit",
+      "Quantity basis",
+      "Status",
+    ]);
+  });
+
+  test("unit mismatch is flagged, never rewritten", () => {
+    assert.match(
+      catalogUnitQuantityMismatchNote({
+        quantity_source: "debris_tons",
+        unit: "each",
+        unitLabel: "Each",
+      }) ?? "",
+      /Check the unit before quoting/
+    );
+    assert.equal(
+      catalogUnitQuantityMismatchNote({
+        quantity_source: "debris_tons",
+        unit: "ton" as never,
+        unitLabel: "Ton",
+      }) === null,
+      false
+    );
+  });
+
+  test("no permanent ready banner; phones get rows", () => {
+    const ws = read("app/tools/roofing/catalog/CatalogItemsWorkspace.tsx");
+    assert.doesNotMatch(ws, /Catalog ready for templates/);
+    const table = read("app/admin/catalog/components/CatalogItemTable.tsx");
+    assert.match(table, /data-catalog-mobile-list/);
+  });
+});
+
+describe("Phase 12.5 G3 - templates", () => {
+  test("reusable changes are future-only and edits lead", () => {
+    assert.match(TEMPLATES_FUTURE_ONLY_COPY, /Sent proposals never change/);
+    const review = read("app/tools/roofing/templates/TemplatesQuoteSetupReview.tsx");
+    assert.match(review, /data-templates-primary-actions/);
+    assert.match(review, /data-templates-usage-status/);
+  });
+});
+
+describe("Phase 12.5 G3 - builder and preview", () => {
+  test("version status uses canonical labels", () => {
+    assert.equal(
+      formatBuilderVersionStatusLabelForProposal(
+        { latest_sent_version_id: null, signed_version_id: null },
+        null
+      ),
+      "Draft"
+    );
+    assert.equal(
+      formatBuilderVersionStatusLabelForProposal(
+        { latest_sent_version_id: "11111111-1111-4111-8111-111111111111", signed_version_id: "11111111-1111-4111-8111-111111111111" },
+        null
+      ),
+      "Accepted"
+    );
+  });
+
+  test("qty x unit price shows only when it agrees with the amount", () => {
+    const base = {
+      statusKind: "priced" as const,
+      qtyLabel: "3 sq",
+      qtyUnresolved: false,
+      unitPriceCents: 15000,
+    };
+    assert.equal(
+      formatWorkbenchUnitMathLabel({
+        ...base,
+        snapshotLineTotalCents: 45000,
+        displayedLineCents: 45000,
+      }),
+      "3 sq \u00d7 $150.00"
+    );
+    assert.equal(
+      formatWorkbenchUnitMathLabel({
+        ...base,
+        snapshotLineTotalCents: 45000,
+        displayedLineCents: 46000,
+      }),
+      null
+    );
+  });
+
+  test("accepted preview offers the agreement and return to job, not Send", () => {
+    assert.equal(CONTRACTOR_PDF_DOWNLOAD_ORIGINAL_AGREEMENT_LABEL, "Download original agreement");
+    assert.equal(CONTRACTOR_PDF_DOWNLOAD_SIGNED_AGREEMENT_LABEL, "Download signed agreement");
+    const client = read("app/tools/roofing/proposals/preview/ProposalCustomerPreviewClient.tsx");
+    assert.match(client, /suppressOrdinarySend !== true/);
+    assert.match(client, /agreementHref=/);
+    assert.match(client, /data-preview-historical-incomplete/);
   });
 });

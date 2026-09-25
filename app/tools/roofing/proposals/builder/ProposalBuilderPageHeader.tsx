@@ -15,7 +15,8 @@ type ProposalBuilderPageHeaderProps = {
   job: JobRecord | null;
   jobId: string | null;
   shellReady: boolean;
-  showDraftSavedPill?: boolean;
+  /** Draft / Sent / Revision in progress / Accepted from version pointers. */
+  versionStatusLabel?: string | null;
   /** Selected package label (e.g. Enhanced). Only when loaded truth exists. */
   selectedPackageLabel?: string | null;
   /** Quiet pricing note under More — not a primary Snapshot link. */
@@ -34,7 +35,7 @@ export default function ProposalBuilderPageHeader({
   job,
   jobId,
   shellReady,
-  showDraftSavedPill = false,
+  versionStatusLabel = null,
   selectedPackageLabel = null,
   savedPricingDetails = null,
   lastSavedLabel = null,
@@ -88,8 +89,13 @@ export default function ProposalBuilderPageHeader({
                 >
                   {jobLabel}
                 </h1>
-                {contextReady && showDraftSavedPill ? (
-                  <span className="text-[11px] font-medium text-slate-400">Draft</span>
+                {contextReady && versionStatusLabel ? (
+                  <span
+                    className="text-[12px] font-medium text-slate-500"
+                    data-builder-version-status
+                  >
+                    {versionStatusLabel}
+                  </span>
                 ) : null}
               </div>
               {address ? (
