@@ -2,6 +2,49 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-24 — PHASE 12.5 COMPLETE: Whole-app paid UI + cohesion
+
+==================================================
+PHASE 12.5 — WHOLE-APP PAID UI + COHESION  
+STATUS: **COMPLETE**
+==================================================
+
+- **Base HEAD:** `d13864a`. **Authorities:** `docs/phase12-5-astra-cohesion-audit.md` (governing; §R groups, §T gate), `docs/phase12-5-cursor-paid-ui-audit.md`. **Not** pushed. **No** deploy. **No** migration. **No** Supabase mutation.
+- **Commits:** `9fd5c0b` fix(ui): harden FieldDive truth and async presentation (G1) · `ddbeb1f` feat(ui): unify contractor operating surfaces (G2) · `ab7f022` feat(ui): align setup and proposal workflows (G3) · `5980018` feat(ui): align customer journey and paid-product cohesion (G4).
+
+### What changed (all E/I; no unapproved N)
+
+- **G1 truth:** scope-change editor keeps signed deltas and shows an unavailable basis instead of `$0`; saved drafts resume; propose wording never claims email; link recovery via the idempotent propose replay; loading is never presented as empty/unknown-as-zero on Jobs, Job Card, Settings, Calendar.
+- **G2 operating surfaces:** state-dependent Overview; field brief shows the accepted package (no money); Complete leads with Closeout; phone Jobs defaults to List; mobile sticky action yields to menus/dialogs/keyboard; company Calendar phone agenda; New job wording.
+- **G3 setup/proposal:** Settings read-only panels have one Close; "Payment setup"; Advanced shelf hidden. Pricing copy explains cost-based pricing, the profit floor, unknown cost, and makes no measurement-accuracy promise (math unchanged). Catalog leads with Item / Selling price / Unit / Quantity basis / Status; cost subordinate; phone rows; unit/quantity mismatch flagged (never rewritten); no permanent ready banner. Templates lead with Edit scope / Edit terms & warranty / Manage customer options; preferred vs inspected template stated; reusable changes are future-only; create is secondary. Builder: "Review proposal", canonical Draft/Sent/Revision in progress/Accepted, `qty × unit price` shown only when it matches the displayed amount. Preview: accepted drafts offer "View original agreement" + Back to Job Card (no Send/readiness); "Download original agreement" / "Download signed agreement"; honest notice for older sent versions saved without full pages; header stacks on phones.
+- **G4 customer journey:** `/p` after acceptance leads with the Project record, drops package selection, labels the package "Original agreement", uses "Contact your contractor", and "Download original agreement". Pay action reads "Pay $450" for an open progress/balance request with the overall remaining balance beside it (presenter semantics unchanged). Public scope-change review shares the `/p` shell and shows contractor name/phone from a tenancy-scoped read. Payments workspace: email note opens only on request, earlier delivery attempts and payment history collapse, Refunded tile only when refunds exist. Bare login lands on Jobs. Shell: one `<main>`, no empty desktop header strip, phone sign-out inside the navigation sheet.
+
+### Protected (unchanged)
+
+`jobs.stage`/disposition, schedule authority, pricing math, payment/collectible/refund semantics, acceptance/signature, accepted snapshots, Phase 10/11/12 architecture, tenancy/capability/idempotency, PDF/email renderers, mobile domain navigation.
+
+### Excluded (N — not implemented)
+
+Geist, password recovery, scope-change token reopen/email, reminders, per-company colors, adaptive tabs, photo gallery, closeout PDF, invoice/receipt workflow, dashboards/portal/AI/attention engine/customer accounts.
+
+### Verification
+
+- Typecheck: 11 errors, identical to baseline (`astraG5StarterPacketPreview`, `jobBoardAdapter`, `proposalAgreementProjection`, `PaymentStage2EReviewHarness`).
+- Final broad run: 295 files, 4301 tests, 4285 pass, 16 fail — all 16 predate this phase (their subject files are unchanged since `d13864a`: mojibake regexes, missing historical migration files, migration inventories, `jobPayments044`, `jobSchedules045`, `paymentStage1FlowCorrection`, `runtimeOwnership`, `proposalRecordStore:2963`, `v2f2` sent-record regex, `customerRequestReview:466`).
+- `app/lib/phase125PaidUiTruth.test.ts`: G1–G4 behavioral truth (all pass).
+- Proof (desktop 1440 + true 390, `scrollWidth` ≤ viewport; 1199/1200 spot checks): `tmp/fielddive-ui-review/phase12-5-paid-ui-implementation/{g1,g2,g3,g4}/`. Captures used safe reads only on production fixtures.
+
+### Evidence limits (stated, not claimed)
+
+- `/p` open progress request ("Pay $450") and processing: no live fixture; covered by unit tests.
+- Public scope-change **pending review** with a valid token: not captured (would require proposing a change on production); invalid-token state captured in the new shell.
+
+### Launch gaps (separate from Phase 12.5)
+
+- **Password recovery** is absent.
+- **Durable scope-change token:** a customer link cannot reopen an already authorized change (resolver rejects non-proposed); approved limitation, separate decision.
+- **Resend provider-event ops residual:** production delivery-event verification remains an operational item.
+
 ## 2026-09-24 — PHASE 12 COMPLETE: Customer project record / closeout proof (Astra G11)
 
 ==================================================
