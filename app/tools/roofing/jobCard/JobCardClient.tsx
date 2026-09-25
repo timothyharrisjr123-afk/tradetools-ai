@@ -119,6 +119,7 @@ import {
 } from "@/app/tools/roofing/jobCard/jobCardTypes";
 import JobCardSectionPanel from "@/app/tools/roofing/jobCard/JobCardSectionPanel";
 import JobCardOverviewSummary from "@/app/tools/roofing/jobCard/JobCardOverviewSummary";
+import { OVERVIEW_LINK } from "@/app/tools/roofing/jobCard/jobCardOverviewStyles";
 import JobCardProductionLeadControl from "@/app/tools/roofing/jobCard/JobCardProductionLeadControl";
 import JobCardFieldBrief from "@/app/tools/roofing/jobCard/JobCardFieldBrief";
 import JobCardForwardLifecycleAction from "@/app/tools/roofing/jobCard/JobCardForwardLifecycleAction";
@@ -150,10 +151,10 @@ import {
   buildFieldBriefViewModel,
   resolveFieldBriefApprovedScopeLabel,
 } from "@/app/lib/fieldBriefModel";
-import {
-  formatJobCardOverviewSituationLabel,
-  resolveJobCardOverviewSituation,
-} from "@/app/lib/jobCardOverviewSituation";
+import { resolveJobCardOverviewSituation } from "@/app/lib/jobCardOverviewSituation";
+import { buildJobCardOverviewComposition } from "@/app/lib/jobCardOverviewComposition";
+import { formatProductionStartedAt } from "@/app/lib/jobProductionTypes";
+import { formatProjectRecordDate } from "@/app/lib/publicProjectRecordViewModel";
 import JobCardSecondaryPanels from "@/app/tools/roofing/jobCard/JobCardSecondaryPanels";
 
 export default function JobCardClient({
@@ -960,6 +961,86 @@ export default function JobCardClient({
     })),
   });
 
+  const scheduleReadStatus: "loading" | "ready" | "error" =
+    jobCardSchedule.loadStatus === "error"
+      ? "error"
+      : jobCardSchedule.ready
+        ? "ready"
+        : "loading";
+  const overviewTimezone = jobCardSchedule.active?.timezone ?? companyTimezone;
+  const overviewComposition = buildJobCardOverviewComposition({
+    situation: overviewSituation,
+    schedule: {
+      status: scheduleReadStatus,
+      windowLabel: scheduleWindowLabel,
+      timezone: overviewTimezone,
+    },
+    productionStartedLabel: formatProductionStartedAt(
+      hydratedJobRecord?.production_started_at ?? null,
+      overviewTimezone
+    ),
+    completedDateLabel: formatProjectRecordDate(
+      hydratedJobRecord?.completed_at ?? null,
+      companyTimezone
+    ),
+    productionLeadLabel,
+    crewLabel: productionLeadCrewLabel,
+  });
+  const paymentsWorkspace = jobPayments.workspace;
+  const overviewCurrentRequest = paymentsWorkspace?.currentRequest
+    ? {
+        label: jobPaymentCurrentRequestKindLabel(paymentsWorkspace.currentRequest.kind),
+        hint:
+          paymentsWorkspace.currentRequest.status === "processing" ? "Processing" : "Open",
+        amountCents: paymentsWorkspace.currentRequest.amountCents,
+      }
+    : null;
+  /** Complete jobs: closeout owns money, wherever it renders. */
+  const overviewShowsMoneySummary =
+    !suppressCommercial &&
+    !jobCardCloseout &&
+    (overviewComposition.money === "supporting" ||
+      (overviewComposition.money === "agreement_only" &&
+        paymentsWorkspace?.contractTotalCents != null));
+  const overviewLeadControl = currentJobId ? (
+    <JobCardProductionLeadControl
+      jobId={currentJobId}
+      assignedTo={productionLeadAssignedTo}
+      crewLabel={productionLeadCrewLabel}
+      canAssign={companyMembers.canAssignJobs}
+      members={companyMembers.liveMembers}
+      embedInBrief
+      onUpdated={({ assignedTo, crewLabel }) => {
+        setHydratedJobRecord((prev) =>
+          prev
+            ? {
+                ...prev,
+                assigned_to: assignedTo,
+                crew_label: crewLabel,
+              }
+            : prev
+        );
+        setScheduleActivityTick((n) => n + 1);
+      }}
+    />
+  ) : null;
+  const overviewChangePlan =
+    overviewComposition.scheduleInState &&
+    scheduleWindowLabel &&
+    jobCardActionEligibility.canReschedule ? (
+      <button
+        type="button"
+        className="min-h-[36px] text-sm font-medium text-blue-600 hover:text-blue-700"
+        onClick={() => {
+          setScheduleError(null);
+          setJobCardTab("calendar");
+        }}
+        data-jobcard-change-schedule
+      >
+        Change
+      </button>
+    ) : null;
+
   const confirmJobAcceptance = async () => {
     if (!currentJobId || !approveAcceptanceItem?.acceptance) return;
     setPendingAttentionId(approveAcceptanceItem.id);
@@ -1390,18 +1471,14 @@ export default function JobCardClient({
                   tabId="overview"
                   activeTab={jobCardTab}
                   title="Overview"
+                  titleVisuallyHidden
                 >
                   <JobCardOverviewSummary
-                    proposalLabel={display.proposalLabel}
-                    measurementLabel={
-                      prepare.selected
-                        ? formatMeasurementQuantityLine(prepare.selected)
-                        : "No measurement"
-                    }
-                    operationalStateLabel={formatJobCardOverviewSituationLabel(
-                      overviewSituation
-                    )}
-                    allowFieldSituation
+                    state={overviewComposition.state}
+                    stateFactActions={{
+                      lead: overviewComposition.leadInState ? overviewLeadControl : null,
+                      planned: overviewChangePlan,
+                    }}
                     leadingSection={
                       overviewSituation.closeoutLeads &&
                       jobCardCloseout &&
@@ -1411,8 +1488,12 @@ export default function JobCardClient({
                           jobId={currentJobId}
                           canShareCustomerLink={companyMembers.canAuthorProposals}
                           leading
+                          paymentStatusLabel={paymentsWorkspace?.overviewStatusLabel ?? null}
+                          currentRequest={overviewCurrentRequest}
                           onOpenPayments={
-                            overviewSituation.kind === "complete_balance"
+                            overviewSituation.kind === "complete_balance" ||
+                            (overviewSituation.kind === "complete_money_unknown" &&
+                              jobPayments.loadStatus === "error")
                               ? () => setJobCardTab("payments")
                               : undefined
                           }
@@ -1420,53 +1501,46 @@ export default function JobCardClient({
                       ) : null
                     }
                     paymentStatusLabel={
-                      suppressCommercial
-                        ? null
-                        : (jobPayments.workspace?.overviewStatusLabel ?? null)
+                      overviewShowsMoneySummary
+                        ? (paymentsWorkspace?.overviewStatusLabel ?? null)
+                        : null
                     }
                     financialSummary={
-                      suppressCommercial || overviewSituation.closeoutLeads
+                      !overviewShowsMoneySummary
                         ? null
                         : jobPayments.loadStatus === "loading" &&
-                            !jobPayments.workspace?.overviewStatusLabel
+                            !paymentsWorkspace?.overviewStatusLabel
                           ? (
                               <p className="text-sm text-slate-500">
                                 Loading payment status…
                               </p>
                             )
-                          : jobPayments.workspace?.overviewStatusLabel
+                          : paymentsWorkspace?.overviewStatusLabel
                             ? (
-                                <div data-jobcard-overview-payment-block>
+                                <div data-jobcard-overview-payment-block className="space-y-2">
                                   <p
-                                    className="text-sm font-medium text-slate-800"
+                                    className="text-sm text-slate-700"
                                     data-jobcard-overview-payment
                                   >
-                                    {jobPayments.workspace.overviewStatusLabel}
+                                    {paymentsWorkspace.overviewStatusLabel}
                                   </p>
-                                  {jobPayments.workspace.contractTotalCents != null ? (
-                                    <dl className="mt-2 space-y-1 text-sm">
-                                      <MoneyRow
-                                        label="Contract total"
-                                        cents={jobPayments.workspace.contractTotalCents}
-                                        data-jobcard-overview-money="contract"
-                                      />
+                                  {paymentsWorkspace.contractTotalCents != null ? (
+                                    <dl className="space-y-1.5 text-sm tabular-nums">
                                       <MoneyRow
                                         label="Remaining"
-                                        cents={jobPayments.workspace.collectibleRemainingCents}
+                                        cents={paymentsWorkspace.collectibleRemainingCents}
                                         data-jobcard-overview-money="remaining"
                                       />
-                                      {jobPayments.workspace.currentRequest ? (
+                                      <MoneyRow
+                                        label="Contract total"
+                                        cents={paymentsWorkspace.contractTotalCents}
+                                        data-jobcard-overview-money="contract"
+                                      />
+                                      {overviewCurrentRequest ? (
                                         <MoneyRow
-                                          label={`Current request · ${jobPaymentCurrentRequestKindLabel(
-                                            jobPayments.workspace.currentRequest.kind
-                                          )}`}
-                                          hint={
-                                            jobPayments.workspace.currentRequest.status ===
-                                            "processing"
-                                              ? "Processing"
-                                              : "Open"
-                                          }
-                                          cents={jobPayments.workspace.currentRequest.amountCents}
+                                          label={`Current request · ${overviewCurrentRequest.label}`}
+                                          hint={overviewCurrentRequest.hint}
+                                          cents={overviewCurrentRequest.amountCents}
                                           data-jobcard-overview-money="request"
                                         />
                                       ) : null}
@@ -1474,7 +1548,7 @@ export default function JobCardClient({
                                   ) : null}
                                   <button
                                     type="button"
-                                    className="mt-2 text-sm font-medium text-slate-700 underline-offset-2 hover:text-slate-950 hover:underline"
+                                    className={OVERVIEW_LINK}
                                     onClick={() => setJobCardTab("payments")}
                                     data-jobcard-overview-open-payments
                                   >
@@ -1485,10 +1559,6 @@ export default function JobCardClient({
                             : null
                     }
                     suppressCommercial={suppressCommercial}
-                    hideMeasurementRow={Boolean(
-                      fieldBriefModel.authorizedWork.measurementSummary
-                    )}
-                    productionLead={null}
                     primaryAction={
                       overviewPrimary ? (
                         <div className="hidden min-[1200px]:block">
@@ -1511,48 +1581,33 @@ export default function JobCardClient({
                         model={fieldBriefModel}
                         quietPhotoHint
                         omitIdentityHero
+                        showScheduleLead={overviewComposition.briefShowsScheduleLead}
+                        showPlanned={overviewComposition.briefShowsPlanned}
+                        showAuthorizedWork={overviewComposition.showAuthorizedWork}
+                        authorizedWorkHeading={overviewComposition.authorizedWorkHeading}
+                        tasksReadStatus={jobTasks.readStatus}
+                        onOpenTasks={() => setJobCardTab("tasks")}
+                        onOpenProposals={
+                          suppressCommercial ? undefined : () => setJobCardTab("proposals")
+                        }
                         leadAction={
-                          currentJobId ? (
-                            <JobCardProductionLeadControl
-                              jobId={currentJobId}
-                              assignedTo={productionLeadAssignedTo}
-                              crewLabel={productionLeadCrewLabel}
-                              canAssign={companyMembers.canAssignJobs}
-                              members={companyMembers.liveMembers}
-                              embedInBrief
-                              onUpdated={({ assignedTo, crewLabel }) => {
-                                setHydratedJobRecord((prev) =>
-                                  prev
-                                    ? {
-                                        ...prev,
-                                        assigned_to: assignedTo,
-                                        crew_label: crewLabel,
-                                      }
-                                    : prev
-                                );
-                                setScheduleActivityTick((n) => n + 1);
-                              }}
-                            />
-                          ) : null
+                          overviewComposition.leadInState ? null : overviewLeadControl
                         }
                       />
                     }
-                    tasksSummary={null}
                     recentActivitySummary={
                       <section
                         data-jobcard-overview-activity-teaser
-                        className="border-t border-slate-100 pt-4"
+                        className="border-t border-slate-100 pt-3"
                       >
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-400">
-                          Recent activity
-                        </p>
                         <button
                           type="button"
-                          className="mt-1 text-sm font-medium text-slate-700 hover:text-slate-950"
+                          className="inline-flex min-h-[40px] items-center gap-1 text-sm font-medium text-slate-600 hover:text-slate-950"
                           onClick={() => setMobileActivityFocused(true)}
                           data-jobcard-overview-activity-open
                         >
                           View activity
+                          <span aria-hidden>→</span>
                         </button>
                       </section>
                     }
@@ -1592,6 +1647,7 @@ export default function JobCardClient({
                     completeError={completeJobError}
                     briefAlreadyShowsSchedule
                     overviewOwnsLifecycleCta
+                    overviewOwnsPlanSummary={overviewComposition.scheduleInState}
                     onStartWork={
                       jobCardActionEligibility.canStartWork
                         ? startCurrentJobWork

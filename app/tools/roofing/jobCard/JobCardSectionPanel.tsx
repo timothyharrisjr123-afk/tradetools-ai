@@ -10,6 +10,8 @@ type JobCardSectionPanelProps = {
   subtitle?: string;
   statusChip?: { label: string; className: string };
   headerAction?: ReactNode;
+  /** Keep the heading for assistive tech only (the active tab already names it). */
+  titleVisuallyHidden?: boolean;
   children: ReactNode;
 };
 
@@ -20,9 +22,24 @@ export default function JobCardSectionPanel({
   subtitle,
   statusChip,
   headerAction,
+  titleVisuallyHidden = false,
   children,
 }: JobCardSectionPanelProps) {
   if (activeTab !== tabId) return null;
+
+  if (titleVisuallyHidden && !statusChip && !subtitle && !headerAction) {
+    return (
+      <section
+        id={`job-card-panel-${tabId}`}
+        className="flex min-h-full flex-col"
+        role="tabpanel"
+        aria-labelledby={`job-card-tab-${tabId}`}
+      >
+        <h2 className="sr-only">{title}</h2>
+        <div className="min-h-0 flex-1">{children}</div>
+      </section>
+    );
+  }
 
   const chipBase = "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold shrink-0";
 

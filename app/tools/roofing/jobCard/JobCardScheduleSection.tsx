@@ -31,6 +31,11 @@ type JobCardScheduleSectionProps = {
    * Start work / Complete job / Schedule here.
    */
   overviewOwnsLifecycleCta?: boolean;
+  /**
+   * Overview state region already shows planned window and actual start.
+   * Before completion, render only schedule/start/complete errors here.
+   */
+  overviewOwnsPlanSummary?: boolean;
   onStartWork?: () => void;
   onCompleteJob?: () => void;
   onSchedule: () => void;
@@ -56,6 +61,7 @@ export default function JobCardScheduleSection({
   scheduleRefreshError = false,
   briefAlreadyShowsSchedule = false,
   overviewOwnsLifecycleCta = false,
+  overviewOwnsPlanSummary = false,
   onStartWork,
   onCompleteJob,
   onSchedule,
@@ -102,6 +108,54 @@ export default function JobCardScheduleSection({
   const timezone = planned?.timezone ?? displayTimezone;
   const startedLabel = formatProductionStartedAt(productionStartedAt, timezone);
   const completedLabel = formatJobCompletedAt(completedAt, timezone);
+
+  const issues = (
+    <>
+      {showUnavailable ? (
+        <p
+          className="mt-2 text-xs text-red-600"
+          role="alert"
+          data-jobcard-schedule-error
+        >
+          Schedule could not be loaded. Start and Complete stay blocked until
+          schedule truth is known.
+        </p>
+      ) : null}
+      {scheduleRefreshError && !showUnavailable ? (
+        <p className="mt-2 text-xs text-amber-700" data-jobcard-schedule-refresh-error>
+          Could not refresh schedule. Showing last known plan.
+        </p>
+      ) : null}
+      {startError ? (
+        <p className="mt-2 text-xs text-red-600" role="alert">
+          {startError}
+        </p>
+      ) : null}
+      {completeError ? (
+        <p className="mt-2 text-xs text-red-600" role="alert">
+          {completeError}
+        </p>
+      ) : null}
+    </>
+  );
+  const hasIssues =
+    showUnavailable || scheduleRefreshError || Boolean(startError) || Boolean(completeError);
+
+  if (overviewOwnsPlanSummary && !isComplete && !suppressIdleDuplicate) {
+    if (!hasIssues) return null;
+    return (
+      <div
+        className="mt-4"
+        data-jobcard-schedule
+        data-jobcard-schedule-issues-only="true"
+        data-production-stage={stage}
+        data-jobcard-schedule-ready={scheduleReady ? "true" : "false"}
+        data-jobcard-schedule-status={scheduleLoadStatus}
+      >
+        {issues}
+      </div>
+    );
+  }
 
   if (suppressIdleDuplicate) {
     if (!canSchedule || isReadOnly || !canShowScheduleCta) {
@@ -248,31 +302,7 @@ export default function JobCardScheduleSection({
           ) : null}
         </div>
       </div>
-      {showUnavailable ? (
-        <p
-          className="mt-2 text-xs text-red-600"
-          role="alert"
-          data-jobcard-schedule-error
-        >
-          Schedule could not be loaded. Start and Complete stay blocked until
-          schedule truth is known.
-        </p>
-      ) : null}
-      {scheduleRefreshError && !showUnavailable ? (
-        <p className="mt-2 text-xs text-amber-700" data-jobcard-schedule-refresh-error>
-          Could not refresh schedule. Showing last known plan.
-        </p>
-      ) : null}
-      {startError ? (
-        <p className="mt-2 text-xs text-red-600" role="alert">
-          {startError}
-        </p>
-      ) : null}
-      {completeError ? (
-        <p className="mt-2 text-xs text-red-600" role="alert">
-          {completeError}
-        </p>
-      ) : null}
+      {issues}
     </div>
   );
 }

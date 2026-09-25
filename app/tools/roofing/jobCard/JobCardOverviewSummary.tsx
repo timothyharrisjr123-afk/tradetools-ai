@@ -2,144 +2,180 @@
 
 import type { ReactNode } from "react";
 import { SURFACE_TONED } from "@/app/components/ui/surfaceStyles";
+import type {
+  JobCardOverviewFactKey,
+  JobCardOverviewStateView,
+} from "@/app/lib/jobCardOverviewComposition";
+import {
+  OVERVIEW_FACT_LABEL,
+  OVERVIEW_FACT_META,
+  OVERVIEW_FACT_TEXT,
+  OVERVIEW_FACT_TEXT_QUIET,
+  OVERVIEW_GROUP_HEADING,
+  OVERVIEW_STATE_TITLE,
+} from "./jobCardOverviewStyles";
 
 type JobCardOverviewSummaryProps = {
-  proposalLabel: string;
-  measurementLabel: string | null;
-  operationalStateLabel?: string | null;
+  /** Structured current situation; null while the stage is still loading. */
+  state?: JobCardOverviewStateView | null;
+  /** Contextual controls rendered with a state fact (Assign lead, Change plan). */
+  stateFactActions?: Partial<Record<JobCardOverviewFactKey, ReactNode>>;
   paymentStatusLabel?: string | null;
-  /** Contract / collected line when authorized — never fabricate $0. */
+  /** Money summary when authorized — never fabricate $0. */
   financialSummary?: ReactNode;
-  /** When true, hide commercial Proposal/Payment rows (field-restricted viewers). */
+  /** When true, hide commercial rows (field-restricted viewers). */
   suppressCommercial?: boolean;
-  productionLead?: ReactNode;
   fieldBrief?: ReactNode;
-  /** When field brief already shows measurement, skip the quiet Overview row. */
-  hideMeasurementRow?: boolean;
   /** Situation-area primary lifecycle CTA (desktop/inline). */
   primaryAction?: ReactNode;
-  /** Compact open-task / exception summary (Tasks remains authoritative). */
-  tasksSummary?: ReactNode;
-  /** Subordinate recent-activity teaser (mobile / Overview bottom). */
+  /** Quiet entry into the Activity destination. */
   recentActivitySummary?: ReactNode;
-  /** Situation copy is already role-safe, so field viewers may see it. */
-  allowFieldSituation?: boolean;
-  /** Rendered before the field brief (completed jobs: closeout/payment). */
+  /** Rendered before the state region (completed jobs: closeout/payment). */
   leadingSection?: ReactNode;
+  /** Callers without a field brief (estimator view, review harnesses) only. */
+  proposalLabel?: string | null;
+  measurementLabel?: string | null;
 };
 
-function Row({ label, value }: { label: string; value: ReactNode }) {
+function DetailRow({ label, text }: { label: string; text: ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-3 text-sm">
       <span className="shrink-0 text-slate-500">{label}</span>
-      <span className="min-w-0 text-right font-medium text-slate-800">{value}</span>
+      <span className="min-w-0 text-right font-medium text-slate-800">{text}</span>
     </div>
   );
 }
 
 export default function JobCardOverviewSummary({
-  proposalLabel,
-  measurementLabel,
-  operationalStateLabel = null,
+  state = null,
+  stateFactActions = {},
   paymentStatusLabel = null,
   financialSummary = null,
   suppressCommercial = false,
-  productionLead = null,
   fieldBrief = null,
-  hideMeasurementRow = false,
   primaryAction = null,
-  tasksSummary = null,
   recentActivitySummary = null,
-  allowFieldSituation = false,
   leadingSection = null,
+  proposalLabel = null,
+  measurementLabel = null,
 }: JobCardOverviewSummaryProps) {
-  const showMeasurement =
-    Boolean(measurementLabel) &&
-    !hideMeasurementRow &&
-    !(suppressCommercial && fieldBrief);
-  const showSituation = Boolean(operationalStateLabel) && (!suppressCommercial || allowFieldSituation);
+  const showMoney = !suppressCommercial && Boolean(financialSummary || paymentStatusLabel);
+  const detailRows = fieldBrief
+    ? []
+    : [
+        ...(!suppressCommercial && proposalLabel
+          ? [{ label: "Proposal", text: proposalLabel, attr: "proposal" }]
+          : []),
+        ...(measurementLabel
+          ? [{ label: "Measurement", text: measurementLabel, attr: "measurement" }]
+          : []),
+      ];
 
   return (
     <div className="space-y-6" data-jobcard-overview-truth>
-      {/* 1. Current situation + primary forward action */}
       {leadingSection}
+
+      {/* 1. Current situation, its timing/responsibility, and the next lifecycle action */}
       <section
         data-jobcard-overview-situation
+        data-jobcard-overview-kind={state?.kind}
         className={
-          showSituation
-            ? `rounded-lg ${SURFACE_TONED} px-4 py-3.5 min-[1200px]:flex min-[1200px]:items-center min-[1200px]:justify-between min-[1200px]:gap-6`
-            : "space-y-3"
+          state
+            ? `rounded-lg ${SURFACE_TONED} px-4 py-4 sm:px-5 min-[1200px]:flex min-[1200px]:items-start min-[1200px]:justify-between min-[1200px]:gap-8`
+            : primaryAction
+              ? "space-y-3"
+              : "hidden"
         }
       >
-        {showSituation && operationalStateLabel ? (
-          <div data-jobcard-overview-operational className="min-w-0 space-y-1">
-            {operationalStateLabel.split("\n").map((line, index) => (
-              <p
-                key={`${index}-${line}`}
-                className={
-                  index === 0
-                    ? "text-lg font-semibold text-slate-950"
-                    : "text-sm font-medium text-slate-600"
-                }
+        {state ? (
+          <div data-jobcard-overview-operational className="min-w-0 space-y-3">
+            <div className="space-y-1">
+              <h3 className={OVERVIEW_STATE_TITLE} data-jobcard-overview-state-title>
+                {state.title}
+              </h3>
+              {state.notes.map((note) => (
+                <p key={note} className="text-sm leading-snug text-slate-600">
+                  {note}
+                </p>
+              ))}
+            </div>
+            {state.facts.length > 0 ? (
+              <dl
+                className="grid grid-cols-2 gap-x-6 gap-y-3 sm:flex sm:flex-wrap sm:gap-x-10"
+                data-jobcard-overview-facts
               >
-                {line}
-              </p>
-            ))}
+                {state.facts.map((fact) => (
+                  <div
+                    key={fact.key}
+                    className="min-w-0"
+                    data-jobcard-overview-fact={fact.key}
+                  >
+                    <dt className={OVERVIEW_FACT_LABEL}>{fact.label}</dt>
+                    <dd className={fact.quiet ? OVERVIEW_FACT_TEXT_QUIET : OVERVIEW_FACT_TEXT}>
+                      {fact.text}
+                    </dd>
+                    {fact.meta ? <dd className={OVERVIEW_FACT_META}>{fact.meta}</dd> : null}
+                    {stateFactActions[fact.key] ? (
+                      <dd>{stateFactActions[fact.key]}</dd>
+                    ) : null}
+                  </div>
+                ))}
+              </dl>
+            ) : null}
           </div>
         ) : null}
         {primaryAction}
       </section>
 
-      {/* 2. Field brief / schedule hierarchy (G7) */}
-      {fieldBrief ? (
-        <section data-jobcard-overview-brief>{fieldBrief}</section>
-      ) : productionLead ? (
-        <section data-jobcard-overview-lead>{productionLead}</section>
-      ) : null}
-
-      {/* 3. Compact financial summary when authorized */}
-      {!suppressCommercial && (financialSummary || paymentStatusLabel) ? (
-        <section
-          data-jobcard-overview-financial
-          className="space-y-2 border-t border-slate-100 pt-4"
+      {/* 2. Work context leads; money supports it (side by side on wide screens) */}
+      {fieldBrief || showMoney ? (
+        <div
+          className={
+            fieldBrief && showMoney
+              ? "space-y-6 min-[1200px]:grid min-[1200px]:grid-cols-[minmax(0,46rem)_minmax(15rem,20rem)] min-[1200px]:justify-between min-[1200px]:gap-x-12 min-[1200px]:space-y-0"
+              : "space-y-6"
+          }
         >
-          <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-400">
-            Financial
-          </p>
-          {financialSummary}
-          {!financialSummary && paymentStatusLabel ? (
-            <Row
-              label="Payment"
-              value={
-                <span data-jobcard-overview-payment>{paymentStatusLabel}</span>
+          {fieldBrief ? (
+            <section data-jobcard-overview-brief className="min-w-0 max-w-[46rem]">
+              {fieldBrief}
+            </section>
+          ) : null}
+          {showMoney ? (
+            <section
+              data-jobcard-overview-financial
+              className={`space-y-2 *:max-w-sm ${fieldBrief ? "border-t border-slate-100 pt-5 min-[1200px]:border-t-0 min-[1200px]:pt-0 min-[1200px]:*:max-w-none" : ""}`}
+            >
+              <h3 className={OVERVIEW_GROUP_HEADING}>Payments</h3>
+              {financialSummary ?? (
+                <p className="text-sm text-slate-700" data-jobcard-overview-payment>
+                  {paymentStatusLabel}
+                </p>
+              )}
+            </section>
+          ) : null}
+        </div>
+      ) : null}
+
+      {detailRows.length > 0 ? (
+        <section className="space-y-2 border-t border-slate-100 pt-4" data-jobcard-overview-details>
+          {detailRows.map((row) => (
+            <DetailRow
+              key={row.attr}
+              label={row.label}
+              text={
+                row.attr === "measurement" ? (
+                  <span data-jobcard-overview-measurement>{row.text}</span>
+                ) : (
+                  row.text
+                )
               }
             />
-          ) : null}
-          <Row label="Proposal" value={proposalLabel} />
-          {showMeasurement ? (
-            <Row
-              label="Measurement"
-              value={
-                <span data-jobcard-overview-measurement>{measurementLabel}</span>
-              }
-            />
-          ) : null}
-        </section>
-      ) : showMeasurement ? (
-        <section className="space-y-2 border-t border-slate-100 pt-4">
-          <Row
-            label="Measurement"
-            value={
-              <span data-jobcard-overview-measurement>{measurementLabel}</span>
-            }
-          />
+          ))}
         </section>
       ) : null}
 
-      {/* 4. Relevant tasks / exceptions */}
-      {tasksSummary}
-
-      {/* 5. Recent Activity — subordinate */}
+      {/* 3. History lives in the Activity destination */}
       {recentActivitySummary}
     </div>
   );

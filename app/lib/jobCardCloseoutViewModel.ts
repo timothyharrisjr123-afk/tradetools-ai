@@ -61,7 +61,14 @@ export type JobCardCloseoutRow = { key: string; label: string; value: string };
 
 export type JobCardCloseoutViewModel = {
   completionLabel: string;
+  /** Structured form of `completionLabel` for the leading closeout region. */
+  completionTitle: string;
+  /** Canonical completion date, or null when unknown. */
+  completionDate: string | null;
   balanceLabel: string;
+  /** Workspace amounts passed through unchanged; null when money is unknown. */
+  contractTotalCents: number | null;
+  remainingCents: number | null;
   rows: JobCardCloseoutRow[];
 };
 
@@ -104,9 +111,17 @@ export function buildJobCardCloseoutViewModel(
     });
   }
 
+  const completion = {
+    completionLabel,
+    completionTitle: PUBLIC_PROJECT_RECORD_WORK_COMPLETE,
+    completionDate: date,
+  };
+
   if (!input.workspace || contract == null || input.workspace.collectibleRemainingCents == null) {
     return {
-      completionLabel,
+      ...completion,
+      contractTotalCents: null,
+      remainingCents: null,
       balanceLabel:
         input.paymentsLoading && !input.workspace
           ? JOB_CARD_CLOSEOUT_PAYMENTS_LOADING
@@ -138,5 +153,11 @@ export function buildJobCardCloseoutViewModel(
     label: "Remaining",
     value: remaining >= JOB_PAYMENT_MIN_AMOUNT_CENTS ? formatUsdFromCents(remaining) : "None",
   });
-  return { completionLabel, balanceLabel, rows };
+  return {
+    ...completion,
+    contractTotalCents: contract,
+    remainingCents: remaining,
+    balanceLabel,
+    rows,
+  };
 }

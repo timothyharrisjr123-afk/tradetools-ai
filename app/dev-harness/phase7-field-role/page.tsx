@@ -48,13 +48,8 @@ export default function Phase7FieldRoleHarnessPage() {
         </p>
         <div className="mt-4">
           <JobCardOverviewSummary
-            proposalLabel="hidden"
-            measurementLabel="24.0 SQ"
-            operationalStateLabel={null}
             paymentStatusLabel={null}
             suppressCommercial
-            hideMeasurementRow
-            productionLead={null}
             fieldBrief={
               <JobCardFieldBrief
                 model={model}

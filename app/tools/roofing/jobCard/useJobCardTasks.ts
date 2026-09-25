@@ -16,6 +16,8 @@ export function useJobCardTasks({ jobId, enabled }: UseJobCardTasksArgs) {
   const [tasks, setTasks] = useState<JobTaskListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** List read only (mutation errors never flip it); "ready" means the list is confirmed. */
+  const [readStatus, setReadStatus] = useState<"loading" | "ready" | "error">("loading");
 
   const refresh = useCallback(async () => {
     if (!jobId || !enabled) return;
@@ -28,21 +30,23 @@ export function useJobCardTasks({ jobId, enabled }: UseJobCardTasksArgs) {
       const body = await readJson(res);
       if (!res.ok || body.ok !== true) {
         setError("Tasks could not be loaded.");
+        setReadStatus("error");
         return;
       }
       setTasks((body.tasks as JobTaskListItem[]) ?? []);
+      setReadStatus("ready");
     } catch {
       setError("Tasks could not be loaded.");
+      setReadStatus("error");
     } finally {
       setLoading(false);
     }
   }, [jobId, enabled]);
 
   useEffect(() => {
-    if (!enabled || !jobId) {
-      setTasks([]);
-      return;
-    }
+    setTasks([]);
+    setReadStatus("loading");
+    if (!enabled || !jobId) return;
     void refresh();
   }, [enabled, jobId, refresh]);
 
@@ -168,6 +172,7 @@ export function useJobCardTasks({ jobId, enabled }: UseJobCardTasksArgs) {
     tasks,
     loading,
     error,
+    readStatus,
     create,
     updateContent,
     complete,

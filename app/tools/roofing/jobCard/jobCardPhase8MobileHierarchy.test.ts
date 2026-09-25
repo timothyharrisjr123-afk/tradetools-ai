@@ -30,7 +30,49 @@ import {
 } from "@/app/lib/jobCardForwardLifecycleAction";
 import type { CanonicalJobActionEligibility } from "@/app/lib/jobLifecycleActionEligibility";
 import JobCardForwardLifecycleAction from "./JobCardForwardLifecycleAction";
-import JobCardOverviewTasksSummary from "./JobCardOverviewTasksSummary";
+import JobCardFieldBrief from "./JobCardFieldBrief";
+import type {
+  FieldBriefTask,
+  FieldBriefTasksReadStatus,
+  FieldBriefViewModel,
+} from "@/app/lib/fieldBriefModel";
+
+function task(id: string, title: string): FieldBriefTask {
+  return { id, title, status: "open", dueOn: null, assigneeLabel: "Unassigned", assignedTo: null };
+}
+
+function briefModel(tasks: FieldBriefTask[]): FieldBriefViewModel {
+  return {
+    contact: {
+      customerName: "Proof Customer",
+      phone: null,
+      email: null,
+      addressLine: null,
+      canCall: false,
+      canDirections: false,
+      mapsUrl: null,
+      telUrl: null,
+    },
+    schedule: {
+      startsOn: null,
+      endsOn: null,
+      timezone: null,
+      windowLabel: null,
+      productionLeadLabel: "Unassigned",
+      crewLabel: null,
+    },
+    authorizedWork: {
+      status: "ready",
+      approvedScopeLabel: "Architectural shingle replacement",
+      approvedChangesLabel: null,
+      measurementSummary: null,
+      accessNotes: null,
+      warningProposedVsAuthorized: null,
+    },
+    tasks,
+    photoCount: 0,
+  };
+}
 
 const ROOT = join(process.cwd());
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
@@ -202,21 +244,18 @@ describe("Phase 8 primary lifecycle CTA", () => {
 });
 
 describe("Phase 8 Overview hierarchy + Activity + roles", () => {
-  test("Overview order: situation → brief → financial → tasks → activity", () => {
+  test("Overview order: state → brief (tasks inside) → financial → activity", () => {
     assert.match(OVERVIEW, /data-jobcard-overview-situation/);
     assert.match(OVERVIEW, /data-jobcard-overview-brief|fieldBrief/);
     assert.match(OVERVIEW, /data-jobcard-overview-financial/);
-    assert.match(OVERVIEW, /tasksSummary/);
     assert.match(OVERVIEW, /recentActivitySummary/);
+    assert.doesNotMatch(OVERVIEW, /tasksSummary/);
     assert.match(CLIENT, /JobCardFieldBrief/);
     assert.match(CLIENT, /data-jobcard-overview-activity-teaser/);
-    assert.match(OVERVIEW, /tasksSummary/);
-    assert.match(
-      read("app/tools/roofing/jobCard/JobCardOverviewTasksSummary.tsx"),
-      /data-jobcard-overview-tasks/
-    );
+    assert.match(CLIENT, /tasksReadStatus=\{jobTasks\.readStatus\}/);
     assert.match(FIELD_BRIEF, /data-jobcard-field-brief/);
-    assert.match(FIELD_BRIEF, /No tasks yet|openTasks/);
+    assert.match(FIELD_BRIEF, /resolveFieldBriefTaskPreview/);
+    assert.doesNotMatch(FIELD_BRIEF, /No tasks yet/);
   });
 
   test("Activity is an on-demand destination at every width (Phase 12.5: no permanent rail)", () => {
@@ -237,24 +276,46 @@ describe("Phase 8 Overview hierarchy + Activity + roles", () => {
     assert.match(CLIENT, /restrictedFieldRole/);
   });
 
-  test("tasks summary stays read-only overview surface", () => {
-    const empty = renderToStaticMarkup(
-      createElement(JobCardOverviewTasksSummary, {
-        openCount: 0,
-        onOpenTasks: () => undefined,
-      })
+  test("brief tasks follow actual presence: none → no region, unresolved → truthful state", () => {
+    const render = (tasks: FieldBriefTask[], tasksReadStatus: FieldBriefTasksReadStatus) =>
+      renderToStaticMarkup(
+        createElement(JobCardFieldBrief, {
+          model: briefModel(tasks),
+          omitIdentityHero: true,
+          tasksReadStatus,
+          onOpenTasks: () => undefined,
+        })
+      );
+
+    const none = render([], "ready");
+    assert.doesNotMatch(none, /data-field-brief-tasks/);
+    assert.doesNotMatch(none, /No tasks|No open tasks/);
+
+    const loading = render([], "loading");
+    assert.match(loading, /data-field-brief-tasks-loading/);
+    assert.match(loading, /Checking tasks…/);
+    assert.doesNotMatch(loading, /data-field-brief-tasks=/);
+
+    const failed = render([], "error");
+    assert.match(failed, /data-field-brief-tasks-error/);
+    assert.match(failed, /Tasks could not be loaded/);
+
+    const few = render([task("a", "Inspect flashing"), task("b", "Confirm dumpster")], "ready");
+    assert.match(few, /Inspect flashing/);
+    assert.match(few, /Confirm dumpster/);
+    assert.doesNotMatch(few, /View all/);
+
+    const many = render(
+      ["a", "b", "c", "d", "e"].map((id) => task(id, `Task ${id}`)),
+      "ready"
     );
-    assert.match(empty, /No open tasks/);
-    const open = renderToStaticMarkup(
-      createElement(JobCardOverviewTasksSummary, {
-        openCount: 2,
-        previewTitles: ["Inspect flashing", "Confirm dumpster"],
-        onOpenTasks: () => undefined,
-      })
-    );
-    assert.match(open, /2 open/);
-    assert.match(open, /Inspect flashing/);
-    assert.match(open, /data-jobcard-overview-tasks-open/);
+    assert.match(many, /Task a/);
+    assert.match(many, /Task c/);
+    assert.doesNotMatch(many, /Task d/);
+    assert.match(many, /View all 5 open tasks/);
+
+    const staleAfterError = render([task("a", "Inspect flashing")], "error");
+    assert.match(staleAfterError, /Inspect flashing/);
   });
 
   test("no duplicate schedule authority writers on Overview", () => {

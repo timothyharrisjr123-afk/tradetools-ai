@@ -285,7 +285,12 @@ describe("Overview lifecycle", () => {
       createElement(JobCardOverviewSummary, {
         proposalLabel: "Accepted",
         measurementLabel: "2,400 sq ft · 10% waste",
-        operationalStateLabel: JOB_CARD_AWAITING_CONTRACTOR_APPROVAL,
+        state: {
+          kind: "accepted_awaiting_approval",
+          title: JOB_CARD_AWAITING_CONTRACTOR_APPROVAL,
+          notes: [],
+          facts: [],
+        },
         paymentStatusLabel: "Deposit due",
       })
     );

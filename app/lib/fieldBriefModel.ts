@@ -51,6 +51,37 @@ export type FieldBriefViewModel = {
   photoCount: number;
 };
 
+export type FieldBriefTasksReadStatus = "loading" | "ready" | "error";
+
+export const FIELD_BRIEF_TASK_PREVIEW_LIMIT = 3;
+
+export type FieldBriefTaskPreview =
+  | { kind: "loading" }
+  | { kind: "error" }
+  /** Confirmed read with no open tasks: Overview shows no task region. */
+  | { kind: "none" }
+  | { kind: "preview"; visible: FieldBriefTask[]; openCount: number; hiddenCount: number };
+
+/**
+ * Overview task prominence follows actual presence. Last-known open tasks stay
+ * visible through a later failed refresh; an unresolved read is never "none".
+ */
+export function resolveFieldBriefTaskPreview(input: {
+  tasks: readonly FieldBriefTask[];
+  status: FieldBriefTasksReadStatus;
+  limit?: number;
+}): FieldBriefTaskPreview {
+  const open = input.tasks.filter((task) => task.status === "open");
+  if (open.length > 0) {
+    const limit = Math.max(1, input.limit ?? FIELD_BRIEF_TASK_PREVIEW_LIMIT);
+    const visible = open.slice(0, limit);
+    return { kind: "preview", visible, openCount: open.length, hiddenCount: open.length - visible.length };
+  }
+  if (input.status === "loading") return { kind: "loading" };
+  if (input.status === "error") return { kind: "error" };
+  return { kind: "none" };
+}
+
 function trimOrNull(value: string | null | undefined): string | null {
   const t = String(value ?? "").trim();
   return t ? t : null;

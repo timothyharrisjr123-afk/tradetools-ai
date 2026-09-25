@@ -2,7 +2,21 @@
 
 import type { ReactNode } from "react";
 import { MapPin, Phone } from "lucide-react";
-import type { FieldBriefViewModel } from "@/app/lib/fieldBriefModel";
+import {
+  resolveFieldBriefTaskPreview,
+  type FieldBriefTasksReadStatus,
+  type FieldBriefViewModel,
+} from "@/app/lib/fieldBriefModel";
+import {
+  OVERVIEW_BODY,
+  OVERVIEW_FACT_LABEL,
+  OVERVIEW_FACT_TEXT,
+  OVERVIEW_FACT_TEXT_QUIET,
+  OVERVIEW_GROUP_HEADING,
+  OVERVIEW_LINK,
+  OVERVIEW_META,
+  OVERVIEW_UTILITY,
+} from "./jobCardOverviewStyles";
 
 type JobCardFieldBriefProps = {
   model: FieldBriefViewModel;
@@ -15,25 +29,37 @@ type JobCardFieldBriefProps = {
    * keep Call/Directions + operational hierarchy.
    */
   omitIdentityHero?: boolean;
+  /** False when the state region already owns planned window and lead. */
+  showScheduleLead?: boolean;
+  /** False when a lower work-history record owns the planned window. */
+  showPlanned?: boolean;
+  /** False before anything is accepted: there is no work to describe yet. */
+  showAuthorizedWork?: boolean;
+  authorizedWorkHeading?: string;
+  /** Task read state; defaults to ready for callers that resolved their facts. */
+  tasksReadStatus?: FieldBriefTasksReadStatus;
+  onOpenTasks?: () => void;
+  /** Route to scope details in its owning domain (commercial viewers only). */
+  onOpenProposals?: () => void;
 };
-
-function QuietLabel({ children }: { children: ReactNode }) {
-  return (
-    <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-400">
-      {children}
-    </p>
-  );
-}
 
 export default function JobCardFieldBrief({
   model,
   leadAction = null,
   quietPhotoHint = false,
   omitIdentityHero = false,
+  showScheduleLead = true,
+  showPlanned = true,
+  showAuthorizedWork = true,
+  authorizedWorkHeading = "Authorized work",
+  tasksReadStatus = "ready",
+  onOpenTasks,
+  onOpenProposals,
 }: JobCardFieldBriefProps) {
   const { contact, schedule, authorizedWork, tasks } = model;
   const warning = authorizedWork.warningProposedVsAuthorized;
   const openTasks = tasks.filter((task) => task.status === "open");
+  const taskPreview = resolveFieldBriefTaskPreview({ tasks, status: tasksReadStatus });
   const schedulePrimary =
     schedule.windowLabel ||
     (schedule.startsOn
@@ -44,178 +70,227 @@ export default function JobCardFieldBrief({
         }`
       : null);
 
-  const actionRow =
+  const utilities =
     contact.canCall || contact.canDirections ? (
-      <div className="flex flex-wrap gap-2">
-        {contact.canCall && contact.telUrl ? (
-          <a
-            href={contact.telUrl}
-            className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800 sm:flex-none"
-          >
-            <Phone className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-            Call
-          </a>
-        ) : null}
+      <div className="flex flex-wrap gap-2" data-field-brief-utilities>
         {contact.canDirections && contact.mapsUrl ? (
           <a
             href={contact.mapsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200/90 bg-white px-4 text-sm font-semibold text-slate-800 hover:border-slate-300 hover:bg-slate-50 sm:flex-none"
+            className={OVERVIEW_UTILITY}
           >
             <MapPin className="h-4 w-4 text-slate-500" strokeWidth={1.75} aria-hidden />
             Directions
           </a>
         ) : null}
+        {contact.canCall && contact.telUrl ? (
+          <a href={contact.telUrl} className={OVERVIEW_UTILITY}>
+            <Phone className="h-4 w-4 text-slate-500" strokeWidth={1.75} aria-hidden />
+            Call
+          </a>
+        ) : null}
       </div>
     ) : null;
 
+  const scopeLoading =
+    authorizedWork.status === "loading" &&
+    !authorizedWork.approvedScopeLabel &&
+    !authorizedWork.approvedChangesLabel;
+
   return (
     <div
-      className="space-y-5"
+      className="space-y-6"
       data-testid="job-field-brief"
       data-jobcard-field-brief="true"
     >
       {!omitIdentityHero ? (
-        <div className="space-y-3">
-          <div className="min-w-0 space-y-1">
-            <p className="text-lg font-semibold tracking-tight text-slate-950 [overflow-wrap:anywhere]">
-              {contact.customerName || "Customer"}
+        <div className="min-w-0 space-y-1">
+          <p className="text-lg font-semibold tracking-tight text-slate-950 [overflow-wrap:anywhere]">
+            {contact.customerName || "Customer"}
+          </p>
+          {contact.addressLine ? (
+            <p className="text-sm leading-snug text-slate-600 [overflow-wrap:anywhere]">
+              {contact.addressLine}
             </p>
-            {contact.addressLine ? (
-              <p className="text-sm leading-snug text-slate-600 [overflow-wrap:anywhere]">
-                {contact.addressLine}
-              </p>
-            ) : (
-              <p className="text-sm text-slate-400">No service address on file</p>
-            )}
-            {contact.phone ? (
-              <p className="text-sm text-slate-500">{contact.phone}</p>
-            ) : null}
-          </div>
-          {actionRow}
+          ) : (
+            <p className="text-sm text-slate-400">No service address on file</p>
+          )}
+          {contact.phone ? (
+            <p className="text-sm text-slate-500">{contact.phone}</p>
+          ) : null}
         </div>
-      ) : actionRow ? (
-        <div>{actionRow}</div>
       ) : null}
 
-      {/* Schedule + production lead */}
-      <div className={omitIdentityHero && !actionRow ? undefined : "border-t border-slate-100 pt-4"}>
-        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
-          <div className="min-w-0 space-y-1">
-            <QuietLabel>When</QuietLabel>
-            <p className="text-sm font-medium text-slate-900">
-              {schedulePrimary || (
-                <span className="font-normal text-slate-400">Not scheduled</span>
-              )}
+      {/* Work: what is authorized, what is pending, and site constraints on it */}
+      {showAuthorizedWork ? (
+        <section className="space-y-2" data-field-brief-work>
+          <h3 className={OVERVIEW_GROUP_HEADING}>{authorizedWorkHeading}</h3>
+          {scopeLoading ? (
+            <p className={OVERVIEW_META} data-field-brief-scope-loading>
+              Checking authorized work…
             </p>
-            {schedule.timezone && schedulePrimary ? (
-              <p className="text-xs text-slate-400">{schedule.timezone}</p>
+          ) : authorizedWork.approvedScopeLabel ? (
+            <p className={`${OVERVIEW_BODY} font-medium text-slate-900 [overflow-wrap:anywhere]`}>
+              {authorizedWork.approvedScopeLabel}
+            </p>
+          ) : authorizedWork.approvedChangesLabel ? (
+            // Authorized changes still count as authorized work when base
+            // line-level scope cannot be projected yet — never contradict.
+            null
+          ) : (
+            <p className={OVERVIEW_META}>No authorized scope on file</p>
+          )}
+          {authorizedWork.approvedChangesLabel ? (
+            <p
+              className={`${OVERVIEW_BODY} [overflow-wrap:anywhere] ${
+                authorizedWork.approvedScopeLabel ? "" : "font-medium text-slate-900"
+              }`}
+              data-field-brief-authorized-changes
+            >
+              {authorizedWork.approvedScopeLabel ? (
+                <span className="text-slate-500">Approved changes · </span>
+              ) : null}
+              {authorizedWork.approvedChangesLabel}
+            </p>
+          ) : null}
+          {warning ? (
+            <p
+              className="rounded-md bg-amber-50/70 px-3 py-2 text-sm text-amber-900"
+              data-field-brief-pending-scope
+            >
+              {warning}
+            </p>
+          ) : null}
+          {onOpenProposals &&
+          !scopeLoading &&
+          (authorizedWork.approvedScopeLabel || authorizedWork.approvedChangesLabel) ? (
+            <button
+              type="button"
+              className={`${OVERVIEW_LINK} -mt-1`}
+              onClick={onOpenProposals}
+              data-field-brief-scope-details
+            >
+              Scope details
+            </button>
+          ) : null}
+          {authorizedWork.measurementSummary ? (
+            <p className={OVERVIEW_META}>Measurement · {authorizedWork.measurementSummary}</p>
+          ) : null}
+          {authorizedWork.accessNotes ? (
+            <div className="pt-2" data-field-brief-access-notes>
+              <p className={OVERVIEW_FACT_LABEL}>Site &amp; schedule notes</p>
+              <p className={`${OVERVIEW_BODY} [overflow-wrap:anywhere]`}>
+                {authorizedWork.accessNotes}
+              </p>
+            </div>
+          ) : null}
+          {utilities ? <div className="pt-2">{utilities}</div> : null}
+        </section>
+      ) : authorizedWork.measurementSummary || authorizedWork.accessNotes || utilities ? (
+        <section className="space-y-2" data-field-brief-preparation>
+          {authorizedWork.measurementSummary ? (
+            <div>
+              <p className={OVERVIEW_FACT_LABEL}>Measurement</p>
+              <p className={OVERVIEW_FACT_TEXT}>{authorizedWork.measurementSummary}</p>
+            </div>
+          ) : null}
+          {authorizedWork.accessNotes ? (
+            <div data-field-brief-access-notes>
+              <p className={OVERVIEW_FACT_LABEL}>Site &amp; schedule notes</p>
+              <p className={`${OVERVIEW_BODY} [overflow-wrap:anywhere]`}>
+                {authorizedWork.accessNotes}
+              </p>
+            </div>
+          ) : null}
+          {utilities}
+        </section>
+      ) : null}
+
+      {/* Tasks: only when there is something to see (or the read is unresolved) */}
+      {taskPreview.kind === "loading" ? (
+        <p className={OVERVIEW_META} data-field-brief-tasks-loading>
+          Checking tasks…
+        </p>
+      ) : taskPreview.kind === "error" ? (
+        <div className="flex flex-wrap items-center gap-x-3" role="alert" data-field-brief-tasks-error>
+          <p className="text-sm text-red-700">Tasks could not be loaded.</p>
+          {onOpenTasks ? (
+            <button type="button" className={OVERVIEW_LINK} onClick={onOpenTasks}>
+              Open Tasks
+            </button>
+          ) : null}
+        </div>
+      ) : taskPreview.kind === "preview" ? (
+        <section className="space-y-2 border-t border-slate-100 pt-5" data-field-brief-tasks>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+            <h3 className={OVERVIEW_GROUP_HEADING}>
+              Open tasks <span className="font-normal text-slate-500">· {taskPreview.openCount}</span>
+            </h3>
+            {!quietPhotoHint && model.photoCount > 0 ? (
+              <span className="text-xs text-slate-400">{model.photoCount} photos</span>
             ) : null}
           </div>
-          <div className="min-w-0 space-y-1 sm:text-right">
-            <QuietLabel>Production lead</QuietLabel>
+          <ul className="space-y-2">
+            {taskPreview.visible.map((task) => (
+              <li key={task.id} className="flex items-start justify-between gap-4">
+                <span className={`${OVERVIEW_BODY} min-w-0 [overflow-wrap:anywhere]`}>
+                  {task.title}
+                </span>
+                <span className="shrink-0 text-right text-[13px] leading-5 text-slate-500">
+                  <span className="block">{task.assigneeLabel}</span>
+                  {task.dueOn ? <span className="block text-slate-400">{task.dueOn}</span> : null}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {onOpenTasks ? (
+            <button
+              type="button"
+              className={OVERVIEW_LINK}
+              onClick={onOpenTasks}
+              data-field-brief-tasks-open
+            >
+              {taskPreview.hiddenCount > 0
+                ? `View all ${openTasks.length} open tasks`
+                : "Open Tasks"}
+            </button>
+          ) : null}
+        </section>
+      ) : null}
+
+      {/* Plan and responsibility when the state region does not own them */}
+      {showScheduleLead ? (
+        <section
+          className="flex flex-wrap gap-x-10 gap-y-3 border-t border-slate-100 pt-5"
+          data-field-brief-schedule-lead
+        >
+          {showPlanned && schedulePrimary ? (
+            <div className="min-w-0">
+              <p className={OVERVIEW_FACT_LABEL}>Planned</p>
+              <p className={OVERVIEW_FACT_TEXT}>{schedulePrimary}</p>
+              {schedule.timezone ? (
+                <p className="text-xs text-slate-500">{schedule.timezone}</p>
+              ) : null}
+            </div>
+          ) : null}
+          <div className="min-w-0">
+            <p className={OVERVIEW_FACT_LABEL}>Production lead</p>
             <p
               className={
                 schedule.productionLeadLabel === "Unassigned"
-                  ? "text-sm font-medium text-slate-400"
-                  : "text-sm font-semibold text-slate-900"
+                  ? OVERVIEW_FACT_TEXT_QUIET
+                  : OVERVIEW_FACT_TEXT
               }
             >
               {schedule.productionLeadLabel}
             </p>
             {schedule.crewLabel ? (
-              <p className="text-xs text-slate-400">{schedule.crewLabel}</p>
+              <p className="text-xs text-slate-500">{schedule.crewLabel}</p>
             ) : null}
-            {leadAction ? <div className="pt-0.5 sm:flex sm:justify-end">{leadAction}</div> : null}
+            {leadAction}
           </div>
-        </div>
-      </div>
-
-      {/* Authorized work + measurement / access */}
-      <div className="border-t border-slate-100 pt-4">
-        <QuietLabel>Authorized work</QuietLabel>
-        {authorizedWork.status === "loading" &&
-        !authorizedWork.approvedScopeLabel &&
-        !authorizedWork.approvedChangesLabel ? (
-          <p className="mt-1.5 text-sm text-slate-500" data-field-brief-scope-loading>
-            Checking authorized work…
-          </p>
-        ) : authorizedWork.approvedScopeLabel ? (
-          <p className="mt-1.5 text-sm font-medium leading-snug text-slate-900 [overflow-wrap:anywhere]">
-            {authorizedWork.approvedScopeLabel}
-          </p>
-        ) : authorizedWork.approvedChangesLabel ? (
-          // Authorized changes still count as authorized work when base
-          // line-level scope cannot be projected yet — never contradict.
-          null
-        ) : (
-          <p className="mt-1.5 text-sm text-slate-400">No authorized scope on file</p>
-        )}
-        {authorizedWork.approvedChangesLabel ? (
-          <p
-            className={`text-sm [overflow-wrap:anywhere] ${
-              authorizedWork.approvedScopeLabel
-                ? "mt-1 text-slate-600"
-                : "mt-1.5 font-medium leading-snug text-slate-900"
-            }`}
-          >
-            {authorizedWork.approvedChangesLabel}
-          </p>
-        ) : null}
-        {authorizedWork.measurementSummary ? (
-          <p className="mt-2 text-[13px] text-slate-500">
-            {authorizedWork.measurementSummary}
-          </p>
-        ) : null}
-        {authorizedWork.accessNotes ? (
-          <div className="mt-3" data-field-brief-access-notes>
-            <QuietLabel>Site &amp; schedule notes</QuietLabel>
-            <p className="mt-1 text-sm text-slate-700 [overflow-wrap:anywhere]">
-              {authorizedWork.accessNotes}
-            </p>
-          </div>
-        ) : null}
-      </div>
-
-      {/* Assigned / open tasks */}
-      <div className="border-t border-slate-100 pt-4">
-        <div className="flex items-baseline justify-between gap-2">
-          <QuietLabel>Tasks</QuietLabel>
-          {!quietPhotoHint && model.photoCount > 0 ? (
-            <span className="text-xs text-slate-400">{model.photoCount} photos</span>
-          ) : null}
-        </div>
-        {openTasks.length === 0 && tasks.length === 0 ? (
-          <p className="mt-1.5 text-sm text-slate-400">No tasks yet</p>
-        ) : openTasks.length === 0 ? (
-          <p className="mt-1.5 text-sm text-slate-400">No open tasks</p>
-        ) : (
-          <ul className="mt-2 space-y-2">
-            {openTasks.map((task) => (
-              <li
-                key={task.id}
-                className="flex items-start justify-between gap-3 text-sm"
-              >
-                <span className="min-w-0 font-medium text-slate-900 [overflow-wrap:anywhere]">
-                  {task.title}
-                </span>
-                <span className="shrink-0 text-right text-xs leading-5 text-slate-500">
-                  <span className="block">{task.assigneeLabel}</span>
-                  {task.dueOn ? (
-                    <span className="block text-slate-400">{task.dueOn}</span>
-                  ) : null}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {warning ? (
-        <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          {warning}
-        </p>
+        </section>
       ) : null}
     </div>
   );

@@ -43,7 +43,7 @@ export default function JobCardHeader({
         ← {backLabel}
       </Link>
 
-      <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0 flex-1">
           <h1 className="break-words text-2xl font-semibold tracking-tight text-slate-900 sm:truncate sm:text-[1.65rem]">
             {customerHref ? (
@@ -79,17 +79,19 @@ export default function JobCardHeader({
             ) : null}
           </div>
           {phoneValue || emailValue ? (
-            <div className="mt-3 flex flex-col gap-1.5 text-sm sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-5">
+            <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-5 gap-y-1 text-sm text-slate-600">
               {phoneValue ? (
-                <span className="inline-flex items-center gap-1.5 text-slate-700">
+                <span className="inline-flex items-center gap-1.5">
                   <Phone className="h-3.5 w-3.5 text-slate-400" strokeWidth={1.75} aria-hidden />
                   {phoneValue}
                 </span>
               ) : null}
               {emailValue ? (
-                <span className="inline-flex min-w-0 items-start gap-1.5 text-slate-700">
-                  <Mail className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" strokeWidth={1.75} aria-hidden />
-                  <span className="min-w-0 break-all sm:break-words">{emailValue}</span>
+                <span className="inline-flex min-w-0 max-w-full items-center gap-1.5">
+                  <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" strokeWidth={1.75} aria-hidden />
+                  <span className="min-w-0 truncate" title={emailValue}>
+                    {emailValue}
+                  </span>
                 </span>
               ) : null}
             </div>
