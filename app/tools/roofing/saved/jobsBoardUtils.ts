@@ -652,6 +652,8 @@ function deriveTasksLabel(est: RoofingEstimate): string {
 
 export type JobsBoardCardModel = {
   id: string;
+  /** Board lane the card renders in; presentation only (lane `paid` = Complete). */
+  columnKey?: BoardColumnKey;
   customerName: string;
   address: string;
   tasksLabel: string;
@@ -685,7 +687,6 @@ export function buildJobsBoardCardModel(
   batchStatuses: Record<string, { status: string; viewedAt?: string | null; approvedAt?: string | null }> | undefined,
   opts: { columnKey: BoardColumnKey }
 ): JobsBoardCardModel {
-  void opts;
   const anchorIso = getStageAnchorIso(estimate, batchStatuses);
   const lastUpdatedIso = getLastUpdatedIso(estimate);
   const reportStatus = getReportStatusBadge(estimate);
@@ -693,6 +694,7 @@ export function buildJobsBoardCardModel(
 
   return {
     id: estimate.id,
+    columnKey: opts.columnKey,
     customerName: getEstimateDisplayName(estimate),
     address: getBoardCardAddress(estimate),
     tasksLabel: deriveTasksLabel(estimate),

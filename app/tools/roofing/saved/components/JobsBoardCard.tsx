@@ -5,8 +5,9 @@ import {
   isBoardCardLifecycleActionTarget,
   pointerDeltaIsDrag,
 } from "@/app/lib/boardGuardedMovement";
-import { CalendarPlus, CheckCircle2, CircleAlert, MapPin, Play, UserCircle } from "lucide-react";
+import { CalendarDays, CalendarPlus, CheckCircle2, CircleAlert, MapPin, Play } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { buildJobsBoardCardPresentation } from "../jobsBoardCardPresentation";
 import type { JobsBoardCardModel } from "../jobsBoardUtils";
 
 /**
@@ -14,7 +15,7 @@ import type { JobsBoardCardModel } from "../jobsBoardUtils";
  * planning (cool outline), start now (dark), close out (quiet emerald).
  */
 const BOARD_ACTION_BASE =
-  "pointer-events-auto mt-2 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 disabled:opacity-60";
+  "pointer-events-auto mt-3 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 disabled:opacity-60";
 const BOARD_ACTION_PLAN = `${BOARD_ACTION_BASE} border border-blue-200 bg-white text-blue-700 hover:border-blue-300 hover:bg-blue-50/60`;
 const BOARD_ACTION_START = `${BOARD_ACTION_BASE} border border-slate-900 bg-slate-900 text-white hover:bg-slate-800`;
 const BOARD_ACTION_COMPLETE = `${BOARD_ACTION_BASE} border border-emerald-200 bg-emerald-50/70 text-emerald-800 hover:border-emerald-300 hover:bg-emerald-50`;
@@ -37,7 +38,6 @@ type JobsBoardCardProps = {
   subdued?: boolean;
 };
 
-const ICON_CLASS = "h-4 w-4 shrink-0 text-slate-400/90";
 const ICON_STROKE = 1.75;
 
 function formatTimeInStageFooter(label: string | null): string | null {
@@ -67,8 +67,19 @@ export default function JobsBoardCard({
   onBoardDragCancel,
   subdued = false,
 }: JobsBoardCardProps) {
-  const stageFooter = formatTimeInStageFooter(model.timeInStage);
+  const presentation = buildJobsBoardCardPresentation(model);
+  const stageFooter = presentation.showTimeInStage
+    ? formatTimeInStageFooter(model.timeInStage)
+    : null;
   const assignee = assigneeDisplay(model.assigneeLabel);
+  const showOwner = Boolean(assignee) && presentation.showOwner;
+  const metaParts = [
+    presentation.showProposalPresence
+      ? { key: "proposal", text: model.proposalStatus.label }
+      : null,
+    model.tasksLabel ? { key: "tasks", text: `Tasks ${model.tasksLabel}` } : null,
+    stageFooter ? { key: "age", text: stageFooter } : null,
+  ].filter((part): part is { key: string; text: string } => part !== null);
   const pointerRef = useRef<{
     pointerId: number;
     startX: number;
@@ -180,8 +191,8 @@ export default function JobsBoardCard({
         <div className="flex min-w-0 items-start justify-between gap-2">
           <h3
             className={
-              "min-w-0 flex-1 truncate text-sm font-semibold leading-snug " +
-              (subdued ? "text-slate-700" : "text-slate-900")
+              "min-w-0 flex-1 truncate text-[14px] font-semibold leading-snug tracking-[-0.005em] " +
+              (subdued ? "text-slate-700" : "text-slate-950")
             }
           >
             {model.customerName}
@@ -192,20 +203,72 @@ export default function JobsBoardCard({
             </span>
           ) : null}
         </div>
-        <div className="mt-1.5 flex min-w-0 items-start gap-2">
-          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400/90" strokeWidth={ICON_STROKE} aria-hidden />
+        <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
+          <MapPin className="h-3 w-3 shrink-0 text-slate-400" strokeWidth={ICON_STROKE} aria-hidden />
           {model.address ? (
-            <p className="min-w-0 line-clamp-2 text-xs leading-relaxed text-slate-500">{model.address}</p>
+            <p className="min-w-0 truncate text-xs text-slate-500" title={model.address}>
+              {model.address}
+            </p>
           ) : (
             <p className="text-xs text-slate-400">No address on file</p>
           )}
         </div>
         {model.dispositionLabel ? (
           <p
-            className="mt-1 text-[11px] font-medium text-slate-600"
+            className="mt-2 text-xs font-semibold text-slate-800"
             data-board-disposition={model.dispositionLabel}
           >
             {model.dispositionLabel}
+          </p>
+        ) : null}
+        {presentation.precedingFact ? (
+          <p
+            className={`${model.dispositionLabel ? "mt-1" : "mt-2.5"} pl-[22px] text-xs text-slate-500 tabular-nums`}
+            data-board-production-started
+          >
+            {presentation.precedingFact}
+          </p>
+        ) : null}
+        {presentation.stateFact ? (
+          <div
+            className={`${
+              presentation.precedingFact ? "mt-0.5" : model.dispositionLabel ? "mt-1" : "mt-2.5"
+            } flex min-w-0 items-center gap-2 text-[13px] leading-5`}
+            data-board-state-fact={presentation.stateFact.tone}
+            data-board-schedule-meta={presentation.stateFact.tone === "planned" ? "" : undefined}
+            data-board-production-started={
+              presentation.stateFact.tone === "active" || presentation.stateFact.tone === "paused"
+                ? ""
+                : undefined
+            }
+            data-board-work-completed={presentation.stateFact.tone === "complete" ? "" : undefined}
+          >
+            {presentation.stateFact.tone === "planned" ? (
+              <CalendarDays className="h-3.5 w-3.5 shrink-0 text-slate-500" strokeWidth={ICON_STROKE} aria-hidden />
+            ) : presentation.stateFact.tone === "active" || presentation.stateFact.tone === "paused" ? (
+              <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center" aria-hidden>
+                <span
+                  className={
+                    presentation.stateFact.tone === "active"
+                      ? "h-2 w-2 rounded-full bg-blue-600"
+                      : "h-2 w-2 rounded-full border-[1.5px] border-slate-400"
+                  }
+                />
+              </span>
+            ) : (
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600" strokeWidth={2} aria-hidden />
+            )}
+            <span className="min-w-0 font-semibold text-slate-900 tabular-nums">
+              {presentation.stateFact.text}
+            </span>
+          </div>
+        ) : null}
+        {presentation.supportingFact ? (
+          <p
+            className={`text-xs text-slate-500 tabular-nums ${presentation.stateFact ? "mt-0.5 pl-[22px]" : "mt-1.5"}`}
+            data-board-schedule-meta
+          >
+            {presentation.supportingFact}
           </p>
         ) : null}
         {model.attention ? (
@@ -243,12 +306,6 @@ export default function JobsBoardCard({
             ) : null}
           </div>
         ) : null}
-        
-        {model.scheduleLabel ? (
-          <p className="mt-1.5 text-xs font-medium text-slate-600" data-board-schedule-meta>
-            {model.scheduleLabel}
-          </p>
-        ) : null}
         {model.scheduleIntegrityLabel ? (
           <p
             className="mt-1.5 text-xs font-semibold text-amber-800"
@@ -257,27 +314,11 @@ export default function JobsBoardCard({
             {model.scheduleIntegrityLabel}
           </p>
         ) : null}
-        {model.productionStartedLabel ? (
-          <p
-            className="mt-1.5 text-xs font-semibold text-slate-700"
-            data-board-production-started
-          >
-            Work started · {model.productionStartedLabel}
-          </p>
-        ) : null}
-        {model.completedAtLabel ? (
-          <p
-            className="mt-1.5 text-xs font-semibold text-slate-800"
-            data-board-work-completed
-          >
-            Completed · {model.completedAtLabel}
-          </p>
-        ) : null}
         {model.showApproveAction && onApproveJob ? (
           <button
             type="button"
             disabled={model.approveBusy}
-            className="pointer-events-auto mt-2 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/70 disabled:opacity-60"
+            className="pointer-events-auto mt-3 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/70 disabled:opacity-60"
             onClick={(event) => {
               event.stopPropagation();
               onApproveJob();
@@ -333,40 +374,36 @@ export default function JobsBoardCard({
         ) : null}
       </div>
 
-      <footer className="mt-auto space-y-1 border-t border-slate-100 px-4 py-2.5 text-[13px] leading-snug">
-        {assignee ? (
-          <div
-            className="flex min-w-0 items-center gap-2 text-slate-600"
-            data-board-card-owner
-          >
-            <UserCircle className={ICON_CLASS} strokeWidth={ICON_STROKE} aria-hidden />
-            <span className="truncate">
+      {showOwner || metaParts.length > 0 ? (
+        <footer className="mt-auto flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 border-t border-slate-100 px-4 py-2 text-xs leading-5">
+          {showOwner ? (
+            <p className="min-w-0 truncate text-slate-700" data-board-card-owner>
               <span className="text-slate-400">Production lead · </span>
-              {assignee}
-            </span>
-          </div>
-        ) : null}
-        <p
-          className="flex min-w-0 flex-wrap items-center gap-x-1.5 text-[12px] text-slate-400"
-          data-board-card-meta
-        >
-          <span className="truncate">{model.proposalStatus.label}</span>
-          {model.tasksLabel ? (
-            <>
-              <span aria-hidden>·</span>
-              <span className="truncate">Tasks {model.tasksLabel}</span>
-            </>
-          ) : null}
-          {stageFooter ? (
-            <>
-              <span aria-hidden>·</span>
-              <span className="truncate" data-board-card-age>
-                {stageFooter}
+              <span className={assignee === "Unassigned" ? "text-slate-500" : undefined}>
+                {assignee}
               </span>
-            </>
+            </p>
           ) : null}
-        </p>
-      </footer>
+          {metaParts.length > 0 ? (
+            <p
+              className="flex min-w-0 flex-wrap items-center gap-x-1.5 text-slate-400"
+              data-board-card-meta
+            >
+              {metaParts.map((part, index) => (
+                <span key={part.key} className="contents">
+                  {index > 0 ? <span aria-hidden>·</span> : null}
+                  <span
+                    className="truncate"
+                    data-board-card-age={part.key === "age" ? "" : undefined}
+                  >
+                    {part.text}
+                  </span>
+                </span>
+              ))}
+            </p>
+          ) : null}
+        </footer>
+      ) : null}
       </div>
     </article>
   );
