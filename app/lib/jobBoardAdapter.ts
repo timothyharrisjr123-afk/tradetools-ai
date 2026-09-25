@@ -391,16 +391,10 @@ export function enrichBoardEstimatesWithMemberNames(
       (est as { assigned_to?: string | null }).assigned_to ?? ""
     ).trim();
     if (!assigned) {
-      return {
-        ...(est as object),
-        assigned_to_name: null,
-      } as RoofingEstimate;
+      return { ...est, assigned_to_name: null };
     }
     const name = lookup.get(assigned)?.trim() || null;
-    return {
-      ...(est as object),
-      assigned_to_name: name,
-    } as RoofingEstimate;
+    return { ...est, assigned_to_name: name };
   });
 }
 

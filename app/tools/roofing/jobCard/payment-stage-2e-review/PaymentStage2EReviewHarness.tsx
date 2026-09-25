@@ -470,6 +470,8 @@ export default function PaymentStage2EReviewHarness() {
               label: null,
               busy: false,
               error: null,
+              continuationNote: null,
+              outcome: "paid",
               submit: () => undefined,
             }}
           />

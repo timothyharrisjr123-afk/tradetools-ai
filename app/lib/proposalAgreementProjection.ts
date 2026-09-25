@@ -211,7 +211,7 @@ export function projectProposalAgreement(
       : null;
   const acceptance = input.acceptance ?? null;
   const signature = input.signature ?? null;
-  const accepted = Boolean(acceptance);
+  const accepted = acceptance !== null;
   const acceptedVersionId = acceptance
     ? String(acceptance.proposalVersionId ?? "").trim() || null
     : null;

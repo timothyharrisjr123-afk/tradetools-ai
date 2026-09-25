@@ -168,7 +168,7 @@ function buildStarterDocumentContext(input: {
 function includedLineItems(
   option: DefaultProposalTemplateOptionDefinition
 ): CustomerPreviewEstimateSectionPresentation[] {
-  const lineSection = option.sections.find((section) => section.kind === "line_items");
+  const lineSection = (option.sections ?? []).find((section) => section.kind === "line_items");
   const items = lineSection?.items ?? [];
   if (items.length === 0) return [];
 
@@ -198,7 +198,7 @@ function packageIncludeBullets(
   option: DefaultProposalTemplateOptionDefinition,
   limit = 6
 ): string[] {
-  const lineSection = option.sections.find((section) => section.kind === "line_items");
+  const lineSection = (option.sections ?? []).find((section) => section.kind === "line_items");
   const items = lineSection?.items ?? [];
   return items.slice(0, limit).map((item, index) => {
     const seed = (item.catalog_seed_key ?? "").trim();
@@ -213,7 +213,7 @@ function detailSectionsForOption(
   option: DefaultProposalTemplateOptionDefinition,
   tokens: { companyName: string | null; packageLabel: string }
 ): AstraG5StarterDetailSection[] {
-  const fromTemplate = option.sections
+  const fromTemplate = (option.sections ?? [])
     .filter(
       (section) =>
         section.kind === "text" ||
@@ -260,9 +260,10 @@ export function buildAstraG5StarterPacketPreviewModel(
   branding?: AstraG5StarterCompanyBrandingInput | null
 ): AstraG5StarterPacketPreviewModel | null {
   const template = starterTemplate();
-  if (!template || template.options.length === 0) return null;
+  const templateOptions = template?.options;
+  if (!template || !templateOptions || templateOptions.length === 0) return null;
 
-  const selected = defaultOption(template.options);
+  const selected = defaultOption(templateOptions);
   if (!selected) return null;
 
   const packageLabel =
@@ -277,7 +278,7 @@ export function buildAstraG5StarterPacketPreviewModel(
     { pricingComplete: false }
   );
 
-  const packageOptions: AstraG5StarterPackageOptionPreview[] = template.options.map(
+  const packageOptions: AstraG5StarterPackageOptionPreview[] = templateOptions.map(
     (option) => ({
       label: nonEmpty(option.customer_label) ?? option.name,
       description: nonEmpty(option.description) ?? "",
