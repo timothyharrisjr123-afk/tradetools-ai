@@ -48,6 +48,8 @@ type ProposalPacketPurchaseProps = {
   action: ProposalPurchaseAction;
   /** The project record shows contract and history; don't repeat them here. */
   recordOwnsDetails?: boolean;
+  /** Overall remaining project balance, shown beside a request that may be only part of it. */
+  projectBalanceLabel?: string | null;
 };
 
 function dueAmountLabel(input: {
@@ -86,6 +88,7 @@ export default function ProposalPacketPurchase({
   acceptedOnLabel,
   action,
   recordOwnsDetails = false,
+  projectBalanceLabel = null,
 }: ProposalPacketPurchaseProps) {
   const state = payment?.state ?? null;
   const dueLabel = dueAmountLabel({
@@ -116,14 +119,26 @@ export default function ProposalPacketPurchase({
       data-proposal-purchase
       data-proposal-purchase-state={state ?? "open"}
     >
-      <p className={PROPOSAL_PACKET_FIELD_LABEL}>{PROPOSAL_CUSTOMER_PACKET_YOUR_PACKAGE_LABEL}</p>
+      <p className={PROPOSAL_PACKET_FIELD_LABEL} data-proposal-purchase-package-label>
+        {accepted ? PUBLIC_PAYMENT_ORIGINAL_AGREEMENT_LABEL : PROPOSAL_CUSTOMER_PACKET_YOUR_PACKAGE_LABEL}
+      </p>
 
       <div className="mt-2 flex min-w-0 flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h2 className="min-w-0 text-[1.5rem] font-semibold tracking-[-0.03em] text-[#0b1f33] [overflow-wrap:anywhere] sm:text-[1.7rem]">
+        <h2
+          className={`min-w-0 font-semibold tracking-[-0.03em] text-[#0b1f33] [overflow-wrap:anywhere] ${
+            accepted ? "text-[1.15rem] sm:text-[1.25rem]" : "text-[1.5rem] sm:text-[1.7rem]"
+          }`}
+        >
           {packageLabel}
         </h2>
         {packageTotalLabel ? (
-          <p className={`${PROPOSAL_PACKET_INVESTMENT} shrink-0`}>{packageTotalLabel}</p>
+          accepted ? (
+            <p className="shrink-0 text-[15px] font-semibold tabular-nums text-[#334155]">
+              {packageTotalLabel}
+            </p>
+          ) : (
+            <p className={`${PROPOSAL_PACKET_INVESTMENT} shrink-0`}>{packageTotalLabel}</p>
+          )
         ) : null}
       </div>
 
@@ -318,6 +333,14 @@ export default function ProposalPacketPurchase({
               </p>
               {payment?.contextNote ? (
                 <p className="mt-1 text-[13px] text-[#64748b]">{payment.contextNote}</p>
+              ) : null}
+              {projectBalanceLabel && state !== "deposit_due" ? (
+                <p
+                  className="mt-1 text-[13px] tabular-nums text-[#64748b]"
+                  data-proposal-payment-project-balance
+                >
+                  {projectBalanceLabel}
+                </p>
               ) : null}
             </div>
           ) : null}

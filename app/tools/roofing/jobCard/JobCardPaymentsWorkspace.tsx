@@ -160,6 +160,7 @@ export default function JobCardPaymentsWorkspace({
 }: JobCardPaymentsWorkspaceProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [emailNote, setEmailNote] = useState("");
+  const [emailNoteOpen, setEmailNoteOpen] = useState(false);
   const [pendingEmailAfterCollect, setPendingEmailAfterCollect] = useState<{
     requestId: string;
     message: string;
@@ -231,6 +232,40 @@ export default function JobCardPaymentsWorkspace({
 
   const current = workspace.currentRequest;
   const emailAction = resolvePaymentRequestEmailAction(deliveryAttempts);
+  const deliveryAttemptsNewestFirst = deliveryAttempts
+    .slice()
+    .sort((a, b) => b.attemptNumber - a.attemptNumber);
+  const renderDeliveryAttempt = (attempt: (typeof deliveryAttempts)[number]) => {
+    const label =
+      attempt.status === "delivered"
+        ? "Delivered"
+        : attempt.status === "bounced"
+          ? "Bounced"
+          : attempt.status === "failed"
+            ? "Email wasn’t sent"
+            : attempt.status === "provider_accepted" || attempt.status === "attempted"
+              ? "Submitted"
+              : attempt.status === "delayed"
+                ? "Delivery delayed"
+                : attempt.status;
+    const tone =
+      attempt.status === "failed" || attempt.status === "bounced"
+        ? "text-amber-950"
+        : "text-slate-700";
+    return (
+      <li key={attempt.id} className="py-2 text-sm">
+        <p className={`font-medium ${tone}`}>
+          Attempt {attempt.attemptNumber} · {label}
+        </p>
+        {attempt.recipientRedacted ? (
+          <p className="text-xs text-slate-500">To {attempt.recipientRedacted}</p>
+        ) : null}
+        {attempt.errorMessage ? (
+          <p className="text-xs text-amber-900">{attempt.errorMessage}</p>
+        ) : null}
+      </li>
+    );
+  };
   const showCollect =
     workspace.canCollectPayment && onCollectPayment && current == null;
   const showQuietStatus = current == null && workspace.statusLabel.length > 0;
@@ -306,19 +341,22 @@ export default function JobCardPaymentsWorkspace({
           {(current.status === "open" || current.status === "processing") &&
           onEmailPaymentRequest ? (
             <div className="mt-4 space-y-2" data-jobcard-payments-email>
-              <label className="block space-y-1 text-sm">
-                <span className="font-medium text-slate-700">
-                  Optional note{" "}
-                  <span className="font-normal text-slate-400">(email only)</span>
-                </span>
-                <textarea
-                  className="min-h-[72px] w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-                  maxLength={500}
-                  value={emailNote}
-                  onChange={(e) => setEmailNote(e.target.value)}
-                  data-jobcard-payments-email-note
-                />
-              </label>
+              {emailNoteOpen ? (
+                <label className="block space-y-1 text-sm">
+                  <span className="font-medium text-slate-700">
+                    Optional note{" "}
+                    <span className="font-normal text-slate-400">(email only)</span>
+                  </span>
+                  <textarea
+                    className="min-h-[72px] w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                    maxLength={500}
+                    value={emailNote}
+                    onChange={(e) => setEmailNote(e.target.value)}
+                    autoFocus
+                    data-jobcard-payments-email-note
+                  />
+                </label>
+              ) : null}
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                 <button
                   type="button"
@@ -338,6 +376,16 @@ export default function JobCardPaymentsWorkspace({
                     ? "Sending…"
                     : PAYMENT_REQUEST_EMAIL_ACTION_LABELS[emailAction]}
                 </button>
+                {!emailNoteOpen ? (
+                  <button
+                    type="button"
+                    onClick={() => setEmailNoteOpen(true)}
+                    className="inline-flex min-h-11 w-full items-center justify-center rounded-md px-4 text-sm font-medium text-slate-600 hover:bg-slate-50 sm:w-auto"
+                    data-jobcard-payments-email-add-note
+                  >
+                    Add a note to the email
+                  </button>
+                ) : null}
                 {onCopyPaymentLink ? (
                   <button
                     type="button"
@@ -428,41 +476,18 @@ export default function JobCardPaymentsWorkspace({
                 Email delivery
               </h4>
               <ul className="mt-2 divide-y divide-slate-100">
-                {deliveryAttempts.map((attempt) => {
-                  const label =
-                    attempt.status === "delivered"
-                      ? "Delivered"
-                      : attempt.status === "bounced"
-                        ? "Bounced"
-                        : attempt.status === "failed"
-                          ? "Email wasn’t sent"
-                          : attempt.status === "provider_accepted" ||
-                              attempt.status === "attempted"
-                            ? "Submitted"
-                            : attempt.status === "delayed"
-                              ? "Delivery delayed"
-                              : attempt.status;
-                  const tone =
-                    attempt.status === "failed" || attempt.status === "bounced"
-                      ? "text-amber-950"
-                      : "text-slate-700";
-                  return (
-                    <li key={attempt.id} className="py-2 text-sm">
-                      <p className={`font-medium ${tone}`}>
-                        Attempt {attempt.attemptNumber} · {label}
-                      </p>
-                      {attempt.recipientRedacted ? (
-                        <p className="text-xs text-slate-500">
-                          To {attempt.recipientRedacted}
-                        </p>
-                      ) : null}
-                      {attempt.errorMessage ? (
-                        <p className="text-xs text-amber-900">{attempt.errorMessage}</p>
-                      ) : null}
-                    </li>
-                  );
-                })}
+                {deliveryAttemptsNewestFirst.slice(0, 1).map(renderDeliveryAttempt)}
               </ul>
+              {deliveryAttemptsNewestFirst.length > 1 ? (
+                <details className="mt-1" data-jobcard-payments-delivery-earlier>
+                  <summary className="cursor-pointer py-1 text-xs font-medium text-slate-500">
+                    Earlier attempts ({deliveryAttemptsNewestFirst.length - 1})
+                  </summary>
+                  <ul className="divide-y divide-slate-100">
+                    {deliveryAttemptsNewestFirst.slice(1).map(renderDeliveryAttempt)}
+                  </ul>
+                </details>
+              ) : null}
             </div>
           ) : null}
         </section>
@@ -557,17 +582,34 @@ export default function JobCardPaymentsWorkspace({
         className="w-full max-w-xl"
         data-jobcard-payments-history-measure
       >
-        <h3
-          id="job-card-payments-history"
-          className="text-[11px] font-semibold uppercase tracking-wide text-slate-400"
-        >
-          Payment history
-        </h3>
         {workspace.timeline.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-500" data-jobcard-payments-timeline-empty>
-            No payment activity yet.
-          </p>
+          <>
+            <h3
+              id="job-card-payments-history"
+              className="text-[11px] font-semibold uppercase tracking-wide text-slate-400"
+            >
+              Payment history
+            </h3>
+            <p className="mt-3 text-sm text-slate-500" data-jobcard-payments-timeline-empty>
+              No payment activity yet.
+            </p>
+          </>
         ) : (
+          <details className="group" data-jobcard-payments-history-disclosure>
+            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
+              <h3
+                id="job-card-payments-history"
+                className="text-[11px] font-semibold uppercase tracking-wide text-slate-400"
+              >
+                Payment history
+              </h3>
+              <span className="text-xs text-slate-500">
+                {workspace.timeline.length}{" "}
+                {workspace.timeline.length === 1 ? "event" : "events"}
+              </span>
+              <span className="text-xs font-medium text-slate-600 group-open:hidden">Show</span>
+              <span className="hidden text-xs font-medium text-slate-600 group-open:inline">Hide</span>
+            </summary>
           <div className="mt-3" data-jobcard-payments-timeline data-jobcard-payments-history>
             {historyGroups.map((group) => (
               <section
@@ -593,6 +635,7 @@ export default function JobCardPaymentsWorkspace({
               </section>
             ))}
           </div>
+          </details>
         )}
       </section>
 

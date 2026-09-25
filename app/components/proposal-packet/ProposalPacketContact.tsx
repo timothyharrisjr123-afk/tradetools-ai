@@ -1,6 +1,8 @@
 import type { ProposalCustomerPacketContactViewModel } from "@/app/lib/proposalCustomerPacketViewModel";
 import {
   PROPOSAL_CUSTOMER_PACKET_ASK_QUESTION_CTA,
+  PROPOSAL_CUSTOMER_PACKET_ACCEPTED_CONTACT_HEADING,
+  PROPOSAL_CUSTOMER_PACKET_ACCEPTED_CONTACT_MESSAGE,
   PROPOSAL_CUSTOMER_PACKET_QUESTIONS_HEADING,
   PROPOSAL_CUSTOMER_PACKET_SUPPORT_MESSAGE,
 } from "@/app/lib/proposalCustomerPacketViewModel";
@@ -84,6 +86,7 @@ function buildContactRows(contact: ProposalCustomerPacketContactViewModel): Cont
 type ProposalPacketCloseoutAsideProps = {
   contact: ProposalCustomerPacketContactViewModel | null;
   mode?: ProposalPacketMode;
+  accepted?: boolean;
 };
 
 /**
@@ -93,6 +96,7 @@ type ProposalPacketCloseoutAsideProps = {
 export function ProposalPacketCloseoutAside({
   contact,
   mode = "public",
+  accepted = false,
 }: ProposalPacketCloseoutAsideProps) {
   const companyName = (contact?.companyName ?? "").trim();
   const rows = contact ? buildContactRows(contact) : [];
@@ -100,15 +104,23 @@ export function ProposalPacketCloseoutAside({
   const askHref = contact ? buildAskQuestionHref(contact) : null;
 
   return (
-    <aside id={PROPOSAL_CUSTOMER_PACKET_READY_ANCHOR} aria-label="Questions">
+    <aside
+      id={PROPOSAL_CUSTOMER_PACKET_READY_ANCHOR}
+      aria-label={accepted ? PROPOSAL_CUSTOMER_PACKET_ACCEPTED_CONTACT_HEADING : "Questions"}
+      data-proposal-contact-state={accepted ? "accepted" : "open"}
+    >
       <div className="mb-4 border-l-2 border-[#2563eb]/40 pl-4">
         <h2 className="text-[1.35rem] font-semibold tracking-[-0.03em] text-[#0b1f33] sm:text-[1.45rem]">
-          {PROPOSAL_CUSTOMER_PACKET_QUESTIONS_HEADING}
+          {accepted
+            ? PROPOSAL_CUSTOMER_PACKET_ACCEPTED_CONTACT_HEADING
+            : PROPOSAL_CUSTOMER_PACKET_QUESTIONS_HEADING}
         </h2>
         <p className={PROPOSAL_PACKET_SECTION_INTRO}>
-          {contact?.supportMessage || PROPOSAL_CUSTOMER_PACKET_SUPPORT_MESSAGE}
+          {accepted
+            ? PROPOSAL_CUSTOMER_PACKET_ACCEPTED_CONTACT_MESSAGE
+            : contact?.supportMessage || PROPOSAL_CUSTOMER_PACKET_SUPPORT_MESSAGE}
         </p>
-        {mode === "public" && askHref ? (
+        {mode === "public" && askHref && !accepted ? (
           <a
             href={askHref}
             className={`mt-1 ${PROPOSAL_PACKET_CTA_TEXT_LINK}`}

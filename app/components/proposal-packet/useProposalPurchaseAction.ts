@@ -27,6 +27,15 @@ export const PROPOSAL_PURCHASE_CONFIRM_ERROR =
 
 export const PROPOSAL_PURCHASE_RETRY_PAYMENT_CTA = "Retry payment";
 
+/** "Pay $450" for an open progress/balance request; the amount is the request, not the balance. */
+export function formatPurchasePayLabel(
+  payment: Pick<PublicPaymentViewModel, "state" | "kind" | "amountLabel"> | null
+): string | null {
+  if (!payment?.amountLabel) return null;
+  if (payment.state !== "progress_due" && payment.state !== "balance_due") return null;
+  return `Pay ${payment.amountLabel}`;
+}
+
 /** Which real-world commitment this proposal asks the customer to make. */
 export type ProposalPurchaseActionKind = "pay" | "confirm" | "none";
 
@@ -285,7 +294,7 @@ export function useProposalPurchaseAction({
     kind === "pay"
       ? busy
         ? PROPOSAL_PURCHASE_PAY_BUSY_LABEL
-        : (payment?.ctaLabel ?? PUBLIC_PAY_DEPOSIT_CTA)
+        : formatPurchasePayLabel(payment) ?? payment?.ctaLabel ?? PUBLIC_PAY_DEPOSIT_CTA
       : kind === "confirm"
         ? busy
           ? PROPOSAL_CUSTOMER_PACKET_CONFIRM_PROPOSAL_BUSY

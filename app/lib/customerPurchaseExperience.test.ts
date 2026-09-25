@@ -54,7 +54,7 @@ describe("Phase 1 — single offer", () => {
   test("packet only mounts the choice section when more than one option is offered", () => {
     const packet = read(`${PACKET_DIR}/ProposalPacket.tsx`);
     assert.match(packet, /const showChoice = options\.length > 1/);
-    assert.match(packet, /\{showChoice \? \(/);
+    assert.match(packet, /\{showChoice && !accepted \? \(/);
   });
 
   test("a single offer still resolves the package from frozen contractor truth", () => {

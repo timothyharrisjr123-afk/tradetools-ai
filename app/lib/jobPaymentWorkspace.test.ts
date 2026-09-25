@@ -211,8 +211,8 @@ describe("collectible vs net", () => {
         receivedGrossCents: 2000000,
         collectibleRemainingCents: 0,
         refundedCents: 0,
-      }).find((row) => row.label === "Refunded")?.cents,
-      0
+      }).find((row) => row.label === "Refunded"),
+      undefined
     );
   });
 });

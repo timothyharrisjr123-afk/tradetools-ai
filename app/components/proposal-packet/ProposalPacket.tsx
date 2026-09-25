@@ -47,6 +47,10 @@ type ProposalPacketProps = {
  *
  * The decision sits immediately after the options so money is never separated
  * from the choice by unrelated sections.
+ *
+ * After acceptance the page becomes a project record: the record leads, the
+ * package choice is no longer offered, and the accepted package is shown as the
+ * original agreement.
  */
 export default function ProposalPacket({
   packet,
@@ -173,6 +177,21 @@ export default function ProposalPacket({
   );
 
   const showPurchase = terms != null || packet.payment != null || packet.estimate != null;
+  const recordLeads = accepted && packet.projectRecord != null;
+  const recordMoney = packet.projectRecord?.money;
+  const projectBalanceLabel =
+    recordMoney && recordMoney.state !== "unavailable" && recordMoney.hasBalance
+      ? recordMoney.balanceLabel
+      : null;
+
+  const projectRecordSection = packet.projectRecord ? (
+    <section className={PROPOSAL_PACKET_STORY_SECTION} aria-label="Project record">
+      <ProposalPacketProjectRecord
+        record={packet.projectRecord}
+        publicAccessToken={mode === "public" ? publicAccessToken : null}
+      />
+    </section>
+  ) : null;
 
   return (
     <main
@@ -186,7 +205,9 @@ export default function ProposalPacket({
         />
         <ProposalPacketHero cover={packet.cover} estimate={packet.estimate} />
 
-        {showChoice ? (
+        {recordLeads ? projectRecordSection : null}
+
+        {showChoice && !accepted ? (
           <section className={PROPOSAL_PACKET_STORY_SECTION} aria-label="Choose your package">
             <ProposalPacketComparison
               comparison={packet.comparison!}
@@ -221,18 +242,12 @@ export default function ProposalPacket({
               acceptedOnLabel={acceptedOnLabel}
               action={purchaseAction}
               recordOwnsDetails={packet.projectRecord != null}
+              projectBalanceLabel={projectBalanceLabel}
             />
           </section>
         ) : null}
 
-        {packet.projectRecord ? (
-          <section className={PROPOSAL_PACKET_STORY_SECTION} aria-label="Project record">
-            <ProposalPacketProjectRecord
-              record={packet.projectRecord}
-              publicAccessToken={mode === "public" ? publicAccessToken : null}
-            />
-          </section>
-        ) : null}
+        {recordLeads ? null : projectRecordSection}
 
         {showIncludedScope && packet.estimate ? (
           <section
@@ -253,6 +268,7 @@ export default function ProposalPacket({
           details={packet.details}
           contact={packet.contact}
           mode={mode}
+          accepted={accepted}
         />
 
         <ProposalPacketFooter contact={packet.contact} footerMetadata={packet.footerMetadata} />

@@ -63,6 +63,11 @@ import {
 import { TEMPLATES_FUTURE_ONLY_COPY } from "@/app/tools/roofing/templates/templatesWorkspaceFlow";
 import { getVisibleNavSections } from "@/app/tools/roofing/fieldDiveNavConfig";
 
+import { formatPurchasePayLabel } from "@/app/components/proposal-packet/useProposalPurchaseAction";
+import { PROPOSAL_CUSTOMER_PACKET_ACCEPTED_CONTACT_HEADING } from "@/app/lib/proposalCustomerPacketViewModel";
+import { PUBLIC_PROJECT_RECORD_DOWNLOAD_UNSIGNED } from "@/app/lib/publicProjectRecordViewModel";
+import { jobPaymentWorkspaceSummaryRows } from "@/app/lib/jobPaymentWorkspace";
+
 const root = process.cwd();
 const read = (rel: string) => readFileSync(join(root, rel), "utf8");
 
@@ -634,5 +639,90 @@ describe("Phase 12.5 G3 - builder and preview", () => {
     assert.match(client, /suppressOrdinarySend !== true/);
     assert.match(client, /agreementHref=/);
     assert.match(client, /data-preview-historical-incomplete/);
+  });
+});
+
+describe("Phase 12.5 G4 - customer page after acceptance", () => {
+  test("project record leads and package choice is no longer offered", () => {
+    const packet = read("app/components/proposal-packet/ProposalPacket.tsx");
+    assert.match(packet, /const recordLeads = accepted && packet\.projectRecord != null/);
+    assert.match(packet, /\{recordLeads \? projectRecordSection : null\}/);
+    assert.match(packet, /\{showChoice && !accepted \? \(/);
+  });
+
+  test("accepted package is labeled as the original agreement", () => {
+    const purchase = read("app/components/proposal-packet/ProposalPacketPurchase.tsx");
+    assert.match(purchase, /accepted \? PUBLIC_PAYMENT_ORIGINAL_AGREEMENT_LABEL/);
+    assert.equal(PUBLIC_PROJECT_RECORD_DOWNLOAD_UNSIGNED, "Download original agreement");
+  });
+
+  test("pay action names the request amount, not the balance", () => {
+    assert.equal(
+      formatPurchasePayLabel({ state: "progress_due", kind: "progress", amountLabel: "$450" }),
+      "Pay $450"
+    );
+    assert.equal(
+      formatPurchasePayLabel({ state: "deposit_due", kind: "deposit", amountLabel: "$450" }),
+      null
+    );
+    assert.equal(
+      formatPurchasePayLabel({ state: "processing", kind: "progress", amountLabel: "$450" }),
+      null
+    );
+    const purchase = read("app/components/proposal-packet/ProposalPacketPurchase.tsx");
+    assert.match(purchase, /data-proposal-payment-project-balance/);
+  });
+
+  test("post-acceptance help is contact, not a sales prompt", () => {
+    assert.equal(PROPOSAL_CUSTOMER_PACKET_ACCEPTED_CONTACT_HEADING, "Contact your contractor");
+    const contact = read("app/components/proposal-packet/ProposalPacketContact.tsx");
+    assert.match(contact, /askHref && !accepted/);
+  });
+});
+
+describe("Phase 12.5 G4 - scope-change public identity", () => {
+  test("public review carries contractor identity from a tenancy-scoped read", () => {
+    const route = read("app/api/scope-changes/public/[token]/route.ts");
+    assert.match(route, /from\("companies"\)\s*\.select\("name, phone"\)\s*\.eq\("id", resolved\.company_id\)/);
+    const client = read("app/scope-changes/[token]/PublicScopeChangeReviewClient.tsx");
+    assert.match(client, /PROPOSAL_PACKET_PAGE/);
+    assert.match(client, /data-scope-change-contractor/);
+    assert.match(client, /data-scope-change-public-review/);
+  });
+});
+
+describe("Phase 12.5 G4 - payments workspace", () => {
+  test("refund tile appears only when refunds exist", () => {
+    const base = { contractTotalCents: 100000, receivedGrossCents: 45000, collectibleRemainingCents: 55000 };
+    assert.ok(
+      !jobPaymentWorkspaceSummaryRows({ ...base, refundedCents: 0 }).some((row) => row.label === "Refunded")
+    );
+    assert.ok(
+      jobPaymentWorkspaceSummaryRows({ ...base, refundedCents: 5000 }).some((row) => row.label === "Refunded")
+    );
+  });
+
+  test("email note opens on request; history and earlier attempts collapse", () => {
+    const src = read("app/tools/roofing/jobCard/JobCardPaymentsWorkspace.tsx");
+    assert.match(src, /\{emailNoteOpen \? \(/);
+    assert.match(src, /data-jobcard-payments-email-add-note/);
+    assert.match(src, /data-jobcard-payments-history-disclosure/);
+    assert.match(src, /data-jobcard-payments-delivery-earlier/);
+  });
+});
+
+describe("Phase 12.5 G4 - login and shell", () => {
+  test("bare login lands on Jobs", () => {
+    const login = read("app/login/page.tsx");
+    assert.match(login, /LOGIN_DEFAULT_DESTINATION = "\/tools\/roofing\/saved"/);
+  });
+
+  test("one main landmark; no empty desktop header; mobile sign-out in the sheet", () => {
+    const shell = read("app/tools/roofing/FieldDiveAppShell.tsx");
+    assert.equal((shell.match(/<main\b/g) ?? []).length, 1);
+    assert.match(shell, /sm:px-6 lg:hidden"/);
+    assert.match(shell, /data-fielddive-mobile-nav-signout/);
+    const roofing = read("app/tools/roofing/RoofingClient.tsx");
+    assert.equal((roofing.match(/<main\b/g) ?? []).length, 0);
   });
 });

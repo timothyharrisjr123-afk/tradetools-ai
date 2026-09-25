@@ -279,6 +279,11 @@ export const PROPOSAL_CUSTOMER_PACKET_ASK_QUESTION_CTA = "Ask a question";
 
 export const PROPOSAL_CUSTOMER_PACKET_QUESTIONS_HEADING = "Questions?";
 
+/** After acceptance the page is a project record, not a sales conversation. */
+export const PROPOSAL_CUSTOMER_PACKET_ACCEPTED_CONTACT_HEADING = "Contact your contractor";
+export const PROPOSAL_CUSTOMER_PACKET_ACCEPTED_CONTACT_MESSAGE =
+  "For scheduling, payments, or anything about the work, reach out to your contractor directly.";
+
 /**
  * Customer-facing money reads in whole dollars. Trailing cents are noise on a
  * proposal, so they appear only when the amount actually has them.

@@ -13,12 +13,14 @@ type ProposalPacketDetailsContactProps = {
   details: ProposalCustomerPacketDetailsViewModel | null;
   contact: ProposalCustomerPacketContactViewModel | null;
   mode?: ProposalPacketMode;
+  accepted?: boolean;
 };
 
 export default function ProposalPacketDetailsContact({
   details,
   contact,
   mode = "public",
+  accepted = false,
 }: ProposalPacketDetailsContactProps) {
   const hasDetails = details != null && details.tabs.length > 0;
   const hasContact = contact != null;
@@ -33,8 +35,11 @@ export default function ProposalPacketDetailsContact({
         </section>
       ) : null}
       {hasContact ? (
-        <section className={PROPOSAL_PACKET_DETAILS_SECTION} aria-label="Questions">
-          <ProposalPacketCloseoutAside contact={contact} mode={mode} />
+        <section
+          className={PROPOSAL_PACKET_DETAILS_SECTION}
+          aria-label={accepted ? "Contact your contractor" : "Questions"}
+        >
+          <ProposalPacketCloseoutAside contact={contact} mode={mode} accepted={accepted} />
         </section>
       ) : null}
     </>

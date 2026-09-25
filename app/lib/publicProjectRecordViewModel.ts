@@ -37,7 +37,7 @@ export const PUBLIC_PROJECT_RECORD_BALANCE_LABEL = "Balance remaining";
 export const PUBLIC_PROJECT_RECORD_MONEY_UNAVAILABLE =
   "Payment details unavailable — contact your contractor";
 export const PUBLIC_PROJECT_RECORD_DOWNLOAD_SIGNED = "Download signed agreement";
-export const PUBLIC_PROJECT_RECORD_DOWNLOAD_UNSIGNED = "Download agreement";
+export const PUBLIC_PROJECT_RECORD_DOWNLOAD_UNSIGNED = "Download original agreement";
 export const PUBLIC_PROJECT_RECORD_WORK_COMPLETE = "Work complete";
 export const PUBLIC_PROJECT_RECORD_CHANGE_TOTAL_LABEL = "Change total";
 

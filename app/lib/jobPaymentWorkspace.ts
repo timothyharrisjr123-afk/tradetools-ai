@@ -317,12 +317,16 @@ export function jobPaymentWorkspaceSummaryRows(input: {
   collectibleRemainingCents: number | null;
   refundedCents: number;
 }): JobPaymentWorkspaceSummaryRow[] {
-  return [
+  const rows: JobPaymentWorkspaceSummaryRow[] = [
     { label: "Contract", cents: input.contractTotalCents },
     { label: "Received", cents: input.receivedGrossCents },
     { label: "Remaining", cents: input.collectibleRemainingCents },
-    { label: "Refunded", cents: input.refundedCents },
   ];
+  // Refunds stay in history either way; the summary shows them only when present.
+  if (input.refundedCents > 0) {
+    rows.push({ label: "Refunded", cents: input.refundedCents });
+  }
+  return rows;
 }
 
 export function isJobPaymentCompleteStage(stage: string | null | undefined): boolean {

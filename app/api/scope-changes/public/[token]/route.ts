@@ -48,7 +48,7 @@ export async function GET(_req: Request, context: RouteContext) {
       );
     }
 
-    const [{ data: acceptance }, { data: job }] = await Promise.all([
+    const [{ data: acceptance }, { data: job }, { data: company }] = await Promise.all([
       admin
         .from("proposal_acceptances")
         .select(
@@ -63,6 +63,11 @@ export async function GET(_req: Request, context: RouteContext) {
         .select("id,job_name,customer_name,address_formatted")
         .eq("id", resolved.job_id)
         .eq("company_id", resolved.company_id)
+        .maybeSingle(),
+      admin
+        .from("companies")
+        .select("name, phone")
+        .eq("id", resolved.company_id)
         .maybeSingle(),
     ]);
 
@@ -90,6 +95,12 @@ export async function GET(_req: Request, context: RouteContext) {
             name: job.job_name ?? null,
             customerName: job.customer_name ?? null,
             addressFormatted: job.address_formatted ?? null,
+          }
+        : null,
+      contractor: company
+        ? {
+            name: company.name ?? null,
+            phone: company.phone ?? null,
           }
         : null,
       originalAgreement: acceptance

@@ -14,6 +14,9 @@ import {
   resolveAuthReturnPath,
 } from "@/app/lib/safeInternalRedirect";
 
+/** A bare sign-in lands on Jobs, the contractor's operating home. */
+const LOGIN_DEFAULT_DESTINATION = "/tools/roofing/saved";
+
 function LoginPageInner() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
@@ -35,7 +38,7 @@ function LoginPageInner() {
         setMessage({ type: "error", text: error.message });
         return;
       }
-      const safePath = resolveAuthReturnPath(redirectCandidate, "/");
+      const safePath = resolveAuthReturnPath(redirectCandidate, LOGIN_DEFAULT_DESTINATION);
       window.location.assign(safePath);
     } catch (err) {
       setMessage({ type: "error", text: err instanceof Error ? err.message : "Something went wrong." });

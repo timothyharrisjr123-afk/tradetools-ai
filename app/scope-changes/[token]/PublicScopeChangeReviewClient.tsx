@@ -6,6 +6,48 @@ import { formatScopeChangeDeltaLabel } from "@/app/lib/jobScopeChangeViewModel";
 import { JOB_SCOPE_CHANGE_STATUS_LABELS } from "@/app/lib/jobScopeChangeTypes";
 import { buttonClass } from "@/app/components/ui/buttonStyles";
 import { FORM_INPUT } from "@/app/components/ui/formStyles";
+import {
+  PROPOSAL_PACKET_FIELD_LABEL,
+  PROPOSAL_PACKET_PAGE,
+} from "@/app/components/proposal-packet/proposalPacketStyles";
+
+const SCOPE_CHANGE_SHELL =
+  "mx-auto w-full max-w-[720px] overflow-hidden rounded-[16px] border border-[#cfd9e6]/95 bg-white shadow-[0_1px_0_rgba(255,255,255,0.7)_inset,0_20px_50px_rgba(11,31,51,0.10)]";
+
+function ScopeChangeShell({
+  contractorName,
+  state,
+  children,
+}: {
+  contractorName: string | null;
+  state: "loading" | "error" | "authorized" | "review";
+  children: React.ReactNode;
+}) {
+  return (
+    <main className={`${PROPOSAL_PACKET_PAGE} min-h-screen`}>
+      <article className={SCOPE_CHANGE_SHELL} aria-label="Scope change">
+        {contractorName ? (
+          <div className="border-b border-[#e6ebf1] px-5 py-4 sm:px-7" data-scope-change-contractor>
+            <p className="text-[15px] font-semibold tracking-[-0.01em] text-[#0b1f33]">
+              {contractorName}
+            </p>
+          </div>
+        ) : null}
+        <div
+          className="space-y-8 px-5 py-6 sm:px-7 sm:py-8"
+          {...(state === "review" ? { "data-scope-change-public-review": "" } : {})}
+          {...(state === "error" ? { "data-scope-change-public-error": "" } : {})}
+          {...(state === "authorized" ? { "data-scope-change-public-authorized": "" } : {})}
+        >
+          {children}
+        </div>
+      </article>
+    </main>
+  );
+}
+
+const SCOPE_CHANGE_TITLE =
+  "text-[1.5rem] font-semibold tracking-[-0.03em] text-[#0b1f33] sm:text-[1.7rem]";
 
 type PublicLine = {
   changeKind: "add" | "remove";
@@ -29,6 +71,10 @@ type PublicReviewPayload = {
     name: string | null;
     customerName: string | null;
     addressFormatted: string | null;
+  } | null;
+  contractor?: {
+    name: string | null;
+    phone: string | null;
   } | null;
   originalAgreement: {
     acceptedAt: string | null;
@@ -158,42 +204,47 @@ export default function PublicScopeChangeReviewClient({
 
   if (loadStatus === "loading") {
     return (
-      <main className="mx-auto max-w-lg px-4 py-12">
-        <p className="text-sm text-slate-600">Loading scope change…</p>
-      </main>
+      <ScopeChangeShell contractorName={null} state="loading">
+        <p className="text-sm text-slate-600" role="status">
+          Loading scope change…
+        </p>
+      </ScopeChangeShell>
     );
   }
 
   if (loadStatus === "error" || !payload) {
     return (
-      <main className="mx-auto max-w-lg px-4 py-12" data-scope-change-public-error>
-        <h1 className="text-xl font-semibold text-slate-950">
-          Scope change unavailable
-        </h1>
-        <p className="mt-2 text-sm text-slate-600">
-          {error ?? "This link is not available."}
-        </p>
-      </main>
+      <ScopeChangeShell contractorName={null} state="error">
+        <div>
+          <h1 className={SCOPE_CHANGE_TITLE}>Scope change unavailable</h1>
+          <p className="mt-2 text-sm text-slate-600">
+            {error ?? "This link is not available."}
+          </p>
+        </div>
+      </ScopeChangeShell>
     );
   }
 
+  const contractorName = payload.contractor?.name?.trim() || null;
+  const contractorPhone = payload.contractor?.phone?.trim() || null;
+
   if (authorized) {
     return (
-      <main
-        className="mx-auto max-w-lg px-4 py-12"
-        data-scope-change-public-authorized
-      >
-        <h1 className="text-xl font-semibold text-slate-950">
-          Scope change authorized
-        </h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Thank you. Your approval is recorded. The updated contract total is{" "}
-          <span className="font-semibold text-slate-900">
-            {formatUsdFromCents(authorizedTotal ?? payload.proposedNewTotalCents)}
-          </span>
-          .
-        </p>
-      </main>
+      <ScopeChangeShell contractorName={contractorName} state="authorized">
+        <div>
+          <h1 className={SCOPE_CHANGE_TITLE}>Scope change authorized</h1>
+          <p className="mt-2 text-sm text-slate-600">
+            Thank you. Your approval is recorded. The updated contract total is{" "}
+            <span className="font-semibold text-slate-900">
+              {formatUsdFromCents(authorizedTotal ?? payload.proposedNewTotalCents)}
+            </span>
+            .
+          </p>
+          <p className="mt-2 text-sm text-slate-600">
+            Your original agreement stays on file; this change is recorded alongside it.
+          </p>
+        </div>
+      </ScopeChangeShell>
     );
   }
 
@@ -205,17 +256,10 @@ export default function PublicScopeChangeReviewClient({
       : payload.scopeChange.status;
 
   return (
-    <main
-      className="mx-auto max-w-lg space-y-8 px-4 py-10"
-      data-scope-change-public-review
-    >
+    <ScopeChangeShell contractorName={contractorName} state="review">
       <header className="space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
-          Scope change review
-        </p>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
-          Approve a change to your agreement
-        </h1>
+        <p className={PROPOSAL_PACKET_FIELD_LABEL}>Change to your agreement</p>
+        <h1 className={SCOPE_CHANGE_TITLE}>Approve a change to your agreement</h1>
         {payload.job?.customerName || payload.job?.addressFormatted ? (
           <p className="text-sm text-slate-600">
             {[payload.job.customerName, payload.job.addressFormatted]
@@ -227,7 +271,7 @@ export default function PublicScopeChangeReviewClient({
 
       <section className="space-y-3 border-t border-slate-100 pt-6">
         <h2 className="text-sm font-semibold text-slate-900">
-          Original accepted agreement
+          Original agreement
         </h2>
         <p className="text-sm text-slate-700">
           {payload.originalAgreement?.totalCents != null
@@ -443,6 +487,24 @@ export default function PublicScopeChangeReviewClient({
           This scope change is not open for authorization.
         </p>
       )}
-    </main>
+
+      {contractorName || contractorPhone ? (
+        <p className="border-t border-slate-100 pt-6 text-sm text-slate-600" data-scope-change-contact>
+          Questions about this change? Contact {contractorName ?? "your contractor"}
+          {contractorPhone ? (
+            <>
+              {" "}at{" "}
+              <a
+                href={`tel:${contractorPhone}`}
+                className="font-medium text-blue-700 underline-offset-2 hover:underline"
+              >
+                {contractorPhone}
+              </a>
+            </>
+          ) : null}
+          .
+        </p>
+      ) : null}
+    </ScopeChangeShell>
   );
 }

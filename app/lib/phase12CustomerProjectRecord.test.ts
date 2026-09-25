@@ -154,7 +154,7 @@ describe("Phase 12 — customer project record read model", () => {
     assert.equal(vm.agreement.packageLabel, "Core Protection");
     assert.equal(vm.agreement.acceptedLabel, "Accepted September 1, 2026");
     assert.equal(vm.agreement.signedLabel, null);
-    assert.equal(vm.agreement.downloadLabel, "Download agreement");
+    assert.equal(vm.agreement.downloadLabel, "Download original agreement");
     assert.equal(vm.completion, null);
     assert.equal(vm.contract, null, "normal job without changes shows no $0 changes row");
     assert.deepEqual(vm.approvedChanges, []);
