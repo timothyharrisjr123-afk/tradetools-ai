@@ -2,6 +2,56 @@
 
 **Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
 
+## 2026-09-25 — CHECKPOINT: accepted Job Card / Job Board UI + acceptance-read P1
+
+- **Base HEAD:** `0f038a9`. Local commits only. **Not** pushed. **No** deploy, migration, SQL, DB write, or Supabase target change.
+- **Commits:**
+  - `b623c06` fix(ui): refine Job Card Overview hierarchy (accepted Astra Overview pass: payment signal only for a current request or failed read; closeout owns money once; operational Overview layout; record-mode field brief).
+  - `8aa60a5` fix(jobs): improve Job Board stage hierarchy (accepted: Scheduled leads with the window; Production leads with actual start, planned supporting, on-hold paused; Complete shows quiet Started then dominant Completed with no routine Production noise; lifecycle action treatments unchanged; no task indicator).
+  - `1c5e5af` fix(proposals): keep failed acceptance reads unknown (P1 below).
+  - `4742857` chore(roofing): removes 183 blank lines that `1c5e5af` introduced in `RoofingClient.tsx` when it normalized CR-CR-LF endings; no content change.
+- Review doc `docs/phase12-5-job-card-hierarchy-astra-review.md` is committed with this checkpoint.
+
+### Acceptance-read P1 (CLOSED)
+
+- **Authority:** `proposal_acceptances` rows (written only by the public `/p` acceptance path; writer unchanged). Contractor Approve eligibility comes from the Attention read (`acceptance_confirmation_required` items verified against `proposal_acceptances` server-side) through `resolveCanonicalJobActionEligibility`, on both the Job Card (`useJobAttentionDetail`) and the Board (`useJobAttentionSummaries`).
+- **Root cause:** `listJobProposalAcceptances` returned `[]` on a read error, and the Job Card then set `acceptanceFactsReady = true`. The Overview headline also gated only on acceptance and proposal-list reads, not on the Attention read that owns Approve. So a failed or unresolved read could settle on "Proposal sent — waiting on the customer" with Approve hidden, and the field brief could say "No authorized scope on file" on an approved job.
+- **Why dangerous:** a failed read masqueraded as the legitimate state "no acceptance", hiding the contractor's next action on a real accepted proposal.
+- **Correction:**
+  - `listJobProposalAcceptances` rejects with `ProposalAcceptanceReadError` on failure; `[]` now always means a successful read found nothing. Version-number enrichment failure stays non-fatal (label only).
+  - `app/lib/proposalAcceptanceReadState.ts` holds Job Card acceptance read truth: `loading` / `ready` / `error`, plus `resolved`. A failed refresh keeps last-known truth. Retry runs on window focus or pageshow while a read is failed, and a page reload always retries.
+  - The Overview pre-approval headline requires acceptance truth, Attention truth (`ready-empty` / `ready-items`), and a settled proposal list. A real pending acceptance still leads immediately (positive evidence). A failed read with no last-known truth shows "Customer response couldn't be checked · Reload the page to check again" (kind `proposal_facts_unavailable`), never "Proposal sent".
+  - The field brief's authorized work has an `error` status: "Authorized work couldn't be checked…" instead of "No authorized scope on file".
+  - `RoofingClient` and the Activity panel keep prior facts on rejection. Proposal Preview already caught the failure and now keeps prior agreement state instead of clearing it.
+- **Unchanged:** Approve eligibility (still requires the Attention acceptance item), accepted ≠ approved, `jobs.stage`, lifecycle matrix, scheduling, payment, pricing, scope changes, tenancy, public proposal behavior, Board and Job Card hierarchy.
+- **Tests:** `app/lib/proposalAcceptanceReadP1.test.ts` (17) covers loading, resolved empty, resolved accepted, error, refresh failure with last-known truth, recovery, no eligibility weakening, and cross-surface authority. Full suite: 320 files, 4316 tests, 26 failures, all pre-existing baseline (same set as before this session; none touch the acceptance read). Typecheck: 11 baseline errors (unchanged).
+- **Limitations:**
+  - The Board has no visible "attention unavailable" state. On an initial summaries failure it shows no Approve and no attention line, and makes no acceptance claim (it only shows proposal presence). Later failures keep last-known summaries.
+  - The Job Card cannot distinguish "attention error after a successful empty read" from an initial failure, so it conservatively shows the unavailable headline.
+  - "Add proposal" gating still reads accepted ids while loading or failed (server-guarded; not changed).
+  - A live failure state was not captured (it would require breaking the DB read); it is covered by unit tests.
+
+### Future slice — JOB BOARD OPEN-TASK AWARENESS (NOT IMPLEMENTED)
+
+- **Intent:** the Board quietly shows when a job has unresolved tasks, so contractors don't have to open each Job Card to find out whether work remains.
+- **V1 presentation:**
+  - 0 open tasks: show nothing (no "0", no "No tasks").
+  - 1+ open tasks: a subtle task/checklist icon plus the open count, in the quiet footer/supporting metadata.
+  - Completed tasks don't count.
+  - No overdue wording, no yellow/orange/red urgency treatment, no glowing dot, no separate task card or section.
+  - Complete jobs may still show an unresolved count; completion and task resolution stay separate truths.
+  - Direct Tasks-tab navigation only if an existing canonical route safely supports it.
+- **Why deferred:** current Board data has no safe open-task count. `getJobsByCompany` selects `jobs` columns only. `linked_counts` is not a DB column (set only in tests), so `tasksLabel` is always empty on real cards. The only task reads are per job (`/api/jobs/[jobId]/tasks`).
+- **Do not use:** per-card N+1 task requests, test-only `linked_counts`, fabricated counts, or unresolved/error as zero.
+- **Durable implementation requires:**
+  - one company-scoped, tenant-safe batch read returning `job_id → open_task_count`, counting only non-deleted tasks with canonical `open` status;
+  - explicit loading/error truth, with the Board showing nothing until resolved and an error never shown as a confirmed zero;
+  - deliberately superseding or amending the historical 058 "no Board or Overview task chrome" contract (`jobTaskSql058.test.ts`) as part of that slice, not bypassing it.
+
+### Next roadmap step
+
+**NEXT: PHASE 13 — PROMOTED-LAUNCH EXPERIENCE REFINEMENT** (roadmap item 13). Do **not** begin from this checkpoint alone. Board open-task awareness is a candidate bounded slice within or before it when prioritized: batch read-model first, then the footer indicator. Launch gaps from Phase 12.5 (password recovery, durable scope-change token, Resend provider-event ops) remain separate.
+
 ## 2026-09-24 — PHASE 12.5 COMPLETE: Whole-app paid UI + cohesion
 
 ==================================================
