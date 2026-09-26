@@ -7,10 +7,6 @@ import {
 } from "@/app/lib/contractorCapabilityAuth";
 import { createClient } from "@/app/lib/supabase/server";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 const TierSchema = z.enum(["standard", "enhanced", "premium"]);
 
 const ContextSchema = z
@@ -293,6 +289,7 @@ export async function POST(request: Request) {
         { status: 503 }
       );
     }
+    const openai = new OpenAI({ apiKey });
 
     const tl = tierLabel(tier);
 

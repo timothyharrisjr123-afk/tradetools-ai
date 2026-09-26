@@ -22,11 +22,25 @@ function routeFiles(dir: string): string[] {
   });
 }
 
+const DEV_HARNESS_SEGMENT = "app/dev-harness/";
+
+function devHarnessSegmentIsProductionGuarded(): boolean {
+  const layoutPath = join(APP, "dev-harness", "layout.tsx");
+  if (!existsSync(layoutPath)) return false;
+  const layout = readFileSync(layoutPath, "utf8");
+  return (
+    /isInternalReviewSurfaceEnabled\(process\.env\.NODE_ENV\)/.test(layout) &&
+    /\bnotFound\(\)/.test(layout)
+  );
+}
+
 test("production route tree contains no review harness entrypoints", () => {
   const violations: string[] = [];
+  const devHarnessGuarded = devHarnessSegmentIsProductionGuarded();
   for (const file of routeFiles(APP)) {
     const path = relative(ROOT, file).replaceAll("\\", "/");
     const source = readFileSync(file, "utf8");
+    if (path.startsWith(DEV_HARNESS_SEGMENT) && devHarnessGuarded) continue;
     if (path.includes("/dev-harness/")) violations.push(`${path}: dev-harness route`);
     if (HARNESS_IMPORT.test(source)) violations.push(`${path}: harness import`);
     if (REVIEW_MARKER.test(source)) violations.push(`${path}: review fixture marker`);

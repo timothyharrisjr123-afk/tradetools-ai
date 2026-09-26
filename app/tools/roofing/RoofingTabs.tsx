@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export type RoofingTabKey = "estimate" | "saved" | "ai" | "settings";
+export type RoofingTabKey = "estimate" | "saved" | "settings";
 
 export default function RoofingTabs({ active }: { active: RoofingTabKey }) {
   const base =
@@ -33,12 +33,6 @@ export default function RoofingTabs({ active }: { active: RoofingTabKey }) {
           Jobs
         </Link>
 
-        <Link
-          href="/tools/roofing/ai"
-          className={`${base} ${active === "ai" ? on : off}`}
-        >
-          AI Library
-        </Link>
         <div className="ml-auto flex items-center pl-8 opacity-90">
           <Link
             href="/tools/settings"

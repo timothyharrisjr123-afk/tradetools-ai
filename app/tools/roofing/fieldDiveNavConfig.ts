@@ -174,14 +174,6 @@ export const FIELD_DIVE_NAV_SECTIONS: FieldDiveNavSectionConfig[] = [
         icon: "barChart3",
         soonTitle: "Reporting — coming later",
       },
-      {
-        key: null,
-        label: "AI Conductor",
-        href: "/tools/roofing/ai",
-        kind: "legacy",
-        icon: "bot",
-        soonTitle: "Secondary automation surface — not proposal spine",
-      },
     ],
   },
 ];
