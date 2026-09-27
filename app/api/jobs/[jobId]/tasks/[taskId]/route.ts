@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { resolveLiveMembership } from "@/app/lib/companyMembershipSession";
+import { checkAccess, type AccessScope } from "@/app/lib/access/requireAccess";
+import type { ActiveCapabilityKey } from "@/app/lib/access/registry";
 import {
   JobTaskHttpError,
   completeJobTask,
@@ -9,10 +10,6 @@ import {
   updateJobTaskContent,
 } from "@/app/lib/jobTaskPersistence";
 import { parseJobTaskStatus } from "@/app/lib/jobTaskValidation";
-import {
-  mapActiveMembershipGate,
-  requireCapabilitySession,
-} from "@/app/lib/requireCapabilitySession";
 import { createClient } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -27,7 +24,8 @@ function jsonError(error: unknown) {
   return NextResponse.json({ ok: false, code: "internal_error" }, { status: 500 });
 }
 
-async function requireAuth() {
+/** Assignment, content, and deletion need tasks.manage at the job; status needs tasks.complete at the task. */
+async function requireAuth(capability: ActiveCapabilityKey, scope: AccessScope) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -35,11 +33,11 @@ async function requireAuth() {
   if (!user) {
     throw new JobTaskHttpError(401, "unauthorized");
   }
-  const active = mapActiveMembershipGate(await resolveLiveMembership(supabase, user.id));
-  if (!active.ok) {
-    throw new JobTaskHttpError(active.denial.status, active.denial.code);
+  const gate = await checkAccess(supabase, user.id, capability, scope);
+  if (!gate.ok) {
+    throw new JobTaskHttpError(gate.denial.status, gate.denial.code);
   }
-  return { supabase, ctx: { userId: user.id, companyId: active.session.companyId }, user };
+  return { supabase, ctx: { userId: user.id, companyId: gate.session.companyId } };
 }
 
 export async function PATCH(
@@ -49,15 +47,9 @@ export async function PATCH(
   try {
     const { jobId, taskId } = await context.params;
     const body = await req.json().catch(() => ({}));
-    const { supabase, ctx, user } = await requireAuth();
 
     if (Object.prototype.hasOwnProperty.call(body, "assignedTo")) {
-      const gated = await requireCapabilitySession(
-        supabase,
-        user.id,
-        "task_assign"
-      );
-      if (!gated.ok) return gated.response;
+      const { supabase, ctx } = await requireAuth("tasks.manage", { jobId });
       const assignedTo =
         body.assignedTo === null ||
         body.assignedTo === undefined ||
@@ -75,12 +67,7 @@ export async function PATCH(
     }
 
     if (body?.status != null) {
-      const gated = await requireCapabilitySession(
-        supabase,
-        user.id,
-        "task_complete"
-      );
-      if (!gated.ok) return gated.response;
+      const { supabase, ctx } = await requireAuth("tasks.complete", { jobId, taskId });
       const parsed = parseJobTaskStatus(body.status);
       if (!parsed.ok) {
         throw new JobTaskHttpError(400, parsed.code, parsed.message);
@@ -92,6 +79,7 @@ export async function PATCH(
       return NextResponse.json({ ok: true, task });
     }
 
+    const { supabase, ctx } = await requireAuth("tasks.manage", { jobId });
     const task = await updateJobTaskContent({
       supabase,
       ctx,
@@ -113,7 +101,7 @@ export async function DELETE(
 ) {
   try {
     const { jobId, taskId } = await context.params;
-    const { supabase, ctx } = await requireAuth();
+    const { supabase, ctx } = await requireAuth("tasks.manage", { jobId });
     await softDeleteJobTask({ supabase, ctx, jobId, taskId });
     return NextResponse.json({ ok: true });
   } catch (error) {

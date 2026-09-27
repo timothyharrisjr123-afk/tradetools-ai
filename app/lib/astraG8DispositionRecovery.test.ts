@@ -7,10 +7,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, test } from "node:test";
-import {
-  capabilitiesForRole,
-  hasCompanyCapability,
-} from "./companyMembershipRoles";
+import { getRoleProfile } from "./access/registry";
 import {
   capabilityForDispositionTransition,
   dispositionActionNeedsCapability,
@@ -38,6 +35,10 @@ import type { RoofingEstimate } from "./estimateStore";
 
 const read = (rel: string) => readFileSync(join(process.cwd(), rel), "utf8");
 
+function profileCaps(role: "owner" | "admin" | "office_sales" | "production_lead" | "field_user") {
+  return new Set<string>((getRoleProfile(role, 1)?.entries ?? []).map((e) => e.capability));
+}
+
 const planned = {
   kind: "work" as const,
   status: "scheduled" as const,
@@ -58,64 +59,57 @@ function eligibility(
 
 describe("Astra G8 capability model", () => {
   test("Field User denied all disposition mutation caps", () => {
-    assert.equal(hasCompanyCapability("field_user", "job_pause_resume"), false);
-    assert.equal(
-      hasCompanyCapability("field_user", "job_disposition_finalize"),
-      false
-    );
+    const caps = profileCaps("field_user");
+    assert.equal(caps.has("jobs.hold"), false);
+    assert.equal(caps.has("jobs.finalize"), false);
   });
 
-  test("Production Lead never holds finalize (interim: no capabilities until Phase C)", () => {
-    const caps = capabilitiesForRole("production_lead");
-    assert.equal(caps.has("job_disposition_finalize"), false);
-    assert.equal(caps.size, 0);
+  test("Production Lead may hold/resume but never finalize", () => {
+    const caps = profileCaps("production_lead");
+    assert.equal(caps.has("jobs.hold"), true);
+    assert.equal(caps.has("jobs.finalize"), false);
   });
 
-  test("Owner: pause + finalize; non-Owner roles hold neither until Phase C", () => {
-    assert.equal(hasCompanyCapability("owner", "job_pause_resume"), true);
-    assert.equal(hasCompanyCapability("owner", "job_disposition_finalize"), true);
-    for (const role of ["office_sales", "admin"] as const) {
-      assert.equal(hasCompanyCapability(role, "job_pause_resume"), false, role);
-      assert.equal(
-        hasCompanyCapability(role, "job_disposition_finalize"),
-        false,
-        role
-      );
+  test("Owner and Admin: hold + finalize; Sales holds neither", () => {
+    for (const role of ["owner", "admin"] as const) {
+      assert.equal(profileCaps(role).has("jobs.hold"), true, role);
+      assert.equal(profileCaps(role).has("jobs.finalize"), true, role);
     }
+    assert.equal(profileCaps("office_sales").has("jobs.hold"), false);
+    assert.equal(profileCaps("office_sales").has("jobs.finalize"), false);
   });
-
   test("transition capability mapping", () => {
     assert.equal(
       capabilityForDispositionTransition("active", "on_hold"),
-      "job_pause_resume"
+      "jobs.hold"
     );
     assert.equal(
       capabilityForDispositionTransition("on_hold", "active"),
-      "job_pause_resume"
+      "jobs.hold"
     );
     assert.equal(
       capabilityForDispositionTransition("active", "lost"),
-      "job_disposition_finalize"
+      "jobs.finalize"
     );
     assert.equal(
       capabilityForDispositionTransition("on_hold", "closed"),
-      "job_disposition_finalize"
+      "jobs.finalize"
     );
     assert.equal(
       capabilityForDispositionTransition("lost", "active"),
-      "job_disposition_finalize"
+      "jobs.finalize"
     );
     assert.equal(
       capabilityForDispositionTransition("closed", "active"),
-      "job_disposition_finalize"
+      "jobs.finalize"
     );
   });
 
-  test("change-disposition route enforces requireCapabilitySession", () => {
+  test("change-disposition route enforces requireAccess", () => {
     const route = read("app/api/jobs/change-disposition/route.ts");
-    assert.match(route, /requireCapabilitySession/);
+    assert.match(route, /requireAccess\(supabase, user\.id, requiredCapability\)/);
     assert.match(route, /capabilityForDispositionTransition/);
-    assert.match(route, /job_pause_resume|requiredCapability/);
+    assert.match(route, /requiredCapability/);
     assert.doesNotMatch(route, /from\("jobs"\)[\s\S]*\.update\(/);
   });
 });
@@ -433,7 +427,8 @@ describe("Astra G8 no Complete-stage reopen / no migration / no ACL builder", ()
   test("roles stay bounded presets", () => {
     const roles = read("app/lib/companyMembershipRoles.ts");
     assert.doesNotMatch(roles, /permission.?builder|custom.?acl/i);
-    assert.match(roles, /job_pause_resume/);
-    assert.match(roles, /job_disposition_finalize/);
+    const registry = read("app/lib/access/registry.ts");
+    assert.match(registry, /"jobs\.hold"/);
+    assert.match(registry, /"jobs\.finalize"/);
   });
 });

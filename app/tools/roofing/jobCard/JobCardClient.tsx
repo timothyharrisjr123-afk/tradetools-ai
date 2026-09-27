@@ -58,6 +58,7 @@ import {
 } from "@/app/lib/jobAttentionReadModel";
 import { useJobPayments } from "@/app/lib/useJobPayments";
 import { useJobScopeChanges } from "@/app/lib/useJobScopeChanges";
+import { useJobFieldBrief } from "@/app/tools/roofing/jobCard/useJobFieldBrief";
 import {
   buildAuthorizedChangeSummariesFromScopeChanges,
   buildPendingProposedSummariesFromScopeChanges,
@@ -229,7 +230,14 @@ export default function JobCardClient({
   });
   const jobPayments = useJobPayments(currentJobId);
   const jobScopeChanges = useJobScopeChanges(currentJobId);
-  const companyMembers = useCompanyMembers(Boolean(currentJobId));
+  const companyMembers = useCompanyMembers(Boolean(currentJobId), currentJobId);
+  const fieldBrief = useJobFieldBrief(currentJobId, companyMembers.restrictedFieldRole);
+  const fieldBriefPeople = fieldBrief.brief?.people ?? null;
+  const labelForMember = (userId: string | null | undefined) =>
+    companyMembers.labelFor(
+      userId,
+      fieldBriefPeople?.find((person) => person.userId === userId)?.displayName ?? null
+    );
   const jobTasks = useJobCardTasks({
     jobId: currentJobId,
     enabled: Boolean(currentJobId),
@@ -800,9 +808,19 @@ export default function JobCardClient({
 
   const suppressCommercial = companyMembers.restrictedFieldRole;
 
-  const hasAcceptedAgreement = jobHasCanonicalAcceptedAgreement(
-    jobAcceptedProposalIds
-  );
+  const hasAcceptedAgreement = suppressCommercial
+    ? fieldBrief.brief?.hasAcceptedAgreement === true
+    : jobHasCanonicalAcceptedAgreement(jobAcceptedProposalIds);
+  const briefScopeRows = suppressCommercial
+    ? (fieldBrief.brief?.scopeChanges ?? []).map((row) => ({
+        status: row.status,
+        reason: row.reason,
+        lines: row.lines.map((line) => ({
+          description: line.description,
+          change_kind: line.changeKind,
+        })),
+      }))
+    : null;
   const jobCardCloseout = suppressCommercial
     ? null
     : buildJobCardCloseoutViewModel({
@@ -818,7 +836,7 @@ export default function JobCardClient({
       });
   const scopeChangeAuthoringAllowed = canShowProposeScopeChangeCta({
     hasAcceptedAgreement,
-    canAuthor: companyMembers.canAuthorProposals,
+    canAuthor: companyMembers.canWriteScopeChanges,
     jobStage: hydratedJobRecord
       ? resolveCanonicalJobStage(hydratedJobRecord)
       : null,
@@ -828,31 +846,24 @@ export default function JobCardClient({
     ),
   });
 
+  const scopeSummaryRows =
+    briefScopeRows ??
+    jobScopeChanges.rows.map((row) => ({
+      status: row.status,
+      reason: row.reason,
+      lines: (row.lines ?? []).map((line) => ({
+        description: line.description,
+        change_kind: line.changeKind,
+      })),
+    }));
   const authorizedChangeSummaries =
-    buildAuthorizedChangeSummariesFromScopeChanges(
-      jobScopeChanges.rows.map((row) => ({
-        status: row.status,
-        reason: row.reason,
-        lines: (row.lines ?? []).map((line) => ({
-          description: line.description,
-          change_kind: line.changeKind,
-        })),
-      }))
-    );
+    buildAuthorizedChangeSummariesFromScopeChanges(scopeSummaryRows);
   const pendingProposedSummaries =
-    buildPendingProposedSummariesFromScopeChanges(
-      jobScopeChanges.rows.map((row) => ({
-        status: row.status,
-        reason: row.reason,
-        lines: (row.lines ?? []).map((line) => ({
-          description: line.description,
-        })),
-      }))
-    );
+    buildPendingProposedSummariesFromScopeChanges(scopeSummaryRows);
 
   const productionLeadAssignedTo = hydratedJobRecord?.assigned_to ?? null;
   const productionLeadCrewLabel = hydratedJobRecord?.crew_label ?? null;
-  const productionLeadLabel = companyMembers.labelFor(productionLeadAssignedTo);
+  const productionLeadLabel = labelForMember(productionLeadAssignedTo);
 
   const scheduleWindowLabel = jobCardSchedule.active
     ? formatScheduleWindowLabel(jobCardSchedule.active)
@@ -973,17 +984,25 @@ export default function JobCardClient({
     scheduleWindowLabel,
     productionLeadLabel,
     crewLabel: productionLeadCrewLabel,
-    approvedScopeLabel: resolveFieldBriefApprovedScopeLabel({
-      acceptedProposalIds: jobAcceptedProposalIds,
-      packageLabelsByProposalId: listedJobDraftPackageLabels,
-      activeProposalId: hydratedJobRecord?.active_proposal_id ?? null,
-      hasAuthorizedChanges: authorizedChangeSummaries.length > 0,
-    }),
-    authorizedWorkStatus: proposalAcceptanceFactsUnavailable(acceptanceRead)
-      ? "error"
-      : acceptanceFactsReady && proposalListSettled
-        ? "ready"
-        : "loading",
+    approvedScopeLabel: suppressCommercial
+      ? fieldBrief.brief?.approvedScopeLabel ?? null
+      : resolveFieldBriefApprovedScopeLabel({
+          acceptedProposalIds: jobAcceptedProposalIds,
+          packageLabelsByProposalId: listedJobDraftPackageLabels,
+          activeProposalId: hydratedJobRecord?.active_proposal_id ?? null,
+          hasAuthorizedChanges: authorizedChangeSummaries.length > 0,
+        }),
+    authorizedWorkStatus: suppressCommercial
+      ? fieldBrief.status === "error"
+        ? "error"
+        : fieldBrief.status === "ready"
+          ? "ready"
+          : "loading"
+      : proposalAcceptanceFactsUnavailable(acceptanceRead)
+        ? "error"
+        : acceptanceFactsReady && proposalListSettled
+          ? "ready"
+          : "loading",
     accessNotes: jobCardSchedule.active?.notes ?? null,
     authorizedChangeSummaries,
     pendingProposedSummaries,
@@ -996,7 +1015,7 @@ export default function JobCardClient({
       status: task.status,
       dueOn: task.dueOn,
       assignedTo: task.assignedTo,
-      assigneeLabel: companyMembers.labelFor(task.assignedTo),
+      assigneeLabel: labelForMember(task.assignedTo),
     })),
   });
 
@@ -1526,7 +1545,7 @@ export default function JobCardClient({
                         <JobCardCloseoutSummary
                           model={jobCardCloseout}
                           jobId={currentJobId}
-                          canShareCustomerLink={companyMembers.canAuthorProposals}
+                          canShareCustomerLink={companyMembers.canSendProposals}
                           leading
                           paymentStatusLabel={paymentsWorkspace?.overviewStatusLabel ?? null}
                           currentRequest={overviewCurrentRequest}
@@ -1620,7 +1639,7 @@ export default function JobCardClient({
                     <JobCardCloseoutSummary
                       model={jobCardCloseout}
                       jobId={currentJobId}
-                      canShareCustomerLink={companyMembers.canAuthorProposals}
+                      canShareCustomerLink={companyMembers.canSendProposals}
                     />
                   ) : null}
                   <JobCardScheduleSection
@@ -1747,9 +1766,10 @@ export default function JobCardClient({
                       void proposalId;
                     }}
                     scopeChangesPanel={
-                      hasAcceptedAgreement ? (
+                      hasAcceptedAgreement && !suppressCommercial ? (
                         <JobCardScopeChangesPanel
-                          canAuthor={companyMembers.canAuthorProposals}
+                          canAuthor={companyMembers.canWriteScopeChanges}
+                          canIssue={companyMembers.canIssueScopeChanges}
                           canProposeNew={scopeChangeAuthoringAllowed}
                           scopeChanges={jobScopeChanges}
                         />

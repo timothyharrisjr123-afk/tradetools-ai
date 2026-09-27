@@ -6,7 +6,7 @@ import {
   isPublicAppOriginError,
   resolvePublicAppOrigin,
 } from "@/app/lib/publicAppOrigin.server";
-import { requireCapabilitySession } from "@/app/lib/requireCapabilitySession";
+import { requireAccess } from "@/app/lib/access/requireAccess";
 import { isUuidLike } from "@/app/lib/uuid";
 import { createClient } from "@/app/lib/supabase/server";
 
@@ -27,7 +27,7 @@ export async function POST(_req: NextRequest, context: { params: Promise<{ jobId
     if (!user) {
       return NextResponse.json({ ok: false, code: "unauthorized" }, { status: 401 });
     }
-    const gated = await requireCapabilitySession(supabase, user.id, "proposal_author");
+    const gated = await requireAccess(supabase, user.id, "proposals.send");
     if (!gated.ok) return gated.response;
     const companyId = gated.session.companyId;
     if (!isUuidLike(jobId)) {

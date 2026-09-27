@@ -11,10 +11,8 @@ import {
 } from "@/app/lib/jobDispositionManagement";
 import { capabilityForDispositionTransition } from "@/app/lib/jobDispositionAuthority";
 import { assertOperationalDispositionWrite } from "@/app/lib/jobLifecycleMapper";
-import {
-  mapActiveMembershipGate,
-  requireCapabilitySession,
-} from "@/app/lib/requireCapabilitySession";
+import { mapActiveMembershipGate } from "@/app/lib/requireCapabilitySession";
+import { requireAccess } from "@/app/lib/access/requireAccess";
 import { createClient } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -101,11 +99,7 @@ export async function POST(req: NextRequest) {
       fromStatus,
       toStatus
     );
-    const gated = await requireCapabilitySession(
-      supabase,
-      user.id,
-      requiredCapability
-    );
+    const gated = await requireAccess(supabase, user.id, requiredCapability);
     if (!gated.ok) return gated.response;
 
     const reason = normalizeDispositionReason(

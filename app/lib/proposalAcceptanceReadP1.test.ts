@@ -169,7 +169,9 @@ describe("Job Card Overview semantics", () => {
     const vm = buildFieldBriefViewModel({ authorizedWorkStatus: "error" } as Parameters<typeof buildFieldBriefViewModel>[0]);
     assert.equal(vm.authorizedWork.status, "error");
     assert.match(BRIEF, /scopeUnknown \? \([\s\S]{0,200}data-field-brief-scope-unavailable/);
-    assert.match(CLIENT, /authorizedWorkStatus: proposalAcceptanceFactsUnavailable\(acceptanceRead\)\s*\?\s*"error"/);
+    assert.match(CLIENT, /: proposalAcceptanceFactsUnavailable\(acceptanceRead\)\s*\?\s*"error"/);
+    // Phase 13B-C: non-commercial viewers take the Field brief read state instead.
+    assert.match(CLIENT, /authorizedWorkStatus: suppressCommercial\s*\?\s*fieldBrief\.status === "error"\s*\?\s*"error"/);
   });
 });
 

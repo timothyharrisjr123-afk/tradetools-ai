@@ -117,7 +117,7 @@ describe("Astra G10 API + capability wiring", () => {
     const emailRoute = read(
       "app/api/jobs/[jobId]/payment-requests/[paymentRequestId]/email/route.ts"
     );
-    assert.match(emailRoute, /payment_request/);
+    assert.match(emailRoute, /"payments\.request"/);
     assert.match(emailRoute, /sendPaymentRequestEmailForContractor/);
     assert.match(emailRoute, /Reject client-trusted destination/);
     assert.match(emailRoute, /recipientEmail\?: unknown/);
@@ -125,12 +125,12 @@ describe("Astra G10 API + capability wiring", () => {
     const collect = read(
       "app/api/jobs/[jobId]/payment-requests/collect/route.ts"
     );
-    assert.match(collect, /requireCapabilitySession/);
-    assert.match(collect, /payment_request/);
+    assert.match(collect, /requireAccess\(/);
+    assert.match(collect, /"payments\.request"/);
 
     const link = read("app/api/jobs/[jobId]/payment-link/route.ts");
-    assert.match(link, /requireCapabilitySession/);
-    assert.match(link, /payment_request/);
+    assert.match(link, /requireAccess\(/);
+    assert.match(link, /"payments\.request"/);
   });
 
   test("webhook correlates payment attempts without second endpoint", () => {

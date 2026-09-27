@@ -92,14 +92,15 @@ export default function CompanySettingsTeamEditor({
         : "Open work could not be handed off. Try again.";
 
   const changeRole = async (
-    userId: string,
+    member: CompanyMemberClientItem,
     role: AssignableCompanyMembershipRole
   ) => {
     if (!canAdminMembers) return;
+    const userId = member.userId;
     setBusyUserId(userId);
     setLocalError(null);
     try {
-      await patchMember({ userId, role });
+      await patchMember({ userId, role, expectedRevision: member.accessRevision });
       await onChanged();
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : "Could not update role.");
@@ -118,6 +119,8 @@ export default function CompanySettingsTeamEditor({
         userId: removeUserId,
         action: "remove",
         reassignToUserId: reassignToUserId.trim() || null,
+        expectedRevision:
+          liveMembers.find((row) => row.userId === removeUserId)?.accessRevision ?? null,
       });
       setRemoveUserId(null);
       setReassignToUserId("");
@@ -228,7 +231,7 @@ export default function CompanySettingsTeamEditor({
                             onChange={(event) => {
                               const role = event.target.value;
                               if (!isAssignableCompanyMembershipRole(role)) return;
-                              void changeRole(member.userId, role);
+                              void changeRole(member, role);
                             }}
                             data-company-settings-team-preset
                           >
@@ -378,7 +381,7 @@ export default function CompanySettingsTeamEditor({
 
         {!canAdminMembers ? (
           <p className={FOCUSED_EDITOR_HINT}>
-            Only the company owner can change roles or remove members.
+            Only the company owner or an admin can change roles or remove members.
           </p>
         ) : null}
       </div>

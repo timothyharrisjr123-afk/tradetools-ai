@@ -5,7 +5,7 @@ import {
   JobScheduleValidationError,
   scheduleJobViaRpc,
 } from "@/app/lib/jobSchedulePersistence";
-import { requireCapabilitySession } from "@/app/lib/requireCapabilitySession";
+import { requireAccess } from "@/app/lib/access/requireAccess";
 import { createClient } from "@/app/lib/supabase/server";
 import {
   JobResponsibilityHttpError,
@@ -32,18 +32,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, code: "unauthorized" }, { status: 401 });
     }
 
-    const gated = await requireCapabilitySession(
-      supabase,
-      user.id,
-      "schedule_mutate"
-    );
-    if (!gated.ok) return gated.response;
-    const companyId = gated.session.companyId;
-
     const body = await req.json().catch(() => ({}));
     const jobId = typeof body?.jobId === "string" ? body.jobId.trim() : "";
+    const gated = await requireAccess(supabase, user.id, "schedule.manage", { jobId });
+    if (!gated.ok) return gated.response;
+    const companyId = gated.session.companyId;
     if (!isUuidLike(jobId)) {
       return NextResponse.json({ ok: false, code: "invalid_payload" }, { status: 400 });
+    }
+    // Confirming the production lead writes jobs.assigned_to (jobs.assign), checked
+    // before scheduling so a denied lead change never leaves a partial write.
+    if (Object.prototype.hasOwnProperty.call(body, "assignedTo")) {
+      const leadGate = await requireAccess(supabase, user.id, "jobs.assign");
+      if (!leadGate.ok) return leadGate.response;
     }
 
     const result = await scheduleJobViaRpc(supabase, companyId, {

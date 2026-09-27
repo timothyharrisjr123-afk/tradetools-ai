@@ -1,13 +1,12 @@
 /**
  * Live membership resolution for the authenticated user.
- * A failed read is `unavailable`, never "no membership".
+ * A failed read is `unavailable`, never "no membership". Capability decisions are
+ * made by the database policy engine (app/lib/access/requireAccess).
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  hasCompanyCapability,
   resolveCompanyMembershipRole,
-  type CompanyCapability,
   type CompanyMembershipRoleValue,
 } from "@/app/lib/companyMembershipRoles";
 
@@ -63,12 +62,4 @@ export async function resolveLiveMembership(
   } catch {
     return { status: "unavailable" };
   }
-}
-
-export function sessionHasCapability(
-  session: LiveMembershipSession | null | undefined,
-  capability: CompanyCapability
-): boolean {
-  if (!session) return false;
-  return hasCompanyCapability(session.role, capability);
 }

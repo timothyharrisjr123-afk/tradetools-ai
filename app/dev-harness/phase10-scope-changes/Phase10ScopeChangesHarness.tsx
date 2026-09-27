@@ -387,6 +387,7 @@ export default function Phase10ScopeChangesHarnessPage() {
       <Section title="1 · Accepted proposal · Propose scope change" testId="propose-cta">
         <JobCardScopeChangesPanel
           canAuthor
+          canIssue
           canProposeNew
           scopeChanges={acceptedPanel}
         />
@@ -395,6 +396,7 @@ export default function Phase10ScopeChangesHarnessPage() {
       <Section title="2 · Draft scope change — resume persisted lines" testId="draft-history">
         <JobCardScopeChangesPanel
           canAuthor
+          canIssue
           canProposeNew
           scopeChanges={draftPanel}
         />
@@ -403,6 +405,7 @@ export default function Phase10ScopeChangesHarnessPage() {
       <Section title="3 · Proposed change status / history" testId="proposed-history">
         <JobCardScopeChangesPanel
           canAuthor
+          canIssue
           canProposeNew={false}
           scopeChanges={proposedPanel}
         />
@@ -411,6 +414,7 @@ export default function Phase10ScopeChangesHarnessPage() {
       <Section title="3a · Negative authorized basis (signed)" testId="negative-basis">
         <JobCardScopeChangesPanel
           canAuthor
+          canIssue
           canProposeNew
           scopeChanges={fixtureState(
             [negativeAuthorizedRow],
@@ -422,6 +426,7 @@ export default function Phase10ScopeChangesHarnessPage() {
       <Section title="3b · Contract total unavailable" testId="unavailable-basis">
         <JobCardScopeChangesPanel
           canAuthor
+          canIssue
           canProposeNew
           scopeChanges={fixtureState([authorizedRow], null, { loadStatus: "error" })}
         />
@@ -430,6 +435,7 @@ export default function Phase10ScopeChangesHarnessPage() {
       <Section title="3c · Review link recovery (success)" testId="link-recovery">
         <JobCardScopeChangesPanel
           canAuthor
+          canIssue
           canProposeNew={false}
           scopeChanges={fixtureState(
             [authorizedRow, proposedRow],
@@ -442,6 +448,7 @@ export default function Phase10ScopeChangesHarnessPage() {
       <Section title="3d · Proposed but link not minted (partial)" testId="link-missing">
         <JobCardScopeChangesPanel
           canAuthor
+          canIssue
           canProposeNew={false}
           scopeChanges={fixtureState(
             [authorizedRow, proposedRow],

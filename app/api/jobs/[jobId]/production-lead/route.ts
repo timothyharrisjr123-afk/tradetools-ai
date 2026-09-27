@@ -3,7 +3,7 @@ import {
   JobResponsibilityHttpError,
   setJobProductionLead,
 } from "@/app/lib/jobResponsibilityPersistence";
-import { requireCapabilitySession } from "@/app/lib/requireCapabilitySession";
+import { requireAccess } from "@/app/lib/access/requireAccess";
 import { createClient } from "@/app/lib/supabase/server";
 import { isUuidLike } from "@/app/lib/uuid";
 
@@ -33,7 +33,7 @@ export async function PATCH(
       );
     }
 
-    const gated = await requireCapabilitySession(supabase, user.id, "job_assign");
+    const gated = await requireAccess(supabase, user.id, "jobs.assign");
     if (!gated.ok) return gated.response;
 
     const body = await req.json().catch(() => ({}));

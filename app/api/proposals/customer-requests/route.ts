@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { resolveLiveMembership } from "@/app/lib/companyMembershipSession";
 import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
-import { mapCapabilityGate } from "@/app/lib/requireCapabilitySession";
+import { checkAccess } from "@/app/lib/access/requireAccess";
 import {
   PROPOSAL_CUSTOMER_REQUEST_REVIEW_STATUSES,
   type ProposalCustomerRequestReviewStatus,
@@ -96,10 +95,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
     }
 
-    const gate = mapCapabilityGate(
-      await resolveLiveMembership(supabase, user.id),
-      "proposal_author"
-    );
+    const gate = await checkAccess(supabase, user.id, "proposals.write");
     if (!gate.ok) {
       return NextResponse.json(
         { ok: false, error: gate.denial.code },

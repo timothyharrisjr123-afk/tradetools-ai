@@ -5,7 +5,7 @@ import {
   JobProductionValidationError,
   startJobWorkViaRpc,
 } from "@/app/lib/jobProductionPersistence";
-import { requireCapabilitySession } from "@/app/lib/requireCapabilitySession";
+import { requireAccess } from "@/app/lib/access/requireAccess";
 import { createClient } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -39,16 +39,11 @@ export async function POST(req: NextRequest) {
     }
 
 
-    const gated = await requireCapabilitySession(
-      supabase,
-      user.id,
-      "lifecycle_start_complete"
-    );
-    if (!gated.ok) return gated.response;
-    const companyId = gated.session.companyId;
-
     const body = await req.json().catch(() => ({}));
     const jobId = typeof body?.jobId === "string" ? body.jobId.trim() : "";
+    const gated = await requireAccess(supabase, user.id, "jobs.progress", { jobId });
+    if (!gated.ok) return gated.response;
+    const companyId = gated.session.companyId;
     if (!isUuidLike(jobId)) {
       return NextResponse.json(
         { ok: false, code: "invalid_payload" },

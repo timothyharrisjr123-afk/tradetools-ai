@@ -3,7 +3,8 @@
  *
  * company_memberships.role is read strictly: only the five stable keys are valid.
  * Anything else (null, empty, aliases, casing variants, future keys) resolves to
- * `invalid_role`, which holds no capabilities. Custody (the one company Owner) is
+ * `invalid_role`, which holds no capabilities. Capabilities are decided only by the
+ * database policy engine (Phase 13B-C). Custody (the one company Owner) is
  * companies.owner_user_id; the `owner` role alone never proves custody.
  */
 
@@ -41,77 +42,10 @@ export const COMPANY_MEMBERSHIP_ROLE_LABELS: Record<
 > = {
   owner: "Owner",
   admin: "Admin",
-  office_sales: "Office / Sales",
-  production_lead: "Production lead",
-  field_user: "Field user",
+  office_sales: "Sales",
+  production_lead: "Production Lead",
+  field_user: "Field",
   invalid_role: "Access needs attention",
-};
-
-export type CompanyCapability =
-  | "company_admin"
-  | "member_admin"
-  /**
-   * Commercial authoring (proposals + Astra G9 scope-change propose/price/send).
-   * No separate scope_change capability — reuse proposal_author.
-   */
-  | "proposal_author"
-  | "payment_admin"
-  | "payment_request"
-  | "schedule_mutate"
-  | "task_assign"
-  | "task_complete"
-  | "lifecycle_start_complete"
-  | "photo_mutate"
-  | "job_assign"
-  | "customers_jobs"
-  /** Astra G8 — Hold / Resume (active ↔ on_hold). */
-  | "job_pause_resume"
-  /** Astra G8 — Lost / Close / Reopen (and composed Production+Closed recovery). */
-  | "job_disposition_finalize"
-  /** Phase 13B-B — Approve job / acknowledge a customer acceptance (canonical jobs.approve). */
-  | "job_approve";
-
-/** Every capability today's single-owner product flows consume. */
-const OWNER_CAPABILITIES: ReadonlySet<CompanyCapability> = new Set([
-  "company_admin",
-  "member_admin",
-  "proposal_author",
-  "payment_admin",
-  "payment_request",
-  "schedule_mutate",
-  "task_assign",
-  "task_complete",
-  "lifecycle_start_complete",
-  "photo_mutate",
-  "job_assign",
-  "customers_jobs",
-  "job_pause_resume",
-  "job_disposition_finalize",
-  "job_approve",
-]);
-
-/** Every capability key, in the order mirrored by private.role_has_capability_v1. */
-export const COMPANY_CAPABILITY_KEYS: readonly CompanyCapability[] = [
-  ...OWNER_CAPABILITIES,
-];
-
-const NO_CAPABILITIES: ReadonlySet<CompanyCapability> = new Set();
-
-/**
- * Interim (Phase 13B-A): only Owner holds capabilities. Non-Owner roles are recognized
- * membership identities with no capability grant until Phase C role profiles exist;
- * they never inherit Owner-equivalent authority in the meantime.
- */
-const ROLE_CAPABILITIES: Record<
-  ResolvedCompanyMembershipRole,
-  ReadonlySet<CompanyCapability>
-> = {
-  owner: OWNER_CAPABILITIES,
-  admin: NO_CAPABILITIES,
-  office_sales: NO_CAPABILITIES,
-  production_lead: NO_CAPABILITIES,
-  field_user: NO_CAPABILITIES,
-  invalid_role: NO_CAPABILITIES,
 };
 
 /** Exact stable-key match only; no trimming, case folding, or alias mapping. */
@@ -136,27 +70,14 @@ export function isAssignableCompanyMembershipRole(
   );
 }
 
-export function capabilitiesForRole(
-  role: unknown
-): ReadonlySet<CompanyCapability> {
-  return ROLE_CAPABILITIES[resolveCompanyMembershipRole(role)];
-}
-
-export function hasCompanyCapability(
-  role: unknown,
-  capability: CompanyCapability
-): boolean {
-  return capabilitiesForRole(role).has(capability);
-}
-
-/** Field users and invalid roles get the restricted (non-commercial) presentation. */
+/**
+ * Field users and invalid roles get the restricted (non-commercial) presentation.
+ * Presentation only: capabilities come from the database policy engine
+ * (app/lib/access), never from the role key.
+ */
 export function isRestrictedFieldRole(role: unknown): boolean {
   const resolved = resolveCompanyMembershipRole(role);
   return resolved === "field_user" || resolved === INVALID_COMPANY_MEMBERSHIP_ROLE;
-}
-
-export function isCommercialAuthorRole(role: unknown): boolean {
-  return hasCompanyCapability(role, "proposal_author");
 }
 
 /** Custody requires both the `owner` role and the companies.owner_user_id pointer. */

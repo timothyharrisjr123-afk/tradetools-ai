@@ -109,7 +109,10 @@ describe("Astra G9 Group B — API routes", () => {
     assert.match(route, /mintScopeChangePublicAccessTokenViaRpc/);
     assert.match(route, /buildMintedJobScopeChangePublicAccessToken/);
     assert.match(route, /publicReviewUrl/);
-    assert.match(route, /proposal_author|JOB_SCOPE_CHANGE_AUTHOR_CAPABILITY/);
+    assert.match(
+      route,
+      /action === "propose" \? JOB_SCOPE_CHANGE_ISSUE_CAPABILITY : JOB_SCOPE_CHANGE_WRITE_CAPABILITY/
+    );
     assert.doesNotMatch(route, /mintScopeChangePublicTokenForChange/);
   });
 
@@ -188,7 +191,8 @@ describe("Astra G9 Group B — UX surfaces", () => {
     assert.match(tab, /scopeChangesPanel/);
     const client = read("app/tools/roofing/jobCard/JobCardClient.tsx");
     assert.match(client, /JobCardScopeChangesPanel/);
-    assert.match(client, /data-jobcard-propose-scope-change|Propose scope change|JOB_CARD_PROPOSE_SCOPE_CHANGE|canAuthorProposals/);
+    assert.match(client, /canAuthor=\{companyMembers\.canWriteScopeChanges\}/);
+    assert.match(client, /canIssue=\{companyMembers\.canIssueScopeChanges\}/);
     assert.match(client, /authorizedChangeSummaries/);
     assert.match(client, /pendingProposedSummaries/);
     assert.doesNotMatch(client, /tabId=\"scope-changes\"/);

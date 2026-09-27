@@ -69,6 +69,7 @@ export default function Phase7FieldRoleHarnessPage() {
                         removedAt: null,
                         openJobLeadCount: 0,
                         openTaskAssigneeCount: 0,
+                        accessRevision: null,
                       },
                     ]}
                     embedInBrief

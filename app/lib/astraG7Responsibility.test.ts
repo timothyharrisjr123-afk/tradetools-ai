@@ -8,15 +8,19 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, test } from "node:test";
 import {
-  capabilitiesForRole,
-  hasCompanyCapability,
   isRestrictedFieldRole,
   resolveCompanyMembershipRole,
 } from "./companyMembershipRoles";
 import { buildFieldBriefViewModel } from "./fieldBriefModel";
 import { resolveMemberDisplayLabel } from "./companyMemberValidation";
+import { getRoleProfile } from "./access/registry";
 
 const read = (rel: string) => readFileSync(join(process.cwd(), rel), "utf8");
+
+/** Phase 13B-C: role authority is the v1 role profile evaluated by the database. */
+function profileCaps(role: "owner" | "admin" | "office_sales" | "production_lead" | "field_user") {
+  return new Set<string>((getRoleProfile(role, 1)?.entries ?? []).map((e) => e.capability));
+}
 
 describe("Astra G7 role presets", () => {
   test("resolves the five stable role keys; anything else fails closed", () => {
@@ -30,22 +34,34 @@ describe("Astra G7 role presets", () => {
   });
 
   test("field user cannot commercial-author or payment-admin", () => {
-    assert.equal(hasCompanyCapability("field_user", "proposal_author"), false);
-    assert.equal(hasCompanyCapability("field_user", "payment_admin"), false);
-    assert.equal(hasCompanyCapability("field_user", "member_admin"), false);
-    assert.equal(hasCompanyCapability("field_user", "job_pause_resume"), false);
-    assert.equal(
-      hasCompanyCapability("field_user", "job_disposition_finalize"),
-      false
-    );
+    const caps = profileCaps("field_user");
+    for (const cap of [
+      "proposals.read",
+      "proposals.write",
+      "proposals.send",
+      "scope_changes.write",
+      "payments.request",
+      "payments.configure",
+      "team.manage",
+      "jobs.hold",
+      "jobs.finalize",
+    ]) {
+      assert.equal(caps.has(cap), false, cap);
+    }
     assert.equal(isRestrictedFieldRole("field_user"), true);
   });
 
   test("production lead never holds commercial or payment authority", () => {
-    const caps = capabilitiesForRole("production_lead");
-    assert.equal(caps.has("proposal_author"), false);
-    assert.equal(caps.has("payment_admin"), false);
-    assert.equal(caps.has("job_disposition_finalize"), false);
+    const caps = profileCaps("production_lead");
+    for (const cap of [
+      "proposals.read",
+      "proposals.write",
+      "payments.request",
+      "payments.summary.read",
+      "jobs.finalize",
+    ]) {
+      assert.equal(caps.has(cap), false, cap);
+    }
   });
 });
 
@@ -115,7 +131,7 @@ describe("Astra G7 repo authority contracts", () => {
     assert.match(persist, /stageUnchanged/);
     assert.doesNotMatch(persist, /transition_job_stage/i);
     const route = read("app/api/jobs/[jobId]/production-lead/route.ts");
-    assert.match(route, /job_assign/);
+    assert.match(route, /"jobs\.assign"/);
   });
 
   test("task assignee writer validates company membership", () => {
@@ -130,17 +146,17 @@ describe("Astra G7 repo authority contracts", () => {
 
   test("sensitive routes enforce capabilities for field restrictions", () => {
     const send = read("app/api/proposals/send/route.ts");
-    assert.match(send, /proposal_author/);
+    assert.match(send, /"proposals\.send"/);
     const refunds = read(
       "app/api/jobs/[jobId]/payments/[paymentId]/refunds/route.ts"
     );
-    assert.match(refunds, /payment_admin/);
+    assert.match(refunds, /"payments\.refund"/);
     const members = read("app/api/company/members/route.ts");
-    assert.match(members, /member_admin/);
+    assert.match(members, /requireAccess\(supabase, user\.id, "team\.manage"\)/);
     const start = read("app/api/jobs/start-work/route.ts");
-    assert.match(start, /lifecycle_start_complete/);
+    assert.match(start, /"jobs\.progress"/);
     const disposition = read("app/api/jobs/change-disposition/route.ts");
-    assert.match(disposition, /requireCapabilitySession/);
+    assert.match(disposition, /requireAccess\(supabase, user\.id, requiredCapability\)/);
   });
 
   test("removed members lose getUserCompanyId access", () => {

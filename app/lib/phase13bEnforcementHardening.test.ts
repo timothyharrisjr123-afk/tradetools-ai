@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, test } from "node:test";
-import { COMPANY_CAPABILITY_KEYS } from "./companyMembershipRoles";
+import { LEGACY_CAPABILITY_CROSSWALK } from "./access/registry";
 import {
   parseCompanyDirectoryRows,
   validateLiveCompanyMember,
@@ -159,11 +159,11 @@ describe("Phase 13B-B active-membership RLS (policy parity)", () => {
     assert.doesNotMatch(RLS_SQL, /to anon|anon,/);
   });
 
-  test("DB interim capability map mirrors the app map exactly (Owner only)", () => {
+  test("every Phase B interim capability has a Phase C canonical crosswalk entry", () => {
     const start = RLS_SQL.indexOf("create or replace function private.role_has_capability_v1");
     const fn = RLS_SQL.slice(start, RLS_SQL.indexOf("$$;", start));
     const keys = [...fn.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).filter((k) => k !== "owner");
-    assert.deepEqual([...keys].sort(), [...COMPANY_CAPABILITY_KEYS].sort());
+    assert.deepEqual([...keys].sort(), Object.keys(LEGACY_CAPABILITY_CROSSWALK).sort());
     assert.match(fn, /p_role = 'owner'/);
   });
 });
@@ -539,40 +539,44 @@ describe("Phase 13B-B disable first, handoff second", () => {
 
 describe("Phase 13B-B route gates", () => {
   const gates: Record<string, string> = {
-    "app/api/jobs/confirm-acceptance/route.ts": "job_approve",
-    "app/api/jobs/acknowledge-acceptance/route.ts": "job_approve",
-    "app/api/company/payments/settings/route.ts": "payment_admin",
-    "app/api/company/timezone/route.ts": "company_admin",
-    "app/api/jobs/payment-requests/route.ts": "payment_request",
-    "app/api/jobs/payment-requests/[id]/cancel/route.ts": "payment_request",
-    "app/api/jobs/payment-requests/[id]/checkout/route.ts": "payment_request",
-    "app/api/jobs/[jobId]/payment-requests/balance/route.ts": "payment_request",
-    "app/api/jobs/reschedule/route.ts": "schedule_mutate",
-    "app/api/jobs/unschedule/route.ts": "schedule_mutate",
-    "app/api/proposals/[proposalId]/payment-terms/route.ts": "proposal_author",
-    "app/api/proposals/customer-requests/route.ts": "proposal_author",
-    "app/api/proposals/public-review-link/route.ts": "proposal_author",
-    "app/api/proposals/send-prep/route.ts": "proposal_author",
-    "app/api/jobs/[jobId]/tasks/route.ts": "task_assign",
+    "app/api/jobs/confirm-acceptance/route.ts": "jobs.approve",
+    "app/api/jobs/acknowledge-acceptance/route.ts": "jobs.approve",
+    "app/api/company/payments/settings/route.ts": "payments.configure",
+    "app/api/company/timezone/route.ts": "company.manage",
+    "app/api/jobs/payment-requests/route.ts": "payments.request",
+    "app/api/jobs/payment-requests/[id]/cancel/route.ts": "payments.request",
+    "app/api/jobs/payment-requests/[id]/checkout/route.ts": "payments.request",
+    "app/api/jobs/[jobId]/payment-requests/balance/route.ts": "payments.request",
+    "app/api/jobs/reschedule/route.ts": "schedule.manage",
+    "app/api/jobs/unschedule/route.ts": "schedule.manage",
+    "app/api/proposals/[proposalId]/payment-terms/route.ts": "proposals.write",
+    "app/api/proposals/customer-requests/route.ts": "proposals.write",
+    "app/api/proposals/public-review-link/route.ts": "proposals.send",
+    "app/api/proposals/send-prep/route.ts": "proposals.send",
+    "app/api/jobs/[jobId]/tasks/route.ts": "tasks.manage",
   };
 
-  test("formerly membership-only mutations require their capability", () => {
+  test("formerly membership-only mutations require their canonical capability (Phase 13B-C)", () => {
     for (const [rel, cap] of Object.entries(gates)) {
       const src = read(rel);
-      assert.match(src, new RegExp(`"${cap}"`), rel);
-      assert.match(src, /requireCapabilitySession|mapCapabilityGate/, rel);
+      assert.match(src, new RegExp(`"${cap.replace(".", "\\.")}"`), rel);
+      assert.match(src, /requireAccess\(|checkAccess\(/, rel);
+      assert.doesNotMatch(src, /requireCapabilitySession\(|mapCapabilityGate/, rel);
     }
   });
 
-  test("attachment writes need photo_mutate; reads need an active membership", () => {
+  test("attachment writes need photos.contribute; reads need jobs.read, both at the route job", () => {
     const auth = read("app/lib/jobAttachmentRouteAuth.ts");
-    assert.match(auth, /mapCapabilityGate\(resolution, "photo_mutate"\)/);
-    assert.match(auth, /mapActiveMembershipGate\(resolution\)/);
-    assert.match(read("app/api/jobs/[jobId]/attachments/route.ts"), /requireAuth\("mutate"\)/);
-    assert.match(read("app/api/jobs/[jobId]/attachments/[attachmentId]/finalize/route.ts"), /"mutate"/);
+    assert.match(auth, /access === "mutate" \? "photos\.contribute" : "jobs\.read"/);
+    assert.match(auth, /\{ jobId \}/);
+    assert.match(read("app/api/jobs/[jobId]/attachments/route.ts"), /requireAuth\("mutate", jobId\)/);
+    assert.match(
+      read("app/api/jobs/[jobId]/attachments/[attachmentId]/finalize/route.ts"),
+      /requireJobAttachmentSession\(supabase, "mutate", jobId\)/
+    );
     const item = read("app/api/jobs/[jobId]/attachments/[attachmentId]/route.ts");
-    assert.match(item, /requireAuth\("read"\)/);
-    assert.equal((item.match(/requireAuth\("mutate"\)/g) ?? []).length, 2);
+    assert.match(item, /requireAuth\("read", jobId\)/);
+    assert.equal((item.match(/requireAuth\("mutate", jobId\)/g) ?? []).length, 2);
   });
 
   test("gated mutation routes no longer collapse an outage into 403 via the legacy helper", () => {

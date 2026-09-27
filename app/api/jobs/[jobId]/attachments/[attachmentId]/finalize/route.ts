@@ -26,7 +26,7 @@ export async function POST(
   try {
     const { jobId, attachmentId } = await context.params;
     const supabase = await createClient();
-    const ctx = await requireJobAttachmentSession(supabase, "mutate");
+    const ctx = await requireJobAttachmentSession(supabase, "mutate", jobId);
     const body = await req.json().catch(() => ({}));
     const attachment = await finalizeJobAttachmentUpload({
       supabase,

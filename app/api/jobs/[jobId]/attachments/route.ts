@@ -20,9 +20,9 @@ function jsonError(error: unknown) {
   return NextResponse.json({ ok: false, code: "internal_error" }, { status: 500 });
 }
 
-async function requireAuth(access: "read" | "mutate") {
+async function requireAuth(access: "read" | "mutate", jobId: string) {
   const supabase = await createClient();
-  const ctx = await requireJobAttachmentSession(supabase, access);
+  const ctx = await requireJobAttachmentSession(supabase, access, jobId);
   return { supabase, admin: createAdminClient(), ctx };
 }
 
@@ -32,7 +32,7 @@ export async function GET(
 ) {
   try {
     const { jobId } = await context.params;
-    const { supabase, admin, ctx } = await requireAuth("read");
+    const { supabase, admin, ctx } = await requireAuth("read", jobId);
     const attachments = await listJobAttachments({
       supabase,
       admin,
@@ -52,7 +52,7 @@ export async function POST(
   try {
     const { jobId } = await context.params;
     const body = await req.json().catch(() => ({}));
-    const { supabase, admin, ctx } = await requireAuth("mutate");
+    const { supabase, admin, ctx } = await requireAuth("mutate", jobId);
     const prepared = await prepareJobAttachmentUpload({
       supabase,
       admin,

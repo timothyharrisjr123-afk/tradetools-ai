@@ -7,10 +7,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, test } from "node:test";
-import {
-  capabilitiesForRole,
-  hasCompanyCapability,
-} from "./companyMembershipRoles";
+import { ACCESS_PACKAGES, getRoleProfile } from "./access/registry";
 import {
   buildApprovedChangesLabel,
   buildFieldBriefViewModel,
@@ -30,8 +27,9 @@ import {
   AUTHORIZE_JOB_SCOPE_CHANGE_RPC_V1,
   CREATE_JOB_SCOPE_CHANGE_RPC_V1,
   JOB_SCOPE_CHANGE_ACTIVITY_EVENT_TYPES,
-  JOB_SCOPE_CHANGE_AUTHOR_CAPABILITY,
   JOB_SCOPE_CHANGE_ERROR_CODES,
+  JOB_SCOPE_CHANGE_ISSUE_CAPABILITY,
+  JOB_SCOPE_CHANGE_WRITE_CAPABILITY,
   JOB_SCOPE_CHANGE_STATUSES,
   JOB_SCOPE_CHANGE_STATUS_LABELS,
   PROPOSE_JOB_SCOPE_CHANGE_RPC_V1,
@@ -270,20 +268,23 @@ describe("Astra G9 state model + types", () => {
     assert.match(jobScopeChangeErrorLabel("stale_basis"), /rebase/i);
   });
 
-  test("propose/price/send reuses proposal_author; no new capability", () => {
-    assert.equal(JOB_SCOPE_CHANGE_AUTHOR_CAPABILITY, "proposal_author");
-    assert.equal(hasCompanyCapability("owner", "proposal_author"), true);
-    assert.equal(hasCompanyCapability("office_sales", "proposal_author"), false);
-    assert.equal(
-      hasCompanyCapability("production_lead", "proposal_author"),
-      false
-    );
-    assert.equal(hasCompanyCapability("field_user", "proposal_author"), false);
-    const roles = read("app/lib/companyMembershipRoles.ts");
-    assert.match(roles, /Astra G9 scope-change propose\/price\/send/);
-    assert.doesNotMatch(roles, /scope_change_author/);
-    const caps = capabilitiesForRole("owner");
-    assert.equal(caps.has("proposal_author"), true);
+  test("Phase 13B-C: drafting (scope_changes.write) is separate from issuing (scope_changes.issue)", () => {
+    assert.equal(JOB_SCOPE_CHANGE_WRITE_CAPABILITY, "scope_changes.write");
+    assert.equal(JOB_SCOPE_CHANGE_ISSUE_CAPABILITY, "scope_changes.issue");
+    const caps = (role: "owner" | "admin" | "office_sales" | "production_lead" | "field_user") =>
+      new Set<string>((getRoleProfile(role, 1)?.entries ?? []).map((e) => e.capability));
+    assert.equal(caps("owner").has("scope_changes.issue"), true);
+    for (const role of ["admin", "office_sales"] as const) {
+      assert.equal(caps(role).has("scope_changes.write"), true, role);
+      assert.equal(caps(role).has("scope_changes.issue"), false, role);
+    }
+    for (const role of ["production_lead", "field_user"] as const) {
+      assert.equal(caps(role).has("scope_changes.write"), false, role);
+      assert.equal(caps(role).has("scope_changes.issue"), false, role);
+    }
+    const issue = ACCESS_PACKAGES.find((p) => p.key === "issue_scope_changes");
+    assert.ok(issue);
+    assert.deepEqual([...issue.assignableBy], ["owner"]);
   });
 });
 
@@ -469,10 +470,11 @@ describe("Astra G9 persistence wrappers", () => {
     assert.doesNotMatch(access, /from\("/);
   });
 
-  test("types document proposal_author gate; no direct acceptance mutation helpers", () => {
+  test("types document write/issue gates; no direct acceptance mutation helpers", () => {
     const types = read("app/lib/jobScopeChangeTypes.ts");
-    assert.match(types, /proposal_author/);
-    assert.match(types, /JOB_SCOPE_CHANGE_AUTHOR_CAPABILITY/);
+    assert.match(types, /JOB_SCOPE_CHANGE_WRITE_CAPABILITY = "scope_changes\.write"/);
+    assert.match(types, /JOB_SCOPE_CHANGE_ISSUE_CAPABILITY = "scope_changes\.issue"/);
+    assert.doesNotMatch(types, /proposal_author/);
     assert.match(types, /token_required/);
     const contract = read("app/lib/jobScopeChangeContract.ts");
     assert.doesNotMatch(contract, /accepted_total_cents\s*=/);

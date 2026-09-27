@@ -6,7 +6,7 @@ import {
   PUBLIC_ORIGIN_MISCONFIGURED_MESSAGE,
   resolvePublicAppOrigin,
 } from "@/app/lib/publicAppOrigin.server";
-import { requireCapabilitySession } from "@/app/lib/requireCapabilitySession";
+import { requireAccess } from "@/app/lib/access/requireAccess";
 import { isUuidLike } from "@/app/lib/uuid";
 import { createClient } from "@/app/lib/supabase/server";
 import { randomUUID } from "node:crypto";
@@ -30,10 +30,10 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ ok: false, code: "unauthorized" }, { status: 401 });
     }
 
-    const gated = await requireCapabilitySession(
+    const gated = await requireAccess(
       supabase,
       user.id,
-      "payment_request"
+      "payments.request"
     );
     if (!gated.ok) return gated.response;
     const companyId = gated.session.companyId;

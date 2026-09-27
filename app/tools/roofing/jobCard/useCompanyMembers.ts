@@ -2,11 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  capabilitiesForRole,
   isRestrictedFieldRole,
   resolveCompanyMembershipRole,
   type ResolvedCompanyMembershipRole,
 } from "@/app/lib/companyMembershipRoles";
+import {
+  NO_VIEWER_ACCESS,
+  type ViewerAccessFlags,
+} from "@/app/lib/access/viewerAccess";
 
 /** Client mirror of company members API rows (not imported from server-only persistence). */
 export type CompanyMemberClientItem = {
@@ -17,21 +20,18 @@ export type CompanyMemberClientItem = {
   removedAt: string | null;
   openJobLeadCount: number;
   openTaskAssigneeCount: number;
+  /** Present for Team admins; sent back as the expected revision on access changes. */
+  accessRevision: number | null;
 };
 
-export type CompanyMembersClientState = {
+export type CompanyMembersClientState = ViewerAccessFlags & {
   members: CompanyMemberClientItem[];
   liveMembers: CompanyMemberClientItem[];
   viewerRole: ResolvedCompanyMembershipRole | null;
-  canAdminMembers: boolean;
-  canAssignJobs: boolean;
-  canAssignTasks: boolean;
-  /** Astra G8 — Hold / Resume. */
-  canPauseResume: boolean;
-  /** Astra G8 — Lost / Close / Reopen. */
-  canFinalizeDisposition: boolean;
-  /** Astra G9 — propose / price / send scope changes (proposal_author). */
-  canAuthorProposals: boolean;
+  /**
+   * Restricted (non-commercial) presentation: Field role, invalid role, or no
+   * commercial read access. Presentation only; data access is enforced by the database.
+   */
   restrictedFieldRole: boolean;
   loading: boolean;
   error: string | null;
@@ -64,28 +64,45 @@ export function labelForCompanyMember(
   return named || "Team member";
 }
 
-export function useCompanyMembers(enabled = true): CompanyMembersClientState {
+function parseViewerAccess(value: unknown): ViewerAccessFlags {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return NO_VIEWER_ACCESS;
+  const raw = value as Record<string, unknown>;
+  const flags = { ...NO_VIEWER_ACCESS };
+  for (const key of Object.keys(flags) as (keyof ViewerAccessFlags)[]) {
+    flags[key] = raw[key] === true;
+  }
+  return flags;
+}
+
+export function useCompanyMembers(
+  enabled = true,
+  jobId?: string | null
+): CompanyMembersClientState {
   const [members, setMembers] = useState<CompanyMemberClientItem[]>([]);
   const [viewerRole, setViewerRole] = useState<ResolvedCompanyMembershipRole | null>(
     null
   );
-  const [canAdminMembers, setCanAdminMembers] = useState(false);
+  const [viewerAccess, setViewerAccess] = useState<ViewerAccessFlags>(NO_VIEWER_ACCESS);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const scopedJobId = typeof jobId === "string" ? jobId.trim() : "";
 
   const refresh = useCallback(async () => {
     if (!enabled) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/company/members", { cache: "no-store" });
+      const query = scopedJobId ? `?jobId=${encodeURIComponent(scopedJobId)}` : "";
+      const res = await fetch(`/api/company/members${query}`, { cache: "no-store" });
       const body = (await res.json().catch(() => ({}))) as {
         ok?: boolean;
         members?: CompanyMemberClientItem[];
         viewerRole?: unknown;
-        canAdminMembers?: boolean;
+        viewerAccess?: unknown;
       };
       if (!res.ok || body.ok !== true) {
+        setViewerAccess(NO_VIEWER_ACCESS);
         setError("Team could not be loaded.");
         return;
       }
@@ -93,19 +110,20 @@ export function useCompanyMembers(enabled = true): CompanyMembersClientState {
       setViewerRole(
         body.viewerRole == null ? null : resolveCompanyMembershipRole(body.viewerRole)
       );
-      setCanAdminMembers(body.canAdminMembers === true);
+      setViewerAccess(parseViewerAccess(body.viewerAccess));
     } catch {
+      setViewerAccess(NO_VIEWER_ACCESS);
       setError("Team could not be loaded.");
     } finally {
       setLoading(false);
     }
-  }, [enabled]);
+  }, [enabled, scopedJobId]);
 
   useEffect(() => {
     if (!enabled) {
       setMembers([]);
       setViewerRole(null);
-      setCanAdminMembers(false);
+      setViewerAccess(NO_VIEWER_ACCESS);
       return;
     }
     void refresh();
@@ -122,19 +140,14 @@ export function useCompanyMembers(enabled = true): CompanyMembersClientState {
     [liveMembers]
   );
 
-  const caps = viewerRole != null ? capabilitiesForRole(viewerRole) : null;
-
   return {
+    ...viewerAccess,
     members,
     liveMembers,
     viewerRole,
-    canAdminMembers,
-    canAssignJobs: caps?.has("job_assign") === true,
-    canAssignTasks: caps?.has("task_assign") === true,
-    canPauseResume: caps?.has("job_pause_resume") === true,
-    canFinalizeDisposition: caps?.has("job_disposition_finalize") === true,
-    canAuthorProposals: caps?.has("proposal_author") === true,
-    restrictedFieldRole: viewerRole != null && isRestrictedFieldRole(viewerRole),
+    restrictedFieldRole:
+      viewerRole != null &&
+      (isRestrictedFieldRole(viewerRole) || !viewerAccess.canReadCommercial),
     loading,
     error,
     refresh,

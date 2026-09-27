@@ -21,9 +21,9 @@ function jsonError(error: unknown) {
   return NextResponse.json({ ok: false, code: "internal_error" }, { status: 500 });
 }
 
-async function requireAuth(access: "read" | "mutate") {
+async function requireAuth(access: "read" | "mutate", jobId: string) {
   const supabase = await createClient();
-  const ctx = await requireJobAttachmentSession(supabase, access);
+  const ctx = await requireJobAttachmentSession(supabase, access, jobId);
   return { supabase, admin: createAdminClient(), ctx };
 }
 
@@ -33,7 +33,7 @@ export async function GET(
 ) {
   try {
     const { jobId, attachmentId } = await context.params;
-    const { supabase, admin, ctx } = await requireAuth("read");
+    const { supabase, admin, ctx } = await requireAuth("read", jobId);
     const signed = await signJobAttachmentReadUrl({
       supabase,
       admin,
@@ -54,7 +54,7 @@ export async function PATCH(
   try {
     const { jobId, attachmentId } = await context.params;
     const body = await req.json().catch(() => ({}));
-    const { supabase, admin, ctx } = await requireAuth("mutate");
+    const { supabase, admin, ctx } = await requireAuth("mutate", jobId);
     const attachment = await patchJobAttachmentCaption({
       supabase,
       admin,
@@ -75,7 +75,7 @@ export async function DELETE(
 ) {
   try {
     const { jobId, attachmentId } = await context.params;
-    const { supabase, ctx } = await requireAuth("mutate");
+    const { supabase, ctx } = await requireAuth("mutate", jobId);
     await softDeleteJobAttachment({
       supabase,
       ctx,

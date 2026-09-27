@@ -305,7 +305,7 @@ describe("API ownership", () => {
   test("authenticated wrapper around change_job_disposition_v1", () => {
     assert.match(route, /changeJobDispositionViaRpc/);
     assert.match(route, /mapActiveMembershipGate\(await resolveLiveMembership\(supabase, user\.id\)\)/);
-    assert.match(route, /requireCapabilitySession/);
+    assert.match(route, /requireAccess\(supabase, user\.id, requiredCapability\)/);
     assert.match(route, /from "@\/app\/lib\/uuid"/);
     assert.doesNotMatch(route, /from "@\/app\/lib\/jobStore"/);
     assert.match(route, /auth\.getUser/);

@@ -11,7 +11,7 @@ import {
   isPublicAppOriginError,
   resolvePublicAppOrigin,
 } from "@/app/lib/publicAppOrigin.server";
-import { requireCapabilitySession } from "@/app/lib/requireCapabilitySession";
+import { requireAccess } from "@/app/lib/access/requireAccess";
 import { createClient } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -70,10 +70,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const gated = await requireCapabilitySession(
+    const gated = await requireAccess(
       supabase,
       user.id,
-      "proposal_author"
+      "proposals.send"
     );
     if (!gated.ok) {
       return NextResponse.json(

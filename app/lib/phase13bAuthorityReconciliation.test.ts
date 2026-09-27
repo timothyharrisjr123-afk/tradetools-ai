@@ -12,15 +12,19 @@ import {
   ASSIGNABLE_COMPANY_MEMBERSHIP_ROLES,
   COMPANY_MEMBERSHIP_ROLE_LABELS,
   COMPANY_MEMBERSHIP_ROLE_VALUES,
-  capabilitiesForRole,
-  hasCompanyCapability,
   isAssignableCompanyMembershipRole,
   isCompanyCustodyOwner,
   isRestrictedFieldRole,
   resolveCompanyMembershipRole,
 } from "./companyMembershipRoles";
 import { mapLiveMembershipRow } from "./companyMembershipSession";
-import { mapCapabilityGate } from "./requireCapabilitySession";
+import { mapActiveMembershipGate } from "./requireCapabilitySession";
+import { mapAccessCheck } from "./access/requireAccess";
+import {
+  ACCESS_CAPABILITIES,
+  ACCESS_ROLE_PROFILES,
+  ACTIVE_CAPABILITY_KEYS,
+} from "./access/registry";
 
 const read = (rel: string) => readFileSync(join(process.cwd(), rel), "utf8");
 
@@ -50,7 +54,13 @@ const ACTOR = "11111111-1111-4111-8111-111111111111";
 const TARGET = "22222222-2222-4222-8222-222222222222";
 const COMPANY = "33333333-3333-4333-8333-333333333333";
 const TEAM_RPC_SQL =
-  "supabase/migrations/20260927182000_phase13b_b_team_directory_and_member_rpcs.sql";
+  "supabase/migrations/20260927195000_phase13b_c_access_mutations_field_brief.sql";
+
+function profileCaps(role: string): string[] {
+  const profile = ACCESS_ROLE_PROFILES.find((p) => p.role === role && p.version === 1);
+  assert.ok(profile, role);
+  return profile.entries.map((e) => e.capability);
+}
 
 function sqlFunction(sql: string, name: string): string {
   const start = sql.indexOf(`create or replace function public.${name}(`);
@@ -103,11 +113,12 @@ describe("Phase 13B-A stable role resolution", () => {
     ];
     for (const value of denied) {
       assert.equal(resolveCompanyMembershipRole(value), "invalid_role", String(value));
-      assert.equal(capabilitiesForRole(value).size, 0, String(value));
-      assert.equal(hasCompanyCapability(value, "member_admin"), false);
-      assert.equal(hasCompanyCapability(value, "payment_admin"), false);
-      assert.equal(hasCompanyCapability(value, "customers_jobs"), false);
     }
+    // invalid_role has no role profile, so the policy engine grants it nothing.
+    assert.equal(
+      ACCESS_ROLE_PROFILES.some((p) => (p.role as string) === "invalid_role"),
+      false
+    );
   });
 
   test("owner_admin never promotes to Owner", () => {
@@ -118,58 +129,37 @@ describe("Phase 13B-A stable role resolution", () => {
     assert.doesNotMatch(roles, /return "owner";/);
   });
 
-  test("Owner retains every capability current single-owner flows consume", () => {
-    assert.deepEqual([...capabilitiesForRole("owner")].sort(), [
-      "company_admin",
-      "customers_jobs",
-      "job_approve",
-      "job_assign",
-      "job_disposition_finalize",
-      "job_pause_resume",
-      "lifecycle_start_complete",
-      "member_admin",
-      "payment_admin",
-      "payment_request",
-      "photo_mutate",
-      "proposal_author",
-      "schedule_mutate",
-      "task_assign",
-      "task_complete",
-    ]);
+  test("Phase 13B-C: Owner profile holds every active capability explicitly (no wildcard)", () => {
+    assert.deepEqual([...profileCaps("owner")].sort(), [...ACTIVE_CAPABILITY_KEYS].sort());
   });
 
-  test("interim: non-Owner roles never inherit Owner-equivalent authority", () => {
+  test("Phase 13B-C: non-Owner profiles hold no sensitive capability by default (Admin: team.manage only)", () => {
+    const sensitive = new Set(
+      ACCESS_CAPABILITIES.filter((c) => c.sensitive).map((c) => c.key as string)
+    );
     for (const role of ["admin", "office_sales", "production_lead", "field_user"]) {
-      assert.equal(capabilitiesForRole(role).size, 0, role);
-      for (const cap of capabilitiesForRole("owner")) {
-        assert.equal(hasCompanyCapability(role, cap), false, `${role}:${cap}`);
-      }
+      const held = profileCaps(role).filter((cap) => sensitive.has(cap));
+      assert.deepEqual(held, role === "admin" ? ["team.manage"] : [], role);
     }
-    assert.equal(capabilitiesForRole("invalid_role").size, 0);
   });
 
   test("role recognition is separate from capability possession", () => {
     for (const role of ["admin", "office_sales", "production_lead", "field_user"]) {
       assert.equal(resolveCompanyMembershipRole(role), role);
       assert.notEqual(resolveCompanyMembershipRole(role), "invalid_role");
-      assert.equal(capabilitiesForRole(role).size, 0);
     }
-    const gate = mapCapabilityGate(
-      {
-        status: "active",
-        session: { userId: ACTOR, companyId: COMPANY, role: "admin" },
-      },
-      "member_admin"
+    // Capability is decided by the database evaluator, not the role key.
+    assert.deepEqual(
+      mapAccessCheck({
+        userId: ACTOR,
+        data: { allowed: false, reason: "capability_missing", company_id: COMPANY, role: "admin" },
+        error: null,
+      }),
+      { ok: false, denial: { status: 403, code: "capability_denied" }, reason: "capability_missing" }
     );
-    assert.deepEqual(gate, {
-      ok: false,
-      denial: { status: 403, code: "capability_denied" },
-    });
   });
 
   test("custody is separate from capability possession", () => {
-    // Capability comes from the owner role; custody additionally needs the pointer.
-    assert.equal(hasCompanyCapability("owner", "member_admin"), true);
     assert.equal(
       isCompanyCustodyOwner({ userId: ACTOR, role: "owner", companyOwnerUserId: null }),
       false
@@ -179,7 +169,6 @@ describe("Phase 13B-A stable role resolution", () => {
       isCompanyCustodyOwner({ userId: ACTOR, role: "admin", companyOwnerUserId: ACTOR }),
       false
     );
-    assert.equal(hasCompanyCapability("admin", "member_admin"), false);
   });
 
   test("restricted presentation covers field and invalid roles only", () => {
@@ -278,40 +267,28 @@ describe("Phase 13B-A typed membership reads", () => {
     );
   });
 
-  test("capability gate maps every state", () => {
-    assert.deepEqual(mapCapabilityGate({ status: "unavailable" }, "member_admin"), {
+  test("membership gate maps every state", () => {
+    assert.deepEqual(mapActiveMembershipGate({ status: "unavailable" }), {
       ok: false,
       denial: { status: 503, code: "authorization_unavailable" },
     });
     assert.deepEqual(
-      mapCapabilityGate(
-        { status: "invalid_role", userId: ACTOR, companyId: COMPANY },
-        "customers_jobs"
-      ),
+      mapActiveMembershipGate({ status: "invalid_role", userId: ACTOR, companyId: COMPANY }),
       { ok: false, denial: { status: 403, code: "invalid_role" } }
     );
-    assert.deepEqual(mapCapabilityGate({ status: "none" }, "customers_jobs"), {
+    assert.deepEqual(mapActiveMembershipGate({ status: "none" }), {
       ok: false,
       denial: { status: 403, code: "forbidden" },
     });
-    assert.deepEqual(mapCapabilityGate({ status: "removed" }, "customers_jobs"), {
+    assert.deepEqual(mapActiveMembershipGate({ status: "removed" }), {
       ok: false,
       denial: { status: 403, code: "forbidden" },
     });
     const session = { userId: ACTOR, companyId: COMPANY, role: "field_user" as const };
-    assert.deepEqual(mapCapabilityGate({ status: "active", session }, "payment_admin"), {
-      ok: false,
-      denial: { status: 403, code: "capability_denied" },
+    assert.deepEqual(mapActiveMembershipGate({ status: "active", session }), {
+      ok: true,
+      session,
     });
-    assert.deepEqual(mapCapabilityGate({ status: "active", session }, "task_complete"), {
-      ok: false,
-      denial: { status: 403, code: "capability_denied" },
-    });
-    const owner = { userId: ACTOR, companyId: COMPANY, role: "owner" as const };
-    assert.deepEqual(
-      mapCapabilityGate({ status: "active", session: owner }, "task_complete"),
-      { ok: true, session: owner }
-    );
   });
 
   test("session and gate sources carry no Owner fallback", () => {
@@ -328,13 +305,18 @@ describe("Phase 13B-A typed membership reads", () => {
   });
 });
 
-describe("Phase 13B-A team role writes (DB-authorized since 13B-B)", () => {
+describe("Phase 13B-A team role writes (DB-authorized; set_member_access_v1 since 13B-C)", () => {
   test("rejects owner and owner_admin role writes before calling the RPC", async () => {
     const { updateCompanyMemberRole } = await loadPersistence();
     for (const role of ["owner", "owner_admin", "invalid_role", "", null]) {
       const fake = fakeRpc(() => ({ data: { ok: true }, error: null }));
       await assert.rejects(
-        updateCompanyMemberRole({ supabase: fake.client, targetUserId: TARGET, role }),
+        updateCompanyMemberRole({
+          supabase: fake.client,
+          targetUserId: TARGET,
+          role,
+          expectedRevision: 1,
+        }),
         (err: { status?: number; code?: string }) =>
           err.status === 400 && err.code === "invalid_payload"
       );
@@ -342,21 +324,42 @@ describe("Phase 13B-A team role writes (DB-authorized since 13B-B)", () => {
     }
   });
 
-  test("role RPC never writes owner, never edits the Owner row, blocks self, needs custody for Admin", () => {
-    const fn = sqlFunction(read(TEAM_RPC_SQL), "set_company_member_role_v1");
+  test("role write without a valid expected revision is rejected before the RPC", async () => {
+    const { updateCompanyMemberRole } = await loadPersistence();
+    for (const expectedRevision of [undefined, null, 0, -1, 1.5, "x"]) {
+      const fake = fakeRpc(() => ({ data: { ok: true }, error: null }));
+      await assert.rejects(
+        updateCompanyMemberRole({
+          supabase: fake.client,
+          targetUserId: TARGET,
+          role: "office_sales",
+          expectedRevision,
+        }),
+        (err: { status?: number; code?: string }) =>
+          err.status === 400 && err.code === "invalid_payload"
+      );
+      assert.equal(fake.calls.length, 0);
+    }
+  });
+
+  test("access RPC never writes owner, never edits the Owner row, blocks self, needs custody for Admin", () => {
+    const fn = sqlFunction(read(TEAM_RPC_SQL), "set_member_access_v1");
     assert.match(fn, /p_role not in \('admin', 'office_sales', 'production_lead', 'field_user'\)/);
-    assert.match(fn, /p_target_user_id = v_uid[\s\S]*cannot_change_own_role/);
-    assert.match(fn, /v_target\.role = 'owner'[\s\S]*owner_role_protected/);
+    assert.match(fn, /p_target_user_id = v_uid then\s*return jsonb_build_object\('ok', false, 'code', 'cannot_change_own_access'\)/);
+    assert.match(fn, /v_target\.role = 'owner' then\s*return jsonb_build_object\('ok', false, 'code', 'owner_role_protected'\)/);
     assert.match(
       fn,
-      /\(v_target\.role = 'admin' or p_role = 'admin'\)\s*and not private\.actor_holds_custody_v1\(v_company_id\)[\s\S]*owner_required/
+      /v_tier = 'admin' and \(\s*v_target\.role = 'admin' or p_role = 'admin'[\s\S]*?owner_required/
     );
-    assert.match(fn, /private\.current_member_has_capability_v1\('member_admin'\)/);
+    assert.match(fn, /v_tier := private\.delegation_tier_v1\(\)/);
+    assert.match(fn, /v_target\.access_revision <> p_expected_revision[\s\S]*?stale_revision/);
     assert.match(fn, /v_company_id := private\.current_active_company_id\(\)/);
   });
 
   test("custody helper requires owner role, pointer, and an active owner membership", () => {
-    const sql = read(TEAM_RPC_SQL);
+    const sql = read(
+      "supabase/migrations/20260927182000_phase13b_b_team_directory_and_member_rpcs.sql"
+    );
     const start = sql.indexOf("create or replace function private.actor_holds_custody_v1");
     const fn = sql.slice(start, sql.indexOf("\n$$;", start));
     assert.match(fn, /c\.owner_user_id = auth\.uid\(\)/);
@@ -369,7 +372,10 @@ describe("Phase 13B-A team role writes (DB-authorized since 13B-B)", () => {
     const cases: Array<[string, number]> = [
       ["owner_role_protected", 409],
       ["owner_required", 403],
-      ["cannot_change_own_role", 409],
+      ["cannot_change_own_access", 409],
+      ["stale_revision", 409],
+      ["packages_incompatible", 409],
+      ["package_not_delegable", 403],
       ["capability_denied", 403],
       ["member_disabled", 409],
       ["not_found", 404],
@@ -378,7 +384,12 @@ describe("Phase 13B-A team role writes (DB-authorized since 13B-B)", () => {
     for (const [code, status] of cases) {
       const fake = fakeRpc(() => ({ data: { ok: false, code }, error: null }));
       await assert.rejects(
-        updateCompanyMemberRole({ supabase: fake.client, targetUserId: TARGET, role: "admin" }),
+        updateCompanyMemberRole({
+          supabase: fake.client,
+          targetUserId: TARGET,
+          role: "admin",
+          expectedRevision: 3,
+        }),
         (err: { status?: number; code?: string }) =>
           err.status === status && (status === 500 ? err.code === "internal_error" : err.code === code)
       );
@@ -389,35 +400,49 @@ describe("Phase 13B-A team role writes (DB-authorized since 13B-B)", () => {
     const { updateCompanyMemberRole } = await loadPersistence();
     const fake = fakeRpc(() => ({ data: null, error: { message: "x" } }));
     await assert.rejects(
-      updateCompanyMemberRole({ supabase: fake.client, targetUserId: TARGET, role: "office_sales" }),
+      updateCompanyMemberRole({
+        supabase: fake.client,
+        targetUserId: TARGET,
+        role: "office_sales",
+        expectedRevision: 1,
+      }),
       (err: { status?: number; code?: string }) =>
         err.status === 503 && err.code === "team_unavailable"
     );
   });
 
-  test("role write carries the stable key", async () => {
+  test("role write carries the stable key, expected revision, and keeps packages", async () => {
     const { updateCompanyMemberRole } = await loadPersistence();
     const fake = fakeRpc(() => ({
-      data: { ok: true, changed: true, role: "admin" },
+      data: { ok: true, changed: true, role: "admin", access_revision: 4 },
       error: null,
     }));
     const result = await updateCompanyMemberRole({
       supabase: fake.client,
       targetUserId: TARGET,
       role: "admin",
+      expectedRevision: 3,
     });
     assert.equal(result.role, "admin");
     assert.equal(result.changed, true);
+    assert.equal(result.accessRevision, 4);
     assert.deepEqual(fake.calls[0], {
-      fn: "set_company_member_role_v1",
-      args: { p_target_user_id: TARGET, p_role: "admin" },
+      fn: "set_member_access_v1",
+      args: {
+        p_target_user_id: TARGET,
+        p_role: "admin",
+        p_expected_revision: 3,
+        p_packages: null,
+        p_restrictions: null,
+        p_request_id: null,
+      },
     });
   });
 
   test("Owner cannot be removed; Admin removal requires custody (DB-enforced)", async () => {
     const fn = sqlFunction(read(TEAM_RPC_SQL), "disable_company_member_v1");
-    assert.match(fn, /v_target\.role = 'owner'[\s\S]*cannot_remove_owner/);
-    assert.match(fn, /v_target\.role = 'admin' and not private\.actor_holds_custody_v1/);
+    assert.match(fn, /v_target\.role = 'owner' then\s*return jsonb_build_object\('ok', false, 'code', 'cannot_remove_owner'\)/);
+    assert.match(fn, /v_tier = 'admin' and \(\s*v_target\.role = 'admin'/);
 
     const { removeCompanyMember } = await loadPersistence();
     for (const code of ["cannot_remove_owner", "owner_required"]) {
@@ -454,6 +479,10 @@ describe("Phase 13B-A member list read truth (access-admin projection)", () => {
     created_at: "2026-01-01",
     open_job_lead_count: 2,
     open_task_assignee_count: 0,
+    access_revision: 1,
+    package_keys: [],
+    restriction_count: 0,
+    granted_job_count: 0,
   };
 
   test("unknown stored role lists as invalid_role", async () => {
@@ -462,6 +491,18 @@ describe("Phase 13B-A member list read truth (access-admin projection)", () => {
     const items = await listCompanyAccessAdmin(fake.client);
     assert.equal(items[0].role, "invalid_role");
     assert.equal(items[0].openJobLeadCount, 2);
+    assert.equal(items[0].accessRevision, 1);
+  });
+
+  test("missing or malformed access revision is an error", async () => {
+    const { listCompanyAccessAdmin } = await loadPersistence();
+    for (const bad of [null, undefined, 0, -1, "x"]) {
+      const fake = fakeRpc(() => ({ data: [{ ...row, access_revision: bad }], error: null }));
+      await assert.rejects(
+        listCompanyAccessAdmin(fake.client),
+        (err: { status?: number }) => err.status === 503
+      );
+    }
   });
 
   test("read error is an error, not an empty team", async () => {
@@ -535,9 +576,10 @@ describe("Phase 13B-A repo contracts", () => {
     const src = read("app/api/company/members/route.ts");
     assert.match(src, /resolveLiveMembership/);
     assert.match(src, /viewerRole: session\.role/);
-    assert.match(src, /sessionHasCapability\(session, "member_admin"\)/);
-    assert.match(src, /canAdmin\s*\?\s*await listCompanyAccessAdmin\(supabase\)/);
-    assert.match(src, /requireCapabilitySession\(supabase, user\.id, "member_admin"\)/);
+    assert.match(src, /loadViewerAccess\(supabase/);
+    assert.match(src, /viewerAccess\.canAdminMembers\s*\?\s*await listCompanyAccessAdmin\(supabase\)/);
+    assert.match(src, /requireAccess\(supabase, user\.id, "team\.manage"\)/);
+    assert.doesNotMatch(src, /sessionHasCapability|requireCapabilitySession\(|member_admin/);
   });
 
   test("0A bootstrap authority is untouched and still inserts an explicit owner role", () => {

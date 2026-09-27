@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, test } from "node:test";
 
-import { hasCompanyCapability } from "@/app/lib/companyMembershipRoles";
+import { getRoleProfile } from "@/app/lib/access/registry";
 import { buildJobCardCloseoutViewModel } from "@/app/lib/jobCardCloseoutViewModel";
 import { buildPublicPaymentViewModel } from "@/app/lib/jobPaymentCustomerPresenter";
 import type {
@@ -450,17 +450,19 @@ describe("Phase 12 — contractor Review closeout", () => {
 });
 
 describe("Phase 12 — share authority, tokens, and exposure boundaries", () => {
-  test("proposal_author: Owner only until Phase C role profiles", () => {
-    assert.equal(hasCompanyCapability("owner", "proposal_author"), true);
-    assert.equal(hasCompanyCapability("admin", "proposal_author"), false);
-    assert.equal(hasCompanyCapability("office_sales", "proposal_author"), false);
-    assert.equal(hasCompanyCapability("production_lead", "proposal_author"), false);
-    assert.equal(hasCompanyCapability("field_user", "proposal_author"), false);
+  test("Phase 13B-C: proposals.send held by Owner / Admin / Sales profiles only", () => {
+    const has = (role: "owner" | "admin" | "office_sales" | "production_lead" | "field_user") =>
+      (getRoleProfile(role, 1)?.entries ?? []).some((e) => e.capability === "proposals.send");
+    assert.equal(has("owner"), true);
+    assert.equal(has("admin"), true);
+    assert.equal(has("office_sales"), true);
+    assert.equal(has("production_lead"), false);
+    assert.equal(has("field_user"), false);
   });
 
-  test("Copy customer link route: server-enforced proposal_author, mints only, mutates nothing", () => {
+  test("Copy customer link route: server-enforced proposals.send, mints only, mutates nothing", () => {
     const route = read("app/api/jobs/[jobId]/customer-record-link/route.ts");
-    assert.match(route, /requireCapabilitySession\(supabase, user\.id, "proposal_author"\)/);
+    assert.match(route, /requireAccess\(supabase, user\.id, "proposals\.send"\)/);
     assert.match(route, /source: "customer_record_share"/);
     assert.match(route, /const companyId = gated\.session\.companyId;/);
     assert.doesNotMatch(route, /\.update\(|\.insert\(|\.delete\(|\.rpc\(|req\.json|searchParams/);
@@ -475,7 +477,7 @@ describe("Phase 12 — share authority, tokens, and exposure boundaries", () => 
 
   test("payment link keeps its own capability and source", () => {
     const route = read("app/api/jobs/[jobId]/payment-link/route.ts");
-    assert.match(route, /"payment_request"/);
+    assert.match(route, /"payments\.request"/);
     assert.doesNotMatch(route, /customer_record_share/);
   });
 
@@ -516,9 +518,9 @@ describe("Phase 12 — share authority, tokens, and exposure boundaries", () => 
     assert.match(purchase, /payment\?\.contractSummary && !recordOwnsDetails/);
   });
 
-  test("Job Card closeout: proposal_author gates Copy link; no editor or share status", () => {
+  test("Job Card closeout: proposals.send gates Copy link; no editor or share status", () => {
     const client = read("app/tools/roofing/jobCard/JobCardClient.tsx");
-    assert.match(client, /canShareCustomerLink=\{companyMembers\.canAuthorProposals\}/);
+    assert.match(client, /canShareCustomerLink=\{companyMembers\.canSendProposals\}/);
     assert.match(client, /const jobCardCloseout = suppressCommercial\s*\? null/);
     const summary = read("app/tools/roofing/jobCard/JobCardCloseoutSummary.tsx");
     assert.doesNotMatch(summary, /<input|<textarea|contentEditable/);

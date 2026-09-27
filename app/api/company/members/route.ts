@@ -8,14 +8,10 @@ import {
   removeCompanyMember,
   updateCompanyMemberRole,
 } from "@/app/lib/companyMembershipPersistence";
-import {
-  resolveLiveMembership,
-  sessionHasCapability,
-} from "@/app/lib/companyMembershipSession";
-import {
-  mapActiveMembershipGate,
-  requireCapabilitySession,
-} from "@/app/lib/requireCapabilitySession";
+import { resolveLiveMembership } from "@/app/lib/companyMembershipSession";
+import { mapActiveMembershipGate } from "@/app/lib/requireCapabilitySession";
+import { requireAccess } from "@/app/lib/access/requireAccess";
+import { loadViewerAccess } from "@/app/lib/access/viewerAccess";
 import { createClient } from "@/app/lib/supabase/server";
 import { isUuidLike } from "@/app/lib/uuid";
 
@@ -31,7 +27,7 @@ function errorJson(error: unknown) {
   return NextResponse.json({ ok: false, code: "internal_error" }, { status: 500 });
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const supabase = await createClient();
     const {
@@ -44,8 +40,9 @@ export async function GET() {
       );
     }
 
-    // Every active member gets viewer identity + the ordinary directory (names and
-    // role labels). Emails, disabled members, and open-work counts are access-admin only.
+    // Every active member gets viewer identity + the directory the database allows
+    // (Field: self only). Emails, disabled members, revisions, and open-work counts are
+    // team.manage only. Viewer flags are booleans derived from effective access.
     const gate = mapActiveMembershipGate(await resolveLiveMembership(supabase, user.id));
     if (!gate.ok) {
       return NextResponse.json(
@@ -55,8 +52,15 @@ export async function GET() {
     }
     const session = gate.session;
 
-    const canAdmin = sessionHasCapability(session, "member_admin");
-    const members = canAdmin
+    const jobId = req.nextUrl.searchParams.get("jobId")?.trim() ?? "";
+    const viewerAccess = await loadViewerAccess(supabase, isUuidLike(jobId) ? jobId : null);
+    if (!viewerAccess) {
+      return NextResponse.json(
+        { ok: false, code: "authorization_unavailable", message: "Team could not be loaded. Try again." },
+        { status: 503 }
+      );
+    }
+    const members = viewerAccess.canAdminMembers
       ? await listCompanyAccessAdmin(supabase)
       : directoryRowsToMemberItems(await listCompanyDirectory(supabase));
 
@@ -64,7 +68,8 @@ export async function GET() {
       ok: true,
       members,
       viewerRole: session.role,
-      canAdminMembers: canAdmin,
+      canAdminMembers: viewerAccess.canAdminMembers,
+      viewerAccess,
     });
   } catch (error) {
     return errorJson(error);
@@ -84,7 +89,7 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const gated = await requireCapabilitySession(supabase, user.id, "member_admin");
+    const gated = await requireAccess(supabase, user.id, "team.manage");
     if (!gated.ok) return gated.response;
 
     const body = await req.json().catch(() => ({}));
@@ -102,6 +107,7 @@ export async function PATCH(req: NextRequest) {
         actorUserId: user.id,
         targetUserId: userId,
         reassignToUserId: body?.reassignToUserId,
+        expectedRevision: body?.expectedRevision,
       });
       return NextResponse.json({ ok: true, ...result });
     }
@@ -119,6 +125,7 @@ export async function PATCH(req: NextRequest) {
       supabase,
       targetUserId: userId,
       role: body?.role,
+      expectedRevision: body?.expectedRevision,
     });
     return NextResponse.json({ ok: true, member });
   } catch (error) {

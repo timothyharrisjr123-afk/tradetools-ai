@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
-import { requireCapabilitySession } from "@/app/lib/requireCapabilitySession";
+import { requireAccess } from "@/app/lib/access/requireAccess";
 import { createClient } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ ok: false, code: "unauthorized" }, { status: 401 });
     }
-    const gated = await requireCapabilitySession(supabase, user.id, "company_admin");
+    const gated = await requireAccess(supabase, user.id, "company.manage");
     if (!gated.ok) return gated.response;
     const companyId = gated.session.companyId;
     const body = await req.json().catch(() => ({}));

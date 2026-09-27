@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireCapabilitySession } from "@/app/lib/requireCapabilitySession";
+import { requireAccess } from "@/app/lib/access/requireAccess";
 import { createJobPaymentRequestViaRpc } from "@/app/lib/jobPaymentPersistence";
 import { JOB_PAYMENT_KINDS } from "@/app/lib/jobPaymentTypes";
 import { isUuidLike } from "@/app/lib/uuid";
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ ok: false, code: "unauthorized" }, { status: 401 });
     }
-    const gated = await requireCapabilitySession(supabase, user.id, "payment_request");
+    const gated = await requireAccess(supabase, user.id, "payments.request");
     if (!gated.ok) return gated.response;
     const companyId = gated.session.companyId;
 

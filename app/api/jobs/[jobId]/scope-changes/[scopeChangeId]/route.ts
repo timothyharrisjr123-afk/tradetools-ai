@@ -21,9 +21,12 @@ import {
   buildMintedJobScopeChangePublicAccessToken,
   buildPublicScopeChangeReviewUrl,
 } from "@/app/lib/jobScopeChangePublicAccess";
-import { JOB_SCOPE_CHANGE_AUTHOR_CAPABILITY } from "@/app/lib/jobScopeChangeTypes";
+import {
+  JOB_SCOPE_CHANGE_ISSUE_CAPABILITY,
+  JOB_SCOPE_CHANGE_WRITE_CAPABILITY,
+} from "@/app/lib/jobScopeChangeTypes";
 import { resolvePublicAppOrigin } from "@/app/lib/publicAppOrigin.server";
-import { requireCapabilitySession } from "@/app/lib/requireCapabilitySession";
+import { requireAccess } from "@/app/lib/access/requireAccess";
 import { isUuidLike } from "@/app/lib/uuid";
 import { createClient } from "@/app/lib/supabase/server";
 
@@ -142,10 +145,10 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     const ctx = await requireAuthorContext(jobId, scopeChangeId);
     if (!ctx.ok) return ctx.response;
 
-    const gated = await requireCapabilitySession(
+    const gated = await requireAccess(
       ctx.supabase,
       ctx.user.id,
-      JOB_SCOPE_CHANGE_AUTHOR_CAPABILITY
+      JOB_SCOPE_CHANGE_WRITE_CAPABILITY
     );
     if (!gated.ok) return gated.response;
 
@@ -208,13 +211,6 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const ctx = await requireAuthorContext(jobId, scopeChangeId);
     if (!ctx.ok) return ctx.response;
 
-    const gated = await requireCapabilitySession(
-      ctx.supabase,
-      ctx.user.id,
-      JOB_SCOPE_CHANGE_AUTHOR_CAPABILITY
-    );
-    if (!gated.ok) return gated.response;
-
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action ?? "").trim().toLowerCase();
     if (action !== "propose" && action !== "void" && action !== "decline") {
@@ -223,6 +219,13 @@ export async function POST(req: NextRequest, context: RouteContext) {
         { status: 400 }
       );
     }
+
+    const gated = await requireAccess(
+      ctx.supabase,
+      ctx.user.id,
+      action === "propose" ? JOB_SCOPE_CHANGE_ISSUE_CAPABILITY : JOB_SCOPE_CHANGE_WRITE_CAPABILITY
+    );
+    if (!gated.ok) return gated.response;
 
     const expectedRowVersion =
       body?.expectedRowVersion != null

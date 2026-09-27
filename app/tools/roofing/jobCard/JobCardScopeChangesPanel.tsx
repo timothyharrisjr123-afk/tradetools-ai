@@ -35,7 +35,10 @@ import type {
 } from "@/app/lib/useJobScopeChanges";
 
 type JobCardScopeChangesPanelProps = {
+  /** Draft create / edit / void (scope_changes.write). */
   canAuthor: boolean;
+  /** Propose and customer review link (scope_changes.issue). */
+  canIssue: boolean;
   canProposeNew: boolean;
   scopeChanges: JobScopeChangesState;
 };
@@ -211,11 +214,10 @@ function DraftEditor({
     timingNote: string;
     lines: DraftLine[];
   }) => Promise<void>;
-  onPropose: (payload: {
-    reason: string;
-    timingNote: string;
-    lines: DraftLine[];
-  }) => Promise<void>;
+  /** Null when the viewer may draft but not issue (scope_changes.issue). */
+  onPropose:
+    | ((payload: { reason: string; timingNote: string; lines: DraftLine[] }) => Promise<void>)
+    | null;
   onVoid: (() => Promise<void>) | null;
 }) {
   const [reason, setReason] = useState(initial?.reason ?? "");
@@ -453,15 +455,17 @@ function DraftEditor({
       ) : null}
 
       <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          className={buttonClass("primary")}
-          disabled={busy || proposeBlocked}
-          onClick={() => void onPropose({ reason, timingNote, lines })}
-          data-scope-change-propose
-        >
-          {busy ? "Working…" : SCOPE_CHANGE_PROPOSE_ACTION_LABEL}
-        </button>
+        {onPropose ? (
+          <button
+            type="button"
+            className={buttonClass("primary")}
+            disabled={busy || proposeBlocked}
+            onClick={() => void onPropose({ reason, timingNote, lines })}
+            data-scope-change-propose
+          >
+            {busy ? "Working…" : SCOPE_CHANGE_PROPOSE_ACTION_LABEL}
+          </button>
+        ) : null}
         <button
           type="button"
           className={buttonClass("secondary")}
@@ -558,6 +562,7 @@ function ProposeOutcomeNotice({
 
 export default function JobCardScopeChangesPanel({
   canAuthor,
+  canIssue,
   canProposeNew,
   scopeChanges,
 }: JobCardScopeChangesPanelProps) {
@@ -695,7 +700,7 @@ export default function JobCardScopeChangesPanel({
               setBusy(false);
             }
           }}
-          onPropose={async ({ reason, timingNote, lines }) => {
+          onPropose={!canIssue ? null : async ({ reason, timingNote, lines }) => {
             setBusy(true);
             setError(null);
             try {
@@ -779,7 +784,7 @@ export default function JobCardScopeChangesPanel({
       ) : (
         <HistoryList
           rows={scopeChanges.rows}
-          canAuthor={canAuthor}
+          canAuthor={canIssue}
           busyRowId={linkBusyRowId}
           onGetReviewLink={(row) => void getReviewLink(row)}
         />

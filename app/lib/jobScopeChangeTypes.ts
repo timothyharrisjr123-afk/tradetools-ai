@@ -2,9 +2,10 @@
  * Astra G9 / Phase 10 — approved scope-change contracts.
  * Additive amendments only. Original accepted agreement remains immutable.
  *
- * Capability gate: propose / price / send / void / draft-edit require
- * `proposal_author` (Owner/Admin, Office/Sales). No new capability.
- * Production Lead and Field User: view authorized + pending warning only.
+ * Capability gates (Phase 13B-C): draft create / edit / void / decline require
+ * `scope_changes.write` (Owner, Admin, Sales); propose and the customer review link
+ * require `scope_changes.issue` (Owner, or the Owner-granted Issue scope changes package).
+ * Production Lead and Field: authorized + pending summaries via the Field brief only.
  */
 
 export const JOB_SCOPE_CHANGE_STATUSES = [
@@ -191,8 +192,10 @@ export const MINT_JOB_SCOPE_CHANGE_PUBLIC_ACCESS_TOKEN_RPC_V1 =
 export const RESOLVE_JOB_SCOPE_CHANGE_PUBLIC_ACCESS_TOKEN_RPC_V1 =
   "resolve_job_scope_change_public_access_token_v1";
 
-/** Capability required for contractor propose / price / send / draft / void. */
-export const JOB_SCOPE_CHANGE_AUTHOR_CAPABILITY = "proposal_author" as const;
+/** Contractor draft create / update / void / decline. */
+export const JOB_SCOPE_CHANGE_WRITE_CAPABILITY = "scope_changes.write" as const;
+/** Contractor propose + customer review link (sensitive; Owner or the Issue scope changes package). */
+export const JOB_SCOPE_CHANGE_ISSUE_CAPABILITY = "scope_changes.issue" as const;
 
 export function isJobScopeChangeStatus(
   value: string | null | undefined

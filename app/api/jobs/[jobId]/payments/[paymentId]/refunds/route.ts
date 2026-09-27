@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireCapabilitySession } from "@/app/lib/requireCapabilitySession";
+import { requireAccess } from "@/app/lib/access/requireAccess";
 import {
   reconcileJobPaymentRefundResultViaRpc,
   reserveJobPaymentRefundViaRpc,
@@ -107,10 +107,10 @@ export async function POST(req: Request, context: RouteContext) {
       return NextResponse.json({ ok: false, code: "unauthorized" }, { status: 401 });
     }
 
-    const gated = await requireCapabilitySession(
+    const gated = await requireAccess(
       supabase,
       user.id,
-      "payment_admin"
+      "payments.refund"
     );
     if (!gated.ok) return gated.response;
     const companyId = gated.session.companyId;

@@ -1,20 +1,18 @@
 /**
- * Attachment route auth: typed active membership for reads, photo_mutate for writes.
- * Storage is reached only through these routes (service-role signed URLs), so a
- * disabled member can neither read nor mint new URLs.
+ * Attachment route auth: jobs.read for reads, photos.contribute for writes, both
+ * evaluated at the route's job (Field members only reach granted jobs). Storage is
+ * reached only through these routes (service-role signed URLs), so a disabled or
+ * ungranted member can neither read nor mint new URLs.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { resolveLiveMembership } from "@/app/lib/companyMembershipSession";
+import { checkAccess } from "@/app/lib/access/requireAccess";
 import { JobAttachmentHttpError } from "@/app/lib/jobAttachmentPersistence";
-import {
-  mapActiveMembershipGate,
-  mapCapabilityGate,
-} from "@/app/lib/requireCapabilitySession";
 
 export async function requireJobAttachmentSession(
   supabase: SupabaseClient,
-  access: "read" | "mutate"
+  access: "read" | "mutate",
+  jobId: string
 ): Promise<{ userId: string; companyId: string }> {
   const {
     data: { user },
@@ -22,11 +20,12 @@ export async function requireJobAttachmentSession(
   if (!user) {
     throw new JobAttachmentHttpError(401, "unauthorized");
   }
-  const resolution = await resolveLiveMembership(supabase, user.id);
-  const gate =
-    access === "mutate"
-      ? mapCapabilityGate(resolution, "photo_mutate")
-      : mapActiveMembershipGate(resolution);
+  const gate = await checkAccess(
+    supabase,
+    user.id,
+    access === "mutate" ? "photos.contribute" : "jobs.read",
+    { jobId }
+  );
   if (!gate.ok) {
     throw new JobAttachmentHttpError(gate.denial.status, gate.denial.code);
   }

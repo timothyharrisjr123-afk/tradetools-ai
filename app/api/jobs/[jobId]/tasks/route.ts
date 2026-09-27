@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { CompanyCapability } from "@/app/lib/companyMembershipRoles";
-import { resolveLiveMembership } from "@/app/lib/companyMembershipSession";
-import {
-  mapActiveMembershipGate,
-  mapCapabilityGate,
-} from "@/app/lib/requireCapabilitySession";
+import { checkAccess } from "@/app/lib/access/requireAccess";
+import type { ActiveCapabilityKey } from "@/app/lib/access/registry";
 import {
   JobTaskHttpError,
   createJobTask,
@@ -24,7 +20,7 @@ function jsonError(error: unknown) {
   return NextResponse.json({ ok: false, code: "internal_error" }, { status: 500 });
 }
 
-async function requireAuth(capability?: CompanyCapability) {
+async function requireAuth(capability: ActiveCapabilityKey, jobId: string) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -32,10 +28,7 @@ async function requireAuth(capability?: CompanyCapability) {
   if (!user) {
     throw new JobTaskHttpError(401, "unauthorized");
   }
-  const resolution = await resolveLiveMembership(supabase, user.id);
-  const gate = capability
-    ? mapCapabilityGate(resolution, capability)
-    : mapActiveMembershipGate(resolution);
+  const gate = await checkAccess(supabase, user.id, capability, { jobId });
   if (!gate.ok) {
     throw new JobTaskHttpError(gate.denial.status, gate.denial.code);
   }
@@ -48,7 +41,7 @@ export async function GET(
 ) {
   try {
     const { jobId } = await context.params;
-    const { supabase, ctx } = await requireAuth();
+    const { supabase, ctx } = await requireAuth("tasks.read", jobId);
     const tasks = await listJobTasks({ supabase, ctx, jobId });
     return NextResponse.json({ ok: true, tasks });
   } catch (error) {
@@ -63,7 +56,7 @@ export async function POST(
   try {
     const { jobId } = await context.params;
     const body = await req.json().catch(() => ({}));
-    const { supabase, ctx } = await requireAuth("task_assign");
+    const { supabase, ctx } = await requireAuth("tasks.manage", jobId);
     const task = await createJobTask({
       supabase,
       ctx,

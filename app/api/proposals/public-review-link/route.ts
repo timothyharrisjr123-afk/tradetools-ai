@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { resolveLiveMembership } from "@/app/lib/companyMembershipSession";
-import { mapCapabilityGate } from "@/app/lib/requireCapabilitySession";
+import { checkAccess } from "@/app/lib/access/requireAccess";
 import { isUuidLike } from "@/app/lib/uuid";
 import { createPublicProposalReviewLinkForContractor } from "@/app/lib/proposalPublicReviewLink.server";
 import { PUBLIC_REVIEW_MINT_ERROR_MESSAGE } from "@/app/lib/proposalPublicReviewReadiness";
@@ -54,10 +53,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, message: PUBLIC_REVIEW_MINT_ERROR_MESSAGE }, { status: 401 });
     }
 
-    const gate = mapCapabilityGate(
-      await resolveLiveMembership(supabase, user.id),
-      "proposal_author"
-    );
+    const gate = await checkAccess(supabase, user.id, "proposals.send", { jobId });
     if (!gate.ok) {
       return NextResponse.json(
         { ok: false, code: gate.denial.code, message: PUBLIC_REVIEW_MINT_ERROR_MESSAGE },

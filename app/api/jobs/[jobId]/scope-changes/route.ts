@@ -14,8 +14,8 @@ import {
   serializeScopeChange,
   serializeScopeChangeLine,
 } from "@/app/lib/jobScopeChangeApi";
-import { JOB_SCOPE_CHANGE_AUTHOR_CAPABILITY } from "@/app/lib/jobScopeChangeTypes";
-import { requireCapabilitySession } from "@/app/lib/requireCapabilitySession";
+import { JOB_SCOPE_CHANGE_WRITE_CAPABILITY } from "@/app/lib/jobScopeChangeTypes";
+import { requireAccess } from "@/app/lib/access/requireAccess";
 import { isUuidLike } from "@/app/lib/uuid";
 import { createClient } from "@/app/lib/supabase/server";
 
@@ -155,11 +155,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
       );
     }
 
-    const gated = await requireCapabilitySession(
-      supabase,
-      user.id,
-      JOB_SCOPE_CHANGE_AUTHOR_CAPABILITY
-    );
+    const gated = await requireAccess(supabase, user.id, JOB_SCOPE_CHANGE_WRITE_CAPABILITY);
     if (!gated.ok) return gated.response;
 
     const body = await req.json().catch(() => ({}));
