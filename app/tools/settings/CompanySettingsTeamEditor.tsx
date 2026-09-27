@@ -7,9 +7,10 @@ import FocusedEditor, {
   FOCUSED_EDITOR_LABEL,
 } from "@/app/components/ui/FocusedEditor";
 import {
-  COMPANY_MEMBERSHIP_PRESET_LABELS,
-  COMPANY_MEMBERSHIP_PRESETS,
-  type CompanyMembershipPreset,
+  ASSIGNABLE_COMPANY_MEMBERSHIP_ROLES,
+  COMPANY_MEMBERSHIP_ROLE_LABELS,
+  isAssignableCompanyMembershipRole,
+  type AssignableCompanyMembershipRole,
 } from "@/app/lib/companyMembershipRoles";
 import type { CompanyMemberClientItem } from "@/app/tools/roofing/jobCard/useCompanyMembers";
 import { labelForCompanyMember } from "@/app/tools/roofing/jobCard/useCompanyMembers";
@@ -70,15 +71,15 @@ export default function CompanySettingsTeamEditor({
     }
   };
 
-  const changePreset = async (
+  const changeRole = async (
     userId: string,
-    preset: CompanyMembershipPreset
+    role: AssignableCompanyMembershipRole
   ) => {
     if (!canAdminMembers) return;
     setBusyUserId(userId);
     setLocalError(null);
     try {
-      await patchMember({ userId, preset });
+      await patchMember({ userId, role });
       await onChanged();
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : "Could not update role.");
@@ -156,24 +157,29 @@ export default function CompanySettingsTeamEditor({
                         </p>
                       )}
                     </div>
-                    {canAdminMembers ? (
+                    {canAdminMembers && member.role !== "owner" ? (
                       <div className="flex shrink-0 flex-wrap items-center gap-1.5">
                         <label className="block">
                           <span className="sr-only">Role</span>
                           <select
                             className="min-h-[36px] rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-800 outline-none focus:border-slate-400"
-                            value={member.preset}
+                            value={member.role}
                             disabled={busyUserId === member.userId}
                             onChange={(event) => {
-                              const preset = event.target
-                                .value as CompanyMembershipPreset;
-                              void changePreset(member.userId, preset);
+                              const role = event.target.value;
+                              if (!isAssignableCompanyMembershipRole(role)) return;
+                              void changeRole(member.userId, role);
                             }}
                             data-company-settings-team-preset
                           >
-                            {COMPANY_MEMBERSHIP_PRESETS.map((preset) => (
-                              <option key={preset} value={preset}>
-                                {COMPANY_MEMBERSHIP_PRESET_LABELS[preset]}
+                            {member.role === "invalid_role" ? (
+                              <option value="invalid_role" disabled>
+                                {COMPANY_MEMBERSHIP_ROLE_LABELS.invalid_role}
+                              </option>
+                            ) : null}
+                            {ASSIGNABLE_COMPANY_MEMBERSHIP_ROLES.map((role) => (
+                              <option key={role} value={role}>
+                                {COMPANY_MEMBERSHIP_ROLE_LABELS[role]}
                               </option>
                             ))}
                           </select>
@@ -194,7 +200,8 @@ export default function CompanySettingsTeamEditor({
                       </div>
                     ) : (
                       <p className="text-sm font-medium text-slate-600">
-                        {COMPANY_MEMBERSHIP_PRESET_LABELS[member.preset]}
+                        {COMPANY_MEMBERSHIP_ROLE_LABELS[member.role] ??
+                          COMPANY_MEMBERSHIP_ROLE_LABELS.invalid_role}
                       </p>
                     )}
                   </div>
@@ -266,7 +273,7 @@ export default function CompanySettingsTeamEditor({
 
         {!canAdminMembers ? (
           <p className={FOCUSED_EDITOR_HINT}>
-            Only owners and admins can change roles or remove members.
+            Only the company owner can change roles or remove members.
           </p>
         ) : null}
       </div>

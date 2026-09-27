@@ -11,9 +11,7 @@ import {
   capabilitiesForRole,
   hasCompanyCapability,
   isRestrictedFieldRole,
-  normalizeCompanyMembershipRole,
-  presetFromMembershipRole,
-  roleValueForPreset,
+  resolveCompanyMembershipRole,
 } from "./companyMembershipRoles";
 import { buildFieldBriefViewModel } from "./fieldBriefModel";
 import { resolveMemberDisplayLabel } from "./companyMemberValidation";
@@ -21,14 +19,14 @@ import { resolveMemberDisplayLabel } from "./companyMemberValidation";
 const read = (rel: string) => readFileSync(join(process.cwd(), rel), "utf8");
 
 describe("Astra G7 role presets", () => {
-  test("normalizes bounded role literals onto four presets", () => {
-    assert.equal(presetFromMembershipRole("owner"), "owner_admin");
-    assert.equal(presetFromMembershipRole("admin"), "owner_admin");
-    assert.equal(presetFromMembershipRole("office_sales"), "office_sales");
-    assert.equal(presetFromMembershipRole("production_lead"), "production_lead");
-    assert.equal(presetFromMembershipRole("field_user"), "field_user");
-    assert.equal(normalizeCompanyMembershipRole("Office / Sales"), "office_sales");
-    assert.equal(roleValueForPreset("owner_admin"), "owner");
+  test("resolves the five stable role keys; anything else fails closed", () => {
+    assert.equal(resolveCompanyMembershipRole("owner"), "owner");
+    assert.equal(resolveCompanyMembershipRole("admin"), "admin");
+    assert.equal(resolveCompanyMembershipRole("office_sales"), "office_sales");
+    assert.equal(resolveCompanyMembershipRole("production_lead"), "production_lead");
+    assert.equal(resolveCompanyMembershipRole("field_user"), "field_user");
+    assert.equal(resolveCompanyMembershipRole("Office / Sales"), "invalid_role");
+    assert.equal(resolveCompanyMembershipRole("owner_admin"), "invalid_role");
   });
 
   test("field user cannot commercial-author or payment-admin", () => {
@@ -40,18 +38,13 @@ describe("Astra G7 role presets", () => {
       hasCompanyCapability("field_user", "job_disposition_finalize"),
       false
     );
-    assert.equal(hasCompanyCapability("field_user", "task_complete"), true);
-    assert.equal(hasCompanyCapability("field_user", "photo_mutate"), true);
     assert.equal(isRestrictedFieldRole("field_user"), true);
   });
 
-  test("production lead has operational but not commercial authoring", () => {
+  test("production lead never holds commercial or payment authority", () => {
     const caps = capabilitiesForRole("production_lead");
-    assert.equal(caps.has("lifecycle_start_complete"), true);
-    assert.equal(caps.has("task_assign"), true);
     assert.equal(caps.has("proposal_author"), false);
     assert.equal(caps.has("payment_admin"), false);
-    assert.equal(caps.has("job_pause_resume"), true);
     assert.equal(caps.has("job_disposition_finalize"), false);
   });
 });
@@ -155,7 +148,7 @@ describe("Astra G7 repo authority contracts", () => {
   test("no enterprise RBAC builder / second field app shell", () => {
     const roles = read("app/lib/companyMembershipRoles.ts");
     assert.doesNotMatch(roles, /permission.?builder|custom.?acl/i);
-    assert.match(roles, /owner_admin/);
+    assert.doesNotMatch(roles, /owner_admin/);
     assert.match(roles, /field_user/);
   });
 });

@@ -2,16 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  capabilitiesForPreset,
+  capabilitiesForRole,
   isRestrictedFieldRole,
-  type CompanyMembershipPreset,
+  resolveCompanyMembershipRole,
+  type ResolvedCompanyMembershipRole,
 } from "@/app/lib/companyMembershipRoles";
 
 /** Client mirror of company members API rows (not imported from server-only persistence). */
 export type CompanyMemberClientItem = {
   userId: string;
-  role: string;
-  preset: CompanyMembershipPreset;
+  role: ResolvedCompanyMembershipRole;
   displayName: string | null;
   email: string | null;
   removedAt: string | null;
@@ -22,7 +22,7 @@ export type CompanyMemberClientItem = {
 export type CompanyMembersClientState = {
   members: CompanyMemberClientItem[];
   liveMembers: CompanyMemberClientItem[];
-  viewerPreset: CompanyMembershipPreset | null;
+  viewerRole: ResolvedCompanyMembershipRole | null;
   canAdminMembers: boolean;
   canAssignJobs: boolean;
   canAssignTasks: boolean;
@@ -66,7 +66,7 @@ export function labelForCompanyMember(
 
 export function useCompanyMembers(enabled = true): CompanyMembersClientState {
   const [members, setMembers] = useState<CompanyMemberClientItem[]>([]);
-  const [viewerPreset, setViewerPreset] = useState<CompanyMembershipPreset | null>(
+  const [viewerRole, setViewerRole] = useState<ResolvedCompanyMembershipRole | null>(
     null
   );
   const [canAdminMembers, setCanAdminMembers] = useState(false);
@@ -82,7 +82,7 @@ export function useCompanyMembers(enabled = true): CompanyMembersClientState {
       const body = (await res.json().catch(() => ({}))) as {
         ok?: boolean;
         members?: CompanyMemberClientItem[];
-        viewerPreset?: CompanyMembershipPreset;
+        viewerRole?: unknown;
         canAdminMembers?: boolean;
       };
       if (!res.ok || body.ok !== true) {
@@ -90,7 +90,9 @@ export function useCompanyMembers(enabled = true): CompanyMembersClientState {
         return;
       }
       setMembers(Array.isArray(body.members) ? body.members : []);
-      setViewerPreset(body.viewerPreset ?? null);
+      setViewerRole(
+        body.viewerRole == null ? null : resolveCompanyMembershipRole(body.viewerRole)
+      );
       setCanAdminMembers(body.canAdminMembers === true);
     } catch {
       setError("Team could not be loaded.");
@@ -102,7 +104,7 @@ export function useCompanyMembers(enabled = true): CompanyMembersClientState {
   useEffect(() => {
     if (!enabled) {
       setMembers([]);
-      setViewerPreset(null);
+      setViewerRole(null);
       setCanAdminMembers(false);
       return;
     }
@@ -120,21 +122,19 @@ export function useCompanyMembers(enabled = true): CompanyMembersClientState {
     [liveMembers]
   );
 
-  const caps =
-    viewerPreset != null ? capabilitiesForPreset(viewerPreset) : null;
+  const caps = viewerRole != null ? capabilitiesForRole(viewerRole) : null;
 
   return {
     members,
     liveMembers,
-    viewerPreset,
+    viewerRole,
     canAdminMembers,
     canAssignJobs: caps?.has("job_assign") === true,
     canAssignTasks: caps?.has("task_assign") === true,
     canPauseResume: caps?.has("job_pause_resume") === true,
     canFinalizeDisposition: caps?.has("job_disposition_finalize") === true,
     canAuthorProposals: caps?.has("proposal_author") === true,
-    restrictedFieldRole:
-      viewerPreset != null && isRestrictedFieldRole(viewerPreset),
+    restrictedFieldRole: viewerRole != null && isRestrictedFieldRole(viewerRole),
     loading,
     error,
     refresh,

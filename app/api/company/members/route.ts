@@ -3,9 +3,16 @@ import {
   CompanyMembershipHttpError,
   listCompanyMembers,
   removeCompanyMember,
-  updateCompanyMemberPreset,
+  updateCompanyMemberRole,
 } from "@/app/lib/companyMembershipPersistence";
-import { requireCapabilitySession } from "@/app/lib/requireCapabilitySession";
+import {
+  resolveLiveMembership,
+  sessionHasCapability,
+} from "@/app/lib/companyMembershipSession";
+import {
+  mapCapabilityGate,
+  requireCapabilitySession,
+} from "@/app/lib/requireCapabilitySession";
 import { createClient } from "@/app/lib/supabase/server";
 import { isUuidLike } from "@/app/lib/uuid";
 
@@ -24,24 +31,32 @@ export async function GET() {
       );
     }
 
-    const gated = await requireCapabilitySession(
-      supabase,
-      user.id,
-      "customers_jobs"
-    );
-    if (!gated.ok) return gated.response;
+    // Viewer identity is returned to every active member so role-restricted
+    // presentation (Field) never fails open; the member list stays capability-gated.
+    const resolution = await resolveLiveMembership(supabase, user.id);
+    if (resolution.status !== "active") {
+      const gate = mapCapabilityGate(resolution, "customers_jobs");
+      const denial = gate.ok ? null : gate.denial;
+      return NextResponse.json(
+        { ok: false, code: denial?.code ?? "forbidden" },
+        { status: denial?.status ?? 403 }
+      );
+    }
+    const session = resolution.session;
 
-    const canAdmin = gated.session.preset === "owner_admin";
-    const members = await listCompanyMembers({
-      supabase,
-      companyId: gated.session.companyId,
-      includeRemoved: canAdmin,
-    });
+    const canAdmin = sessionHasCapability(session, "member_admin");
+    const members = sessionHasCapability(session, "customers_jobs")
+      ? await listCompanyMembers({
+          supabase,
+          companyId: session.companyId,
+          includeRemoved: canAdmin,
+        })
+      : [];
 
     return NextResponse.json({
       ok: true,
       members,
-      viewerPreset: gated.session.preset,
+      viewerRole: session.role,
       canAdminMembers: canAdmin,
     });
   } catch (error) {
@@ -85,6 +100,7 @@ export async function PATCH(req: NextRequest) {
         supabase,
         companyId: gated.session.companyId,
         actorUserId: user.id,
+        actorRole: gated.session.role,
         targetUserId: userId,
         reassignToUserId:
           body?.reassignToUserId === undefined
@@ -94,12 +110,13 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ ok: true, ...result });
     }
 
-    const member = await updateCompanyMemberPreset({
+    const member = await updateCompanyMemberRole({
       supabase,
       companyId: gated.session.companyId,
       actorUserId: user.id,
+      actorRole: gated.session.role,
       targetUserId: userId,
-      preset: String(body?.preset ?? ""),
+      role: body?.role,
     });
     return NextResponse.json({ ok: true, member });
   } catch (error) {

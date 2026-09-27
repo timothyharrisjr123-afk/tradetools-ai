@@ -1,6 +1,10 @@
 /**
- * Astra G7 — bounded membership role presets (not an ACL builder).
- * Maps company_memberships.role onto four product presets.
+ * Company membership roles (Phase 13B-A authority reconciliation).
+ *
+ * company_memberships.role is read strictly: only the five stable keys are valid.
+ * Anything else (null, empty, aliases, casing variants, future keys) resolves to
+ * `invalid_role`, which holds no capabilities. Custody (the one company Owner) is
+ * companies.owner_user_id; the `owner` role alone never proves custody.
  */
 
 export const COMPANY_MEMBERSHIP_ROLE_VALUES = [
@@ -14,25 +18,33 @@ export const COMPANY_MEMBERSHIP_ROLE_VALUES = [
 export type CompanyMembershipRoleValue =
   (typeof COMPANY_MEMBERSHIP_ROLE_VALUES)[number];
 
-/** Product-facing presets (Owner/Admin share one capability boundary). */
-export const COMPANY_MEMBERSHIP_PRESETS = [
-  "owner_admin",
+export const INVALID_COMPANY_MEMBERSHIP_ROLE = "invalid_role" as const;
+
+export type ResolvedCompanyMembershipRole =
+  | CompanyMembershipRoleValue
+  | typeof INVALID_COMPANY_MEMBERSHIP_ROLE;
+
+/** Roles an ordinary role edit may write. `owner` moves only through custody transfer. */
+export const ASSIGNABLE_COMPANY_MEMBERSHIP_ROLES = [
+  "admin",
   "office_sales",
   "production_lead",
   "field_user",
 ] as const;
 
-export type CompanyMembershipPreset =
-  (typeof COMPANY_MEMBERSHIP_PRESETS)[number];
+export type AssignableCompanyMembershipRole =
+  (typeof ASSIGNABLE_COMPANY_MEMBERSHIP_ROLES)[number];
 
-export const COMPANY_MEMBERSHIP_PRESET_LABELS: Record<
-  CompanyMembershipPreset,
+export const COMPANY_MEMBERSHIP_ROLE_LABELS: Record<
+  ResolvedCompanyMembershipRole,
   string
 > = {
-  owner_admin: "Owner / Admin",
+  owner: "Owner",
+  admin: "Admin",
   office_sales: "Office / Sales",
   production_lead: "Production lead",
   field_user: "Field user",
+  invalid_role: "Access needs attention",
 };
 
 export type CompanyCapability =
@@ -57,145 +69,100 @@ export type CompanyCapability =
   /** Astra G8 — Lost / Close / Reopen (and composed Production+Closed recovery). */
   | "job_disposition_finalize";
 
-const PRESET_CAPABILITIES: Record<
-  CompanyMembershipPreset,
+/** Every capability today's single-owner product flows consume. */
+const OWNER_CAPABILITIES: ReadonlySet<CompanyCapability> = new Set([
+  "company_admin",
+  "member_admin",
+  "proposal_author",
+  "payment_admin",
+  "payment_request",
+  "schedule_mutate",
+  "task_assign",
+  "task_complete",
+  "lifecycle_start_complete",
+  "photo_mutate",
+  "job_assign",
+  "customers_jobs",
+  "job_pause_resume",
+  "job_disposition_finalize",
+]);
+
+const NO_CAPABILITIES: ReadonlySet<CompanyCapability> = new Set();
+
+/**
+ * Interim (Phase 13B-A): only Owner holds capabilities. Non-Owner roles are recognized
+ * membership identities with no capability grant until Phase C role profiles exist;
+ * they never inherit Owner-equivalent authority in the meantime.
+ */
+const ROLE_CAPABILITIES: Record<
+  ResolvedCompanyMembershipRole,
   ReadonlySet<CompanyCapability>
 > = {
-  owner_admin: new Set([
-    "company_admin",
-    "member_admin",
-    "proposal_author",
-    "payment_admin",
-    "payment_request",
-    "schedule_mutate",
-    "task_assign",
-    "task_complete",
-    "lifecycle_start_complete",
-    "photo_mutate",
-    "job_assign",
-    "customers_jobs",
-    "job_pause_resume",
-    "job_disposition_finalize",
-  ]),
-  office_sales: new Set([
-    "proposal_author",
-    "payment_request",
-    "schedule_mutate",
-    "task_assign",
-    "task_complete",
-    "lifecycle_start_complete",
-    "photo_mutate",
-    "job_assign",
-    "customers_jobs",
-    "job_pause_resume",
-    "job_disposition_finalize",
-  ]),
-  production_lead: new Set([
-    "schedule_mutate",
-    "task_assign",
-    "task_complete",
-    "lifecycle_start_complete",
-    "photo_mutate",
-    "job_assign",
-    "customers_jobs",
-    "job_pause_resume",
-  ]),
-  field_user: new Set([
-    "task_complete",
-    "photo_mutate",
-    "customers_jobs",
-  ]),
+  owner: OWNER_CAPABILITIES,
+  admin: NO_CAPABILITIES,
+  office_sales: NO_CAPABILITIES,
+  production_lead: NO_CAPABILITIES,
+  field_user: NO_CAPABILITIES,
+  invalid_role: NO_CAPABILITIES,
 };
 
-export function normalizeCompanyMembershipRole(
-  value: string | null | undefined
-): CompanyMembershipRoleValue {
-  const token = String(value ?? "")
-    .trim()
-    .toLowerCase()
-    .replace(/\//g, " ")
-    .replace(/[\s-]+/g, "_");
-  if (token === "owner") return "owner";
-  if (token === "admin") return "admin";
+/** Exact stable-key match only; no trimming, case folding, or alias mapping. */
+export function resolveCompanyMembershipRole(
+  value: unknown
+): ResolvedCompanyMembershipRole {
   if (
-    token === "office_sales" ||
-    token === "office" ||
-    token === "sales" ||
-    token === "office/sales"
+    typeof value === "string" &&
+    (COMPANY_MEMBERSHIP_ROLE_VALUES as readonly string[]).includes(value)
   ) {
-    return "office_sales";
+    return value as CompanyMembershipRoleValue;
   }
-  if (
-    token === "production_lead" ||
-    token === "production" ||
-    token === "prod_lead"
-  ) {
-    return "production_lead";
-  }
-  if (
-    token === "field_user" ||
-    token === "field" ||
-    token === "crew" ||
-    token === "technician"
-  ) {
-    return "field_user";
-  }
-  // Unknown / empty → treat as owner for legacy single-user companies.
-  return "owner";
+  return INVALID_COMPANY_MEMBERSHIP_ROLE;
 }
 
-export function presetFromMembershipRole(
-  role: string | null | undefined
-): CompanyMembershipPreset {
-  const normalized = normalizeCompanyMembershipRole(role);
-  if (normalized === "owner" || normalized === "admin") return "owner_admin";
-  if (normalized === "office_sales") return "office_sales";
-  if (normalized === "production_lead") return "production_lead";
-  return "field_user";
-}
-
-export function roleValueForPreset(
-  preset: CompanyMembershipPreset
-): CompanyMembershipRoleValue {
-  if (preset === "owner_admin") return "owner";
-  return preset;
-}
-
-export function isCompanyMembershipPreset(
-  value: string | null | undefined
-): value is CompanyMembershipPreset {
-  return (COMPANY_MEMBERSHIP_PRESETS as readonly string[]).includes(
-    String(value ?? "").trim()
+export function isAssignableCompanyMembershipRole(
+  value: unknown
+): value is AssignableCompanyMembershipRole {
+  return (
+    typeof value === "string" &&
+    (ASSIGNABLE_COMPANY_MEMBERSHIP_ROLES as readonly string[]).includes(value)
   );
 }
 
-export function capabilitiesForPreset(
-  preset: CompanyMembershipPreset
-): ReadonlySet<CompanyCapability> {
-  return PRESET_CAPABILITIES[preset];
-}
-
 export function capabilitiesForRole(
-  role: string | null | undefined
+  role: unknown
 ): ReadonlySet<CompanyCapability> {
-  return capabilitiesForPreset(presetFromMembershipRole(role));
+  return ROLE_CAPABILITIES[resolveCompanyMembershipRole(role)];
 }
 
 export function hasCompanyCapability(
-  role: string | null | undefined,
+  role: unknown,
   capability: CompanyCapability
 ): boolean {
   return capabilitiesForRole(role).has(capability);
 }
 
-export function isRestrictedFieldRole(
-  role: string | null | undefined
-): boolean {
-  return presetFromMembershipRole(role) === "field_user";
+/** Field users and invalid roles get the restricted (non-commercial) presentation. */
+export function isRestrictedFieldRole(role: unknown): boolean {
+  const resolved = resolveCompanyMembershipRole(role);
+  return resolved === "field_user" || resolved === INVALID_COMPANY_MEMBERSHIP_ROLE;
 }
 
-export function isCommercialAuthorRole(
-  role: string | null | undefined
-): boolean {
+export function isCommercialAuthorRole(role: unknown): boolean {
   return hasCompanyCapability(role, "proposal_author");
+}
+
+/** Custody requires both the `owner` role and the companies.owner_user_id pointer. */
+export function isCompanyCustodyOwner(input: {
+  userId: string | null | undefined;
+  role: unknown;
+  companyOwnerUserId: string | null | undefined;
+}): boolean {
+  const userId = typeof input.userId === "string" ? input.userId : "";
+  const pointer =
+    typeof input.companyOwnerUserId === "string" ? input.companyOwnerUserId : "";
+  return (
+    userId !== "" &&
+    pointer === userId &&
+    resolveCompanyMembershipRole(input.role) === "owner"
+  );
 }

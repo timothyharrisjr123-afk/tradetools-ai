@@ -65,18 +65,20 @@ describe("Astra G8 capability model", () => {
     );
   });
 
-  test("Production Lead: Hold/Resume only", () => {
+  test("Production Lead never holds finalize (interim: no capabilities until Phase C)", () => {
     const caps = capabilitiesForRole("production_lead");
-    assert.equal(caps.has("job_pause_resume"), true);
     assert.equal(caps.has("job_disposition_finalize"), false);
+    assert.equal(caps.size, 0);
   });
 
-  test("Office/Sales and Owner/Admin: pause + finalize", () => {
-    for (const role of ["office_sales", "owner", "admin"] as const) {
-      assert.equal(hasCompanyCapability(role, "job_pause_resume"), true, role);
+  test("Owner: pause + finalize; non-Owner roles hold neither until Phase C", () => {
+    assert.equal(hasCompanyCapability("owner", "job_pause_resume"), true);
+    assert.equal(hasCompanyCapability("owner", "job_disposition_finalize"), true);
+    for (const role of ["office_sales", "admin"] as const) {
+      assert.equal(hasCompanyCapability(role, "job_pause_resume"), false, role);
       assert.equal(
         hasCompanyCapability(role, "job_disposition_finalize"),
-        true,
+        false,
         role
       );
     }

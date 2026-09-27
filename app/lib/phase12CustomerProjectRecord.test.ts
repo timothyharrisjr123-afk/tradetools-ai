@@ -450,10 +450,10 @@ describe("Phase 12 — contractor Review closeout", () => {
 });
 
 describe("Phase 12 — share authority, tokens, and exposure boundaries", () => {
-  test("proposal_author: Owner/Admin and Office/Sales only", () => {
+  test("proposal_author: Owner only until Phase C role profiles", () => {
     assert.equal(hasCompanyCapability("owner", "proposal_author"), true);
-    assert.equal(hasCompanyCapability("admin", "proposal_author"), true);
-    assert.equal(hasCompanyCapability("office_sales", "proposal_author"), true);
+    assert.equal(hasCompanyCapability("admin", "proposal_author"), false);
+    assert.equal(hasCompanyCapability("office_sales", "proposal_author"), false);
     assert.equal(hasCompanyCapability("production_lead", "proposal_author"), false);
     assert.equal(hasCompanyCapability("field_user", "proposal_author"), false);
   });

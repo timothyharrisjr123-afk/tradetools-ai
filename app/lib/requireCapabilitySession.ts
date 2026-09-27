@@ -6,10 +6,36 @@ import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CompanyCapability } from "@/app/lib/companyMembershipRoles";
 import {
-  loadLiveMembershipSession,
+  resolveLiveMembership,
   sessionHasCapability,
+  type LiveMembershipResolution,
   type LiveMembershipSession,
 } from "@/app/lib/companyMembershipSession";
+
+export type CapabilityGateDenial = {
+  status: 403 | 503;
+  code: "forbidden" | "invalid_role" | "capability_denied" | "authorization_unavailable";
+};
+
+export function mapCapabilityGate(
+  resolution: LiveMembershipResolution,
+  capability: CompanyCapability
+): { ok: true; session: LiveMembershipSession } | { ok: false; denial: CapabilityGateDenial } {
+  switch (resolution.status) {
+    case "unavailable":
+      return { ok: false, denial: { status: 503, code: "authorization_unavailable" } };
+    case "invalid_role":
+      return { ok: false, denial: { status: 403, code: "invalid_role" } };
+    case "none":
+    case "removed":
+      return { ok: false, denial: { status: 403, code: "forbidden" } };
+    case "active":
+      if (!sessionHasCapability(resolution.session, capability)) {
+        return { ok: false, denial: { status: 403, code: "capability_denied" } };
+      }
+      return { ok: true, session: resolution.session };
+  }
+}
 
 export async function requireCapabilitySession(
   supabase: SupabaseClient,
@@ -19,24 +45,20 @@ export async function requireCapabilitySession(
   | { ok: true; session: LiveMembershipSession }
   | { ok: false; response: NextResponse }
 > {
-  const session = await loadLiveMembershipSession(supabase, userId);
-  if (!session) {
-    return {
-      ok: false,
-      response: NextResponse.json(
-        { ok: false, code: "forbidden", error: "Forbidden." },
-        { status: 403 }
-      ),
-    };
-  }
-  if (!sessionHasCapability(session, capability)) {
-    return {
-      ok: false,
-      response: NextResponse.json(
-        { ok: false, code: "capability_denied", error: "Forbidden." },
-        { status: 403 }
-      ),
-    };
-  }
-  return { ok: true, session };
+  const gate = mapCapabilityGate(
+    await resolveLiveMembership(supabase, userId),
+    capability
+  );
+  if (gate.ok) return gate;
+  const error =
+    gate.denial.code === "authorization_unavailable"
+      ? "Access could not be verified. Try again."
+      : "Forbidden.";
+  return {
+    ok: false,
+    response: NextResponse.json(
+      { ok: false, code: gate.denial.code, error },
+      { status: gate.denial.status }
+    ),
+  };
 }

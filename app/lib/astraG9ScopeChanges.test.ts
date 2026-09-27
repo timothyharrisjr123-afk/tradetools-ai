@@ -273,7 +273,7 @@ describe("Astra G9 state model + types", () => {
   test("propose/price/send reuses proposal_author; no new capability", () => {
     assert.equal(JOB_SCOPE_CHANGE_AUTHOR_CAPABILITY, "proposal_author");
     assert.equal(hasCompanyCapability("owner", "proposal_author"), true);
-    assert.equal(hasCompanyCapability("office_sales", "proposal_author"), true);
+    assert.equal(hasCompanyCapability("office_sales", "proposal_author"), false);
     assert.equal(
       hasCompanyCapability("production_lead", "proposal_author"),
       false
@@ -282,7 +282,7 @@ describe("Astra G9 state model + types", () => {
     const roles = read("app/lib/companyMembershipRoles.ts");
     assert.match(roles, /Astra G9 scope-change propose\/price\/send/);
     assert.doesNotMatch(roles, /scope_change_author/);
-    const caps = capabilitiesForRole("office_sales");
+    const caps = capabilitiesForRole("owner");
     assert.equal(caps.has("proposal_author"), true);
   });
 });

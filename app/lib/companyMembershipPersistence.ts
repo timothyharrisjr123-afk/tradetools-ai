@@ -1,15 +1,15 @@
 /**
- * Astra G7 — company membership list / preset change / soft-remove.
+ * Astra G7 — company membership list / role change / soft-remove.
  */
 
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  isCompanyMembershipPreset,
-  presetFromMembershipRole,
-  roleValueForPreset,
-  type CompanyMembershipPreset,
+  isAssignableCompanyMembershipRole,
+  isCompanyCustodyOwner,
+  resolveCompanyMembershipRole,
+  type ResolvedCompanyMembershipRole,
 } from "@/app/lib/companyMembershipRoles";
 import { isUuidLike } from "@/app/lib/uuid";
 
@@ -25,8 +25,7 @@ export class CompanyMembershipHttpError extends Error {
 
 export type CompanyMemberListItem = {
   userId: string;
-  role: string;
-  preset: CompanyMembershipPreset;
+  role: ResolvedCompanyMembershipRole;
   displayName: string | null;
   email: string | null;
   removedAt: string | null;
@@ -39,7 +38,7 @@ async function loadOpenAssignmentCounts(
   companyId: string,
   userId: string
 ): Promise<{ openJobLeadCount: number; openTaskAssigneeCount: number }> {
-  const [{ count: jobCount }, { count: taskCount }] = await Promise.all([
+  const [jobResult, taskResult] = await Promise.all([
     supabase
       .from("jobs")
       .select("id", { count: "exact", head: true })
@@ -54,10 +53,73 @@ async function loadOpenAssignmentCounts(
       .eq("status", "open")
       .is("deleted_at", null),
   ]);
+  if (
+    jobResult.error ||
+    taskResult.error ||
+    typeof jobResult.count !== "number" ||
+    typeof taskResult.count !== "number"
+  ) {
+    throw new CompanyMembershipHttpError(500, "internal_error");
+  }
   return {
-    openJobLeadCount: jobCount ?? 0,
-    openTaskAssigneeCount: taskCount ?? 0,
+    openJobLeadCount: jobResult.count,
+    openTaskAssigneeCount: taskResult.count,
   };
+}
+
+type TargetMembership = { userId: string; role: ResolvedCompanyMembershipRole };
+
+async function loadLiveTargetMembership(
+  supabase: SupabaseClient,
+  companyId: string,
+  userId: string
+): Promise<TargetMembership> {
+  const { data, error } = await supabase
+    .from("company_memberships")
+    .select("user_id, role")
+    .eq("company_id", companyId)
+    .eq("user_id", userId)
+    .is("removed_at", null)
+    .maybeSingle();
+  if (error) throw new CompanyMembershipHttpError(500, "internal_error");
+  if (!data) throw new CompanyMembershipHttpError(404, "not_found");
+  return {
+    userId,
+    role: resolveCompanyMembershipRole((data as { role?: unknown }).role),
+  };
+}
+
+/** Owner-only operations require custody (role + companies.owner_user_id), not role text. */
+async function assertActorHoldsCustody(input: {
+  supabase: SupabaseClient;
+  companyId: string;
+  actorUserId: string;
+  actorRole: ResolvedCompanyMembershipRole;
+}): Promise<void> {
+  const { data, error } = await input.supabase
+    .from("companies")
+    .select("owner_user_id")
+    .eq("id", input.companyId)
+    .maybeSingle();
+  if (error || !data) {
+    throw new CompanyMembershipHttpError(
+      503,
+      "authorization_unavailable",
+      "Access could not be verified. Try again."
+    );
+  }
+  const custody = isCompanyCustodyOwner({
+    userId: input.actorUserId,
+    role: input.actorRole,
+    companyOwnerUserId: (data as { owner_user_id?: string | null }).owner_user_id,
+  });
+  if (!custody) {
+    throw new CompanyMembershipHttpError(
+      403,
+      "owner_required",
+      "Only the company owner can change Admin access."
+    );
+  }
 }
 
 export async function listCompanyMembers(input: {
@@ -80,10 +142,11 @@ export async function listCompanyMembers(input: {
   if (!data?.length) return [];
 
   const userIds = data.map((row) => String((row as { user_id: string }).user_id));
-  const { data: profiles } = await input.supabase
+  const { data: profiles, error: profilesError } = await input.supabase
     .from("profiles")
     .select("id, full_name, email")
     .in("id", userIds);
+  if (profilesError) throw new CompanyMembershipHttpError(500, "internal_error");
   const profileById = new Map(
     (profiles ?? []).map((p) => [String((p as { id: string }).id), p])
   );
@@ -91,7 +154,7 @@ export async function listCompanyMembers(input: {
   const items: CompanyMemberListItem[] = [];
   for (const row of data) {
     const userId = String((row as { user_id: string }).user_id);
-    const role = String((row as { role?: string }).role ?? "owner");
+    const role = resolveCompanyMembershipRole((row as { role?: unknown }).role);
     const removedAt = (row as { removed_at?: string | null }).removed_at ?? null;
     const profile = profileById.get(userId) as
       | { full_name?: string | null; email?: string | null }
@@ -104,7 +167,6 @@ export async function listCompanyMembers(input: {
     items.push({
       userId,
       role,
-      preset: presetFromMembershipRole(role),
       displayName: name || null,
       email: email || null,
       removedAt,
@@ -115,34 +177,51 @@ export async function listCompanyMembers(input: {
   return items;
 }
 
-export async function updateCompanyMemberPreset(input: {
+/**
+ * Ordinary role edit. Never writes `owner` and never edits the Owner membership
+ * (custody moves only through ownership transfer). Admin grants/revocations
+ * require custody. No self-change.
+ */
+export async function updateCompanyMemberRole(input: {
   supabase: SupabaseClient;
   companyId: string;
   actorUserId: string;
+  actorRole: ResolvedCompanyMembershipRole;
   targetUserId: string;
-  preset: string;
+  role: unknown;
 }): Promise<CompanyMemberListItem> {
-  if (!isUuidLike(input.targetUserId) || !isCompanyMembershipPreset(input.preset)) {
+  if (!isUuidLike(input.targetUserId) || !isAssignableCompanyMembershipRole(input.role)) {
     throw new CompanyMembershipHttpError(400, "invalid_payload");
   }
-  if (input.targetUserId === input.actorUserId && input.preset !== "owner_admin") {
-    // Allow self demotion only if another owner/admin remains — keep simple: block self demotion from owner_admin.
-    const actors = await listCompanyMembers({
+  if (input.targetUserId === input.actorUserId) {
+    throw new CompanyMembershipHttpError(
+      409,
+      "cannot_change_own_role",
+      "You can’t change your own role."
+    );
+  }
+  const role = input.role;
+  const target = await loadLiveTargetMembership(
+    input.supabase,
+    input.companyId,
+    input.targetUserId
+  );
+  if (target.role === "owner") {
+    throw new CompanyMembershipHttpError(
+      409,
+      "owner_role_protected",
+      "The company owner’s role can’t be changed here."
+    );
+  }
+  if (target.role === "admin" || role === "admin") {
+    await assertActorHoldsCustody({
       supabase: input.supabase,
       companyId: input.companyId,
+      actorUserId: input.actorUserId,
+      actorRole: input.actorRole,
     });
-    const self = actors.find((m) => m.userId === input.actorUserId);
-    if (self?.preset === "owner_admin") {
-      const otherAdmins = actors.filter(
-        (m) => m.userId !== input.actorUserId && m.preset === "owner_admin"
-      );
-      if (otherAdmins.length === 0) {
-        throw new CompanyMembershipHttpError(409, "last_owner_admin");
-      }
-    }
   }
 
-  const role = roleValueForPreset(input.preset);
   const { data, error } = await input.supabase
     .from("company_memberships")
     .update({ role })
@@ -174,6 +253,7 @@ export async function removeCompanyMember(input: {
   supabase: SupabaseClient;
   companyId: string;
   actorUserId: string;
+  actorRole: ResolvedCompanyMembershipRole;
   targetUserId: string;
   reassignToUserId?: string | null;
 }): Promise<{
@@ -195,17 +275,41 @@ export async function removeCompanyMember(input: {
       ? null
       : String(input.reassignToUserId).trim();
 
+  const target = await loadLiveTargetMembership(
+    input.supabase,
+    input.companyId,
+    input.targetUserId
+  );
+  if (target.role === "owner") {
+    throw new CompanyMembershipHttpError(
+      409,
+      "cannot_remove_owner",
+      "The company owner can’t be removed."
+    );
+  }
+  if (target.role === "admin") {
+    await assertActorHoldsCustody({
+      supabase: input.supabase,
+      companyId: input.companyId,
+      actorUserId: input.actorUserId,
+      actorRole: input.actorRole,
+    });
+  }
+
   if (reassignTo) {
     if (!isUuidLike(reassignTo) || reassignTo === input.targetUserId) {
       throw new CompanyMembershipHttpError(400, "invalid_reassign");
     }
-    const { data: live } = await input.supabase
+    const { data: live, error: liveError } = await input.supabase
       .from("company_memberships")
       .select("user_id")
       .eq("company_id", input.companyId)
       .eq("user_id", reassignTo)
       .is("removed_at", null)
       .maybeSingle();
+    if (liveError) {
+      throw new CompanyMembershipHttpError(500, "internal_error");
+    }
     if (!live) {
       throw new CompanyMembershipHttpError(400, "invalid_reassign");
     }

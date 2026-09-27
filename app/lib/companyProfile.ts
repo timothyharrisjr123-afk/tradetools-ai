@@ -291,7 +291,7 @@ export async function saveCompanyProfileToSupabase(
       return false;
     }
 
-    const { error } = await supabase
+    const { data: updatedRows, error } = await supabase
       .from("companies")
       .update({
         name: normalized.companyName,
@@ -301,10 +301,17 @@ export async function saveCompanyProfileToSupabase(
         logo_url: normalized.logoDataUrl,
         notifications_email: normalized.notificationsEmail ?? "",
       })
-      .eq("id", companyId);
+      .eq("id", companyId)
+      .select("id");
 
     if (error) {
       console.error("[companyProfile]", error);
+      if (updateCache) writeCompanyProfileCache(normalized);
+      return false;
+    }
+    // RLS (companies UPDATE requires owner_user_id = auth.uid()) filters silently: zero rows is not a save.
+    if (!Array.isArray(updatedRows) || updatedRows.length === 0) {
+      console.error("[companyProfile] company update matched no rows");
       if (updateCache) writeCompanyProfileCache(normalized);
       return false;
     }

@@ -64,7 +64,6 @@ export default function Phase7FieldRoleHarnessPage() {
                       {
                         userId: "lead-1",
                         role: "production_lead",
-                        preset: "production_lead",
                         displayName: "Alex Rivera",
                         email: null,
                         removedAt: null,
