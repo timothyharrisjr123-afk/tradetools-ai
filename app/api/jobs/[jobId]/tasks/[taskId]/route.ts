@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
+import { resolveLiveMembership } from "@/app/lib/companyMembershipSession";
 import {
   JobTaskHttpError,
   completeJobTask,
@@ -9,7 +9,10 @@ import {
   updateJobTaskContent,
 } from "@/app/lib/jobTaskPersistence";
 import { parseJobTaskStatus } from "@/app/lib/jobTaskValidation";
-import { requireCapabilitySession } from "@/app/lib/requireCapabilitySession";
+import {
+  mapActiveMembershipGate,
+  requireCapabilitySession,
+} from "@/app/lib/requireCapabilitySession";
 import { createClient } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -32,11 +35,11 @@ async function requireAuth() {
   if (!user) {
     throw new JobTaskHttpError(401, "unauthorized");
   }
-  const companyId = await getUserCompanyId(supabase, user.id);
-  if (!companyId) {
-    throw new JobTaskHttpError(403, "forbidden");
+  const active = mapActiveMembershipGate(await resolveLiveMembership(supabase, user.id));
+  if (!active.ok) {
+    throw new JobTaskHttpError(active.denial.status, active.denial.code);
   }
-  return { supabase, ctx: { userId: user.id, companyId }, user };
+  return { supabase, ctx: { userId: user.id, companyId: active.session.companyId }, user };
 }
 
 export async function PATCH(

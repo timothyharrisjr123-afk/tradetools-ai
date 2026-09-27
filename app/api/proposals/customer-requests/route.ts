@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { resolveLiveMembership } from "@/app/lib/companyMembershipSession";
 import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
+import { mapCapabilityGate } from "@/app/lib/requireCapabilitySession";
 import {
   PROPOSAL_CUSTOMER_REQUEST_REVIEW_STATUSES,
   type ProposalCustomerRequestReviewStatus,
@@ -94,10 +96,17 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
     }
 
-    const companyId = await getUserCompanyId(supabase, user.id);
-    if (!companyId) {
-      return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+    const gate = mapCapabilityGate(
+      await resolveLiveMembership(supabase, user.id),
+      "proposal_author"
+    );
+    if (!gate.ok) {
+      return NextResponse.json(
+        { ok: false, error: gate.denial.code },
+        { status: gate.denial.status }
+      );
     }
+    const companyId = gate.session.companyId;
 
     const result = await updateProposalCustomerRequestStatusForAuthenticatedContractor({
       companyId,

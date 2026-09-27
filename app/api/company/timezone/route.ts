@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
+import { requireCapabilitySession } from "@/app/lib/requireCapabilitySession";
 import { createClient } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -42,10 +43,9 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ ok: false, code: "unauthorized" }, { status: 401 });
     }
-    const companyId = await getUserCompanyId(supabase, user.id);
-    if (!companyId) {
-      return NextResponse.json({ ok: false, code: "forbidden" }, { status: 403 });
-    }
+    const gated = await requireCapabilitySession(supabase, user.id, "company_admin");
+    if (!gated.ok) return gated.response;
+    const companyId = gated.session.companyId;
     const body = await req.json().catch(() => ({}));
     const timezone = typeof body?.timezone === "string" ? body.timezone.trim() : "";
     if (!timezone) {

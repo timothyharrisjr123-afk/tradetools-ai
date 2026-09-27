@@ -1,10 +1,15 @@
 /**
  * Astra G7 — live company member validation for assignment writers.
- * Rejects foreign, stale/removed, and missing memberships.
+ *
+ * Reads go through list_company_directory_v1 (Phase 13B-B): the caller's own active
+ * company only, active members only, no emails. Foreign, disabled, and missing users
+ * are indistinguishable (`member_not_found`); a failed read is `member_unavailable`.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isUuidLike } from "@/app/lib/uuid";
+
+export const COMPANY_DIRECTORY_RPC_V1 = "list_company_directory_v1";
 
 export type LiveCompanyMember = {
   userId: string;
@@ -18,33 +23,50 @@ export type MemberValidationResult =
   | { ok: true; member: LiveCompanyMember }
   | {
       ok: false;
-      code:
-        | "invalid_assignee"
-        | "foreign_member"
-        | "removed_member"
-        | "member_not_found";
+      code: "invalid_assignee" | "member_not_found" | "member_unavailable";
     };
 
-type MembershipRow = {
-  user_id: string;
-  company_id: string;
+export type CompanyDirectoryRow = {
+  userId: string;
+  displayName: string | null;
   role: string;
-  removed_at: string | null;
 };
 
-function displayNameFromProfile(row: {
-  full_name?: string | null;
-  email?: string | null;
-} | null): string | null {
-  const name = String(row?.full_name ?? "").trim();
-  if (name) return name;
-  const email = String(row?.email ?? "").trim();
-  return email || null;
+export type CompanyDirectoryResult =
+  | { ok: true; members: CompanyDirectoryRow[] }
+  | { ok: false; code: "member_unavailable" };
+
+export function parseCompanyDirectoryRows(data: unknown): CompanyDirectoryRow[] | null {
+  if (!Array.isArray(data)) return null;
+  const rows: CompanyDirectoryRow[] = [];
+  for (const raw of data) {
+    const row = raw as { user_id?: unknown; display_name?: unknown; role?: unknown };
+    if (typeof row?.user_id !== "string" || !isUuidLike(row.user_id)) return null;
+    if (typeof row.role !== "string") return null;
+    const name = typeof row.display_name === "string" ? row.display_name.trim() : "";
+    rows.push({ userId: row.user_id, displayName: name || null, role: row.role });
+  }
+  return rows;
+}
+
+export async function loadCompanyDirectory(
+  supabase: SupabaseClient
+): Promise<CompanyDirectoryResult> {
+  try {
+    const { data, error } = await supabase.rpc(COMPANY_DIRECTORY_RPC_V1);
+    if (error) return { ok: false, code: "member_unavailable" };
+    const members = parseCompanyDirectoryRows(data);
+    if (!members) return { ok: false, code: "member_unavailable" };
+    return { ok: true, members };
+  } catch {
+    return { ok: false, code: "member_unavailable" };
+  }
 }
 
 /**
- * Validate that assigneeUserId is a live (non-removed) member of companyId.
- * Null/empty assignee is Unassigned — caller should not invoke this for null.
+ * Validate that assigneeUserId is an active member of the caller's company
+ * (companyId is the session company). Null/empty assignee is Unassigned — callers
+ * should not invoke this for null.
  */
 export async function validateLiveCompanyMember(
   supabase: SupabaseClient,
@@ -54,83 +76,27 @@ export async function validateLiveCompanyMember(
   if (!isUuidLike(companyId) || !isUuidLike(assigneeUserId)) {
     return { ok: false, code: "invalid_assignee" };
   }
-
-  const { data, error } = await supabase
-    .from("company_memberships")
-    .select("user_id, company_id, role, removed_at")
-    .eq("user_id", assigneeUserId)
-    .maybeSingle();
-
-  if (error) {
-    return { ok: false, code: "member_not_found" };
-  }
-  if (!data) {
-    return { ok: false, code: "member_not_found" };
-  }
-
-  const row = data as MembershipRow;
-  if (row.company_id !== companyId) {
-    return { ok: false, code: "foreign_member" };
-  }
-  if (row.removed_at) {
-    return { ok: false, code: "removed_member" };
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, email")
-    .eq("id", assigneeUserId)
-    .maybeSingle();
-
+  const directory = await loadCompanyDirectory(supabase);
+  if (!directory.ok) return { ok: false, code: "member_unavailable" };
+  const row = directory.members.find((m) => m.userId === assigneeUserId);
+  if (!row) return { ok: false, code: "member_not_found" };
   return {
     ok: true,
     member: {
-      userId: row.user_id,
-      companyId: row.company_id,
+      userId: row.userId,
+      companyId,
       role: row.role,
-      displayName: displayNameFromProfile(profile),
-      email: profile?.email ? String(profile.email) : null,
+      displayName: row.displayName,
+      email: null,
     },
   };
 }
 
-export async function listLiveCompanyMembers(
-  supabase: SupabaseClient,
-  companyId: string
-): Promise<LiveCompanyMember[]> {
-  if (!isUuidLike(companyId)) return [];
-
-  const { data, error } = await supabase
-    .from("company_memberships")
-    .select("user_id, company_id, role, removed_at")
-    .eq("company_id", companyId)
-    .is("removed_at", null)
-    .order("created_at", { ascending: true });
-
-  if (error || !data?.length) return [];
-
-  const userIds = (data as MembershipRow[]).map((row) => row.user_id);
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, full_name, email")
-    .in("id", userIds);
-
-  const profileById = new Map(
-    (profiles ?? []).map((p) => [String((p as { id: string }).id), p])
-  );
-
-  return (data as MembershipRow[]).map((row) => {
-    const profile = profileById.get(row.user_id) as
-      | { full_name?: string | null; email?: string | null }
-      | undefined;
-    return {
-      userId: row.user_id,
-      companyId: row.company_id,
-      role: row.role,
-      displayName: displayNameFromProfile(profile ?? null),
-      email: profile?.email ? String(profile.email) : null,
-    };
-  });
+/** HTTP status for a failed validation; unavailable is recoverable, never a 4xx. */
+export function memberValidationStatus(
+  code: Exclude<MemberValidationResult, { ok: true }>["code"]
+): 400 | 503 {
+  return code === "member_unavailable" ? 503 : 400;
 }
 
 export function resolveMemberDisplayLabel(input: {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
+import { requireCapabilitySession } from "@/app/lib/requireCapabilitySession";
 import {
   DEFAULT_PROPOSAL_PAYMENT_TERMS,
   isProposalPaymentDepositMode,
@@ -78,10 +79,9 @@ export async function PUT(req: NextRequest, context: RouteContext) {
     if (!user) {
       return NextResponse.json({ ok: false, code: "unauthorized" }, { status: 401 });
     }
-    const companyId = await getUserCompanyId(supabase, user.id);
-    if (!companyId) {
-      return NextResponse.json({ ok: false, code: "forbidden" }, { status: 403 });
-    }
+    const gated = await requireCapabilitySession(supabase, user.id, "proposal_author");
+    if (!gated.ok) return gated.response;
+    const companyId = gated.session.companyId;
     if (!isUuidLike(proposalId)) {
       return NextResponse.json({ ok: false, code: "invalid_payload" }, { status: 400 });
     }

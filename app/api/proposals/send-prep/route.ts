@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
+import { resolveLiveMembership } from "@/app/lib/companyMembershipSession";
+import { mapCapabilityGate } from "@/app/lib/requireCapabilitySession";
 import { isUuidLike } from "@/app/lib/uuid";
 import { prepareProposalCustomerSendLinkForContractor } from "@/app/lib/proposalSendPrep.server";
 import { SEND_PREP_ERROR_MESSAGE } from "@/app/lib/proposalSendPrep";
@@ -55,10 +56,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, message: SEND_PREP_ERROR_MESSAGE }, { status: 401 });
     }
 
-    const companyId = await getUserCompanyId(supabase, user.id);
-    if (!companyId) {
-      return NextResponse.json({ ok: false, message: SEND_PREP_ERROR_MESSAGE }, { status: 403 });
+    const gate = mapCapabilityGate(
+      await resolveLiveMembership(supabase, user.id),
+      "proposal_author"
+    );
+    if (!gate.ok) {
+      return NextResponse.json(
+        { ok: false, code: gate.denial.code, message: SEND_PREP_ERROR_MESSAGE },
+        { status: gate.denial.status }
+      );
     }
+    const companyId = gate.session.companyId;
 
     const result = await prepareProposalCustomerSendLinkForContractor({
       companyId,

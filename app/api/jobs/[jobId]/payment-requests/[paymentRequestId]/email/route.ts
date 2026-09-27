@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
 import { sendPaymentRequestEmailForContractor } from "@/app/lib/jobPaymentRequestEmail.server";
 import {
   isPublicAppOriginError,
@@ -30,10 +29,6 @@ export async function POST(req: NextRequest, context: RouteContext) {
     if (!user) {
       return NextResponse.json({ ok: false, code: "unauthorized" }, { status: 401 });
     }
-    const companyId = await getUserCompanyId(supabase, user.id);
-    if (!companyId) {
-      return NextResponse.json({ ok: false, code: "forbidden" }, { status: 403 });
-    }
 
     const gated = await requireCapabilitySession(
       supabase,
@@ -41,6 +36,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
       "payment_request"
     );
     if (!gated.ok) return gated.response;
+    const companyId = gated.session.companyId;
 
     if (!isUuidLike(jobId) || !isUuidLike(paymentRequestId)) {
       return NextResponse.json({ ok: false, code: "invalid_payload" }, { status: 400 });

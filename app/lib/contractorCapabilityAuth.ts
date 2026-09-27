@@ -7,7 +7,10 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
+import {
+  getUserCompanyAccess,
+  type UserCompanyAccess,
+} from "@/app/lib/ensureUserIdentity";
 
 export type ContractorSessionOk = {
   ok: true;
@@ -17,8 +20,8 @@ export type ContractorSessionOk = {
 
 export type ContractorSessionDenied = {
   ok: false;
-  status: 401 | 403;
-  code: "unauthorized" | "forbidden";
+  status: 401 | 403 | 503;
+  code: "unauthorized" | "forbidden" | "authorization_unavailable";
 };
 
 export type ContractorSessionResult = ContractorSessionOk | ContractorSessionDenied;
@@ -60,6 +63,24 @@ export function mapContractorOwnedJob(input: {
   return { ok: true };
 }
 
+/** Typed access → session; an unreadable membership is 503, never "no company". */
+export function mapContractorAccess(input: {
+  userId: string | null | undefined;
+  access: UserCompanyAccess;
+}): ContractorSessionResult {
+  const userId = typeof input.userId === "string" ? input.userId.trim() : "";
+  if (!userId) {
+    return { ok: false, status: 401, code: "unauthorized" };
+  }
+  if (input.access.status === "unavailable") {
+    return { ok: false, status: 503, code: "authorization_unavailable" };
+  }
+  return mapContractorSession({
+    userId,
+    companyId: input.access.status === "active" ? input.access.companyId : null,
+  });
+}
+
 export async function resolveContractorCompanySession(
   supabase: SupabaseClient
 ): Promise<ContractorSessionResult> {
@@ -69,8 +90,8 @@ export async function resolveContractorCompanySession(
   if (!user) {
     return mapContractorSession({ userId: null, companyId: null });
   }
-  const companyId = await getUserCompanyId(supabase, user.id);
-  return mapContractorSession({ userId: user.id, companyId });
+  const access = await getUserCompanyAccess(supabase, user.id);
+  return mapContractorAccess({ userId: user.id, access });
 }
 
 export async function resolveOwnedJobCompany(
@@ -97,7 +118,11 @@ export function contractorDeniedJson(
   shape: "success" | "error"
 ): { body: Record<string, unknown>; status: number } {
   const message =
-    denied.code === "unauthorized" ? "Unauthorized." : "Forbidden.";
+    denied.code === "unauthorized"
+      ? "Unauthorized."
+      : denied.code === "authorization_unavailable"
+        ? "Access could not be verified. Try again."
+        : "Forbidden.";
   if (shape === "success") {
     return {
       status: denied.status,

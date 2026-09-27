@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   CompanyMembershipHttpError,
-  listCompanyMembers,
+  directoryRowsToMemberItems,
+  handoffMemberOpenWork,
+  listCompanyAccessAdmin,
+  listCompanyDirectory,
   removeCompanyMember,
   updateCompanyMemberRole,
 } from "@/app/lib/companyMembershipPersistence";
@@ -10,13 +13,23 @@ import {
   sessionHasCapability,
 } from "@/app/lib/companyMembershipSession";
 import {
-  mapCapabilityGate,
+  mapActiveMembershipGate,
   requireCapabilitySession,
 } from "@/app/lib/requireCapabilitySession";
 import { createClient } from "@/app/lib/supabase/server";
 import { isUuidLike } from "@/app/lib/uuid";
 
 export const runtime = "nodejs";
+
+function errorJson(error: unknown) {
+  if (error instanceof CompanyMembershipHttpError) {
+    return NextResponse.json(
+      { ok: false, code: error.code, message: error.message },
+      { status: error.status }
+    );
+  }
+  return NextResponse.json({ ok: false, code: "internal_error" }, { status: 500 });
+}
 
 export async function GET() {
   try {
@@ -31,27 +44,21 @@ export async function GET() {
       );
     }
 
-    // Viewer identity is returned to every active member so role-restricted
-    // presentation (Field) never fails open; the member list stays capability-gated.
-    const resolution = await resolveLiveMembership(supabase, user.id);
-    if (resolution.status !== "active") {
-      const gate = mapCapabilityGate(resolution, "customers_jobs");
-      const denial = gate.ok ? null : gate.denial;
+    // Every active member gets viewer identity + the ordinary directory (names and
+    // role labels). Emails, disabled members, and open-work counts are access-admin only.
+    const gate = mapActiveMembershipGate(await resolveLiveMembership(supabase, user.id));
+    if (!gate.ok) {
       return NextResponse.json(
-        { ok: false, code: denial?.code ?? "forbidden" },
-        { status: denial?.status ?? 403 }
+        { ok: false, code: gate.denial.code },
+        { status: gate.denial.status }
       );
     }
-    const session = resolution.session;
+    const session = gate.session;
 
     const canAdmin = sessionHasCapability(session, "member_admin");
-    const members = sessionHasCapability(session, "customers_jobs")
-      ? await listCompanyMembers({
-          supabase,
-          companyId: session.companyId,
-          includeRemoved: canAdmin,
-        })
-      : [];
+    const members = canAdmin
+      ? await listCompanyAccessAdmin(supabase)
+      : directoryRowsToMemberItems(await listCompanyDirectory(supabase));
 
     return NextResponse.json({
       ok: true,
@@ -60,13 +67,7 @@ export async function GET() {
       canAdminMembers: canAdmin,
     });
   } catch (error) {
-    if (error instanceof CompanyMembershipHttpError) {
-      return NextResponse.json(
-        { ok: false, code: error.code },
-        { status: error.status }
-      );
-    }
-    return NextResponse.json({ ok: false, code: "internal_error" }, { status: 500 });
+    return errorJson(error);
   }
 }
 
@@ -98,34 +99,29 @@ export async function PATCH(req: NextRequest) {
     if (body?.action === "remove") {
       const result = await removeCompanyMember({
         supabase,
-        companyId: gated.session.companyId,
         actorUserId: user.id,
-        actorRole: gated.session.role,
         targetUserId: userId,
-        reassignToUserId:
-          body?.reassignToUserId === undefined
-            ? null
-            : body.reassignToUserId,
+        reassignToUserId: body?.reassignToUserId,
       });
       return NextResponse.json({ ok: true, ...result });
     }
 
+    if (body?.action === "handoff") {
+      const handoff = await handoffMemberOpenWork({
+        supabase,
+        targetUserId: userId,
+        reassignToUserId: body?.reassignToUserId,
+      });
+      return NextResponse.json({ ok: true, removedUserId: userId, handoff });
+    }
+
     const member = await updateCompanyMemberRole({
       supabase,
-      companyId: gated.session.companyId,
-      actorUserId: user.id,
-      actorRole: gated.session.role,
       targetUserId: userId,
       role: body?.role,
     });
     return NextResponse.json({ ok: true, member });
   } catch (error) {
-    if (error instanceof CompanyMembershipHttpError) {
-      return NextResponse.json(
-        { ok: false, code: error.code, message: error.message },
-        { status: error.status }
-      );
-    }
-    return NextResponse.json({ ok: false, code: "internal_error" }, { status: 500 });
+    return errorJson(error);
   }
 }

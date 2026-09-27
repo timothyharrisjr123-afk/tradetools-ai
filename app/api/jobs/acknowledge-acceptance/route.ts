@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
+import { requireCapabilitySession } from "@/app/lib/requireCapabilitySession";
 import {
   acknowledgeProposalAcceptanceViaRpc,
   ProposalAcceptancePersistenceError,
@@ -25,10 +25,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, code: "unauthorized" }, { status: 401 });
     }
 
-    const companyId = await getUserCompanyId(supabase, user.id);
-    if (!companyId) {
-      return NextResponse.json({ ok: false, code: "forbidden" }, { status: 403 });
-    }
+    const gated = await requireCapabilitySession(supabase, user.id, "job_approve");
+    if (!gated.ok) return gated.response;
+    const companyId = gated.session.companyId;
 
     const body = await req.json().catch(() => ({}));
     const jobId = typeof body?.jobId === "string" ? body.jobId.trim() : "";

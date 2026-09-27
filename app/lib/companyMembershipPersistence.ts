@@ -1,17 +1,34 @@
 /**
- * Astra G7 — company membership list / role change / soft-remove.
+ * Astra G7 / Phase 13B-B — company Team reads and writes.
+ *
+ * Every read and write is DB-authorized (actor derived from auth.uid()):
+ *   list_company_directory_v1      any active member; no emails or access metadata
+ *   list_company_access_admin_v1   member_admin only; emails, status, open-work counts
+ *   set_company_member_role_v1     role change (never `owner`, never the Owner row)
+ *   disable_company_member_v1      revocation only
+ *   handoff_member_open_work_v1    currently open work of a disabled member
+ * Disable commits before handoff runs; a failed handoff never undoes or hides the
+ * revocation, and a failed read or count is an error, never an empty list or zero.
  */
 
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  loadCompanyDirectory,
+  type CompanyDirectoryRow,
+} from "@/app/lib/companyMemberValidation";
+import {
   isAssignableCompanyMembershipRole,
-  isCompanyCustodyOwner,
   resolveCompanyMembershipRole,
   type ResolvedCompanyMembershipRole,
 } from "@/app/lib/companyMembershipRoles";
 import { isUuidLike } from "@/app/lib/uuid";
+
+export const COMPANY_ACCESS_ADMIN_RPC_V1 = "list_company_access_admin_v1";
+export const SET_COMPANY_MEMBER_ROLE_RPC_V1 = "set_company_member_role_v1";
+export const DISABLE_COMPANY_MEMBER_RPC_V1 = "disable_company_member_v1";
+export const HANDOFF_MEMBER_OPEN_WORK_RPC_V1 = "handoff_member_open_work_v1";
 
 export class CompanyMembershipHttpError extends Error {
   constructor(
@@ -33,325 +50,286 @@ export type CompanyMemberListItem = {
   openTaskAssigneeCount: number;
 };
 
-async function loadOpenAssignmentCounts(
+const TEAM_UNAVAILABLE_MESSAGE = "Team could not be loaded. Try again.";
+
+const RPC_CODE_HTTP: Record<string, { status: number; message?: string }> = {
+  unauthorized: { status: 401 },
+  forbidden: { status: 403 },
+  capability_denied: { status: 403 },
+  invalid_payload: { status: 400 },
+  not_found: { status: 404 },
+  cannot_change_own_role: { status: 409, message: "You can’t change your own role." },
+  cannot_remove_self: { status: 409, message: "You can’t remove yourself." },
+  member_disabled: { status: 409, message: "This member no longer has access." },
+  owner_role_protected: {
+    status: 409,
+    message: "The company owner’s role can’t be changed here.",
+  },
+  owner_required: { status: 403, message: "Only the company owner can change Admin access." },
+  cannot_remove_owner: { status: 409, message: "The company owner can’t be removed." },
+  member_active: { status: 409, message: "Remove access before handing off open work." },
+  invalid_reassign: { status: 400, message: "Choose an active team member to take over." },
+};
+
+export function companyMembershipErrorForRpcCode(code: unknown): CompanyMembershipHttpError {
+  const key = typeof code === "string" ? code : "";
+  const mapped = RPC_CODE_HTTP[key];
+  if (!mapped) return new CompanyMembershipHttpError(500, "internal_error");
+  return new CompanyMembershipHttpError(mapped.status, key, mapped.message);
+}
+
+type RpcJson = { ok?: unknown; code?: unknown } & Record<string, unknown>;
+
+async function callTeamRpc(
   supabase: SupabaseClient,
-  companyId: string,
-  userId: string
-): Promise<{ openJobLeadCount: number; openTaskAssigneeCount: number }> {
-  const [jobResult, taskResult] = await Promise.all([
-    supabase
-      .from("jobs")
-      .select("id", { count: "exact", head: true })
-      .eq("company_id", companyId)
-      .eq("assigned_to", userId)
-      .is("deleted_at", null),
-    supabase
-      .from("job_tasks")
-      .select("id", { count: "exact", head: true })
-      .eq("company_id", companyId)
-      .eq("assigned_to", userId)
-      .eq("status", "open")
-      .is("deleted_at", null),
-  ]);
-  if (
-    jobResult.error ||
-    taskResult.error ||
-    typeof jobResult.count !== "number" ||
-    typeof taskResult.count !== "number"
-  ) {
-    throw new CompanyMembershipHttpError(500, "internal_error");
-  }
-  return {
-    openJobLeadCount: jobResult.count,
-    openTaskAssigneeCount: taskResult.count,
-  };
-}
-
-type TargetMembership = { userId: string; role: ResolvedCompanyMembershipRole };
-
-async function loadLiveTargetMembership(
-  supabase: SupabaseClient,
-  companyId: string,
-  userId: string
-): Promise<TargetMembership> {
-  const { data, error } = await supabase
-    .from("company_memberships")
-    .select("user_id, role")
-    .eq("company_id", companyId)
-    .eq("user_id", userId)
-    .is("removed_at", null)
-    .maybeSingle();
-  if (error) throw new CompanyMembershipHttpError(500, "internal_error");
-  if (!data) throw new CompanyMembershipHttpError(404, "not_found");
-  return {
-    userId,
-    role: resolveCompanyMembershipRole((data as { role?: unknown }).role),
-  };
-}
-
-/** Owner-only operations require custody (role + companies.owner_user_id), not role text. */
-async function assertActorHoldsCustody(input: {
-  supabase: SupabaseClient;
-  companyId: string;
-  actorUserId: string;
-  actorRole: ResolvedCompanyMembershipRole;
-}): Promise<void> {
-  const { data, error } = await input.supabase
-    .from("companies")
-    .select("owner_user_id")
-    .eq("id", input.companyId)
-    .maybeSingle();
-  if (error || !data) {
-    throw new CompanyMembershipHttpError(
-      503,
-      "authorization_unavailable",
-      "Access could not be verified. Try again."
-    );
-  }
-  const custody = isCompanyCustodyOwner({
-    userId: input.actorUserId,
-    role: input.actorRole,
-    companyOwnerUserId: (data as { owner_user_id?: string | null }).owner_user_id,
-  });
-  if (!custody) {
-    throw new CompanyMembershipHttpError(
-      403,
-      "owner_required",
-      "Only the company owner can change Admin access."
-    );
+  fn: string,
+  args: Record<string, unknown>
+): Promise<{ ok: true; body: RpcJson } | { ok: false; error: CompanyMembershipHttpError }> {
+  try {
+    const { data, error } = await supabase.rpc(fn, args);
+    if (error || !data || typeof data !== "object" || Array.isArray(data)) {
+      return {
+        ok: false,
+        error: new CompanyMembershipHttpError(
+          503,
+          "team_unavailable",
+          "Team access could not be updated. Try again."
+        ),
+      };
+    }
+    const body = data as RpcJson;
+    if (body.ok !== true) return { ok: false, error: companyMembershipErrorForRpcCode(body.code) };
+    return { ok: true, body };
+  } catch {
+    return {
+      ok: false,
+      error: new CompanyMembershipHttpError(
+        503,
+        "team_unavailable",
+        "Team access could not be updated. Try again."
+      ),
+    };
   }
 }
 
-export async function listCompanyMembers(input: {
-  supabase: SupabaseClient;
-  companyId: string;
-  includeRemoved?: boolean;
-}): Promise<CompanyMemberListItem[]> {
-  let query = input.supabase
-    .from("company_memberships")
-    .select("user_id, role, removed_at, created_at")
-    .eq("company_id", input.companyId)
-    .order("created_at", { ascending: true });
+function countOrNull(value: unknown): number | null {
+  const n =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && /^\d+$/.test(value)
+        ? Number(value)
+        : NaN;
+  return Number.isSafeInteger(n) && n >= 0 ? n : null;
+}
 
-  if (!input.includeRemoved) {
-    query = query.is("removed_at", null);
-  }
-
-  const { data, error } = await query;
-  if (error) throw new CompanyMembershipHttpError(500, "internal_error");
-  if (!data?.length) return [];
-
-  const userIds = data.map((row) => String((row as { user_id: string }).user_id));
-  const { data: profiles, error: profilesError } = await input.supabase
-    .from("profiles")
-    .select("id, full_name, email")
-    .in("id", userIds);
-  if (profilesError) throw new CompanyMembershipHttpError(500, "internal_error");
-  const profileById = new Map(
-    (profiles ?? []).map((p) => [String((p as { id: string }).id), p])
-  );
-
+/** Parses access-admin rows; any malformed row or count invalidates the whole read. */
+export function parseCompanyAccessAdminRows(data: unknown): CompanyMemberListItem[] | null {
+  if (!Array.isArray(data)) return null;
   const items: CompanyMemberListItem[] = [];
-  for (const row of data) {
-    const userId = String((row as { user_id: string }).user_id);
-    const role = resolveCompanyMembershipRole((row as { role?: unknown }).role);
-    const removedAt = (row as { removed_at?: string | null }).removed_at ?? null;
-    const profile = profileById.get(userId) as
-      | { full_name?: string | null; email?: string | null }
-      | undefined;
-    const counts = removedAt
-      ? { openJobLeadCount: 0, openTaskAssigneeCount: 0 }
-      : await loadOpenAssignmentCounts(input.supabase, input.companyId, userId);
-    const name = String(profile?.full_name ?? "").trim();
-    const email = String(profile?.email ?? "").trim();
+  for (const raw of data) {
+    const row = raw as Record<string, unknown>;
+    if (typeof row?.user_id !== "string" || !isUuidLike(row.user_id)) return null;
+    const jobs = countOrNull(row.open_job_lead_count);
+    const tasks = countOrNull(row.open_task_assignee_count);
+    if (jobs == null || tasks == null) return null;
+    const name = typeof row.display_name === "string" ? row.display_name.trim() : "";
+    const email = typeof row.email === "string" ? row.email.trim() : "";
     items.push({
-      userId,
-      role,
+      userId: row.user_id,
+      role: resolveCompanyMembershipRole(row.role),
       displayName: name || null,
       email: email || null,
-      removedAt,
-      openJobLeadCount: counts.openJobLeadCount,
-      openTaskAssigneeCount: counts.openTaskAssigneeCount,
+      removedAt: typeof row.removed_at === "string" && row.removed_at ? row.removed_at : null,
+      openJobLeadCount: jobs,
+      openTaskAssigneeCount: tasks,
     });
   }
   return items;
 }
 
+/** Access-admin projection (member_admin). Includes disabled members and open-work counts. */
+export async function listCompanyAccessAdmin(
+  supabase: SupabaseClient
+): Promise<CompanyMemberListItem[]> {
+  let data: unknown;
+  let error: { code?: string } | null = null;
+  try {
+    const result = await supabase.rpc(COMPANY_ACCESS_ADMIN_RPC_V1);
+    data = result.data;
+    error = result.error as { code?: string } | null;
+  } catch {
+    throw new CompanyMembershipHttpError(503, "team_unavailable", TEAM_UNAVAILABLE_MESSAGE);
+  }
+  if (error) {
+    if (error.code === "42501") throw new CompanyMembershipHttpError(403, "forbidden");
+    throw new CompanyMembershipHttpError(503, "team_unavailable", TEAM_UNAVAILABLE_MESSAGE);
+  }
+  const items = parseCompanyAccessAdminRows(data);
+  if (!items) {
+    throw new CompanyMembershipHttpError(503, "team_unavailable", TEAM_UNAVAILABLE_MESSAGE);
+  }
+  return items;
+}
+
+/** Ordinary directory (any active member): names and role labels only. */
+export async function listCompanyDirectory(
+  supabase: SupabaseClient
+): Promise<CompanyDirectoryRow[]> {
+  const directory = await loadCompanyDirectory(supabase);
+  if (!directory.ok) {
+    throw new CompanyMembershipHttpError(503, "team_unavailable", TEAM_UNAVAILABLE_MESSAGE);
+  }
+  return directory.members;
+}
+
+/** Directory rows in the member-list shape; no email, status, or counts are exposed. */
+export function directoryRowsToMemberItems(
+  rows: readonly CompanyDirectoryRow[]
+): CompanyMemberListItem[] {
+  return rows.map((row) => ({
+    userId: row.userId,
+    role: resolveCompanyMembershipRole(row.role),
+    displayName: row.displayName,
+    email: null,
+    removedAt: null,
+    openJobLeadCount: 0,
+    openTaskAssigneeCount: 0,
+  }));
+}
+
+export type CompanyMemberRoleResult = {
+  userId: string;
+  role: ResolvedCompanyMembershipRole;
+  changed: boolean;
+};
+
 /**
- * Ordinary role edit. Never writes `owner` and never edits the Owner membership
- * (custody moves only through ownership transfer). Admin grants/revocations
- * require custody. No self-change.
+ * Ordinary role edit (set_company_member_role_v1): never writes `owner`, never edits
+ * the Owner membership, no self-change; Admin grants/revocations require custody.
  */
 export async function updateCompanyMemberRole(input: {
   supabase: SupabaseClient;
-  companyId: string;
-  actorUserId: string;
-  actorRole: ResolvedCompanyMembershipRole;
   targetUserId: string;
   role: unknown;
-}): Promise<CompanyMemberListItem> {
+}): Promise<CompanyMemberRoleResult> {
   if (!isUuidLike(input.targetUserId) || !isAssignableCompanyMembershipRole(input.role)) {
     throw new CompanyMembershipHttpError(400, "invalid_payload");
   }
-  if (input.targetUserId === input.actorUserId) {
-    throw new CompanyMembershipHttpError(
-      409,
-      "cannot_change_own_role",
-      "You can’t change your own role."
-    );
-  }
-  const role = input.role;
-  const target = await loadLiveTargetMembership(
-    input.supabase,
-    input.companyId,
-    input.targetUserId
-  );
-  if (target.role === "owner") {
-    throw new CompanyMembershipHttpError(
-      409,
-      "owner_role_protected",
-      "The company owner’s role can’t be changed here."
-    );
-  }
-  if (target.role === "admin" || role === "admin") {
-    await assertActorHoldsCustody({
-      supabase: input.supabase,
-      companyId: input.companyId,
-      actorUserId: input.actorUserId,
-      actorRole: input.actorRole,
-    });
-  }
-
-  const { data, error } = await input.supabase
-    .from("company_memberships")
-    .update({ role })
-    .eq("company_id", input.companyId)
-    .eq("user_id", input.targetUserId)
-    .is("removed_at", null)
-    .select("user_id, role, removed_at")
-    .maybeSingle();
-
-  if (error) throw new CompanyMembershipHttpError(500, "internal_error");
-  if (!data) throw new CompanyMembershipHttpError(404, "not_found");
-
-  const members = await listCompanyMembers({
-    supabase: input.supabase,
-    companyId: input.companyId,
-    includeRemoved: true,
+  const result = await callTeamRpc(input.supabase, SET_COMPANY_MEMBER_ROLE_RPC_V1, {
+    p_target_user_id: input.targetUserId,
+    p_role: input.role,
   });
-  const found = members.find((m) => m.userId === input.targetUserId);
-  if (!found) throw new CompanyMembershipHttpError(404, "not_found");
-  return found;
+  if (!result.ok) throw result.error;
+  return {
+    userId: input.targetUserId,
+    role: resolveCompanyMembershipRole(result.body.role),
+    changed: result.body.changed === true,
+  };
+}
+
+export type MemberHandoffOutcome =
+  | {
+      status: "completed";
+      clearedJobLeads: number;
+      clearedTaskAssignees: number;
+      reassignedTo: string | null;
+    }
+  | { status: "failed"; code: string; message: string };
+
+export type RemoveCompanyMemberResult = {
+  removedUserId: string;
+  alreadyDisabled: boolean;
+  handoff: MemberHandoffOutcome;
+};
+
+function normalizeReassign(value: unknown): string | null {
+  if (value == null) return null;
+  const trimmed = String(value).trim();
+  return trimmed === "" ? null : trimmed;
+}
+
+/** Hands off a disabled member's currently open work. Failure is returned, not thrown. */
+export async function handoffMemberOpenWork(input: {
+  supabase: SupabaseClient;
+  targetUserId: string;
+  reassignToUserId?: unknown;
+}): Promise<MemberHandoffOutcome> {
+  const reassignTo = normalizeReassign(input.reassignToUserId);
+  if (!isUuidLike(input.targetUserId) || (reassignTo != null && !isUuidLike(reassignTo))) {
+    return { status: "failed", code: "invalid_payload", message: "Open work could not be handed off." };
+  }
+  const result = await callTeamRpc(input.supabase, HANDOFF_MEMBER_OPEN_WORK_RPC_V1, {
+    p_target_user_id: input.targetUserId,
+    p_reassign_to_user_id: reassignTo,
+  });
+  if (!result.ok) {
+    return {
+      status: "failed",
+      code: result.error.code,
+      message:
+        result.error.code === "team_unavailable" || result.error.status >= 500
+          ? "Open work could not be handed off. Try again."
+          : result.error.message,
+    };
+  }
+  const jobs = countOrNull(result.body.cleared_job_leads);
+  const tasks = countOrNull(result.body.cleared_task_assignees);
+  if (jobs == null || tasks == null) {
+    return {
+      status: "failed",
+      code: "team_unavailable",
+      message: "Open work could not be handed off. Try again.",
+    };
+  }
+  return {
+    status: "completed",
+    clearedJobLeads: jobs,
+    clearedTaskAssignees: tasks,
+    reassignedTo: reassignTo,
+  };
 }
 
 /**
- * Soft-remove member. Clears open job/task responsibility to Unassigned unless
- * reassignToUserId is provided (must be live same-company member).
- * Does not rewrite historical actors.
+ * Remove access first (disable_company_member_v1), then hand off currently open work.
+ * The revocation stands on its own; the handoff outcome is reported separately.
  */
 export async function removeCompanyMember(input: {
   supabase: SupabaseClient;
-  companyId: string;
   actorUserId: string;
-  actorRole: ResolvedCompanyMembershipRole;
   targetUserId: string;
-  reassignToUserId?: string | null;
-}): Promise<{
-  removedUserId: string;
-  clearedJobLeads: number;
-  clearedTaskAssignees: number;
-  reassignedTo: string | null;
-}> {
+  reassignToUserId?: unknown;
+}): Promise<RemoveCompanyMemberResult> {
   if (!isUuidLike(input.targetUserId)) {
     throw new CompanyMembershipHttpError(400, "invalid_payload");
   }
   if (input.targetUserId === input.actorUserId) {
-    throw new CompanyMembershipHttpError(409, "cannot_remove_self");
+    throw new CompanyMembershipHttpError(409, "cannot_remove_self", "You can’t remove yourself.");
   }
-
-  const reassignTo =
-    input.reassignToUserId == null ||
-    String(input.reassignToUserId).trim() === ""
-      ? null
-      : String(input.reassignToUserId).trim();
-
-  const target = await loadLiveTargetMembership(
-    input.supabase,
-    input.companyId,
-    input.targetUserId
-  );
-  if (target.role === "owner") {
-    throw new CompanyMembershipHttpError(
-      409,
-      "cannot_remove_owner",
-      "The company owner can’t be removed."
-    );
-  }
-  if (target.role === "admin") {
-    await assertActorHoldsCustody({
-      supabase: input.supabase,
-      companyId: input.companyId,
-      actorUserId: input.actorUserId,
-      actorRole: input.actorRole,
-    });
-  }
-
-  if (reassignTo) {
+  const reassignTo = normalizeReassign(input.reassignToUserId);
+  if (reassignTo != null) {
     if (!isUuidLike(reassignTo) || reassignTo === input.targetUserId) {
-      throw new CompanyMembershipHttpError(400, "invalid_reassign");
+      throw companyMembershipErrorForRpcCode("invalid_reassign");
     }
-    const { data: live, error: liveError } = await input.supabase
-      .from("company_memberships")
-      .select("user_id")
-      .eq("company_id", input.companyId)
-      .eq("user_id", reassignTo)
-      .is("removed_at", null)
-      .maybeSingle();
-    if (liveError) {
-      throw new CompanyMembershipHttpError(500, "internal_error");
-    }
-    if (!live) {
-      throw new CompanyMembershipHttpError(400, "invalid_reassign");
+    const directory = await loadCompanyDirectory(input.supabase);
+    if (directory.ok && !directory.members.some((m) => m.userId === reassignTo)) {
+      throw companyMembershipErrorForRpcCode("invalid_reassign");
     }
   }
 
-  const { data: membership, error: membershipError } = await input.supabase
-    .from("company_memberships")
-    .update({ removed_at: new Date().toISOString() })
-    .eq("company_id", input.companyId)
-    .eq("user_id", input.targetUserId)
-    .is("removed_at", null)
-    .select("user_id")
-    .maybeSingle();
+  const disabled = await callTeamRpc(input.supabase, DISABLE_COMPANY_MEMBER_RPC_V1, {
+    p_target_user_id: input.targetUserId,
+  });
+  if (!disabled.ok) throw disabled.error;
 
-  if (membershipError) {
-    throw new CompanyMembershipHttpError(500, "internal_error");
-  }
-  if (!membership) {
-    throw new CompanyMembershipHttpError(404, "not_found");
-  }
-
-  const jobUpdate = await input.supabase
-    .from("jobs")
-    .update({ assigned_to: reassignTo })
-    .eq("company_id", input.companyId)
-    .eq("assigned_to", input.targetUserId)
-    .is("deleted_at", null)
-    .select("id");
-
-  const taskUpdate = await input.supabase
-    .from("job_tasks")
-    .update({ assigned_to: reassignTo })
-    .eq("company_id", input.companyId)
-    .eq("assigned_to", input.targetUserId)
-    .eq("status", "open")
-    .is("deleted_at", null)
-    .select("id");
+  const handoff = await handoffMemberOpenWork({
+    supabase: input.supabase,
+    targetUserId: input.targetUserId,
+    reassignToUserId: reassignTo,
+  });
 
   return {
     removedUserId: input.targetUserId,
-    clearedJobLeads: jobUpdate.data?.length ?? 0,
-    clearedTaskAssignees: taskUpdate.data?.length ?? 0,
-    reassignedTo: reassignTo,
+    alreadyDisabled: disabled.body.already_disabled === true,
+    handoff,
   };
 }

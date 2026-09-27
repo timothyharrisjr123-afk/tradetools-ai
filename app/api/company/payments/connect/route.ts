@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
 import { requireCapabilitySession } from "@/app/lib/requireCapabilitySession";
 import {
   upsertCompanyPaymentAccountFromProviderViaRpc,
@@ -41,10 +40,6 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ ok: false, code: "unauthorized" }, { status: 401 });
     }
-    const companyId = await getUserCompanyId(supabase, user.id);
-    if (!companyId) {
-      return NextResponse.json({ ok: false, code: "forbidden" }, { status: 403 });
-    }
 
     const gated = await requireCapabilitySession(
       supabase,
@@ -52,6 +47,7 @@ export async function POST(req: NextRequest) {
       "payment_admin"
     );
     if (!gated.ok) return gated.response;
+    const companyId = gated.session.companyId;
 
     const [existingResult, predecessorResult, candidateResult] = await Promise.all([
       supabase

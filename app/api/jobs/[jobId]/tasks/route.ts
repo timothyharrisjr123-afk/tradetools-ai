@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
+import type { CompanyCapability } from "@/app/lib/companyMembershipRoles";
+import { resolveLiveMembership } from "@/app/lib/companyMembershipSession";
+import {
+  mapActiveMembershipGate,
+  mapCapabilityGate,
+} from "@/app/lib/requireCapabilitySession";
 import {
   JobTaskHttpError,
   createJobTask,
@@ -19,7 +24,7 @@ function jsonError(error: unknown) {
   return NextResponse.json({ ok: false, code: "internal_error" }, { status: 500 });
 }
 
-async function requireAuth() {
+async function requireAuth(capability?: CompanyCapability) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -27,11 +32,14 @@ async function requireAuth() {
   if (!user) {
     throw new JobTaskHttpError(401, "unauthorized");
   }
-  const companyId = await getUserCompanyId(supabase, user.id);
-  if (!companyId) {
-    throw new JobTaskHttpError(403, "forbidden");
+  const resolution = await resolveLiveMembership(supabase, user.id);
+  const gate = capability
+    ? mapCapabilityGate(resolution, capability)
+    : mapActiveMembershipGate(resolution);
+  if (!gate.ok) {
+    throw new JobTaskHttpError(gate.denial.status, gate.denial.code);
   }
-  return { supabase, ctx: { userId: user.id, companyId } };
+  return { supabase, ctx: { userId: user.id, companyId: gate.session.companyId } };
 }
 
 export async function GET(
@@ -55,7 +63,7 @@ export async function POST(
   try {
     const { jobId } = await context.params;
     const body = await req.json().catch(() => ({}));
-    const { supabase, ctx } = await requireAuth();
+    const { supabase, ctx } = await requireAuth("task_assign");
     const task = await createJobTask({
       supabase,
       ctx,

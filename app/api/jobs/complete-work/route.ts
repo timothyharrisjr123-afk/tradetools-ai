@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
 import { isUuidLike } from "@/app/lib/uuid";
 import {
   JobCompletePersistenceError,
@@ -39,13 +38,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const companyId = await getUserCompanyId(supabase, user.id);
-    if (!companyId) {
-      return NextResponse.json(
-        { ok: false, code: "forbidden" },
-        { status: 403 }
-      );
-    }
 
     const gated = await requireCapabilitySession(
       supabase,
@@ -53,6 +45,7 @@ export async function POST(req: NextRequest) {
       "lifecycle_start_complete"
     );
     if (!gated.ok) return gated.response;
+    const companyId = gated.session.companyId;
 
     const body = await req.json().catch(() => ({}));
     const jobId = typeof body?.jobId === "string" ? body.jobId.trim() : "";

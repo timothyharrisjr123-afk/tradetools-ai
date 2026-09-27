@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
+import { requireJobAttachmentSession } from "@/app/lib/jobAttachmentRouteAuth";
 import {
   JobAttachmentHttpError,
   listJobAttachments,
@@ -20,19 +20,10 @@ function jsonError(error: unknown) {
   return NextResponse.json({ ok: false, code: "internal_error" }, { status: 500 });
 }
 
-async function requireAuth() {
+async function requireAuth(access: "read" | "mutate") {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    throw new JobAttachmentHttpError(401, "unauthorized");
-  }
-  const companyId = await getUserCompanyId(supabase, user.id);
-  if (!companyId) {
-    throw new JobAttachmentHttpError(403, "forbidden");
-  }
-  return { supabase, admin: createAdminClient(), ctx: { userId: user.id, companyId } };
+  const ctx = await requireJobAttachmentSession(supabase, access);
+  return { supabase, admin: createAdminClient(), ctx };
 }
 
 export async function GET(
@@ -41,7 +32,7 @@ export async function GET(
 ) {
   try {
     const { jobId } = await context.params;
-    const { supabase, admin, ctx } = await requireAuth();
+    const { supabase, admin, ctx } = await requireAuth("read");
     const attachments = await listJobAttachments({
       supabase,
       admin,
@@ -61,7 +52,7 @@ export async function POST(
   try {
     const { jobId } = await context.params;
     const body = await req.json().catch(() => ({}));
-    const { supabase, admin, ctx } = await requireAuth();
+    const { supabase, admin, ctx } = await requireAuth("mutate");
     const prepared = await prepareJobAttachmentUpload({
       supabase,
       admin,

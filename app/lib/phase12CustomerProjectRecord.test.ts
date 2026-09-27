@@ -462,7 +462,7 @@ describe("Phase 12 — share authority, tokens, and exposure boundaries", () => 
     const route = read("app/api/jobs/[jobId]/customer-record-link/route.ts");
     assert.match(route, /requireCapabilitySession\(supabase, user\.id, "proposal_author"\)/);
     assert.match(route, /source: "customer_record_share"/);
-    assert.match(route, /getUserCompanyId/);
+    assert.match(route, /const companyId = gated\.session\.companyId;/);
     assert.doesNotMatch(route, /\.update\(|\.insert\(|\.delete\(|\.rpc\(|req\.json|searchParams/);
     const helper = read("app/lib/jobPaymentPublicLink.server.ts");
     assert.match(helper, /source: "customer_record_share"/);

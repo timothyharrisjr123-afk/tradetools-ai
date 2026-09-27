@@ -8,7 +8,10 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { validateLiveCompanyMember } from "@/app/lib/companyMemberValidation";
+import {
+  memberValidationStatus,
+  validateLiveCompanyMember,
+} from "@/app/lib/companyMemberValidation";
 import { toJobTaskListItem } from "@/app/lib/jobTaskModel";
 import type { JobTaskListItem, JobTaskRecord } from "@/app/lib/jobTaskTypes";
 import { validateJobTaskContent } from "@/app/lib/jobTaskValidation";
@@ -315,11 +318,7 @@ export async function setJobTaskAssignee(input: {
       next
     );
     if (!validated.ok) {
-      const status =
-        validated.code === "foreign_member" || validated.code === "removed_member"
-          ? 403
-          : 400;
-      throw new JobTaskHttpError(status, validated.code);
+      throw new JobTaskHttpError(memberValidationStatus(validated.code), validated.code);
     }
   }
 

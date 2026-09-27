@@ -1,4 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { CompanyMembershipRoleValue } from "@/app/lib/companyMembershipRoles";
+import {
+  resolveLiveMembership,
+  type LiveMembershipResolution,
+} from "@/app/lib/companyMembershipSession";
 
 /** Auth user shape needed for identity setup. */
 type AuthUser = {
@@ -106,25 +111,54 @@ export async function ensureUserIdentity(
   return result;
 }
 
+export type UserCompanyAccess =
+  | { status: "active"; companyId: string; role: CompanyMembershipRoleValue }
+  | { status: "disabled" }
+  | { status: "none" }
+  | { status: "invalid_role" }
+  | { status: "unavailable" };
+
+export function userCompanyAccessFromResolution(
+  resolution: LiveMembershipResolution
+): UserCompanyAccess {
+  switch (resolution.status) {
+    case "active":
+      return {
+        status: "active",
+        companyId: resolution.session.companyId,
+        role: resolution.session.role,
+      };
+    case "removed":
+      return { status: "disabled" };
+    case "invalid_role":
+      return { status: "invalid_role" };
+    case "none":
+      return { status: "none" };
+    case "unavailable":
+      return { status: "unavailable" };
+  }
+}
+
+/** Typed company access for the signed-in user. A failed read is `unavailable`, never `none`. */
+export async function getUserCompanyAccess(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<UserCompanyAccess> {
+  return userCompanyAccessFromResolution(await resolveLiveMembership(supabase, userId));
+}
+
 /**
- * Returns the current user's company_id from a live (non-removed) membership, or null.
- * Removed members must not regain company access via this helper.
+ * Authorization-only shorthand: the company id for an active, valid-role membership,
+ * otherwise null (disabled, none, invalid role, or unavailable all fail closed).
+ * Callers that must distinguish an outage from "no access" use getUserCompanyAccess.
  */
 export async function getUserCompanyId(
   supabase: SupabaseClient,
   userId: string
 ): Promise<string | null> {
-  const { data, error } = await supabase
-    .from("company_memberships")
-    .select("company_id, removed_at")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (error) {
-    console.error("[getUserCompanyId]", error.message, { userId });
-    return null;
+  const access = await getUserCompanyAccess(supabase, userId);
+  if (access.status === "unavailable") {
+    console.error("[getUserCompanyId] membership unavailable", { userId });
   }
-  if (!data?.company_id) return null;
-  if ((data as { removed_at?: string | null }).removed_at) return null;
-  return data.company_id;
+  return access.status === "active" ? access.companyId : null;
 }

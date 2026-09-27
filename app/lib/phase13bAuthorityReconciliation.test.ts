@@ -28,31 +28,19 @@ require.cache[require.resolve("server-only")] = {
   exports: {},
 } as NodeModule;
 
-type Result = { data?: unknown; error?: unknown; count?: number | null };
-type Call = { table: string; ops: string[] };
+type Result = { data?: unknown; error?: unknown };
+type RpcCall = { fn: string; args: unknown };
 
-function fakeSupabase(resolve: (call: Call) => Result) {
-  const calls: Call[] = [];
+function fakeRpc(resolve: (call: RpcCall) => Result) {
+  const calls: RpcCall[] = [];
   const client = {
-    from(table: string) {
-      const call: Call = { table, ops: [] };
+    rpc(fn: string, args?: unknown) {
+      const call = { fn, args };
       calls.push(call);
-      const builder: Record<string, unknown> = {};
-      const chain =
-        (name: string) =>
-        (...args: unknown[]) => {
-          call.ops.push(`${name}:${JSON.stringify(args)}`);
-          return builder;
-        };
-      for (const name of ["select", "eq", "is", "in", "order", "update"]) {
-        builder[name] = chain(name);
-      }
-      builder.maybeSingle = () => Promise.resolve(resolve(call));
-      builder.then = (
-        ok: (value: Result) => unknown,
-        fail?: (reason: unknown) => unknown
-      ) => Promise.resolve(resolve(call)).then(ok, fail);
-      return builder;
+      return Promise.resolve(resolve(call));
+    },
+    from() {
+      throw new Error("Team persistence must not use direct table access");
     },
   };
   return { client: client as never, calls };
@@ -61,8 +49,15 @@ function fakeSupabase(resolve: (call: Call) => Result) {
 const ACTOR = "11111111-1111-4111-8111-111111111111";
 const TARGET = "22222222-2222-4222-8222-222222222222";
 const COMPANY = "33333333-3333-4333-8333-333333333333";
+const TEAM_RPC_SQL =
+  "supabase/migrations/20260927182000_phase13b_b_team_directory_and_member_rpcs.sql";
 
-const isUpdate = (call: Call) => call.ops.some((op) => op.startsWith("update:"));
+function sqlFunction(sql: string, name: string): string {
+  const start = sql.indexOf(`create or replace function public.${name}(`);
+  assert.ok(start >= 0, name);
+  const end = sql.indexOf("\n$$;", start);
+  return sql.slice(start, end);
+}
 
 async function loadPersistence() {
   return import("./companyMembershipPersistence");
@@ -127,6 +122,7 @@ describe("Phase 13B-A stable role resolution", () => {
     assert.deepEqual([...capabilitiesForRole("owner")].sort(), [
       "company_admin",
       "customers_jobs",
+      "job_approve",
       "job_assign",
       "job_disposition_finalize",
       "job_pause_resume",
@@ -332,20 +328,13 @@ describe("Phase 13B-A typed membership reads", () => {
   });
 });
 
-describe("Phase 13B-A team role writes", () => {
-  test("rejects owner and owner_admin role writes before touching data", async () => {
+describe("Phase 13B-A team role writes (DB-authorized since 13B-B)", () => {
+  test("rejects owner and owner_admin role writes before calling the RPC", async () => {
     const { updateCompanyMemberRole } = await loadPersistence();
     for (const role of ["owner", "owner_admin", "invalid_role", "", null]) {
-      const fake = fakeSupabase(() => ({ data: null, error: null }));
+      const fake = fakeRpc(() => ({ data: { ok: true }, error: null }));
       await assert.rejects(
-        updateCompanyMemberRole({
-          supabase: fake.client,
-          companyId: COMPANY,
-          actorUserId: ACTOR,
-          actorRole: "owner",
-          targetUserId: TARGET,
-          role,
-        }),
+        updateCompanyMemberRole({ supabase: fake.client, targetUserId: TARGET, role }),
         (err: { status?: number; code?: string }) =>
           err.status === 400 && err.code === "invalid_payload"
       );
@@ -353,210 +342,158 @@ describe("Phase 13B-A team role writes", () => {
     }
   });
 
-  test("blocks self role change", async () => {
-    const { updateCompanyMemberRole } = await loadPersistence();
-    const fake = fakeSupabase(() => ({ data: null, error: null }));
-    await assert.rejects(
-      updateCompanyMemberRole({
-        supabase: fake.client,
-        companyId: COMPANY,
-        actorUserId: ACTOR,
-        actorRole: "owner",
-        targetUserId: ACTOR,
-        role: "field_user",
-      }),
-      (err: { code?: string }) => err.code === "cannot_change_own_role"
+  test("role RPC never writes owner, never edits the Owner row, blocks self, needs custody for Admin", () => {
+    const fn = sqlFunction(read(TEAM_RPC_SQL), "set_company_member_role_v1");
+    assert.match(fn, /p_role not in \('admin', 'office_sales', 'production_lead', 'field_user'\)/);
+    assert.match(fn, /p_target_user_id = v_uid[\s\S]*cannot_change_own_role/);
+    assert.match(fn, /v_target\.role = 'owner'[\s\S]*owner_role_protected/);
+    assert.match(
+      fn,
+      /\(v_target\.role = 'admin' or p_role = 'admin'\)\s*and not private\.actor_holds_custody_v1\(v_company_id\)[\s\S]*owner_required/
     );
+    assert.match(fn, /private\.current_member_has_capability_v1\('member_admin'\)/);
+    assert.match(fn, /v_company_id := private\.current_active_company_id\(\)/);
   });
 
-  test("Owner membership is never edited by an ordinary role change", async () => {
-    const { updateCompanyMemberRole } = await loadPersistence();
-    const fake = fakeSupabase((call) =>
-      call.table === "company_memberships" && !isUpdate(call)
-        ? { data: { user_id: TARGET, role: "owner" }, error: null }
-        : { data: null, error: null }
-    );
-    await assert.rejects(
-      updateCompanyMemberRole({
-        supabase: fake.client,
-        companyId: COMPANY,
-        actorUserId: ACTOR,
-        actorRole: "admin",
-        targetUserId: TARGET,
-        role: "field_user",
-      }),
-      (err: { code?: string }) => err.code === "owner_role_protected"
-    );
-    assert.equal(fake.calls.some(isUpdate), false);
+  test("custody helper requires owner role, pointer, and an active owner membership", () => {
+    const sql = read(TEAM_RPC_SQL);
+    const start = sql.indexOf("create or replace function private.actor_holds_custody_v1");
+    const fn = sql.slice(start, sql.indexOf("\n$$;", start));
+    assert.match(fn, /c\.owner_user_id = auth\.uid\(\)/);
+    assert.match(fn, /m\.role = 'owner'/);
+    assert.match(fn, /m\.removed_at is null/);
   });
 
-  test("Admin grant requires custody, not owner role text", async () => {
+  test("RPC denials map to their HTTP codes without falling back to success", async () => {
     const { updateCompanyMemberRole } = await loadPersistence();
-    const pointers: Array<string | null> = [null, TARGET];
-    for (const pointer of pointers) {
-      const fake = fakeSupabase((call) => {
-        if (call.table === "companies") return { data: { owner_user_id: pointer }, error: null };
-        return { data: { user_id: TARGET, role: "field_user" }, error: null };
-      });
+    const cases: Array<[string, number]> = [
+      ["owner_role_protected", 409],
+      ["owner_required", 403],
+      ["cannot_change_own_role", 409],
+      ["capability_denied", 403],
+      ["member_disabled", 409],
+      ["not_found", 404],
+      ["something_new", 500],
+    ];
+    for (const [code, status] of cases) {
+      const fake = fakeRpc(() => ({ data: { ok: false, code }, error: null }));
       await assert.rejects(
-        updateCompanyMemberRole({
-          supabase: fake.client,
-          companyId: COMPANY,
-          actorUserId: ACTOR,
-          actorRole: "owner",
-          targetUserId: TARGET,
-          role: "admin",
-        }),
+        updateCompanyMemberRole({ supabase: fake.client, targetUserId: TARGET, role: "admin" }),
         (err: { status?: number; code?: string }) =>
-          err.status === 403 && err.code === "owner_required"
+          err.status === status && (status === 500 ? err.code === "internal_error" : err.code === code)
       );
-      assert.equal(fake.calls.some(isUpdate), false);
     }
   });
 
-  test("Admin cannot change another Admin", async () => {
+  test("RPC transport failure is unavailable, not denial or success", async () => {
     const { updateCompanyMemberRole } = await loadPersistence();
-    const fake = fakeSupabase((call) => {
-      if (call.table === "companies") return { data: { owner_user_id: TARGET }, error: null };
-      return { data: { user_id: TARGET, role: "admin" }, error: null };
-    });
+    const fake = fakeRpc(() => ({ data: null, error: { message: "x" } }));
     await assert.rejects(
-      updateCompanyMemberRole({
-        supabase: fake.client,
-        companyId: COMPANY,
-        actorUserId: ACTOR,
-        actorRole: "admin",
-        targetUserId: TARGET,
-        role: "field_user",
-      }),
-      (err: { code?: string }) => err.code === "owner_required"
-    );
-  });
-
-  test("custody read failure is authorization_unavailable", async () => {
-    const { updateCompanyMemberRole } = await loadPersistence();
-    const fake = fakeSupabase((call) => {
-      if (call.table === "companies") return { data: null, error: { message: "x" } };
-      return { data: { user_id: TARGET, role: "office_sales" }, error: null };
-    });
-    await assert.rejects(
-      updateCompanyMemberRole({
-        supabase: fake.client,
-        companyId: COMPANY,
-        actorUserId: ACTOR,
-        actorRole: "owner",
-        targetUserId: TARGET,
-        role: "admin",
-      }),
+      updateCompanyMemberRole({ supabase: fake.client, targetUserId: TARGET, role: "office_sales" }),
       (err: { status?: number; code?: string }) =>
-        err.status === 503 && err.code === "authorization_unavailable"
+        err.status === 503 && err.code === "team_unavailable"
     );
   });
 
-  test("custody Owner may grant Admin; write carries the stable key", async () => {
+  test("role write carries the stable key", async () => {
     const { updateCompanyMemberRole } = await loadPersistence();
-    const fake = fakeSupabase((call) => {
-      if (call.table === "companies") return { data: { owner_user_id: ACTOR }, error: null };
-      if (call.table === "profiles") return { data: [], error: null };
-      if (call.table === "jobs" || call.table === "job_tasks") return { count: 0, error: null };
-      if (isUpdate(call)) return { data: { user_id: TARGET, role: "admin" }, error: null };
-      if (call.ops.some((op) => op.startsWith("order:"))) {
-        return {
-          data: [{ user_id: TARGET, role: "admin", removed_at: null }],
-          error: null,
-        };
-      }
-      return { data: { user_id: TARGET, role: "field_user" }, error: null };
-    });
-    const member = await updateCompanyMemberRole({
+    const fake = fakeRpc(() => ({
+      data: { ok: true, changed: true, role: "admin" },
+      error: null,
+    }));
+    const result = await updateCompanyMemberRole({
       supabase: fake.client,
-      companyId: COMPANY,
-      actorUserId: ACTOR,
-      actorRole: "owner",
       targetUserId: TARGET,
       role: "admin",
     });
-    assert.equal(member.role, "admin");
-    const update = fake.calls.find(isUpdate);
-    assert.ok(update);
-    assert.ok(update.ops.includes(`update:${JSON.stringify([{ role: "admin" }])}`));
+    assert.equal(result.role, "admin");
+    assert.equal(result.changed, true);
+    assert.deepEqual(fake.calls[0], {
+      fn: "set_company_member_role_v1",
+      args: { p_target_user_id: TARGET, p_role: "admin" },
+    });
   });
 
-  test("Owner cannot be removed; Admin removal requires custody", async () => {
-    const { removeCompanyMember } = await loadPersistence();
-    const ownerTarget = fakeSupabase(() => ({
-      data: { user_id: TARGET, role: "owner" },
-      error: null,
-    }));
-    await assert.rejects(
-      removeCompanyMember({
-        supabase: ownerTarget.client,
-        companyId: COMPANY,
-        actorUserId: ACTOR,
-        actorRole: "admin",
-        targetUserId: TARGET,
-      }),
-      (err: { code?: string }) => err.code === "cannot_remove_owner"
-    );
-    assert.equal(ownerTarget.calls.some(isUpdate), false);
+  test("Owner cannot be removed; Admin removal requires custody (DB-enforced)", async () => {
+    const fn = sqlFunction(read(TEAM_RPC_SQL), "disable_company_member_v1");
+    assert.match(fn, /v_target\.role = 'owner'[\s\S]*cannot_remove_owner/);
+    assert.match(fn, /v_target\.role = 'admin' and not private\.actor_holds_custody_v1/);
 
-    const adminTarget = fakeSupabase((call) => {
-      if (call.table === "companies") return { data: { owner_user_id: TARGET }, error: null };
-      return { data: { user_id: TARGET, role: "admin" }, error: null };
-    });
+    const { removeCompanyMember } = await loadPersistence();
+    for (const code of ["cannot_remove_owner", "owner_required"]) {
+      const fake = fakeRpc(() => ({ data: { ok: false, code }, error: null }));
+      await assert.rejects(
+        removeCompanyMember({ supabase: fake.client, actorUserId: ACTOR, targetUserId: TARGET }),
+        (err: { code?: string }) => err.code === code
+      );
+      assert.deepEqual(
+        fake.calls.map((c) => c.fn),
+        ["disable_company_member_v1"]
+      );
+    }
+  });
+
+  test("self removal is rejected before any RPC", async () => {
+    const { removeCompanyMember } = await loadPersistence();
+    const fake = fakeRpc(() => ({ data: { ok: true }, error: null }));
     await assert.rejects(
-      removeCompanyMember({
-        supabase: adminTarget.client,
-        companyId: COMPANY,
-        actorUserId: ACTOR,
-        actorRole: "admin",
-        targetUserId: TARGET,
-      }),
-      (err: { code?: string }) => err.code === "owner_required"
+      removeCompanyMember({ supabase: fake.client, actorUserId: ACTOR, targetUserId: ACTOR }),
+      (err: { code?: string }) => err.code === "cannot_remove_self"
     );
-    assert.equal(adminTarget.calls.some(isUpdate), false);
+    assert.equal(fake.calls.length, 0);
   });
 });
 
-describe("Phase 13B-A member list read truth", () => {
-  const listRow = { user_id: TARGET, role: "garbage", removed_at: null };
+describe("Phase 13B-A member list read truth (access-admin projection)", () => {
+  const row = {
+    user_id: TARGET,
+    display_name: null,
+    email: null,
+    role: "garbage",
+    removed_at: null,
+    created_at: "2026-01-01",
+    open_job_lead_count: 2,
+    open_task_assignee_count: 0,
+  };
 
   test("unknown stored role lists as invalid_role", async () => {
-    const { listCompanyMembers } = await loadPersistence();
-    const fake = fakeSupabase((call) => {
-      if (call.table === "company_memberships") return { data: [listRow], error: null };
-      if (call.table === "profiles") return { data: [], error: null };
-      return { count: 2, error: null };
-    });
-    const items = await listCompanyMembers({ supabase: fake.client, companyId: COMPANY });
+    const { listCompanyAccessAdmin } = await loadPersistence();
+    const fake = fakeRpc(() => ({ data: [row], error: null }));
+    const items = await listCompanyAccessAdmin(fake.client);
     assert.equal(items[0].role, "invalid_role");
     assert.equal(items[0].openJobLeadCount, 2);
   });
 
-  test("profile read error is an error, not blank names", async () => {
-    const { listCompanyMembers } = await loadPersistence();
-    const fake = fakeSupabase((call) => {
-      if (call.table === "company_memberships") return { data: [listRow], error: null };
-      if (call.table === "profiles") return { data: null, error: { message: "x" } };
-      return { count: 0, error: null };
-    });
+  test("read error is an error, not an empty team", async () => {
+    const { listCompanyAccessAdmin } = await loadPersistence();
+    const fake = fakeRpc(() => ({ data: null, error: { message: "x" } }));
     await assert.rejects(
-      listCompanyMembers({ supabase: fake.client, companyId: COMPANY }),
-      (err: { status?: number }) => err.status === 500
+      listCompanyAccessAdmin(fake.client),
+      (err: { status?: number; code?: string }) =>
+        err.status === 503 && err.code === "team_unavailable"
     );
   });
 
-  test("assignment count error is an error, not zero", async () => {
-    const { listCompanyMembers } = await loadPersistence();
-    const fake = fakeSupabase((call) => {
-      if (call.table === "company_memberships") return { data: [listRow], error: null };
-      if (call.table === "profiles") return { data: [], error: null };
-      if (call.table === "job_tasks") return { count: null, error: { message: "x" } };
-      return { count: 0, error: null };
-    });
+  test("missing or malformed count is an error, not zero", async () => {
+    const { listCompanyAccessAdmin } = await loadPersistence();
+    for (const bad of [null, undefined, -1, 1.5, "x"]) {
+      const fake = fakeRpc(() => ({
+        data: [{ ...row, open_task_assignee_count: bad }],
+        error: null,
+      }));
+      await assert.rejects(
+        listCompanyAccessAdmin(fake.client),
+        (err: { status?: number }) => err.status === 503
+      );
+    }
+  });
+
+  test("permission denial from the projection is forbidden, not unavailable", async () => {
+    const { listCompanyAccessAdmin } = await loadPersistence();
+    const fake = fakeRpc(() => ({ data: null, error: { code: "42501", message: "forbidden" } }));
     await assert.rejects(
-      listCompanyMembers({ supabase: fake.client, companyId: COMPANY }),
-      (err: { status?: number }) => err.status === 500
+      listCompanyAccessAdmin(fake.client),
+      (err: { status?: number; code?: string }) => err.status === 403 && err.code === "forbidden"
     );
   });
 });
@@ -594,11 +531,12 @@ describe("Phase 13B-A repo contracts", () => {
     assert.doesNotMatch(sql, /grant [^;]*to (authenticated|anon)/);
   });
 
-  test("members GET returns viewer identity to active members; list stays capability-gated", () => {
+  test("members GET returns viewer identity to active members; access-admin list stays capability-gated", () => {
     const src = read("app/api/company/members/route.ts");
     assert.match(src, /resolveLiveMembership/);
     assert.match(src, /viewerRole: session\.role/);
-    assert.match(src, /sessionHasCapability\(session, "customers_jobs"\)/);
+    assert.match(src, /sessionHasCapability\(session, "member_admin"\)/);
+    assert.match(src, /canAdmin\s*\?\s*await listCompanyAccessAdmin\(supabase\)/);
     assert.match(src, /requireCapabilitySession\(supabase, user\.id, "member_admin"\)/);
   });
 

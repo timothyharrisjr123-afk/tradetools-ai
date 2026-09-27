@@ -67,7 +67,9 @@ export type CompanyCapability =
   /** Astra G8 — Hold / Resume (active ↔ on_hold). */
   | "job_pause_resume"
   /** Astra G8 — Lost / Close / Reopen (and composed Production+Closed recovery). */
-  | "job_disposition_finalize";
+  | "job_disposition_finalize"
+  /** Phase 13B-B — Approve job / acknowledge a customer acceptance (canonical jobs.approve). */
+  | "job_approve";
 
 /** Every capability today's single-owner product flows consume. */
 const OWNER_CAPABILITIES: ReadonlySet<CompanyCapability> = new Set([
@@ -85,7 +87,13 @@ const OWNER_CAPABILITIES: ReadonlySet<CompanyCapability> = new Set([
   "customers_jobs",
   "job_pause_resume",
   "job_disposition_finalize",
+  "job_approve",
 ]);
+
+/** Every capability key, in the order mirrored by private.role_has_capability_v1. */
+export const COMPANY_CAPABILITY_KEYS: readonly CompanyCapability[] = [
+  ...OWNER_CAPABILITIES,
+];
 
 const NO_CAPABILITIES: ReadonlySet<CompanyCapability> = new Set();
 

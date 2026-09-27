@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
 import { requireCapabilitySession } from "@/app/lib/requireCapabilitySession";
 import {
   reconcileJobPaymentRefundResultViaRpc,
@@ -107,10 +106,6 @@ export async function POST(req: Request, context: RouteContext) {
     if (!user) {
       return NextResponse.json({ ok: false, code: "unauthorized" }, { status: 401 });
     }
-    const companyId = await getUserCompanyId(supabase, user.id);
-    if (!companyId) {
-      return NextResponse.json({ ok: false, code: "forbidden" }, { status: 403 });
-    }
 
     const gated = await requireCapabilitySession(
       supabase,
@@ -118,6 +113,7 @@ export async function POST(req: Request, context: RouteContext) {
       "payment_admin"
     );
     if (!gated.ok) return gated.response;
+    const companyId = gated.session.companyId;
 
     const { data: capture, error: captureError } = await supabase
       .from("job_payment_transactions")

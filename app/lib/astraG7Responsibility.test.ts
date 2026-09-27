@@ -122,7 +122,10 @@ describe("Astra G7 repo authority contracts", () => {
     const persist = read("app/lib/jobTaskPersistence.ts");
     assert.match(persist, /setJobTaskAssignee/);
     assert.match(persist, /validateLiveCompanyMember/);
-    assert.match(persist, /foreign_member|removed_member/);
+    assert.match(persist, /memberValidationStatus\(validated\.code\)/);
+    const validation = read("app/lib/companyMemberValidation.ts");
+    assert.match(validation, /"member_not_found"/);
+    assert.match(validation, /"member_unavailable"/);
   });
 
   test("sensitive routes enforce capabilities for field restrictions", () => {
@@ -142,7 +145,8 @@ describe("Astra G7 repo authority contracts", () => {
 
   test("removed members lose getUserCompanyId access", () => {
     const id = read("app/lib/ensureUserIdentity.ts");
-    assert.match(id, /removed_at/);
+    assert.match(id, /resolveLiveMembership\(supabase, userId\)/);
+    assert.match(id, /access\.status === "active" \? access\.companyId : null/);
   });
 
   test("no enterprise RBAC builder / second field app shell", () => {

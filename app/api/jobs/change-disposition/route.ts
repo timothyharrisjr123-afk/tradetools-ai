@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
+import { resolveLiveMembership } from "@/app/lib/companyMembershipSession";
 import { isUuidLike } from "@/app/lib/uuid";
 import {
   JobLifecyclePersistenceError,
@@ -11,7 +11,10 @@ import {
 } from "@/app/lib/jobDispositionManagement";
 import { capabilityForDispositionTransition } from "@/app/lib/jobDispositionAuthority";
 import { assertOperationalDispositionWrite } from "@/app/lib/jobLifecycleMapper";
-import { requireCapabilitySession } from "@/app/lib/requireCapabilitySession";
+import {
+  mapActiveMembershipGate,
+  requireCapabilitySession,
+} from "@/app/lib/requireCapabilitySession";
 import { createClient } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -37,13 +40,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const companyId = await getUserCompanyId(supabase, user.id);
-    if (!companyId) {
+    const active = mapActiveMembershipGate(await resolveLiveMembership(supabase, user.id));
+    if (!active.ok) {
       return NextResponse.json(
-        { ok: false, code: "forbidden" },
-        { status: 403 }
+        { ok: false, code: active.denial.code },
+        { status: active.denial.status }
       );
     }
+    const companyId = active.session.companyId;
 
     const body = await req.json().catch(() => ({}));
     const jobId = typeof body?.jobId === "string" ? body.jobId.trim() : "";

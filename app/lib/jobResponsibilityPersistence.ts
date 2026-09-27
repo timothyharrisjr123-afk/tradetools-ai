@@ -6,7 +6,10 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { validateLiveCompanyMember } from "@/app/lib/companyMemberValidation";
+import {
+  memberValidationStatus,
+  validateLiveCompanyMember,
+} from "@/app/lib/companyMemberValidation";
 import { createAdminClient } from "@/app/lib/supabase/admin";
 import { isUuidLike } from "@/app/lib/uuid";
 
@@ -99,11 +102,10 @@ export async function setJobProductionLead(input: {
       next
     );
     if (!validated.ok) {
-      const status =
-        validated.code === "foreign_member" || validated.code === "removed_member"
-          ? 403
-          : 400;
-      throw new JobResponsibilityHttpError(status, validated.code);
+      throw new JobResponsibilityHttpError(
+        memberValidationStatus(validated.code),
+        validated.code
+      );
     }
   }
 

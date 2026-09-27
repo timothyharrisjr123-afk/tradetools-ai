@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserCompanyId } from "@/app/lib/ensureUserIdentity";
+import { requireJobAttachmentSession } from "@/app/lib/jobAttachmentRouteAuth";
 import {
   JobAttachmentHttpError,
   finalizeJobAttachmentUpload,
@@ -26,21 +26,12 @@ export async function POST(
   try {
     const { jobId, attachmentId } = await context.params;
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      throw new JobAttachmentHttpError(401, "unauthorized");
-    }
-    const companyId = await getUserCompanyId(supabase, user.id);
-    if (!companyId) {
-      throw new JobAttachmentHttpError(403, "forbidden");
-    }
+    const ctx = await requireJobAttachmentSession(supabase, "mutate");
     const body = await req.json().catch(() => ({}));
     const attachment = await finalizeJobAttachmentUpload({
       supabase,
       admin: createAdminClient(),
-      ctx: { userId: user.id, companyId },
+      ctx,
       jobId,
       attachmentId,
       mimeType: body?.mimeType,
