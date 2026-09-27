@@ -1,4 +1,4 @@
-import { ensureUserIdentity, getUserCompanyId } from "@/app/lib/ensureUserIdentity";
+import { requireActiveCompanyPage } from "@/app/lib/access/requireActiveCompanyPage";
 import { createClient } from "@/app/lib/supabase/server";
 import { redirect } from "next/navigation";
 import CatalogAppPage from "./CatalogAppPage";
@@ -13,11 +13,7 @@ export default async function CatalogPage() {
   if (!user) {
     redirect("/login?redirectTo=/tools/roofing/catalog");
   }
-  await ensureUserIdentity(supabase, user);
-  const companyId = await getUserCompanyId(supabase, user.id);
-  if (!companyId) {
-    redirect("/login?redirectTo=/tools/roofing/catalog");
-  }
+  const { companyId } = await requireActiveCompanyPage(supabase, user);
 
   return <CatalogAppPage companyId={companyId} />;
 }

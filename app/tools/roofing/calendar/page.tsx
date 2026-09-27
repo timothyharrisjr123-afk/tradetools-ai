@@ -1,4 +1,4 @@
-import { ensureUserIdentity, getUserCompanyId } from "@/app/lib/ensureUserIdentity";
+import { requireActiveCompanyPage } from "@/app/lib/access/requireActiveCompanyPage";
 import { createClient } from "@/app/lib/supabase/server";
 import { redirect } from "next/navigation";
 import FieldDiveCalendarClient from "./FieldDiveCalendarClient";
@@ -11,9 +11,7 @@ export default async function CalendarPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?redirectTo=/tools/roofing/calendar");
-  await ensureUserIdentity(supabase, user);
-  const companyId = await getUserCompanyId(supabase, user.id);
-  if (!companyId) redirect("/login?redirectTo=/tools/roofing/calendar");
+  const { companyId } = await requireActiveCompanyPage(supabase, user);
   const { data: company } = await supabase
     .from("companies")
     .select("timezone")

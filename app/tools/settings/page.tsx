@@ -1,4 +1,4 @@
-import { ensureUserIdentity, getUserCompanyId } from "@/app/lib/ensureUserIdentity";
+import { requireActiveCompanyPage } from "@/app/lib/access/requireActiveCompanyPage";
 import { parseTimezoneReturnPath } from "@/app/lib/jobScheduleMapper";
 import { createClient } from "@/app/lib/supabase/server";
 import FieldDiveAppShell from "@/app/tools/roofing/FieldDiveAppShell";
@@ -27,11 +27,7 @@ export default async function SettingsPage({
   if (!user) {
     redirect("/login?redirectTo=/tools/settings");
   }
-  await ensureUserIdentity(supabase, user);
-  const companyId = await getUserCompanyId(supabase, user.id);
-  if (!companyId) {
-    redirect("/login?redirectTo=/tools/settings");
-  }
+  const { companyId } = await requireActiveCompanyPage(supabase, user);
 
   const { edit, timezoneReturnTo: rawReturnTo } = await searchParams;
 

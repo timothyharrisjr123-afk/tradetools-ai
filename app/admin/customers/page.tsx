@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ensureUserIdentity, getUserCompanyId } from "@/app/lib/ensureUserIdentity";
+import { requireActiveCompanyPage } from "@/app/lib/access/requireActiveCompanyPage";
 import { createClient } from "@/app/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -16,11 +16,7 @@ export default async function CustomersRetiredPage() {
   if (!user) {
     redirect("/login?redirectTo=/admin/customers");
   }
-  await ensureUserIdentity(supabase, user);
-  const companyId = await getUserCompanyId(supabase, user.id);
-  if (!companyId) {
-    redirect("/login?redirectTo=/admin/customers");
-  }
+  const { companyId } = await requireActiveCompanyPage(supabase, user);
 
   return (
     <main className="mx-auto max-w-xl px-4 py-10 text-slate-900">

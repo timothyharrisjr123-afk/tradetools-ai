@@ -13,7 +13,9 @@ export async function GET(request: Request) {
   const redirectCandidate =
     requestUrl.searchParams.get("redirectTo") ??
     requestUrl.searchParams.get("next");
-  const safeReturn = resolveAuthReturnPath(redirectCandidate, "/");
+  // Land on the access resolver so a pending invitation or creator admission
+  // survives confirmation. Active members are sent on to the product from /start.
+  const safeReturn = resolveAuthReturnPath(redirectCandidate, "/start");
   const loginFallback = new URL("/login", requestUrl.origin);
   if (safeReturn !== "/") {
     loginFallback.searchParams.set("redirectTo", safeReturn);

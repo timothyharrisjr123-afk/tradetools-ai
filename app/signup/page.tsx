@@ -46,7 +46,7 @@ function SignUpPageInner() {
       }
       // Session present (confirmations off) → return to intended FieldDive route.
       if (data.session) {
-        window.location.assign(resolveAuthReturnPath(redirectCandidate, "/"));
+        window.location.assign(resolveAuthReturnPath(redirectCandidate, "/start"));
         return;
       }
       setMessage({

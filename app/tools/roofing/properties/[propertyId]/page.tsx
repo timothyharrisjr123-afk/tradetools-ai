@@ -1,4 +1,4 @@
-import { ensureUserIdentity, getUserCompanyId } from "@/app/lib/ensureUserIdentity";
+import { requireActiveCompanyPage } from "@/app/lib/access/requireActiveCompanyPage";
 import { createClient } from "@/app/lib/supabase/server";
 import { isUuidLike } from "@/app/lib/uuid";
 import { redirect } from "next/navigation";
@@ -18,9 +18,7 @@ export default async function PropertyWorkspacePage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?redirectTo=${encodeURIComponent(redirectTo)}`);
-  await ensureUserIdentity(supabase, user);
-  const companyId = await getUserCompanyId(supabase, user.id);
-  if (!companyId) redirect(`/login?redirectTo=${encodeURIComponent(redirectTo)}`);
+  const { companyId } = await requireActiveCompanyPage(supabase, user);
   if (!isUuidLike(propertyId)) redirect("/tools/roofing/saved");
 
   return <PropertyWorkspaceClient propertyId={propertyId} />;

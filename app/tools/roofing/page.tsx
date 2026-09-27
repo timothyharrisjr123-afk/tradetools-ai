@@ -1,4 +1,4 @@
-import { ensureUserIdentity, getUserCompanyId } from "@/app/lib/ensureUserIdentity";
+import { requireActiveCompanyPage } from "@/app/lib/access/requireActiveCompanyPage";
 import { getJobRecordForCompany, isUuidLike } from "@/app/lib/jobStore";
 import { isCleanJobCardRoute } from "@/app/lib/roofingJobCardRoute";
 import { createClient } from "@/app/lib/supabase/server";
@@ -35,9 +35,7 @@ export default async function Page({
   if (!user) {
     redirect("/login?redirectTo=/tools/roofing");
   }
-  await ensureUserIdentity(supabase, user);
-  const companyId = await getUserCompanyId(supabase, user.id);
-  if (!companyId) redirect("/login?redirectTo=/tools/roofing");
+  const { companyId } = await requireActiveCompanyPage(supabase, user);
 
   const entry = paramString(params.entry);
   const jobId = paramString(params.job);

@@ -1,4 +1,4 @@
-import { ensureUserIdentity, getUserCompanyId } from "@/app/lib/ensureUserIdentity";
+import { requireActiveCompanyPage } from "@/app/lib/access/requireActiveCompanyPage";
 import { isProposalEmailDeliveryConfigured } from "@/app/lib/proposalEmailDelivery.server";
 import { createClient } from "@/app/lib/supabase/server";
 import { redirect } from "next/navigation";
@@ -14,11 +14,7 @@ export default async function ProposalCustomerPreviewPage() {
   if (!user) {
     redirect("/login?redirectTo=/tools/roofing/proposals/preview");
   }
-  await ensureUserIdentity(supabase, user);
-  const companyId = await getUserCompanyId(supabase, user.id);
-  if (!companyId) {
-    redirect("/login?redirectTo=/tools/roofing/proposals/preview");
-  }
+  const { companyId } = await requireActiveCompanyPage(supabase, user);
 
   return (
     <ProposalCustomerPreviewAppPage

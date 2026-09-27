@@ -1,4 +1,4 @@
-import { ensureUserIdentity, getUserCompanyId } from "@/app/lib/ensureUserIdentity";
+import { requireActiveCompanyPage } from "@/app/lib/access/requireActiveCompanyPage";
 import { createClient } from "@/app/lib/supabase/server";
 import FieldDiveAppShell from "@/app/tools/roofing/FieldDiveAppShell";
 import { redirect } from "next/navigation";
@@ -14,11 +14,7 @@ export default async function CompanyPricingPolicySettingsPage() {
   if (!user) {
     redirect("/login?redirectTo=/tools/settings/pricing");
   }
-  await ensureUserIdentity(supabase, user);
-  const companyId = await getUserCompanyId(supabase, user.id);
-  if (!companyId) {
-    redirect("/login?redirectTo=/tools/settings/pricing");
-  }
+  const { companyId } = await requireActiveCompanyPage(supabase, user);
 
   return (
     <FieldDiveAppShell activeNav="pricing">

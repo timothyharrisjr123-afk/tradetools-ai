@@ -5,11 +5,8 @@ import { describe, test } from "node:test";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import {
-  COMPANY_BOOTSTRAP_RPC,
-  ensureUserIdentity,
-  parseCompanyBootstrapResult,
-} from "./ensureUserIdentity";
+import { ensureUserIdentity } from "./ensureUserIdentity";
+import { parseCreateBusinessResult } from "./access/resolveAccess";
 
 const ROOT = join(__dirname, "..", "..");
 const MIGRATION = readFileSync(
@@ -149,54 +146,21 @@ describe("Slice 0A — bootstrap RPC migration contract", () => {
   });
 });
 
-describe("Slice 0A — ensureUserIdentity uses the bootstrap authority", () => {
-  test("source no longer inserts companies or memberships directly", () => {
+describe("Slice 0A — ensureUserIdentity no longer bootstraps a company", () => {
+  test("source syncs a profile and never calls bootstrap or inserts a company", () => {
     assert.doesNotMatch(IDENTITY, /from\(\s*["']companies["']\s*\)/);
-    assert.doesNotMatch(IDENTITY, /from\(\s*["']company_memberships["']\s*\)\s*\.insert/);
-    assert.match(IDENTITY, /supabase\.rpc\(COMPANY_BOOTSTRAP_RPC\)/);
-    assert.equal(COMPANY_BOOTSTRAP_RPC, "bootstrap_current_user_company_v1");
+    assert.doesNotMatch(IDENTITY, /from\(\s*["']company_memberships["']\s*\)/);
+    assert.doesNotMatch(IDENTITY, /\.rpc\(/);
+    assert.doesNotMatch(IDENTITY, /bootstrap_current_user_company/);
   });
 
-  test("created → ready with company id; no direct company/membership writes", async () => {
-    const f = fakeSupabase({
-      profile: { id: USER.id, full_name: "", email: USER.email },
-      rpcData: [{ company_id: COMPANY, status: "created" }],
-    });
-    const result = await ensureUserIdentity(f.client, USER);
-    assert.deepEqual(result, { status: "ready", companyId: COMPANY, created: true });
-    assert.deepEqual(f.rpcCalls, ["bootstrap_current_user_company_v1"]);
-    assert.ok(!f.calls.some((c) => c.table === "companies"));
-    assert.ok(!f.calls.some((c) => c.table === "company_memberships"));
-  });
-
-  test("existing → ready (idempotent repeat)", async () => {
+  test("a signed-in user is synced without any RPC", async () => {
     const f = fakeSupabase({
       profile: { id: USER.id, full_name: "A", email: USER.email },
-      rpcData: [{ company_id: COMPANY, status: "existing" }],
     });
-    const first = await ensureUserIdentity(f.client, USER);
-    const second = await ensureUserIdentity(f.client, USER);
-    assert.deepEqual(first, { status: "ready", companyId: COMPANY, created: false });
-    assert.deepEqual(second, first);
-  });
-
-  test("removed → removed (no company)", async () => {
-    const f = fakeSupabase({
-      profile: { id: USER.id, full_name: "A", email: USER.email },
-      rpcData: [{ company_id: null, status: "removed" }],
-    });
-    assert.deepEqual(await ensureUserIdentity(f.client, USER), { status: "removed" });
-  });
-
-  test("RPC error → failed (not silently ready)", async () => {
-    const f = fakeSupabase({
-      profile: { id: USER.id, full_name: "A", email: USER.email },
-      rpcError: { message: "permission denied" },
-    });
-    assert.deepEqual(await ensureUserIdentity(f.client, USER), {
-      status: "failed",
-      reason: "bootstrap_failed",
-    });
+    assert.deepEqual(await ensureUserIdentity(f.client, USER), { status: "synced" });
+    assert.deepEqual(f.rpcCalls, []);
+    assert.ok(!f.calls.some((c) => c.table === "companies" || c.table === "company_memberships"));
   });
 
   test("missing user → failed not_authenticated; no RPC call", async () => {
@@ -209,35 +173,30 @@ describe("Slice 0A — ensureUserIdentity uses the bootstrap authority", () => {
   });
 
   test("profile insert still happens for a brand-new user", async () => {
-    const f = fakeSupabase({
-      profile: null,
-      rpcData: [{ company_id: COMPANY, status: "created" }],
-    });
+    const f = fakeSupabase({ profile: null });
     await ensureUserIdentity(f.client, USER);
     assert.ok(f.calls.some((c) => c.table === "profiles" && c.op === "insert"));
   });
 
-  test("parser fails closed on unknown shapes", () => {
-    assert.deepEqual(parseCompanyBootstrapResult(null), {
-      status: "failed",
-      reason: "invalid_response",
+  test("create-business parser fails closed on unknown shapes", () => {
+    assert.deepEqual(parseCreateBusinessResult(null), { ok: false, status: "invalid_response" });
+    assert.deepEqual(parseCreateBusinessResult([]), { ok: false, status: "invalid_response" });
+    assert.deepEqual(parseCreateBusinessResult([{ status: "created", company_id: null }]), {
+      ok: false,
+      status: "invalid_response",
     });
-    assert.deepEqual(parseCompanyBootstrapResult([]), {
-      status: "failed",
-      reason: "invalid_response",
+    assert.deepEqual(parseCreateBusinessResult([{ status: "owner", company_id: COMPANY }]), {
+      ok: false,
+      status: "invalid_response",
     });
-    assert.deepEqual(parseCompanyBootstrapResult([{ status: "created", company_id: null }]), {
-      status: "failed",
-      reason: "invalid_response",
-    });
-    assert.deepEqual(parseCompanyBootstrapResult([{ status: "owner", company_id: COMPANY }]), {
-      status: "failed",
-      reason: "invalid_response",
-    });
-    assert.deepEqual(parseCompanyBootstrapResult({ status: "existing", company_id: COMPANY }), {
-      status: "ready",
+    assert.deepEqual(parseCreateBusinessResult({ status: "existing", company_id: COMPANY }), {
+      ok: true,
+      status: "existing",
       companyId: COMPANY,
-      created: false,
+    });
+    assert.deepEqual(parseCreateBusinessResult({ status: "removed", company_id: null }), {
+      ok: false,
+      status: "removed",
     });
   });
 });

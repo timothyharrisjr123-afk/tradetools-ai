@@ -1,4 +1,4 @@
-import { ensureUserIdentity, getUserCompanyId } from "@/app/lib/ensureUserIdentity";
+import { requireActiveCompanyPage } from "@/app/lib/access/requireActiveCompanyPage";
 import { buildLoginHrefWithReturn } from "@/app/lib/safeInternalRedirect";
 import { createClient } from "@/app/lib/supabase/server";
 import { redirect } from "next/navigation";
@@ -17,11 +17,7 @@ export default async function UsualRoofPage() {
   if (!user) {
     redirect(buildLoginHrefWithReturn("/tools/roofing/usual-roof"));
   }
-  await ensureUserIdentity(supabase, user);
-  const companyId = await getUserCompanyId(supabase, user.id);
-  if (!companyId) {
-    redirect(buildLoginHrefWithReturn("/tools/roofing/usual-roof"));
-  }
+  const { companyId } = await requireActiveCompanyPage(supabase, user);
 
   return (
     <Suspense fallback={<div className="p-6 text-slate-600">Loading…</div>}>

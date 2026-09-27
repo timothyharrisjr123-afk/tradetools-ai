@@ -19,33 +19,14 @@ function initialProfileFullName(user: AuthUser): string {
   return fromMeta;
 }
 
-export const COMPANY_BOOTSTRAP_RPC = "bootstrap_current_user_company_v1";
-
 export type EnsureUserIdentityResult =
-  | { status: "ready"; companyId: string; created: boolean }
-  | { status: "removed" }
-  | { status: "failed"; reason: "not_authenticated" | "bootstrap_failed" | "invalid_response" };
-
-/** Maps the bootstrap RPC row onto the identity contract. Unknown shapes fail closed. */
-export function parseCompanyBootstrapResult(data: unknown): EnsureUserIdentityResult {
-  const row = Array.isArray(data) ? data[0] : data;
-  if (!row || typeof row !== "object") {
-    return { status: "failed", reason: "invalid_response" };
-  }
-  const status = (row as { status?: unknown }).status;
-  const companyId = (row as { company_id?: unknown }).company_id;
-  if (status === "removed") return { status: "removed" };
-  if ((status === "created" || status === "existing") && typeof companyId === "string" && companyId) {
-    return { status: "ready", companyId, created: status === "created" };
-  }
-  return { status: "failed", reason: "invalid_response" };
-}
+  | { status: "synced" }
+  | { status: "failed"; reason: "not_authenticated" };
 
 /**
- * Ensures the authenticated user has a profile and a company membership.
- * Company + owner membership are created only by the bootstrap RPC (atomic, per-user
- * serialized, idempotent); this helper never inserts companies or memberships directly.
- * Call after getUser() on protected pages. Safe to call every time.
+ * Syncs the authenticated user's profile row.
+ * Does not create a company or a membership. Company admission is
+ * resolve_current_user_access_v1 plus an explicit create-business call.
  * Never clears an existing profiles.full_name (display-name authority).
  */
 export async function ensureUserIdentity(
@@ -94,21 +75,7 @@ export async function ensureUserIdentity(
     }
   }
 
-  // B) Ensure company + owner membership through the bootstrap authority
-  const { data, error } = await supabase.rpc(COMPANY_BOOTSTRAP_RPC);
-  if (error) {
-    console.error("[ensureUserIdentity] Company bootstrap failed:", error.message, {
-      userId: user.id,
-    });
-    return { status: "failed", reason: "bootstrap_failed" };
-  }
-  const result = parseCompanyBootstrapResult(data);
-  if (result.status === "failed") {
-    console.error("[ensureUserIdentity] Company bootstrap returned an unexpected result", {
-      userId: user.id,
-    });
-  }
-  return result;
+  return { status: "synced" };
 }
 
 export type UserCompanyAccess =

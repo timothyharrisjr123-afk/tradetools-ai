@@ -1,4 +1,4 @@
-import { ensureUserIdentity, getUserCompanyId } from "@/app/lib/ensureUserIdentity";
+import { requireActiveCompanyPage } from "@/app/lib/access/requireActiveCompanyPage";
 import { createClient } from "@/app/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -14,11 +14,7 @@ export default async function AdminLayout({
   if (!user) {
     redirect("/login?redirectTo=/admin/customers");
   }
-  await ensureUserIdentity(supabase, user);
-  const companyId = await getUserCompanyId(supabase, user.id);
-  if (!companyId) {
-    redirect("/login?redirectTo=/admin/customers");
-  }
+  await requireActiveCompanyPage(supabase, user);
 
   return (
     <main className="min-h-screen bg-[#070A12] text-white p-4 sm:p-6 lg:p-8">
