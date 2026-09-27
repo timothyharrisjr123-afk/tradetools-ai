@@ -38,7 +38,7 @@ export default async function StartPage() {
     body = "This account's access couldn't be recognized. Contact support. Nothing here will change it automatically.";
   } else if (access.state === "pending_invitation") {
     heading = "You have an invitation";
-    body = "Joining is a separate step and isn't available from this screen yet. Creating a business does not accept an invitation.";
+    body = "Choose an invitation to review it. Accepting happens on the next screen, not when this page opens. Creating a business does not accept an invitation.";
   } else if (access.state === "creator_eligible") {
     heading = "Create your business";
     body = "Creating a business makes this account its owner. It does not join an existing company.";
@@ -61,6 +61,12 @@ export default async function StartPage() {
                 <p className="mt-1 text-xs text-white/60">
                   {roleLabel(invitation.role)} · expires {new Date(invitation.expiresAt).toLocaleDateString()}
                 </p>
+                <a
+                  href={`/join/open/${invitation.id}`}
+                  className="mt-3 inline-block text-sm font-medium text-emerald-300"
+                >
+                  Review invitation
+                </a>
               </li>
             ))}
           </ul>

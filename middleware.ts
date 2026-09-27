@@ -2,7 +2,11 @@ import { type NextRequest } from "next/server";
 import { updateSession } from "@/app/lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
-  return await updateSession(request);
+  const response = await updateSession(request);
+  if (request.nextUrl.pathname === "/join" || request.nextUrl.pathname.startsWith("/join/")) {
+    response.headers.set("Referrer-Policy", "no-referrer");
+  }
+  return response;
 }
 
 export const config = {
