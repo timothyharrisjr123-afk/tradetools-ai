@@ -46,5 +46,7 @@ export async function POST(
     invitationId: result.invitationId,
     delivery: result.delivery,
     message: result.message,
+    generation: typeof result.generation === "number" ? result.generation : null,
+    expiresAt: typeof result.expiresAt === "string" ? result.expiresAt : null,
   });
 }

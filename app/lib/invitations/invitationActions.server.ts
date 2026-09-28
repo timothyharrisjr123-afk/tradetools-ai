@@ -1,6 +1,7 @@
 import "server-only";
 
 import { resolvePublicAppOrigin } from "@/app/lib/publicAppOrigin";
+import { createAdminClient } from "@/app/lib/supabase/admin";
 import { createClient } from "@/app/lib/supabase/server";
 import { postInvitationEmail, type InvitationEmailSendResult } from "@/app/lib/invitations/invitationDelivery";
 import {
@@ -29,8 +30,21 @@ export type InvitationCommandResult =
       invitationId: string;
       delivery: "sent" | "failed" | "skipped";
       message: string | null;
+      generation?: number | null;
+      expiresAt?: string | null;
     }
   | { ok: false; code: string; unavailable: boolean };
+
+export type PendingCompanyInvitation = {
+  invitationId: string;
+  email: string;
+  role: string;
+  expiresAt: string;
+  generation: number;
+  packageKeys: string[];
+  assignedJobCount: number;
+  delivery: "sent" | "failed" | "unknown";
+};
 
 export type InvitationAcceptResult = {
   ok: boolean;
@@ -121,9 +135,18 @@ async function deliverInvitation(input: {
       invitationId: input.invitationId,
       delivery: "failed",
       message: INVITATION_NOT_SENT_MESSAGE,
+      generation: input.generation,
+      expiresAt: input.expiresAt,
     };
   }
-  return { ok: true, invitationId: input.invitationId, delivery: "sent", message: null };
+  return {
+    ok: true,
+    invitationId: input.invitationId,
+    delivery: "sent",
+    message: null,
+    generation: input.generation,
+    expiresAt: input.expiresAt,
+  };
 }
 
 export async function issueCompanyInvitation(input: {
@@ -156,7 +179,14 @@ export async function issueCompanyInvitation(input: {
   const invitationId = typeof result.invitation_id === "string" ? result.invitation_id : "";
   if (!invitationId) return { ok: false, code: "authorization_unavailable", unavailable: true };
   if (result.send !== true) {
-    return { ok: true, invitationId, delivery: "skipped", message: null };
+    return {
+      ok: true,
+      invitationId,
+      delivery: "skipped",
+      message: null,
+      generation: typeof result.generation === "number" ? result.generation : null,
+      expiresAt: typeof result.expires_at === "string" ? result.expires_at : null,
+    };
   }
   return deliverInvitation({
     supabase,
@@ -198,7 +228,14 @@ export async function resendCompanyInvitation(input: {
   }
   const invitationId = typeof result.invitation_id === "string" ? result.invitation_id : input.invitationId;
   if (result.send !== true) {
-    return { ok: true, invitationId, delivery: "skipped", message: null };
+    return {
+      ok: true,
+      invitationId,
+      delivery: "skipped",
+      message: null,
+      generation: typeof result.generation === "number" ? result.generation : null,
+      expiresAt: typeof result.expires_at === "string" ? result.expires_at : null,
+    };
   }
   return deliverInvitation({
     supabase,
@@ -298,4 +335,87 @@ export async function previewMyInvitation(invitationId: string): Promise<Invitat
   });
   if (error) return UNAVAILABLE_PREVIEW;
   return parseInvitationPreview(data);
+}
+
+/**
+ * Pending invitations for the session company. There is no client grant and no
+ * list RPC. The caller must already have proven team.manage and must pass the
+ * company id from the live membership, never from the request. The read uses
+ * the service role only after that check, and it never returns token hashes,
+ * delivery error classes, or provider ids.
+ */
+export async function listPendingCompanyInvitations(
+  companyId: string
+): Promise<{ ok: true; invitations: PendingCompanyInvitation[] } | { ok: false; unavailable: true }> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(companyId)) {
+    return { ok: false, unavailable: true };
+  }
+  let admin: ReturnType<typeof createAdminClient>;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return { ok: false, unavailable: true };
+  }
+  const listed = await admin
+    .from("company_invitations")
+    .select("id, email_canonical, role, expires_at, generation, packages, job_ids")
+    .eq("company_id", companyId)
+    .eq("status", "pending");
+  if (listed.error || !Array.isArray(listed.data)) return { ok: false, unavailable: true };
+
+  const ids = listed.data
+    .map((row) => (row && typeof row.id === "string" ? row.id : ""))
+    .filter((id) => id.length > 0);
+  const latestDelivery = new Map<string, "sent" | "failed">();
+  if (ids.length > 0) {
+    const attempts = await admin
+      .from("company_invitation_delivery_attempts")
+      .select("invitation_id, status, recorded_at")
+      .eq("company_id", companyId)
+      .in("invitation_id", ids);
+    if (attempts.error || !Array.isArray(attempts.data)) return { ok: false, unavailable: true };
+    const ordered = [...attempts.data].sort((a, b) => {
+      const left = typeof a.recorded_at === "string" ? a.recorded_at : "";
+      const right = typeof b.recorded_at === "string" ? b.recorded_at : "";
+      return right.localeCompare(left);
+    });
+    for (const attempt of ordered) {
+      const invitationId = typeof attempt.invitation_id === "string" ? attempt.invitation_id : "";
+      if (!invitationId || latestDelivery.has(invitationId)) continue;
+      if (attempt.status === "sent" || attempt.status === "failed") {
+        latestDelivery.set(invitationId, attempt.status);
+      }
+    }
+  }
+
+  const invitations: PendingCompanyInvitation[] = [];
+  for (const raw of listed.data) {
+    const row = raw as Record<string, unknown>;
+    const invitationId = typeof row.id === "string" ? row.id : "";
+    const email = typeof row.email_canonical === "string" ? row.email_canonical : "";
+    const role = typeof row.role === "string" ? row.role : "";
+    const expiresAt = typeof row.expires_at === "string" ? row.expires_at : "";
+    const generation = typeof row.generation === "number" ? row.generation : NaN;
+    if (!invitationId || !email || !role || !expiresAt || !Number.isInteger(generation) || generation < 1) {
+      return { ok: false, unavailable: true };
+    }
+    if (!Array.isArray(row.packages) || row.packages.some((item) => typeof item !== "string")) {
+      return { ok: false, unavailable: true };
+    }
+    const jobIds = Array.isArray(row.job_ids) ? row.job_ids : null;
+    if (!jobIds || jobIds.some((item) => typeof item !== "string")) {
+      return { ok: false, unavailable: true };
+    }
+    invitations.push({
+      invitationId,
+      email,
+      role,
+      expiresAt,
+      generation,
+      packageKeys: row.packages.filter((item): item is string => typeof item === "string"),
+      assignedJobCount: jobIds.length,
+      delivery: latestDelivery.get(invitationId) ?? "unknown",
+    });
+  }
+  return { ok: true, invitations };
 }

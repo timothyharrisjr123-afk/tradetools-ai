@@ -14,6 +14,7 @@ import { mapActiveMembershipGate } from "@/app/lib/requireCapabilitySession";
 import { requireAccess } from "@/app/lib/access/requireAccess";
 import { loadViewerAccess } from "@/app/lib/access/viewerAccess";
 import { createClient } from "@/app/lib/supabase/server";
+import { TEAM_ACCESS_UNVERIFIED } from "@/app/lib/access/teamAccessPresentation";
 import { isUuidLike } from "@/app/lib/uuid";
 
 export const runtime = "nodejs";
@@ -57,7 +58,7 @@ export async function GET(req: NextRequest) {
     const viewerAccess = await loadViewerAccess(supabase, isUuidLike(jobId) ? jobId : null);
     if (!viewerAccess) {
       return NextResponse.json(
-        { ok: false, code: "authorization_unavailable", message: "Team could not be loaded. Try again." },
+        { ok: false, code: "authorization_unavailable", message: TEAM_ACCESS_UNVERIFIED },
         { status: 503 }
       );
     }
@@ -69,6 +70,7 @@ export async function GET(req: NextRequest) {
       ok: true,
       members,
       viewerRole: session.role,
+      viewerUserId: user.id,
       canAdminMembers: viewerAccess.canAdminMembers,
       viewerAccess,
     });
@@ -131,6 +133,7 @@ export async function PATCH(req: NextRequest) {
         supabase,
         targetUserId: userId,
         reassignToUserId: body?.reassignToUserId,
+        expectedRevision: body?.expectedRevision,
       });
       return NextResponse.json({ ok: true, removedUserId: userId, handoff });
     }
@@ -140,6 +143,7 @@ export async function PATCH(req: NextRequest) {
       targetUserId: userId,
       role: body?.role,
       expectedRevision: body?.expectedRevision,
+      packages: Array.isArray(body?.packages) ? body.packages : undefined,
     });
     return NextResponse.json({ ok: true, member });
   } catch (error) {

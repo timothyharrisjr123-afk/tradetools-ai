@@ -7,6 +7,10 @@ import {
   type ResolvedCompanyMembershipRole,
 } from "@/app/lib/companyMembershipRoles";
 import {
+  TEAM_MEMBERS_UNAVAILABLE,
+  contractorFacingMessage,
+} from "@/app/lib/access/teamAccessPresentation";
+import {
   NO_VIEWER_ACCESS,
   type ViewerAccessFlags,
 } from "@/app/lib/access/viewerAccess";
@@ -22,12 +26,18 @@ export type CompanyMemberClientItem = {
   openTaskAssigneeCount: number;
   /** Present for Team admins; sent back as the expected revision on access changes. */
   accessRevision: number | null;
+  /** Access-admin only. Never rendered as raw keys. */
+  packageKeys?: string[];
+  grantedJobCount?: number;
+  restrictionCount?: number;
 };
 
 export type CompanyMembersClientState = ViewerAccessFlags & {
   members: CompanyMemberClientItem[];
   liveMembers: CompanyMemberClientItem[];
   viewerRole: ResolvedCompanyMembershipRole | null;
+  /** Signed-in user. Used to hide self-edits. Not shown. */
+  viewerUserId: string | null;
   /**
    * Restricted (non-commercial) presentation: Field role, invalid role, or no
    * commercial read access. Presentation only; data access is enforced by the database.
@@ -82,6 +92,7 @@ export function useCompanyMembers(
   const [viewerRole, setViewerRole] = useState<ResolvedCompanyMembershipRole | null>(
     null
   );
+  const [viewerUserId, setViewerUserId] = useState<string | null>(null);
   const [viewerAccess, setViewerAccess] = useState<ViewerAccessFlags>(NO_VIEWER_ACCESS);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,23 +108,46 @@ export function useCompanyMembers(
       const res = await fetch(`/api/company/members${query}`, { cache: "no-store" });
       const body = (await res.json().catch(() => ({}))) as {
         ok?: boolean;
+        code?: unknown;
+        message?: unknown;
         members?: CompanyMemberClientItem[];
         viewerRole?: unknown;
+        viewerUserId?: unknown;
         viewerAccess?: unknown;
       };
       if (!res.ok || body.ok !== true) {
         setViewerAccess(NO_VIEWER_ACCESS);
-        setError("Team could not be loaded.");
+        setViewerUserId(null);
+        setError(contractorFacingMessage(body.code, body.message, TEAM_MEMBERS_UNAVAILABLE));
         return;
       }
-      setMembers(Array.isArray(body.members) ? body.members : []);
+      setMembers(
+        Array.isArray(body.members)
+          ? body.members.map((member) => ({
+              ...member,
+              packageKeys: Array.isArray(member.packageKeys)
+                ? member.packageKeys.filter((key) => typeof key === "string")
+                : [],
+              grantedJobCount:
+                typeof member.grantedJobCount === "number" && member.grantedJobCount >= 0
+                  ? member.grantedJobCount
+                  : 0,
+              restrictionCount:
+                typeof member.restrictionCount === "number" && member.restrictionCount >= 0
+                  ? member.restrictionCount
+                  : 0,
+            }))
+          : []
+      );
       setViewerRole(
         body.viewerRole == null ? null : resolveCompanyMembershipRole(body.viewerRole)
       );
+      setViewerUserId(typeof body.viewerUserId === "string" ? body.viewerUserId : null);
       setViewerAccess(parseViewerAccess(body.viewerAccess));
     } catch {
       setViewerAccess(NO_VIEWER_ACCESS);
-      setError("Team could not be loaded.");
+      setViewerUserId(null);
+      setError(TEAM_MEMBERS_UNAVAILABLE);
     } finally {
       setLoading(false);
     }
@@ -123,6 +157,7 @@ export function useCompanyMembers(
     if (!enabled) {
       setMembers([]);
       setViewerRole(null);
+      setViewerUserId(null);
       setViewerAccess(NO_VIEWER_ACCESS);
       return;
     }
@@ -145,6 +180,7 @@ export function useCompanyMembers(
     members,
     liveMembers,
     viewerRole,
+    viewerUserId,
     restrictedFieldRole:
       viewerRole != null &&
       (isRestrictedFieldRole(viewerRole) || !viewerAccess.canReadCommercial),

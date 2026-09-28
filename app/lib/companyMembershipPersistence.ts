@@ -24,6 +24,11 @@ import {
   resolveCompanyMembershipRole,
   type ResolvedCompanyMembershipRole,
 } from "@/app/lib/companyMembershipRoles";
+import {
+  TEAM_MEMBERS_UNAVAILABLE,
+  TEAM_STALE_MEMBER,
+  TEAM_STRONG_AUTH,
+} from "@/app/lib/access/teamAccessPresentation";
 import { isUuidLike } from "@/app/lib/uuid";
 
 export const COMPANY_ACCESS_ADMIN_RPC_V1 = "list_company_access_admin_v1";
@@ -53,9 +58,13 @@ export type CompanyMemberListItem = {
   openTaskAssigneeCount: number;
   /** Access-admin rows only; null in the ordinary directory. */
   accessRevision: number | null;
+  /** Access-admin rows only. Ordinary directory is always empty. Not rendered as keys. */
+  packageKeys: string[];
+  grantedJobCount: number;
+  restrictionCount: number;
 };
 
-const TEAM_UNAVAILABLE_MESSAGE = "Team could not be loaded. Try again.";
+const TEAM_UNAVAILABLE_MESSAGE = TEAM_MEMBERS_UNAVAILABLE;
 
 const RPC_CODE_HTTP: Record<string, { status: number; message?: string }> = {
   unauthorized: { status: 401 },
@@ -66,7 +75,7 @@ const RPC_CODE_HTTP: Record<string, { status: number; message?: string }> = {
   cannot_change_own_access: { status: 409, message: "You can’t change your own access." },
   stale_revision: {
     status: 409,
-    message: "This member’s access changed since you opened Team. Review and try again.",
+    message: TEAM_STALE_MEMBER,
   },
   package_unavailable: { status: 409, message: "That access isn’t available." },
   package_ineligible: { status: 409, message: "That access doesn’t fit this role." },
@@ -102,7 +111,7 @@ const RPC_CODE_HTTP: Record<string, { status: number; message?: string }> = {
   invalid_reassign: { status: 400, message: "Choose an active team member to take over." },
   assurance_required: {
     status: 403,
-    message: "This change needs a recent strong sign-in. That step isn’t available in the app yet.",
+    message: TEAM_STRONG_AUTH,
   },
   custody_required: { status: 403, message: "Only the company owner can transfer ownership." },
   transfer_target_ineligible: {
@@ -158,6 +167,16 @@ async function callTeamRpc(
   }
 }
 
+function stringListOrNull(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null;
+  const keys: string[] = [];
+  for (const item of value) {
+    if (typeof item !== "string" || !item.trim()) return null;
+    keys.push(item);
+  }
+  return keys;
+}
+
 function countOrNull(value: unknown): number | null {
   const n =
     typeof value === "number"
@@ -178,7 +197,20 @@ export function parseCompanyAccessAdminRows(data: unknown): CompanyMemberListIte
     const jobs = countOrNull(row.open_job_lead_count);
     const tasks = countOrNull(row.open_task_assignee_count);
     const revision = countOrNull(row.access_revision);
-    if (jobs == null || tasks == null || revision == null || revision < 1) return null;
+    const grantedJobs = countOrNull(row.granted_job_count);
+    const restrictions = countOrNull(row.restriction_count);
+    const packageKeys = stringListOrNull(row.package_keys);
+    if (
+      jobs == null ||
+      tasks == null ||
+      revision == null ||
+      revision < 1 ||
+      grantedJobs == null ||
+      restrictions == null ||
+      packageKeys == null
+    ) {
+      return null;
+    }
     const name = typeof row.display_name === "string" ? row.display_name.trim() : "";
     const email = typeof row.email === "string" ? row.email.trim() : "";
     items.push({
@@ -190,6 +222,9 @@ export function parseCompanyAccessAdminRows(data: unknown): CompanyMemberListIte
       openJobLeadCount: jobs,
       openTaskAssigneeCount: tasks,
       accessRevision: revision,
+      packageKeys,
+      grantedJobCount: grantedJobs,
+      restrictionCount: restrictions,
     });
   }
   return items;
@@ -243,6 +278,9 @@ export function directoryRowsToMemberItems(
     openJobLeadCount: 0,
     openTaskAssigneeCount: 0,
     accessRevision: null,
+    packageKeys: [],
+    grantedJobCount: 0,
+    restrictionCount: 0,
   }));
 }
 
@@ -259,23 +297,30 @@ export type CompanyMemberRoleResult = {
 };
 
 /**
- * Role edit (set_member_access_v1) at the member's expected access revision. Existing
- * packages and restrictions are kept (p_packages / p_restrictions null); a package that
- * no longer fits the new role is refused, never silently dropped. Never writes `owner`,
- * never edits the Owner membership, no self-change; Admin targets require custody.
+ * Role edit (set_member_access_v1) at the member's expected access revision. Omit
+ * packages to keep the current set (p_packages null). An explicit array replaces the
+ * set; a package that no longer fits the new role is refused, never silently dropped.
+ * Never writes `owner`, never edits the Owner membership, no self-change; Admin
+ * targets require custody.
  */
 export async function updateCompanyMemberRole(input: {
   supabase: SupabaseClient;
   targetUserId: string;
   role: unknown;
   expectedRevision: unknown;
+  /** Omit to keep current packages. An array is an explicit set; the database still enforces it. */
+  packages?: readonly string[] | null;
   requestId?: string | null;
 }): Promise<CompanyMemberRoleResult> {
   const expectedRevision = expectedRevisionOrNull(input.expectedRevision);
+  const packages = Array.isArray(input.packages)
+    ? input.packages.filter((item) => typeof item === "string")
+    : null;
   if (
     !isUuidLike(input.targetUserId) ||
     !isAssignableCompanyMembershipRole(input.role) ||
-    expectedRevision == null
+    expectedRevision == null ||
+    (packages != null && packages.length !== (input.packages?.length ?? 0))
   ) {
     throw new CompanyMembershipHttpError(400, "invalid_payload");
   }
@@ -283,7 +328,7 @@ export async function updateCompanyMemberRole(input: {
     p_target_user_id: input.targetUserId,
     p_role: input.role,
     p_expected_revision: expectedRevision,
-    p_packages: null,
+    p_packages: packages,
     p_restrictions: null,
     p_request_id: input.requestId ?? null,
   });

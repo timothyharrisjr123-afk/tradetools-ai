@@ -1,22 +1,71 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+/**
+ * Team screen intent (Phase 13B-G).
+ * The screen’s job, first/second/third scan order, information ownership,
+ * state-specific priorities, what to preserve/omit, allowed/disallowed visual
+ * mechanisms, and proof criteria must be explicit before editing.
+ *
+ * SCREEN JOB — An Owner or Admin can see who has access, each person's role,
+ * whether access is active, invited, or removed, any special access that
+ * matters, and the next safe action.
+ * FIRST SCAN — the person. SECOND — role, then status. THIRD — special access
+ * or attention, only when it changes the next action.
+ * INFORMATION OWNERSHIP — the database access engine owns authority. This
+ * screen summarizes it. Directory viewers see names and roles only.
+ * STATE PRIORITIES — loading looks like loading; a failed read is not an empty
+ * list; a pending invitation is not a membership; removal is not deletion;
+ * reactivation is a new assignment; ownership transfer is not a role edit.
+ * PRESERVE — five launch roles, explicit save, Owner separate from Admin,
+ * 7-day invite, resend, revoke, handoff distinct from removal.
+ * OMIT — capability ids, package ids, revisions, policy reasons, scope JSON,
+ * audit ids, and database identifiers.
+ * ALLOWED — order, type, spacing, grouping, alignment, restrained contextual
+ * color, progressive disclosure.
+ * DISALLOWED — card grids, boxes inside boxes, tinted status panels, banners
+ * for Active / Invited / Access removed, a permission matrix, a role builder.
+ * SEPARATION IS NOT HIERARCHY.
+ * PROOF — deterministic presentation tests, plus live desktop and 390px proof
+ * when a schema-compatible runtime exists. Production is not that runtime.
+ */
+
+import { useCallback, useEffect, useMemo, useState } from "react";
 import FocusedEditor, {
   FOCUSED_EDITOR_HINT,
   FOCUSED_EDITOR_INPUT,
   FOCUSED_EDITOR_LABEL,
+  FOCUSED_EDITOR_SAVE,
 } from "@/app/components/ui/FocusedEditor";
 import {
+  TEAM_HANDOFF_ATTENTION,
+  TEAM_INVITATIONS_UNAVAILABLE,
+  TEAM_MEMBERS_UNAVAILABLE,
+  TEAM_ROLE_BLURB,
+  TEAM_STRONG_AUTH,
+  contractorFacingMessage,
+  packageKeysForSave,
+  teamFieldAccessLine,
+  teamListState,
+  teamMemberStatus,
+  teamPackageChoices,
+  teamRoleLabel,
+  teamSpecialAccessSummary,
+  type TeamDelegator,
+} from "@/app/lib/access/teamAccessPresentation";
+import {
   ASSIGNABLE_COMPANY_MEMBERSHIP_ROLES,
-  COMPANY_MEMBERSHIP_ROLE_LABELS,
   isAssignableCompanyMembershipRole,
   type AssignableCompanyMembershipRole,
+  type ResolvedCompanyMembershipRole,
 } from "@/app/lib/companyMembershipRoles";
+import { INVITATION_NOT_SENT_MESSAGE } from "@/app/lib/invitations/invitationModel";
 import type { CompanyMemberClientItem } from "@/app/tools/roofing/jobCard/useCompanyMembers";
 import { labelForCompanyMember } from "@/app/tools/roofing/jobCard/useCompanyMembers";
 
 type CompanySettingsTeamEditorProps = {
   canAdminMembers: boolean;
+  viewerRole: ResolvedCompanyMembershipRole | null;
+  viewerUserId: string | null;
   members: readonly CompanyMemberClientItem[];
   loading: boolean;
   error: string | null;
@@ -24,43 +73,125 @@ type CompanySettingsTeamEditorProps = {
   onChanged: () => Promise<void> | void;
 };
 
+type PendingInvite = {
+  invitationId: string;
+  email: string;
+  role: string;
+  expiresAt: string;
+  generation: number;
+  packageKeys: string[];
+  assignedJobCount: number;
+  delivery: "sent" | "failed" | "unknown";
+};
+
+type Panel =
+  | { type: "invite" }
+  | { type: "role"; userId: string }
+  | { type: "remove"; userId: string }
+  | { type: "reactivate"; userId: string }
+  | { type: "transfer" }
+  | null;
+
+const ACTION =
+  "inline-flex min-h-[44px] w-full items-center justify-center px-1 text-sm font-medium text-slate-700 sm:w-auto sm:justify-start";
+
+function actionKey() {
+  const id = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}`;
+  return `team.${id}`.slice(0, 120);
+}
+
+function expiryLabel(iso: string): string {
+  const time = Date.parse(iso);
+  if (!Number.isFinite(time)) return "";
+  const date = new Date(time).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return time < Date.now() ? `Expired ${date}` : `Expires ${date}`;
+}
+
+function personName(member: CompanyMemberClientItem, members: readonly CompanyMemberClientItem[]) {
+  return labelForCompanyMember(member.userId, members);
+}
+
 export default function CompanySettingsTeamEditor({
   canAdminMembers,
+  viewerRole,
+  viewerUserId,
   members,
   loading,
   error,
   onClose,
   onChanged,
 }: CompanySettingsTeamEditorProps) {
-  const [busyUserId, setBusyUserId] = useState<string | null>(null);
+  const delegator: TeamDelegator = viewerRole === "owner" ? "owner" : "admin";
+  const viewerIsOwner = viewerRole === "owner";
+  const [panel, setPanel] = useState<Panel>(null);
+  const [busy, setBusy] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
-  const [removeUserId, setRemoveUserId] = useState<string | null>(null);
-  const [reassignToUserId, setReassignToUserId] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
-  const [handoffTargets, setHandoffTargets] = useState<Record<string, string>>({});
+  const [draftRole, setDraftRole] = useState<AssignableCompanyMembershipRole | "">("");
+  const [draftPackages, setDraftPackages] = useState<string[]>([]);
+  const [packagesTouched, setPackagesTouched] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<AssignableCompanyMembershipRole | "">("");
+  const [reassignToUserId, setReassignToUserId] = useState("");
+  const [transferTargetId, setTransferTargetId] = useState("");
+  const [formerRole, setFormerRole] = useState<AssignableCompanyMembershipRole>("admin");
+  const [transferArmed, setTransferArmed] = useState(false);
+  const [requestKey, setRequestKey] = useState("");
+  const [invitations, setInvitations] = useState<PendingInvite[]>([]);
+  const [invitationsLoading, setInvitationsLoading] = useState(false);
+  const [invitationsFailed, setInvitationsFailed] = useState(false);
 
-  const liveMembers = useMemo(
-    () => members.filter((row) => !row.removedAt),
-    [members]
-  );
-  const pendingHandoffs = useMemo(
-    () =>
-      members.filter(
-        (row) =>
-          row.removedAt && row.openJobLeadCount + row.openTaskAssigneeCount > 0
-      ),
-    [members]
-  );
-  const loadFailed = Boolean(error) && members.length === 0;
+  const listState = teamListState({
+    loading,
+    failed: Boolean(error),
+    count: members.length,
+  });
+  const people = useMemo(() => {
+    return [...members].sort((left, right) => {
+      const leftRemoved = left.removedAt ? 1 : 0;
+      const rightRemoved = right.removedAt ? 1 : 0;
+      if (leftRemoved !== rightRemoved) return leftRemoved - rightRemoved;
+      if (left.role === "owner") return -1;
+      if (right.role === "owner") return 1;
+      return personName(left, members).localeCompare(personName(right, members));
+    });
+  }, [members]);
 
-  const removing = liveMembers.find((row) => row.userId === removeUserId) ?? null;
-  const openTotal = removing
-    ? removing.openJobLeadCount + removing.openTaskAssigneeCount
-    : 0;
+  const loadInvitations = useCallback(async () => {
+    if (!canAdminMembers) return;
+    setInvitationsLoading(true);
+    try {
+      const res = await fetch("/api/company/invitations/pending", { cache: "no-store" });
+      const body = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        code?: unknown;
+        message?: unknown;
+        invitations?: PendingInvite[];
+      };
+      if (!res.ok || body.ok !== true || !Array.isArray(body.invitations)) {
+        setInvitationsFailed(true);
+        return;
+      }
+      setInvitationsFailed(false);
+      setInvitations(body.invitations);
+    } catch {
+      setInvitationsFailed(true);
+    } finally {
+      setInvitationsLoading(false);
+    }
+  }, [canAdminMembers]);
 
   useEffect(() => {
+    void loadInvitations();
+  }, [loadInvitations]);
+
+  const openPanel = (next: Panel) => {
+    setPanel(next);
     setLocalError(null);
-  }, [members]);
+    setRequestKey(actionKey());
+    setPackagesTouched(false);
+    setTransferArmed(false);
+  };
 
   const patchMember = async (payload: Record<string, unknown>) => {
     const res = await fetch("/api/company/members", {
@@ -75,11 +206,9 @@ export default function CompanySettingsTeamEditor({
       handoff?: { status?: string; message?: string };
     };
     if (!res.ok || body.ok !== true) {
-      throw new Error(
-        typeof body.message === "string"
-          ? body.message
-          : "Could not update team member."
-      );
+      throw Object.assign(new Error(contractorFacingMessage(body.code, body.message, "Could not update team member.")), {
+        code: body.code,
+      });
     }
     return body;
   };
@@ -91,299 +220,802 @@ export default function CompanySettingsTeamEditor({
         ? handoff.message
         : "Work reassignment still needs attention.";
 
-  const changeRole = async (
-    member: CompanyMemberClientItem,
-    role: AssignableCompanyMembershipRole
-  ) => {
-    if (!canAdminMembers) return;
-    const userId = member.userId;
-    setBusyUserId(userId);
+  const saveRole = async (member: CompanyMemberClientItem) => {
+    if (!canAdminMembers || member.role === "owner" || !isAssignableCompanyMembershipRole(draftRole)) return;
+    setBusy(true);
     setLocalError(null);
     try {
-      await patchMember({ userId, role, expectedRevision: member.accessRevision });
+      const choices = teamPackageChoices(draftRole, delegator);
+      await patchMember({
+        userId: member.userId,
+        role: draftRole,
+        expectedRevision: member.accessRevision,
+        ...(packagesTouched
+          ? {
+              packages: packageKeysForSave({
+                existing: member.packageKeys ?? [],
+                selected: draftPackages,
+                choices,
+              }),
+            }
+          : {}),
+      });
+      setPanel(null);
       await onChanged();
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : "Could not update role.");
     } finally {
-      setBusyUserId(null);
+      setBusy(false);
     }
   };
 
-  const confirmRemove = async () => {
-    if (!canAdminMembers || !removeUserId) return;
-    setBusyUserId(removeUserId);
+  const confirmRemove = async (member: CompanyMemberClientItem) => {
+    if (!canAdminMembers || member.role === "owner") return;
+    setBusy(true);
     setLocalError(null);
     setNotice(null);
     try {
       const body = await patchMember({
-        userId: removeUserId,
+        userId: member.userId,
         action: "remove",
-        reassignToUserId: reassignToUserId.trim() || null,
-        expectedRevision:
-          liveMembers.find((row) => row.userId === removeUserId)?.accessRevision ?? null,
+        expectedRevision: member.accessRevision,
+        reassignToUserId: reassignToUserId || null,
       });
-      setRemoveUserId(null);
-      setReassignToUserId("");
       const handoffError = handoffFailureMessage(body.handoff);
       if (handoffError) {
         setNotice(`Access removed. ${handoffError}`);
       }
+      setPanel(null);
       await onChanged();
     } catch (err) {
-      setLocalError(
-        err instanceof Error ? err.message : "Could not remove team member."
-      );
+      setLocalError(err instanceof Error ? err.message : "Could not remove access.");
     } finally {
-      setBusyUserId(null);
+      setBusy(false);
     }
   };
 
-  const retryHandoff = async (userId: string) => {
-    if (!canAdminMembers) return;
-    setBusyUserId(userId);
+  const reassignOpenWork = async (member: CompanyMemberClientItem) => {
+    if (!canAdminMembers || !reassignToUserId) return;
+    setBusy(true);
     setLocalError(null);
-    setNotice(null);
     try {
       const body = await patchMember({
-        userId,
+        userId: member.userId,
         action: "handoff",
-        reassignToUserId: handoffTargets[userId]?.trim() || null,
+        reassignToUserId,
+        expectedRevision: member.accessRevision,
       });
       const handoffError = handoffFailureMessage(body.handoff);
-      if (handoffError) setLocalError(handoffError);
+      setNotice(handoffError);
+      if (!handoffError) setPanel(null);
       await onChanged();
     } catch (err) {
-      setLocalError(
-        err instanceof Error ? err.message : "Work reassignment still needs attention."
-      );
+      setLocalError(err instanceof Error ? err.message : TEAM_HANDOFF_ATTENTION);
     } finally {
-      setBusyUserId(null);
+      setBusy(false);
     }
   };
+
+  const reactivate = async (member: CompanyMemberClientItem) => {
+    if (!canAdminMembers || !isAssignableCompanyMembershipRole(draftRole)) return;
+    setBusy(true);
+    setLocalError(null);
+    try {
+      const choices = teamPackageChoices(draftRole, delegator);
+      await patchMember({
+        userId: member.userId,
+        action: "reactivate",
+        role: draftRole,
+        packages: packageKeysForSave({
+          existing: [],
+          selected: draftPackages,
+          choices,
+        }),
+        jobIds: [],
+        expectedRevision: member.accessRevision,
+        idempotencyKey: requestKey,
+      });
+      setPanel(null);
+      await onChanged();
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : "Could not reactivate access.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const sendInvitation = async () => {
+    if (!canAdminMembers || !inviteRole || !inviteEmail.trim()) return;
+    setBusy(true);
+    setLocalError(null);
+    try {
+      const choices = teamPackageChoices(inviteRole, delegator);
+      const res = await fetch("/api/company/invitations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: inviteEmail.trim(),
+          role: inviteRole,
+          packages: draftPackages.filter((key) => choices.some((choice) => choice.key === key)),
+          jobIds: [],
+          idempotencyKey: requestKey,
+        }),
+      });
+      const body = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        code?: string;
+        message?: string;
+        invitationId?: string;
+        delivery?: string;
+        generation?: number | null;
+        expiresAt?: string | null;
+      };
+      if (!res.ok || body.ok !== true || !body.invitationId) {
+        throw new Error(contractorFacingMessage(body.code, body.message, "Could not send the invitation."));
+      }
+      if (body.delivery === "failed") setNotice(INVITATION_NOT_SENT_MESSAGE);
+      else setNotice(null);
+      const created: PendingInvite = {
+        invitationId: body.invitationId,
+        email: inviteEmail.trim(),
+        role: inviteRole,
+        expiresAt: typeof body.expiresAt === "string" ? body.expiresAt : "",
+        generation: typeof body.generation === "number" ? body.generation : 1,
+        packageKeys: draftPackages.filter((key) => choices.some((choice) => choice.key === key)),
+        assignedJobCount: 0,
+        delivery: body.delivery === "failed" ? "failed" : body.delivery === "sent" ? "sent" : "unknown",
+      };
+      setInvitations((current) => [
+        created,
+        ...current.filter((invite) => invite.invitationId !== created.invitationId),
+      ]);
+      setInviteEmail("");
+      setInviteRole("");
+      setDraftPackages([]);
+      setPanel(null);
+      await loadInvitations();
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : "Could not send the invitation.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resendInvitation = async (invite: PendingInvite) => {
+    setBusy(true);
+    setLocalError(null);
+    try {
+      const res = await fetch(`/api/company/invitations/${invite.invitationId}/resend`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          expectedGeneration: invite.generation,
+          idempotencyKey: actionKey(),
+        }),
+      });
+      const body = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        code?: string;
+        message?: string;
+        delivery?: string;
+      };
+      if (!res.ok || body.ok !== true) {
+        throw new Error(contractorFacingMessage(body.code, body.message, "Could not resend the invitation."));
+      }
+      setNotice(body.delivery === "failed" ? INVITATION_NOT_SENT_MESSAGE : null);
+      await loadInvitations();
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : "Could not resend the invitation.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const revokeInvitation = async (invite: PendingInvite) => {
+    setBusy(true);
+    setLocalError(null);
+    try {
+      const res = await fetch(`/api/company/invitations/${invite.invitationId}/revoke`, {
+        method: "POST",
+      });
+      const body = (await res.json().catch(() => ({}))) as { ok?: boolean; code?: string; message?: string };
+      if (!res.ok || body.ok !== true) {
+        throw new Error(contractorFacingMessage(body.code, body.message, "Could not revoke the invitation."));
+      }
+      setNotice(null);
+      await loadInvitations();
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : "Could not revoke the invitation.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const transferOwnership = async () => {
+    if (!viewerIsOwner || !transferArmed || !transferTargetId) return;
+    const owner = members.find((member) => member.role === "owner");
+    const target = members.find((member) => member.userId === transferTargetId);
+    if (!owner || !target) return;
+    setBusy(true);
+    setLocalError(null);
+    try {
+      const res = await fetch("/api/company/ownership/transfer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetUserId: target.userId,
+          formerRole,
+          ownerExpectedRevision: owner.accessRevision,
+          targetExpectedRevision: target.accessRevision,
+          idempotencyKey: requestKey,
+        }),
+      });
+      const body = (await res.json().catch(() => ({}))) as { ok?: boolean; code?: string; message?: string };
+      if (!res.ok || body.ok !== true) {
+        throw new Error(contractorFacingMessage(body.code, body.message, "Could not transfer ownership."));
+      }
+      setPanel(null);
+      setNotice(null);
+      await onChanged();
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : "Could not transfer ownership.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const inviteChoices = inviteRole ? teamPackageChoices(inviteRole, delegator) : [];
+  const loadFailed = listState === "unavailable";
+  const warningNotice = Boolean(
+    notice && (notice.includes("needs attention") || notice.startsWith("Invitation wasn't"))
+  );
 
   return (
     <FocusedEditor
       open
       title="Team"
-      description="Who can work this company’s jobs — keep it simple."
-      dirty={Boolean(removeUserId)}
-      saving={Boolean(busyUserId)}
+      description="Who has access to this business."
+      dirty={panel != null}
+      saving={busy}
       readOnly
-      error={localError || error}
+      error={loadFailed ? localError : localError || (error && members.length > 0 ? error : null)}
       onClose={onClose}
     >
-      <div data-company-settings-editor="team" className="space-y-3">
+      <div data-company-settings-editor="team" className="max-w-full space-y-6 overflow-x-hidden">
         {notice ? (
           <p
-            className="rounded-md border border-amber-200 bg-amber-50/70 px-3 py-2 text-sm text-amber-900"
+            className={warningNotice ? "text-sm text-amber-800" : "text-sm text-slate-700"}
             data-company-settings-team-notice
           >
             {notice}
           </p>
         ) : null}
-        {loading ? (
+
+        {listState === "loading" ? (
           <p className={FOCUSED_EDITOR_HINT}>Loading team…</p>
         ) : loadFailed ? (
-          <p className={FOCUSED_EDITOR_HINT} data-company-settings-team-unavailable>
-            Team members are unavailable right now.
+          <p className="text-sm text-slate-800" data-company-settings-team-unavailable>
+            {TEAM_MEMBERS_UNAVAILABLE}
           </p>
-        ) : liveMembers.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-slate-200 px-4 py-8 text-center">
-            <p className="text-sm font-medium text-slate-800">No team members yet</p>
-            <p className={`${FOCUSED_EDITOR_HINT} mt-1`}>
-              Invite people when you’re ready to share jobs.
-            </p>
-          </div>
         ) : (
-          <ul className="divide-y divide-slate-100" data-company-settings-team-list>
-            {liveMembers.map((member) => {
-              const name = labelForCompanyMember(member.userId, liveMembers);
-              const openJobs = member.openJobLeadCount;
-              const openTasks = member.openTaskAssigneeCount;
-              return (
-                <li key={member.userId} className="py-3.5" data-company-settings-team-row>
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold tracking-tight text-slate-950">
-                        {name}
-                      </p>
-                      {member.email && member.email !== name ? (
-                        <p className="mt-0.5 text-xs text-slate-500">{member.email}</p>
-                      ) : null}
-                      {(openJobs > 0 || openTasks > 0) && (
-                        <p className="mt-1.5 text-xs text-slate-400">
-                          {openJobs > 0 ? `${openJobs} job lead${openJobs === 1 ? "" : "s"}` : null}
-                          {openJobs > 0 && openTasks > 0 ? " · " : null}
-                          {openTasks > 0
-                            ? `${openTasks} open task${openTasks === 1 ? "" : "s"}`
-                            : null}
-                        </p>
-                      )}
-                    </div>
-                    {canAdminMembers && member.role !== "owner" ? (
-                      <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-                        <label className="block">
-                          <span className="sr-only">Role</span>
-                          <select
-                            className="min-h-[36px] rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-800 outline-none focus:border-slate-400"
-                            value={member.role}
-                            disabled={busyUserId === member.userId}
-                            onChange={(event) => {
-                              const role = event.target.value;
-                              if (!isAssignableCompanyMembershipRole(role)) return;
-                              void changeRole(member, role);
-                            }}
-                            data-company-settings-team-preset
-                          >
-                            {member.role === "invalid_role" ? (
-                              <option value="invalid_role" disabled>
-                                {COMPANY_MEMBERSHIP_ROLE_LABELS.invalid_role}
-                              </option>
-                            ) : null}
-                            {ASSIGNABLE_COMPANY_MEMBERSHIP_ROLES.map((role) => (
-                              <option key={role} value={role}>
-                                {COMPANY_MEMBERSHIP_ROLE_LABELS[role]}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <button
-                          type="button"
-                          className="min-h-[36px] px-2 text-sm text-slate-400 hover:text-rose-700"
-                          disabled={busyUserId === member.userId}
-                          onClick={() => {
-                            setRemoveUserId(member.userId);
-                            setReassignToUserId("");
-                            setLocalError(null);
-                          }}
-                          data-company-settings-team-remove
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ) : (
-                      <p className="text-sm font-medium text-slate-600">
-                        {COMPANY_MEMBERSHIP_ROLE_LABELS[member.role] ??
-                          COMPANY_MEMBERSHIP_ROLE_LABELS.invalid_role}
-                      </p>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-
-        {canAdminMembers && removing ? (
-          <div
-            className="rounded-lg border border-amber-200 bg-amber-50/70 px-3 py-3"
-            data-company-settings-team-remove-confirm
-          >
-            <p className={FOCUSED_EDITOR_LABEL}>
-              Remove {labelForCompanyMember(removing.userId, liveMembers)}?
-            </p>
-            <p className={FOCUSED_EDITOR_HINT}>
-              {openTotal > 0
-                ? `They have ${removing.openJobLeadCount} open job lead${
-                    removing.openJobLeadCount === 1 ? "" : "s"
-                  } and ${removing.openTaskAssigneeCount} open task assignment${
-                    removing.openTaskAssigneeCount === 1 ? "" : "s"
-                  }. Reassign or leave Unassigned.`
-                : "Open assignments will be cleared to Unassigned."}
-            </p>
-            {openTotal > 0 ? (
-              <label className="mt-2 block">
-                <span className={FOCUSED_EDITOR_LABEL}>Reassign open work to</span>
-                <select
-                  className={FOCUSED_EDITOR_INPUT}
-                  value={reassignToUserId}
-                  onChange={(event) => setReassignToUserId(event.target.value)}
-                  data-company-settings-team-reassign
-                >
-                  <option value="">Unassigned</option>
-                  {liveMembers
-                    .filter((row) => row.userId !== removing.userId)
-                    .map((row) => (
-                      <option key={row.userId} value={row.userId}>
-                        {labelForCompanyMember(row.userId, liveMembers)}
-                      </option>
-                    ))}
-                </select>
-              </label>
-            ) : null}
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                type="button"
-                className="min-h-[44px] rounded-md bg-rose-700 px-3 text-sm font-semibold text-white hover:bg-rose-800"
-                disabled={busyUserId === removing.userId}
-                onClick={() => void confirmRemove()}
-              >
-                Confirm remove
-              </button>
-              <button
-                type="button"
-                className="min-h-[44px] px-3 text-sm text-slate-600 hover:text-slate-900"
-                onClick={() => {
-                  setRemoveUserId(null);
-                  setReassignToUserId("");
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : null}
-
-        {canAdminMembers && !loading && pendingHandoffs.length > 0 ? (
-          <div className="space-y-2" data-company-settings-team-pending-handoff>
-            <p className={FOCUSED_EDITOR_LABEL}>Open work still assigned</p>
-            {pendingHandoffs.map((row) => (
-              <div
-                key={row.userId}
-                className="rounded-lg border border-slate-200 px-3 py-2.5"
-              >
-                <p className="text-sm text-slate-800">
-                  {labelForCompanyMember(row.userId, members)} no longer has access ·{" "}
-                  {row.openJobLeadCount + row.openTaskAssigneeCount} open item
-                  {row.openJobLeadCount + row.openTaskAssigneeCount === 1 ? "" : "s"}
-                </p>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <select
-                    className={FOCUSED_EDITOR_INPUT}
-                    value={handoffTargets[row.userId] ?? ""}
-                    onChange={(event) =>
-                      setHandoffTargets((prev) => ({
-                        ...prev,
-                        [row.userId]: event.target.value,
-                      }))
-                    }
+          <>
+            {canAdminMembers ? (
+              <div>
+                {panel?.type === "invite" ? (
+                  <form
+                    className="space-y-3"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void sendInvitation();
+                    }}
                   >
-                    <option value="">Unassigned</option>
-                    {liveMembers.map((live) => (
-                      <option key={live.userId} value={live.userId}>
-                        {labelForCompanyMember(live.userId, liveMembers)}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    className="min-h-[40px] rounded-md border border-slate-300 px-3 text-sm font-medium text-slate-800 hover:bg-slate-50"
-                    disabled={busyUserId === row.userId}
-                    onClick={() => void retryHandoff(row.userId)}
-                  >
-                    Hand off open work
+                    <label className={FOCUSED_EDITOR_LABEL}>
+                      Email
+                      <input
+                        type="email"
+                        autoComplete="email"
+                        required
+                        value={inviteEmail}
+                        onChange={(event) => setInviteEmail(event.target.value)}
+                        className={FOCUSED_EDITOR_INPUT}
+                      />
+                    </label>
+                    <label className={FOCUSED_EDITOR_LABEL}>
+                      Role
+                      <select
+                        required
+                        value={inviteRole}
+                        onChange={(event) => {
+                          const role = event.target.value;
+                          if (!isAssignableCompanyMembershipRole(role)) {
+                            setInviteRole("");
+                            setDraftPackages([]);
+                            return;
+                          }
+                          setInviteRole(role);
+                          setDraftPackages([]);
+                        }}
+                        className={FOCUSED_EDITOR_INPUT}
+                      >
+                        <option value="">Choose a role</option>
+                        {ASSIGNABLE_COMPANY_MEMBERSHIP_ROLES.map((role) => (
+                          <option key={role} value={role}>
+                            {teamRoleLabel(role)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    {inviteRole ? <p className={FOCUSED_EDITOR_HINT}>{TEAM_ROLE_BLURB[inviteRole]}</p> : null}
+                    {inviteRole === "field_user" ? (
+                      <p className={FOCUSED_EDITOR_HINT}>They can work on jobs you assign to them.</p>
+                    ) : null}
+                    {inviteChoices.length > 0 ? (
+                      <fieldset className="space-y-1">
+                        <legend className={FOCUSED_EDITOR_LABEL}>Special access</legend>
+                        <p className={FOCUSED_EDITOR_HINT}>Only if this person needs something beyond the role.</p>
+                        {inviteChoices.map((choice) => (
+                          <label key={choice.label} className="flex min-h-[44px] items-center gap-2 text-sm text-slate-800">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4"
+                              checked={draftPackages.includes(choice.key)}
+                              onChange={(event) => {
+                                setDraftPackages((current) =>
+                                  event.target.checked
+                                    ? [...current, choice.key]
+                                    : current.filter((key) => key !== choice.key)
+                                );
+                              }}
+                            />
+                            {choice.label}
+                          </label>
+                        ))}
+                      </fieldset>
+                    ) : null}
+                    <button type="submit" className={`${FOCUSED_EDITOR_SAVE} w-full sm:w-auto`} disabled={busy}>
+                      Send invitation
+                    </button>
+                  </form>
+                ) : (
+                  <button type="button" className={ACTION} onClick={() => openPanel({ type: "invite" })}>
+                    Add team member
                   </button>
-                </div>
+                )}
               </div>
-            ))}
-          </div>
-        ) : null}
+            ) : (
+              <p className={FOCUSED_EDITOR_HINT}>An Owner or Admin changes access.</p>
+            )}
 
-        {!canAdminMembers ? (
-          <p className={FOCUSED_EDITOR_HINT}>
-            Only the company owner or an admin can change roles or remove members.
-          </p>
-        ) : null}
+            {people.length === 0 ? (
+              <p className="text-sm text-slate-700">Add a team member when you are ready.</p>
+            ) : (
+              <ul className="divide-y divide-slate-100" data-company-settings-team-list>
+                {people.map((member) => {
+                  const name = personName(member, people);
+                  const status = teamMemberStatus({
+                    removedAt: member.removedAt,
+                    openWork: member.openJobLeadCount + member.openTaskAssigneeCount,
+                  });
+                  const self = viewerUserId != null && member.userId === viewerUserId;
+                  const special =
+                    canAdminMembers ? teamSpecialAccessSummary(member.packageKeys ?? []) : null;
+                  const fieldLine =
+                    canAdminMembers
+                      ? teamFieldAccessLine(member.role, member.grantedJobCount ?? 0)
+                      : null;
+                  const showEmail = canAdminMembers && member.email && member.email !== name;
+                  const editingRole = panel?.type === "role" && panel.userId === member.userId;
+                  const removing = panel?.type === "remove" && panel.userId === member.userId;
+                  const reactivating = panel?.type === "reactivate" && panel.userId === member.userId;
+                  const choices = isAssignableCompanyMembershipRole(draftRole)
+                    ? teamPackageChoices(draftRole, delegator)
+                    : [];
+                  return (
+                    <li key={member.userId} className="min-w-0 py-3.5" data-company-settings-team-row>
+                      <p className="break-words text-sm font-semibold tracking-tight text-slate-950">{name}</p>
+                      <p className="mt-0.5 text-sm text-slate-700">
+                        <span>{teamRoleLabel(member.role)}</span>
+                        {canAdminMembers ? (
+                          <>
+                            <span className="text-slate-400"> · </span>
+                            <span>{status.label}</span>
+                          </>
+                        ) : null}
+                      </p>
+                      {showEmail ? <p className="mt-0.5 break-all text-xs text-slate-500">{member.email}</p> : null}
+                      {special ? <p className="mt-1 text-sm text-slate-600">Special access: {special}</p> : null}
+                      {fieldLine ? <p className="mt-1 text-sm text-slate-600">{fieldLine}</p> : null}
+                      {canAdminMembers && member.restrictionCount ? (
+                        <p className="mt-1 text-sm text-slate-600">Some access is limited.</p>
+                      ) : null}
+                      {canAdminMembers && status.attention ? (
+                        <p className="mt-1 text-sm text-amber-800" data-company-settings-team-pending-handoff>
+                          {status.attention}
+                        </p>
+                      ) : null}
+
+                      {canAdminMembers && !self && member.role !== "owner" && !member.removedAt ? (
+                        <div className="mt-2 flex flex-col sm:flex-row sm:gap-4">
+                          <button
+                            type="button"
+                            className={ACTION}
+                            onClick={() => {
+                              const role = isAssignableCompanyMembershipRole(member.role) ? member.role : "";
+                              setDraftRole(role);
+                              const allowed = role ? teamPackageChoices(role, delegator) : [];
+                              setDraftPackages(
+                                (member.packageKeys ?? []).filter((key) =>
+                                  allowed.some((choice) => choice.key === key)
+                                )
+                              );
+                              setReassignToUserId("");
+                              openPanel({ type: "role", userId: member.userId });
+                            }}
+                          >
+                            Change role
+                          </button>
+                          <button
+                            type="button"
+                            className={`${ACTION} text-rose-700`}
+                            data-company-settings-team-remove
+                            onClick={() => {
+                              setReassignToUserId("");
+                              openPanel({ type: "remove", userId: member.userId });
+                            }}
+                          >
+                            Remove access
+                          </button>
+                        </div>
+                      ) : null}
+
+                      {canAdminMembers && !self && member.removedAt ? (
+                        <div className="mt-2 flex flex-col sm:flex-row sm:gap-4">
+                          <button
+                            type="button"
+                            className={ACTION}
+                            onClick={() => {
+                              setDraftRole("");
+                              setDraftPackages([]);
+                              openPanel({ type: "reactivate", userId: member.userId });
+                            }}
+                          >
+                            Reactivate access
+                          </button>
+                          {status.attention ? (
+                            <button
+                              type="button"
+                              className={ACTION}
+                              onClick={() => {
+                                setReassignToUserId("");
+                                openPanel({ type: "remove", userId: member.userId });
+                              }}
+                            >
+                              Reassign open work
+                            </button>
+                          ) : null}
+                        </div>
+                      ) : null}
+
+                      {editingRole ? (
+                        <form
+                          className="mt-3 space-y-3"
+                          onSubmit={(event) => {
+                            event.preventDefault();
+                            void saveRole(member);
+                          }}
+                        >
+                          <label className={FOCUSED_EDITOR_LABEL}>
+                            Role
+                            <select
+                              className={FOCUSED_EDITOR_INPUT}
+                              required
+                              value={draftRole}
+                              data-company-settings-team-preset
+                              onChange={(event) => {
+                                const role = event.target.value;
+                                if (!isAssignableCompanyMembershipRole(role)) {
+                                  setDraftRole("");
+                                  setDraftPackages([]);
+                                  return;
+                                }
+                                setDraftRole(role);
+                                setDraftPackages((current) =>
+                                  current.filter((key) =>
+                                    teamPackageChoices(role, delegator).some((choice) => choice.key === key)
+                                  )
+                                );
+                              }}
+                            >
+                              <option value="">Choose a role</option>
+                              {ASSIGNABLE_COMPANY_MEMBERSHIP_ROLES.map((role) => (
+                                <option key={role} value={role}>
+                                  {teamRoleLabel(role)}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          {draftRole ? <p className={FOCUSED_EDITOR_HINT}>{TEAM_ROLE_BLURB[draftRole]}</p> : null}
+                          {choices.length > 0 ? (
+                            <fieldset className="space-y-1">
+                              <legend className={FOCUSED_EDITOR_LABEL}>Special access</legend>
+                              {choices.map((choice) => (
+                                <label key={choice.label} className="flex min-h-[44px] items-center gap-2 text-sm text-slate-800">
+                                  <input
+                                    type="checkbox"
+                                    className="h-4 w-4"
+                                    checked={draftPackages.includes(choice.key)}
+                                    onChange={(event) => {
+                                      setPackagesTouched(true);
+                                      setDraftPackages((current) =>
+                                        event.target.checked
+                                          ? [...current, choice.key]
+                                          : current.filter((key) => key !== choice.key)
+                                      );
+                                    }}
+                                  />
+                                  {choice.label}
+                                </label>
+                              ))}
+                            </fieldset>
+                          ) : null}
+                          <button type="submit" className={`${FOCUSED_EDITOR_SAVE} w-full sm:w-auto`} disabled={busy}>
+                            Save
+                          </button>
+                        </form>
+                      ) : null}
+
+                      {removing ? (
+                        <form
+                          className="mt-3 space-y-3"
+                          data-company-settings-team-remove-confirm
+                          onSubmit={(event) => {
+                            event.preventDefault();
+                            if (member.removedAt) void reassignOpenWork(member);
+                            else void confirmRemove(member);
+                          }}
+                        >
+                          {member.removedAt ? (
+                            <p className="text-sm text-slate-700">Choose who should take the open work.</p>
+                          ) : (
+                            <p className="text-sm text-slate-700">
+                              They lose company access immediately. Their past work stays. Open work may need to be reassigned.
+                            </p>
+                          )}
+                          <label className={FOCUSED_EDITOR_LABEL}>
+                            Open work
+                            <select
+                              className={FOCUSED_EDITOR_INPUT}
+                              value={reassignToUserId}
+                              data-company-settings-team-reassign
+                              onChange={(event) => setReassignToUserId(event.target.value)}
+                            >
+                              <option value="">Choose a person</option>
+                              {people
+                                .filter((row) => !row.removedAt && row.userId !== member.userId)
+                                .map((row) => (
+                                  <option key={row.userId} value={row.userId}>
+                                    {personName(row, people)}
+                                  </option>
+                                ))}
+                            </select>
+                          </label>
+                          <button type="submit" className={`${FOCUSED_EDITOR_SAVE} w-full sm:w-auto`} disabled={busy}>
+                            {member.removedAt ? "Reassign open work" : "Remove access"}
+                          </button>
+                        </form>
+                      ) : null}
+
+                      {reactivating ? (
+                        <form
+                          className="mt-3 space-y-3"
+                          onSubmit={(event) => {
+                            event.preventDefault();
+                            void reactivate(member);
+                          }}
+                        >
+                          <p className="text-sm text-slate-700">
+                            Choose the role they should have now. Earlier special access is not restored.
+                          </p>
+                          <label className={FOCUSED_EDITOR_LABEL}>
+                            Role
+                            <select
+                              className={FOCUSED_EDITOR_INPUT}
+                              required
+                              value={draftRole}
+                              onChange={(event) => {
+                                const role = event.target.value;
+                                if (!isAssignableCompanyMembershipRole(role)) {
+                                  setDraftRole("");
+                                  setDraftPackages([]);
+                                  return;
+                                }
+                                setDraftRole(role);
+                                setDraftPackages([]);
+                              }}
+                            >
+                              <option value="">Choose a role</option>
+                              {ASSIGNABLE_COMPANY_MEMBERSHIP_ROLES.map((role) => (
+                                <option key={role} value={role}>
+                                  {teamRoleLabel(role)}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          {draftRole ? <p className={FOCUSED_EDITOR_HINT}>{TEAM_ROLE_BLURB[draftRole]}</p> : null}
+                          {draftRole === "field_user" ? (
+                            <p className={FOCUSED_EDITOR_HINT}>
+                              Job access follows the jobs you assign. Earlier job access is not restored.
+                            </p>
+                          ) : null}
+                          {choices.length > 0 ? (
+                            <fieldset className="space-y-1">
+                              <legend className={FOCUSED_EDITOR_LABEL}>Special access</legend>
+                              {choices.map((choice) => (
+                                <label key={choice.label} className="flex min-h-[44px] items-center gap-2 text-sm text-slate-800">
+                                  <input
+                                    type="checkbox"
+                                    className="h-4 w-4"
+                                    checked={draftPackages.includes(choice.key)}
+                                    onChange={(event) => {
+                                      setDraftPackages((current) =>
+                                        event.target.checked
+                                          ? [...current, choice.key]
+                                          : current.filter((key) => key !== choice.key)
+                                      );
+                                    }}
+                                  />
+                                  {choice.label}
+                                </label>
+                              ))}
+                            </fieldset>
+                          ) : null}
+                          <button type="submit" className={`${FOCUSED_EDITOR_SAVE} w-full sm:w-auto`} disabled={busy}>
+                            Reactivate access
+                          </button>
+                        </form>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+
+            {canAdminMembers && (invitationsLoading || invitationsFailed || invitations.length > 0) ? (
+              <section className="space-y-2">
+                <h3 className="text-sm font-semibold text-slate-950">Invitations</h3>
+                {invitationsLoading && invitations.length === 0 ? (
+                  <p className={FOCUSED_EDITOR_HINT}>Loading invitations…</p>
+                ) : invitationsFailed && invitations.length === 0 ? (
+                  <p className="text-sm text-slate-800">{TEAM_INVITATIONS_UNAVAILABLE}</p>
+                ) : invitations.length === 0 ? null : (
+                  <ul className="divide-y divide-slate-100">
+                    {invitations.map((invite) => {
+                      const role = isAssignableCompanyMembershipRole(invite.role)
+                        ? teamRoleLabel(invite.role)
+                        : "Invited";
+                      const when = expiryLabel(invite.expiresAt);
+                      const special = teamSpecialAccessSummary(invite.packageKeys);
+                      return (
+                        <li key={invite.invitationId} className="min-w-0 py-3.5">
+                          <p className="break-all text-sm font-semibold text-slate-950">{invite.email}</p>
+                          <p className="mt-0.5 text-sm text-slate-700">
+                            {role}
+                            <span className="text-slate-400"> · </span>
+                            Invited
+                            {when ? <span className="text-slate-500"> · {when}</span> : null}
+                          </p>
+                          {special ? <p className="mt-1 text-sm text-slate-600">Special access: {special}</p> : null}
+                          {invite.role === "field_user" ? (
+                            <p className="mt-1 text-sm text-slate-600">
+                              {invite.assignedJobCount > 0
+                                ? `Assigned jobs (${invite.assignedJobCount})`
+                                : "No jobs assigned yet"}
+                            </p>
+                          ) : null}
+                          {invite.delivery === "failed" ? (
+                            <p className="mt-1 text-sm text-amber-800">{INVITATION_NOT_SENT_MESSAGE}</p>
+                          ) : null}
+                          <div className="mt-2 flex flex-col sm:flex-row sm:gap-4">
+                            <button type="button" className={ACTION} disabled={busy} onClick={() => void resendInvitation(invite)}>
+                              Resend
+                            </button>
+                            <button
+                              type="button"
+                              className={`${ACTION} text-rose-700`}
+                              disabled={busy}
+                              onClick={() => void revokeInvitation(invite)}
+                            >
+                              Revoke invitation
+                            </button>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </section>
+            ) : null}
+
+            {viewerIsOwner && canAdminMembers ? (
+              <section className="space-y-3">
+                <h3 className="text-sm font-semibold text-slate-950">Owner</h3>
+                <p className="text-sm text-slate-700">
+                  Owner is separate from Admin. Transfer ownership is the only way to change who owns the business.
+                </p>
+                {panel?.type === "transfer" ? (
+                  <form
+                    className="space-y-3"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void transferOwnership();
+                    }}
+                  >
+                    <label className={FOCUSED_EDITOR_LABEL}>
+                      New Owner
+                      <select
+                        required
+                        className={FOCUSED_EDITOR_INPUT}
+                        value={transferTargetId}
+                        onChange={(event) => setTransferTargetId(event.target.value)}
+                      >
+                        <option value="">Choose a person</option>
+                        {people
+                          .filter((member) => !member.removedAt && member.role !== "owner")
+                          .map((member) => (
+                            <option key={member.userId} value={member.userId}>
+                              {personName(member, people)}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                    <label className={FOCUSED_EDITOR_LABEL}>
+                      Your next role
+                      <select
+                        className={FOCUSED_EDITOR_INPUT}
+                        value={formerRole}
+                        onChange={(event) => {
+                          const role = event.target.value;
+                          if (!isAssignableCompanyMembershipRole(role)) return;
+                          setFormerRole(role);
+                        }}
+                      >
+                        {ASSIGNABLE_COMPANY_MEMBERSHIP_ROLES.map((role) => (
+                          <option key={role} value={role}>
+                            {teamRoleLabel(role)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <p className="text-sm text-slate-700">
+                      The person you choose becomes the Owner. You become the role you pick here. This does not happen from the role list.
+                    </p>
+                    <p className="text-sm text-amber-800">{TEAM_STRONG_AUTH}</p>
+                    <label className="flex min-h-[44px] items-center gap-2 text-sm text-slate-800">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4"
+                        checked={transferArmed}
+                        onChange={(event) => setTransferArmed(event.target.checked)}
+                      />
+                      I understand I will no longer be the Owner.
+                    </label>
+                    <button
+                      type="submit"
+                      className={`${FOCUSED_EDITOR_SAVE} w-full sm:w-auto`}
+                      disabled={busy || !transferArmed || !transferTargetId}
+                    >
+                      Transfer ownership
+                    </button>
+                  </form>
+                ) : (
+                  <button type="button" className={ACTION} onClick={() => openPanel({ type: "transfer" })}>
+                    Transfer ownership
+                  </button>
+                )}
+              </section>
+            ) : null}
+          </>
+        )}
       </div>
     </FocusedEditor>
   );

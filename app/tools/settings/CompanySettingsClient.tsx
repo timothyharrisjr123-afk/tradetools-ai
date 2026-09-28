@@ -483,6 +483,8 @@ export default function CompanySettingsClient({
       {editor === "team" ? (
         <CompanySettingsTeamEditor
           canAdminMembers={team.canAdminMembers}
+          viewerRole={team.viewerRole}
+          viewerUserId={team.viewerUserId}
           members={team.members}
           loading={team.loading}
           error={team.error}

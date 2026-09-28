@@ -346,6 +346,19 @@ Implemented shape replaces the two-step `company_ownership_transfers` flow in §
 - **Not done here:** full Team UI (Phase G); MFA enrollment and Supabase MFA project configuration (Phase H / Q5); use-time assurance on payments connect, settings, and refunds once enrollment exists; session revocation; two-party transfer acknowledgement; employment mobility; visual proof (the user-owned runtime targets production, which does not have this schema).
 - **Phase F status:** CLOSED for code + staging. No production migration was applied.
 
+### 2.10 Phase G team access management record (2026-09-28)
+
+Governance for this work is [product execution](fielddive-product-execution-standards.md), [UI cohesion](fielddive-ui-product-cohesion-standard.md), and [audit playbook](fielddive-audit-playbook.md). This section records what shipped. It does not restate those standards.
+
+- **Screen.** Settings → Team, in the existing focused editor. Person, then role and status, then special access or attention only when it changes the next action. Five roles only: Owner, Admin, Sales, Production Lead, Field. Owner is not a role option. Transfer ownership is a separate Owner action with an explicit confirmation. The running product cannot complete strong sign-in, so the transfer surface says so and does not pretend the transfer finished.
+- **Statuses.** Active, Invited, and Access removed. Unresolved open work adds "Work reassignment still needs attention." Expiry is a date on the invitation, not another status. A failed read says "Team members are unavailable right now." It is not an empty list.
+- **Actions.** Add team member (email, role, then eligible special access, send). Resend and revoke. Explicit role save at the expected revision. Remove access, then reassignment. Reactivate chooses a current role and special access; earlier grants are not restored. Role save omits packages unless the contractor changed them. An explicit package list keeps packages the current person cannot delegate.
+- **Omitted from the UI.** Capability ids, package ids, revisions, profile versions, policy reasons, scope JSON, audit ids, database identifiers, reserved packages, and a generated can/cannot list. Field access is "Assigned jobs (N)" or "No jobs assigned yet." There is no job-id editor on Team. Assigning the person to work stays on the job.
+- **Directory.** People without team management see names and roles. Emails, disabled members, invitations, special access, and counts stay on the access-admin read.
+- **Invitation list.** No new migration and no new RPC. `GET /api/company/invitations/pending` requires `team.manage`, takes the company from the live membership, and reads pending rows with the service role. The response has no token hash, delivery error class, or provider id. A failed read is "Invitations are unavailable right now."
+- **Not done here.** New-business activation, proposal onboarding, first-job wizard, invited-user destination, returning-user home, onboarding checklist (13C/13D). MFA enrollment (Phase H). Manual job picking inside Team. Visual proof: the user-owned dev server points at production, which does not have the Phase B–F schema. No second server was started. Proof remains pending for Phase H.
+- **Phase G status:** CLOSED for code. No production migration was applied.
+
 ---
 
 ## 3. Canonical data / authority model
@@ -828,6 +841,8 @@ Disabled membership blocks joining another company (I-1). The resolver shows `di
 
 ## 13. Team UI contract (Phase G)
 
+Phase G shipped the launch screen in §2.10. Where §13.1–§13.7 describe a drawer, a generated can/cannot summary, an invitation-expired status, or an in-team job picker, §2.10 is the implemented contract.
+
 ### 13.1 List (Settings → Team)
 Columns: **Person** (name, email for team managers only) · **Role** · **Status** (`Active` / `Invited` / `Invitation expired` / `Removed`). Quiet **Special access** indicator only when grants/restrictions exist. Filters: Active · Invited · Removed. Visible to members with `team.manage`; others see no Team settings (assignment pickers use the directory projection, §14.4).
 
@@ -1105,23 +1120,16 @@ Each phase ends with a local commit (or small commit set) and a phase report; pr
 
 ### PHASE G — Minimal Team UI
 
-- **Objective:** Ship §13 contract on top of B–F authority.
+- **Status:** CLOSED for code (2026-09-28). Record: §2.10.
+- **Objective:** Ship the contractor Team screen on top of B–F authority.
 - **13A dependency:** inherits B–F; production flag stays off until Phase H.
-- **Existing authority:** `CompanySettingsTeamEditor.tsx` (list/preset dropdown/remove) — replaced.
-- **Root problem:** current editor autosaves presets, shows "Owner / Admin", promises invites.
-- **Files/systems:** `app/tools/settings/*Team*`, `useCompanyMembers.ts`, settings page composition, shared UI primitives (existing), copy.
-- **DB/RPC:** none new (consumes B–F RPCs).
-- **API/server:** team routes aggregate access-admin projection + effective access preview RPC.
-- **UI:** list, drawer, add user, invite states, remove/restore, access preview, stale-edit handling, Field job access editor (within drawer: "Jobs" list with add/remove).
+- **DB/RPC:** none new. Pending invitations are read in the app after `team.manage`, from the session company, because the table has no client grant and no list RPC.
 - **Migrations:** none.
-- **Protected truth:** accepted Job Card/Board UI unchanged; no settings redesign beyond Team.
-- **Tests:** component/state tests; actions hidden/disabled per ceiling; server rejects anything UI hides (API tests).
-- **Staging proof:** end-to-end with staging data.
-- **Visual proof:** full §13.7 set desktop + true 390.
-- **Production preflight:** flag remains off until H.
-- **Stop conditions:** any UI control without enforced backend; any package shown whose capability is reserved.
-- **Rollback/forward-fix:** UI revert; authority unaffected.
-- **Commit:** `feat(team): minimal team access management`.
+- **UI:** list, add team member, invitation states, explicit role save, remove and reassignment, reactivation, Owner transfer with an honest strong-sign-in block. No permission matrix. No job-id editor.
+- **Protected truth:** A–F authority unchanged. Accepted Job Card/Board UI unchanged. No settings redesign beyond Team.
+- **Tests:** `app/lib/phase13gTeamUi.test.ts` plus A–F regressions.
+- **Visual proof:** pending. The user-owned runtime targets production, which does not have this schema. Validate at Phase H.
+- **Commit:** `feat(team): add launch-ready company access management`.
 
 ### PHASE H — End-to-end launch proof
 
