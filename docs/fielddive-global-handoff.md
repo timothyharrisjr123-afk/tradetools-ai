@@ -1,6 +1,46 @@
 # FieldDive Global Handoff
 
-**Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes.
+**Purpose:** Single source of truth for GPT, Cursor, and humans when resuming work. Prevents drift across chat transitions. Read this file **before** proposing or implementing code changes. Then follow the mandatory governance documents named below. They are standing instructions. This handoff points to them and records the current checkpoint. It does not replace them.
+
+## MANDATORY GOVERNANCE REFERENCES
+
+All future FieldDive work must follow:
+
+- `docs/fielddive-product-execution-standards.md` — how implementation work is done: paid-product standard, product principles, architecture, Fix-When-Found, state truth, tenancy, server ownership, visual proof, Astra and Sol use, prompt lessons, and release/environment truth.
+- `docs/fielddive-ui-product-cohesion-standard.md` — mandatory whenever any visible UI is touched: screen job, scan order, information ownership, hierarchy, color, banners, and real viewport proof.
+- `docs/fielddive-audit-playbook.md` — how whole-product audits (13E-A) and competitive audits (13E-B) are run, and how findings close.
+
+These are canonical standing instructions. Do not improvise replacements, silently weaken them, or omit applicable standards from future implementation or audit work.
+
+Domain blueprints remain the product authority for their program. Repo truth remains the authority for what the code actually does. If a governance standard and a locked blueprint appear to conflict, stop and report it. Do not pick a weaker reading.
+
+Sections below this checkpoint are historical. Older **NEXT** lines are not the current step.
+
+### Current checkpoint (2026-09-28)
+
+- **Code:** `ba4c3e84991be01e156e9a7faa11c4a32b500245` — `feat(auth): harden membership recovery and custody`
+- **Phase 13B:** A–F **CLOSED**. **G NEXT.**
+- **Docs:** this governance checkpoint. Not pushed. No deploy.
+
+### Locked future sequence
+
+1. **13B-G** — Minimal Team UI
+2. **13B-H** — End-to-end access launch proof
+3. **13C** — First-Time Business Activation & Product Onboarding. Broad Astra research first. Activation target: **FIRST REAL PROPOSAL SENT**.
+4. **13D** — Returning / Invited User Entry
+5. **13E-A** — Whole-Product / Paid-Product Audit
+6. **13E-B** — Competitive Capability & Differentiation Audit
+7. **13F** — Remediation + Competitive Gap Closure
+8. **14** — Pricing / Plans / Entitlements
+9. **15** — Public Website / Homepage / Conversion
+10. **16** — Subscription + Commercial Account Lifecycle
+11. **17** — Legal / Trust / Commercial Readiness
+12. **18** — Support & Recovery
+13. **19** — Technology Currency / Modernization Audit
+14. **20** — Final Release Audit
+15. **21** — Promoted Controlled Launch
+
+13A production rollout remains a coordinated gate and is not implied by staging. 13B production application does not leapfrog it. See the Phase 13B blueprint §0.
 
 ## 2026-09-25 — CHECKPOINT: accepted Job Card / Job Board UI + acceptance-read P1
 
