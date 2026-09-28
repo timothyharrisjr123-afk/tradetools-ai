@@ -109,7 +109,8 @@ test("owner is not a role-dropdown choice and transfer is a separate action", ()
   assert.match(editor, /ASSIGNABLE_COMPANY_MEMBERSHIP_ROLES\.map/);
   assert.match(editor, /Transfer ownership/);
   assert.match(editor, /I understand I will no longer be the Owner/);
-  assert.match(editor, /TEAM_STRONG_AUTH|recent strong sign-in/);
+  assert.match(editor, /StrongSignInStep/);
+  assert.match(editor, /code !== "assurance_required"/);
   assert.doesNotMatch(editor, /<option[^>]*value="owner"/);
   assert.match(editor, /expectedRevision: member\.accessRevision/);
   assert.doesNotMatch(editor, /onChange=\{[^}]*saveRole/);

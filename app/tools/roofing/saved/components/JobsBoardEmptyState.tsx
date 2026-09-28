@@ -10,20 +10,46 @@ import {
   ASTRA_G5_USUAL_ROOF_LABEL,
 } from "@/app/lib/astraG5Activation";
 
+/** Who is looking at an empty board. Only authors get the first-proposal start. */
+export type JobsBoardEmptyAudience = "author" | "field" | "coordinator" | "unknown";
+
 type JobsBoardEmptyStateProps = {
   companyNameMissing: boolean;
   searchActive: boolean;
+  audience: JobsBoardEmptyAudience;
 };
 
 export default function JobsBoardEmptyState({
   companyNameMissing,
   searchActive,
+  audience,
 }: JobsBoardEmptyStateProps) {
   if (searchActive) {
     return (
       <p className="rounded-md border border-slate-200/80 bg-slate-50 px-4 py-8 text-center text-sm text-slate-600">
         No jobs match your search.
       </p>
+    );
+  }
+
+  if (audience !== "author") {
+    const heading =
+      audience === "field"
+        ? "No work assigned yet"
+        : audience === "coordinator"
+          ? "No jobs to coordinate yet"
+          : "No jobs yet";
+    const body =
+      audience === "field"
+        ? "Jobs show up here when someone at your company assigns you to one."
+        : audience === "coordinator"
+          ? "Jobs show up here once the office creates them."
+          : "Jobs show up here once they are created.";
+    return (
+      <div className="px-6 py-10 text-center" data-jobs-board-empty-assigned data-jobs-board-empty-audience={audience}>
+        <h2 className="text-base font-semibold text-slate-900">{heading}</h2>
+        <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-600">{body}</p>
+      </div>
     );
   }
 

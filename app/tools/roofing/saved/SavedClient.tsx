@@ -4270,6 +4270,17 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                   <JobsBoardEmptyState
                     companyNameMissing={companySetupReadiness.showBanner}
                     searchActive={boardFiltersActive}
+                    audience={
+                      companyMembers.canSendProposals
+                        ? "author"
+                        : companyMembers.viewerRole == null
+                          ? "unknown"
+                          : companyMembers.restrictedFieldRole
+                            ? "field"
+                            : companyMembers.canAssignJobs
+                              ? "coordinator"
+                              : "unknown"
+                    }
                   />
                 ) : !companyJobSearch.active ? (
                   <>

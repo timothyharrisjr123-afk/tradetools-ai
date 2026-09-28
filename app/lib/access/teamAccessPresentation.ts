@@ -16,7 +16,7 @@ export const TEAM_ACCESS_UNVERIFIED = "We couldn't verify access right now.";
 export const TEAM_STALE_MEMBER =
   "The team member changed since you opened this. Refresh and try again.";
 export const TEAM_STRONG_AUTH =
-  "This change needs a recent strong sign-in. That step isn\u2019t available in the app yet.";
+  "This change needs a recent strong sign-in. Confirm with your authenticator app to continue.";
 export const TEAM_INVITATIONS_UNAVAILABLE = "Invitations are unavailable right now.";
 export const TEAM_HANDOFF_ATTENTION = "Work reassignment still needs attention.";
 

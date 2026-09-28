@@ -41,7 +41,6 @@ import {
   TEAM_INVITATIONS_UNAVAILABLE,
   TEAM_MEMBERS_UNAVAILABLE,
   TEAM_ROLE_BLURB,
-  TEAM_STRONG_AUTH,
   contractorFacingMessage,
   packageKeysForSave,
   teamFieldAccessLine,
@@ -59,6 +58,7 @@ import {
   type ResolvedCompanyMembershipRole,
 } from "@/app/lib/companyMembershipRoles";
 import { INVITATION_NOT_SENT_MESSAGE } from "@/app/lib/invitations/invitationModel";
+import StrongSignInStep from "@/app/tools/settings/StrongSignInStep";
 import type { CompanyMemberClientItem } from "@/app/tools/roofing/jobCard/useCompanyMembers";
 import { labelForCompanyMember } from "@/app/tools/roofing/jobCard/useCompanyMembers";
 
@@ -107,6 +107,12 @@ function expiryLabel(iso: string): string {
   return time < Date.now() ? `Expired ${date}` : `Expires ${date}`;
 }
 
+function teamError(code: unknown, message: unknown, fallback: string) {
+  return Object.assign(new Error(contractorFacingMessage(code, message, fallback)), {
+    code: typeof code === "string" ? code : undefined,
+  });
+}
+
 function personName(member: CompanyMemberClientItem, members: readonly CompanyMemberClientItem[]) {
   return labelForCompanyMember(member.userId, members);
 }
@@ -140,6 +146,14 @@ export default function CompanySettingsTeamEditor({
   const [invitations, setInvitations] = useState<PendingInvite[]>([]);
   const [invitationsLoading, setInvitationsLoading] = useState(false);
   const [invitationsFailed, setInvitationsFailed] = useState(false);
+  const [strongRetry, setStrongRetry] = useState<(() => Promise<void>) | null>(null);
+
+  const needsStrongSignIn = (err: unknown, retry: () => Promise<void>) => {
+    if ((err as { code?: unknown } | null)?.code !== "assurance_required") return false;
+    setLocalError(null);
+    setStrongRetry(() => retry);
+    return true;
+  };
 
   const listState = teamListState({
     loading,
@@ -206,9 +220,7 @@ export default function CompanySettingsTeamEditor({
       handoff?: { status?: string; message?: string };
     };
     if (!res.ok || body.ok !== true) {
-      throw Object.assign(new Error(contractorFacingMessage(body.code, body.message, "Could not update team member.")), {
-        code: body.code,
-      });
+      throw teamError(body.code, body.message, "Could not update team member.");
     }
     return body;
   };
@@ -243,6 +255,7 @@ export default function CompanySettingsTeamEditor({
       setPanel(null);
       await onChanged();
     } catch (err) {
+      if (needsStrongSignIn(err, () => saveRole(member))) return;
       setLocalError(err instanceof Error ? err.message : "Could not update role.");
     } finally {
       setBusy(false);
@@ -318,6 +331,7 @@ export default function CompanySettingsTeamEditor({
       setPanel(null);
       await onChanged();
     } catch (err) {
+      if (needsStrongSignIn(err, () => reactivate(member))) return;
       setLocalError(err instanceof Error ? err.message : "Could not reactivate access.");
     } finally {
       setBusy(false);
@@ -351,7 +365,7 @@ export default function CompanySettingsTeamEditor({
         expiresAt?: string | null;
       };
       if (!res.ok || body.ok !== true || !body.invitationId) {
-        throw new Error(contractorFacingMessage(body.code, body.message, "Could not send the invitation."));
+        throw teamError(body.code, body.message, "Could not send the invitation.");
       }
       if (body.delivery === "failed") setNotice(INVITATION_NOT_SENT_MESSAGE);
       else setNotice(null);
@@ -375,6 +389,7 @@ export default function CompanySettingsTeamEditor({
       setPanel(null);
       await loadInvitations();
     } catch (err) {
+      if (needsStrongSignIn(err, sendInvitation)) return;
       setLocalError(err instanceof Error ? err.message : "Could not send the invitation.");
     } finally {
       setBusy(false);
@@ -400,7 +415,7 @@ export default function CompanySettingsTeamEditor({
         delivery?: string;
       };
       if (!res.ok || body.ok !== true) {
-        throw new Error(contractorFacingMessage(body.code, body.message, "Could not resend the invitation."));
+        throw teamError(body.code, body.message, "Could not resend the invitation.");
       }
       setNotice(body.delivery === "failed" ? INVITATION_NOT_SENT_MESSAGE : null);
       await loadInvitations();
@@ -420,7 +435,7 @@ export default function CompanySettingsTeamEditor({
       });
       const body = (await res.json().catch(() => ({}))) as { ok?: boolean; code?: string; message?: string };
       if (!res.ok || body.ok !== true) {
-        throw new Error(contractorFacingMessage(body.code, body.message, "Could not revoke the invitation."));
+        throw teamError(body.code, body.message, "Could not revoke the invitation.");
       }
       setNotice(null);
       await loadInvitations();
@@ -452,12 +467,13 @@ export default function CompanySettingsTeamEditor({
       });
       const body = (await res.json().catch(() => ({}))) as { ok?: boolean; code?: string; message?: string };
       if (!res.ok || body.ok !== true) {
-        throw new Error(contractorFacingMessage(body.code, body.message, "Could not transfer ownership."));
+        throw teamError(body.code, body.message, "Could not transfer ownership.");
       }
       setPanel(null);
       setNotice(null);
       await onChanged();
     } catch (err) {
+      if (needsStrongSignIn(err, transferOwnership)) return;
       setLocalError(err instanceof Error ? err.message : "Could not transfer ownership.");
     } finally {
       setBusy(false);
@@ -489,6 +505,17 @@ export default function CompanySettingsTeamEditor({
           >
             {notice}
           </p>
+        ) : null}
+
+        {strongRetry ? (
+          <StrongSignInStep
+            onConfirmed={() => {
+              const retry = strongRetry;
+              setStrongRetry(null);
+              void retry();
+            }}
+            onCancel={() => setStrongRetry(null)}
+          />
         ) : null}
 
         {listState === "loading" ? (
@@ -989,7 +1016,7 @@ export default function CompanySettingsTeamEditor({
                     <p className="text-sm text-slate-700">
                       The person you choose becomes the Owner. You become the role you pick here. This does not happen from the role list.
                     </p>
-                    <p className="text-sm text-amber-800">{TEAM_STRONG_AUTH}</p>
+                    <p className={FOCUSED_EDITOR_HINT}>You&apos;ll confirm with your authenticator app before this happens.</p>
                     <label className="flex min-h-[44px] items-center gap-2 text-sm text-slate-800">
                       <input
                         type="checkbox"

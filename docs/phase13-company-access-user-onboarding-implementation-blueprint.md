@@ -359,6 +359,67 @@ Governance for this work is [product execution](fielddive-product-execution-stan
 - **Not done here.** New-business activation, proposal onboarding, first-job wizard, invited-user destination, returning-user home, onboarding checklist (13C/13D). MFA enrollment (Phase H). Manual job picking inside Team. Visual proof: the user-owned dev server points at production, which does not have the Phase B–F schema. No second server was started. Proof remains pending for Phase H.
 - **Phase G status:** CLOSED for code. No production migration was applied.
 
+### 2.11 Phase H end-to-end access proof record (2026-09-28)
+
+Governance is unchanged (§2.10 links). This section records Phase H truth and the one real blocker.
+
+- **Strong sign-in shipped.** The Phase F assurance check (JWT `aal2`, `iat` within 15 minutes) could not be met in the product, so transfer, Admin promotion, Admin invitations, and sensitive grants were unreachable. The Team editor now catches `assurance_required`, shows one authenticator step (enroll with QR and manual key the first time, a 6-digit code after that), and retries the same request with the same idempotency key. Stale unverified factors are removed before enrolling. It uses `supabase.auth.mfa` from the installed `@supabase/supabase-js`. No package change and no migration. Strong sign-in is not a use-time gate on ordinary work. Code: `app/lib/auth/strongSignIn.ts`, `app/tools/settings/StrongSignInStep.tsx`, `CompanySettingsTeamEditor.tsx`.
+- **Zero-work board fixed.** Field and Production Lead with no jobs saw the first-proposal CTA. The empty board now depends on the audience. People who can send proposals keep the CTA. Field sees "No work assigned yet." Coordinators see "No jobs to coordinate yet." No buttons for either.
+- **Not a gap.** Production Lead coordinates Field through company-scope `jobs.assign`: assigning a task couples job access, and manual grant and revoke work. The `lead_assigned_work` package remains a later special-access package.
+- **Hosted MFA.** TOTP enroll and verify work on staging: password sign-in gives aal1, enroll returns an SVG QR, verify gives aal2 with fresh `iat`. Production TOTP enablement is a rollout preflight (below). Local `supabase/config.toml` has TOTP off; it only affects the local stack.
+- **Staging real-session proof (2026-09-28, target guard STAGING, `tmp/phase13b-h/assembledProof.mjs`, output `assembled.json`).** Eight users signed in with passwords (no simulated claims). Results:
+  - **Create business:** no admission gives `no_access` and `admission_required`. With an admission the state is `creator_eligible`. A concurrent double click returns `created` and `existing` for one company. Replay returns `existing`. Landing is `active` as Owner.
+  - **Invitations:**
+    - Admin invitation at aal1 gives `assurance_required`. After TOTP it succeeds at aal2.
+    - Issue replay with the same key returns the same invitation.
+    - Wrong account gives `email_mismatch`. A recipient who is a member elsewhere gives `recipient_membership_exists`.
+    - Revoke works and preview shows `revoked`. After a resend the old link previews `not_found` and the new link previews `pending`.
+    - Accepts succeed for Admin, Sales, Production Lead, Field, and a second Field member. Accept replay returns `already_accepted`.
+  - **Directory versus admin:** Owner and Admin see the admin read. Sales, Production Lead, and Field get `forbidden`. The directory returns only `user_id`, `display_name`, and `role`. Field sees only its own row.
+  - **Job scope:**
+    - Owner creates two jobs. Production Lead assigns a task to Field, and Field then sees exactly that job and its one task.
+    - The Field brief returns the operational projection.
+    - The second Field member (zero jobs) sees no jobs or tasks and cannot edit another person's task. Field cannot edit the job.
+    - Field reads of proposals, payment requests, schedules, customers, and estimates return 0 rows.
+    - Stranger, outsider, and anon see no jobs.
+    - A Production Lead grant makes the job visible to the idle Field member. Revoke hides it again.
+  - **Ceilings:** Production Lead, Sales, and Field invitations get `capability_denied`. Admin can invite Field. Admin inviting Admin or promoting Sales to Admin gets `owner_required`. Sales self-promotion gets `capability_denied`. Another company's Owner does not see this company's members.
+  - **Revision:** a stale revision gives `stale_revision`.
+  - **Remove access:** after disable, the live Field session sees no jobs and resolves `disabled`. Handoff to a non-member gives `invalid_reassign`. Handoff to the Production Lead reassigns the open task. Reactivation as Field restores no job access. Reactivation replay returns `replay: true`.
+  - **Transfer:** the non-Owner Admin at aal1 gets `assurance_required`. The Owner at aal2 transfers. Replay returns `replay: true`. Afterwards there is exactly one Owner row and the pointer matches. The new Owner at aal1 gets `assurance_required`.
+  - **Audit:** invitation issued, accepted, resent, and revoked; member disabled, handoff, reactivated; ownership transferred. Custody operations: reactivation and transfer.
+  - **Cleanup:** 0 proof users, companies, invitations, jobs, and admissions. Residue 16, companies 17.
+- **Tests.**
+  - `app/lib/phase13hAccessLaunch.test.ts` (6) and the updated Phase G assertion.
+  - Full suite: 330 files, 4505 tests, 4480 pass, 25 fail. The 25 are the same list as the full run taken before the first 13B commit (`tmp/phase13b-a/full.out`), and no 13B commit touched those tests or their subjects. They are classified as unrelated to 13B.
+  - Source `tsc` is clean.
+- **Blocker: compatible runtime.** The only running app is the user-owned `npm run dev` on port 3000, and `.env.local` targets production, which lacks the Phase B–G schema. Per the rules, no second server was started and production was not changed. Live visual acceptance for Team, strong sign-in, role landings, the empty boards, and the 390 px layout is therefore not done. Phase H stays open until that proof exists.
+- **Smallest user action.** Restart your own `npm run dev` with `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` set to the staging project in that shell only (do not commit them). Then ask for the Phase H visual pass. Screenshots go to `tmp/fielddive-ui-review/phase13b-h-access-launch/`.
+- **Production rollout manifest (not executed; each step needs explicit authorization).**
+  1. **Provenance first.** RG-0 (13A 0A/0B/0C) in production with recorded SHAs and deployment ids (§0.3). Choose a selective release SHA or an authorized full-main cutover.
+  2. **Auth configuration preflight.** In the production Supabase Auth settings, enable MFA TOTP enroll and verify. Confirm with a throwaway production account: enroll, verify, JWT `aal2`, then delete the account.
+  3. **Read-only preflight queries.**
+     - Migration ledger ends at the pre-13B head.
+     - Role distribution: every `company_memberships.role` maps to the five canonical keys, or Phase A fail-closed will mark it invalid.
+     - Every company has exactly one active Owner and `companies.owner_user_id` matches it.
+     - No user has an active membership in two companies.
+     - Residue companies (no owner, no members) are counted and left alone.
+     - Policy and grant parity against the staging catalog (`tmp/phase13b-b/q-policies.sql`, `q-table-grants.sql` patterns).
+  4. **Migrations, in order, after the target guard with production authorization and a `db push --dry-run`:**
+     - `20260927170000`, `171000`
+     - `180000`, `181000`, `182000`, `183000`, `184000`, `185000`
+     - `190000`, `191000`, `192000`, `193000`, `194000`, `195000`
+     - `200000`, `201000`
+     - `210000`
+     - `220000`
+
+     Then restore the staging CLI link.
+  5. **Rollback and forward-fix posture.** There are no down migrations. Recovery is a forward fix. Policies and grants are rebuilt by named migrations, so a defect is fixed by a new migration. If a migration fails midway, it rolls back in its transaction. Stop and do not continue the sequence. Keep invitations off until the post-apply proof passes.
+  6. **Post-apply security proof.** Repeat the staging real-session matrix above against production with `@example.invalid` fixtures, then delete them. Minimum coverage: anon, stranger, cross-tenant, and disabled denials; Field only on the assigned job; directory versus admin; `assurance_required` at aal1 and success at aal2; exactly one Owner after transfer.
+  7. **Deploy.** Promote an exact Vercel deployment id built from the chosen SHA. Record it.
+  8. **Product smoke.** `/start` landing per role. Team list, invite, accept, strong sign-in, transfer. Empty boards for Field and Production Lead. `/p` proposal view, send, and acceptance, with accepted still ≠ approved. Scheduling, lifecycle, payments and refunds, pricing, scope changes, Field brief.
+- **Phase H status:** BLOCKED at the compatible-runtime gate. Code and staging proof are complete. The global handoff is not updated.
+
 ---
 
 ## 3. Canonical data / authority model
@@ -1133,6 +1194,7 @@ Each phase ends with a local commit (or small commit set) and a phase report; pr
 
 ### PHASE H — End-to-end launch proof
 
+- **Status:** BLOCKED at the compatible-runtime gate (2026-09-28). Code, strong sign-in, and staging real-session proof are done. Live visual proof is pending. Record and production rollout manifest: §2.11.
 - **Objective:** Prove the whole system on staging, then production-safe verification, then enable.
 - **13A dependency:** RG-0..RG-3 in production with recorded release provenance (exact SHAs / deployment ids).
 - **Scope:** journeys for Owner, Admin, Sales, Production Lead, Field (scoped); invitation flow; wrong identity; stale session; disabled user; cross-tenant adversarial; mobile/desktop; direct DB/API/RPC/storage.
