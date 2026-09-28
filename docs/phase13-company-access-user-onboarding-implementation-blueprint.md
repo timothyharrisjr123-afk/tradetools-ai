@@ -326,6 +326,26 @@ Legend: **CONFIRMED** · **NOT CONFIRMED** · **CHANGED SINCE ASTRA** · **INCON
 - **Not done here:** full Team UI (Phase G); polished invited-user landing (13D); visual proof (the user-owned runtime targets production, which does not have this schema); live Resend to a controlled inbox; password-recovery page; Production Lead package delegation.
 - **Phase E status:** CLOSED for code + staging. Production application requires 0A in production first (§0.3, §18.4) and must ship with this app. No production migration was applied.
 
+### 2.9 Phase F revocation, recovery, and custody record (2026-09-27)
+
+Implemented shape replaces the two-step `company_ownership_transfers` flow in §12.6 for launch. A pending acknowledgement would be a second custody race, and the target is already an active member. One transaction is the custody boundary. §12 remains the product intent; this section is what shipped.
+
+- **Revoke first.** `disable_company_member_v1` is unchanged in signature and is not assurance-gated. A lost handoff cannot restore access. Historical membership is not deleted. `created_by` and completed or closed work stay put.
+- **Session.** A disabled member can still hold a JWT. That JWT does not keep company access. `private.current_active_company_id()` is null, the resolver returns `state = disabled`, directory and job lists return nothing, and protected RPCs return `forbidden`. No auth session is revoked. This stack has no confirmed admin sign-out to rely on, and sign-out would not be the authorization boundary anyway. `/start` already says access has been removed.
+- **Handoff.** `handoff_member_open_work_v1(target, reassign_to, expected_revision, request_id)`. The two-argument call still works. Open work is `private.job_is_open_work_v1` plus tasks with `status = 'open'` and `deleted_at` null. Only `assigned_to` moves. A bad target is `invalid_reassign` and the member stays disabled. The same request id replays. The same id with a different target is `idempotency_conflict`. A wrong revision is `stale_revision`. Pending work is already visible as open job and task counts on the access-admin list.
+- **Reactivation** is only `reactivate_company_member_v1`. It takes the shared `private.lock_user_membership` lock, requires Owner or Admin, an expected revision, and an idempotency key. It clears `removed_at` and `disabled_by`, sets the requested role and current profile version, revokes every live package grant and job grant, then inserts only the requested packages and, for Field, the requested in-company jobs (`source = manual`). It does not restore Owner. Admin cannot reactivate an Admin, cannot reactivate to Admin, and cannot pass an Owner-only package (`owner_required`). Sales, Production Lead, and Field are `capability_denied`. A cross-tenant target is `not_found`. The same key and fingerprint replays. A different fingerprint is `idempotency_conflict`. Login, clearing `removed_at` from a client, and replaying an invitation do not reactivate. A disabled membership still blocks joining another company. That mobility limit is unchanged.
+- **Custody.** Exactly one active `owner` membership, matching `companies.owner_user_id`. The unique owner index is immediate, so a transfer demotes the current Owner before it promotes the target, then moves the pointer. The deferred owner trigger sees one owner at commit.
+- **Transfer** is `transfer_company_ownership_v1(target, former_role, owner_revision, target_revision, idempotency_key)`. The caller must be the current custody Owner. Former role is an explicit argument: `admin`, `office_sales`, `production_lead`, or `field_user`. There is no silent default. After the company custody lock, a stored idempotency key returns the original result even if the caller is no longer Owner and even without fresh assurance. A new key then requires assurance and the current pointer, so a retry cannot swap custody back. Disabled, cross-tenant, and already-owner targets are rejected. Admin is `custody_required`. A direct `UPDATE` of `owner_user_id` and a direct `DELETE` of the owner membership do not move custody. Owner-only and role-ineligible live grants on the former Owner are revoked. Restrictions stay. Job grants stay. Historical attribution stays.
+- **Assurance now.** `private.assurance_satisfied_v1` is true only when the JWT `aal` is `aal2` and `iat` is within 15 minutes. It is required for ownership transfer, Admin promotion, and delegating a package that is `strong_auth_required` or sensitive and not Admin-assignable (the active Owner-only packages, including request payments). The check is inside `set_member_access_v1`, `issue_company_invitation_v1`, reactivation, and transfer. It is not in the use-time evaluator. Disable, ordinary role edits, `approve_jobs`, field brief, tasks, and schedule updates do not require it. Payments connect, payment settings, and refund execution are not aal2-gated: no user can reach aal2 until enrollment exists, and gating those routes now would make Connect impossible. That is a deliberate deviation from §12.5. The app does not pretend MFA enrollment exists. The blocked message is: "This change needs a recent strong sign-in. That step isn't available in the app yet."
+- **Unavailable Owner.** No in-product backdoor and no automatic Admin succession. `recover_company_custody_v1` is granted only to `service_role`. Anon and authenticated callers get `42501` before the body. The body also requires the JWT role `service_role`. A reason of 8–500 characters is required. The same atomic swap runs with authority `system`, outcome `recovered`, and one `support_custody_recovered` audit row. Actor is null because there is no end-user id. The runbook is `docs/phase13f-unavailable-owner-recovery.md`. There is no support console.
+- **Audit.** New event types: `member_reactivated`, `ownership_transferred`, `support_custody_recovered`. Rows record actor (when there is one), subject, company, before/after, revisions, request id, and reason when one was required. A forced abort after disable leaves no disable event and leaves the member active. No token, password, or MFA material is stored. `company_custody_operations` stores the idempotency result for reactivation, transfer, and support recovery. RLS on, no client grants.
+- **Locks.** Reactivation uses the existing per-user lock. Transfer and support recovery use `private.lock_company_custody_v1` (`fielddive.company_custody_v1:` plus company id) and lock the two membership rows in `user_id` order. Unrelated Team edits are not globally serialized.
+- **App.** `PATCH /api/company/members` accepts `reactivate` behind `team.manage`; the RPC still enforces Owner versus Admin. `POST /api/company/ownership/transfer` is session-only; the RPC enforces custody. The Team editor's handoff failure sentence is "Work reassignment still needs attention." The remove path already prefixes "Access removed." No transfer form and no new Team surface. Phase G owns that UI.
+- **Staging (2026-09-27, project staging, migration `20260927220000` applied after target guard, dry run, and a begin/rollback compile check).** Rolled-back matrix: live disabled session denied; handoff moved one open job and one open task and left closed, archived, deleted, and completed work; failed handoff stayed revoked; replay and conflict; explicit reactivation did not restore the payment package; unauthorized reactivation denied; stale revisions rejected; Owner disable and delete denied; one transfer; cross-tenant and disabled-target denied; replay did not transfer twice; former Owner became the chosen Admin with the sensitive grant revoked; aal1 and stale `iat` denied on sensitive grant, Admin promotion, sensitive invitation, and transfer; ordinary grant and ordinary invitation succeeded at aal1; anon and authenticated support recovery `42501`; service-role recovery once, then replay; audit abort left no event; attribution unchanged; cross-tenant and anon mutations denied; public invitation preview still returns `not_found` for an unknown token; evaluator source does not call assurance. Two committed races, then deleted: overlapping transfers (holder in `pg_sleep`, waiter blocked on `Lock:advisory`) left one Owner, former role Admin, one transfer event, and the loser `custody_required`. Transfer versus disable (waiter blocked on `Lock:transactionid`) left the transfer winner as the only Owner and the disable as `cannot_remove_owner`, with zero disable events. After cleanup: 0 proof users, 0 proof companies, 0 invitations, 0 deliveries, 0 admissions, 0 custody operations, 0 proof access events, residue 16, companies 17.
+- **Tests:** `app/lib/phase13fCustodyRecovery.test.ts` (5). Full suite 328 files, 4489 tests, 4464 pass, 25 fail — the same 25 baseline failures. Source `tsc` clean.
+- **Not done here:** full Team UI (Phase G); MFA enrollment and Supabase MFA project configuration (Phase H / Q5); use-time assurance on payments connect, settings, and refunds once enrollment exists; session revocation; two-party transfer acknowledgement; employment mobility; visual proof (the user-owned runtime targets production, which does not have this schema).
+- **Phase F status:** CLOSED for code + staging. No production migration was applied.
+
 ---
 
 ## 3. Canonical data / authority model
@@ -343,7 +363,7 @@ Legend: **CONFIRMED** · **NOT CONFIRMED** · **CHANGED SINCE ASTRA** · **INCON
 | Invitations | `company_invitations` (Phase E) | Pending invitation is **not** membership |
 | Creator admission | `company_creator_admissions` (Phase D, only if controlled admission is chosen — §21 Q4) | |
 | Audit | `company_access_events` (Phase C) | Append-only |
-| Ownership transfer | `company_ownership_transfers` (Phase F) | Intent only; final transfer atomic |
+| Ownership transfer | `company_custody_operations` (Phase F, §2.9) | Idempotency record. The custody change itself is one transaction on `companies.owner_user_id` |
 
 ### 3.2 Membership states
 
@@ -378,6 +398,8 @@ allowed =
 ```
 
 The evaluator returns `{ allowed, reason_code }`. Reason codes are safe (`not_member`, `disabled`, `capability_unsupported`, `out_of_scope`, `restricted`, `missing_dependency`, `expired`, `assurance_required`, `ineligible`, `authorization_unavailable`). Clients never receive rule internals or evidence of unrelated resources.
+
+Phase F enforces `assurance_satisfied` on custody transfer and on sensitive delegation (Admin promotion and Owner-only or `strong_auth_required` packages), not inside `evaluate_access_core_v1`. Use-time payment and refund routes stay on capability checks until MFA enrollment exists (§2.9).
 
 ### 3.5 Deterministic rule semantics (LOCKED)
 
@@ -766,6 +788,8 @@ Once accepted, membership does not depend on the inviter. Pending invitations wh
 
 ## 12. Revocation / custody
 
+The launch implementation is §2.9. This section is the original product intent. Where they differ, §2.9 wins: one Owner transaction with an explicit former role, no two-party acknowledgement, no fake MFA enrollment, and no use-time aal2 gate on payments until enrollment exists.
+
 ### 12.1 Disable ("Remove access")
 `disable_company_member_v1(target, expected_access_revision, reason)`:
 1. Authorize (ceiling §9.3; Owner can never be target), lock membership row, set `removed_at`, `disabled_by`, bump `access_revision`, revoke pending invitations the target issued **only if** policy says so (default: leave; acceptance revalidates issuer), append audit. **Commit.**
@@ -1060,6 +1084,7 @@ Each phase ends with a local commit (or small commit set) and a phase report; pr
 
 ### PHASE F — Revocation / recovery / custody
 
+- **Status (2026-09-27):** CLOSED for code + staging. Record: §2.9. No production migration was applied.
 - **Objective:** Complete disable/reactivate/handoff model, strong authentication, ownership transfer, unavailable-owner runbook.
 - **13A dependency:** production application requires RG-0..RG-2 in production.
 - **Existing authority:** Phase B minimal disable/handoff; `companies.owner_user_id`.
@@ -1076,7 +1101,7 @@ Each phase ends with a local commit (or small commit set) and a phase report; pr
 - **Production preflight:** Supabase MFA configuration change approved (Q5); support runbook approved.
 - **Stop conditions:** MFA cannot be enabled without affecting existing sign-in; assurance claims unavailable in JWT.
 - **Rollback/forward-fix:** assurance checks behind a server flag only for rollout sequencing; never disable disable-first semantics.
-- **Commit:** `feat(access): add revocation recovery and ownership custody`.
+- **Commit:** `feat(auth): harden membership recovery and custody`.
 
 ### PHASE G — Minimal Team UI
 

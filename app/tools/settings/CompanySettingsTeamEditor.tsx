@@ -89,7 +89,7 @@ export default function CompanySettingsTeamEditor({
       ? null
       : typeof handoff?.message === "string" && handoff.message
         ? handoff.message
-        : "Open work could not be handed off. Try again.";
+        : "Work reassignment still needs attention.";
 
   const changeRole = async (
     member: CompanyMemberClientItem,
@@ -154,7 +154,7 @@ export default function CompanySettingsTeamEditor({
       await onChanged();
     } catch (err) {
       setLocalError(
-        err instanceof Error ? err.message : "Open work could not be handed off. Try again."
+        err instanceof Error ? err.message : "Work reassignment still needs attention."
       );
     } finally {
       setBusyUserId(null);

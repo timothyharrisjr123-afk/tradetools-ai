@@ -5,6 +5,7 @@ import {
   handoffMemberOpenWork,
   listCompanyAccessAdmin,
   listCompanyDirectory,
+  reactivateCompanyMember,
   removeCompanyMember,
   updateCompanyMemberRole,
 } from "@/app/lib/companyMembershipPersistence";
@@ -110,6 +111,19 @@ export async function PATCH(req: NextRequest) {
         expectedRevision: body?.expectedRevision,
       });
       return NextResponse.json({ ok: true, ...result });
+    }
+
+    if (body?.action === "reactivate") {
+      const member = await reactivateCompanyMember({
+        supabase,
+        targetUserId: userId,
+        role: body?.role,
+        packages: body?.packages,
+        jobIds: body?.jobIds,
+        expectedRevision: body?.expectedRevision,
+        idempotencyKey: body?.idempotencyKey,
+      });
+      return NextResponse.json({ ok: true, member });
     }
 
     if (body?.action === "handoff") {

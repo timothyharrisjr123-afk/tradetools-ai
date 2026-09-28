@@ -30,6 +30,8 @@ export const COMPANY_ACCESS_ADMIN_RPC_V1 = "list_company_access_admin_v1";
 export const SET_MEMBER_ACCESS_RPC_V1 = "set_member_access_v1";
 export const DISABLE_COMPANY_MEMBER_RPC_V1 = "disable_company_member_v1";
 export const HANDOFF_MEMBER_OPEN_WORK_RPC_V1 = "handoff_member_open_work_v1";
+export const REACTIVATE_COMPANY_MEMBER_RPC_V1 = "reactivate_company_member_v1";
+export const TRANSFER_COMPANY_OWNERSHIP_RPC_V1 = "transfer_company_ownership_v1";
 
 export class CompanyMembershipHttpError extends Error {
   constructor(
@@ -98,6 +100,21 @@ const RPC_CODE_HTTP: Record<string, { status: number; message?: string }> = {
   cannot_remove_owner: { status: 409, message: "The company owner can’t be removed." },
   member_active: { status: 409, message: "Remove access before handing off open work." },
   invalid_reassign: { status: 400, message: "Choose an active team member to take over." },
+  assurance_required: {
+    status: 403,
+    message: "This change needs a recent strong sign-in. That step isn’t available in the app yet.",
+  },
+  custody_required: { status: 403, message: "Only the company owner can transfer ownership." },
+  transfer_target_ineligible: {
+    status: 409,
+    message: "Choose an active member of this company.",
+  },
+  idempotency_conflict: {
+    status: 409,
+    message: "This request doesn’t match the earlier one. Review the current access and try again.",
+  },
+  role_not_assignable: { status: 400, message: "That role can’t be assigned." },
+  invalid_scope: { status: 400, message: "Choose jobs that belong to this company." },
 };
 
 export function companyMembershipErrorForRpcCode(code: unknown): CompanyMembershipHttpError {
@@ -305,14 +322,18 @@ export async function handoffMemberOpenWork(input: {
   supabase: SupabaseClient;
   targetUserId: string;
   reassignToUserId?: unknown;
+  expectedRevision?: unknown;
+  requestId?: string | null;
 }): Promise<MemberHandoffOutcome> {
   const reassignTo = normalizeReassign(input.reassignToUserId);
   if (!isUuidLike(input.targetUserId) || (reassignTo != null && !isUuidLike(reassignTo))) {
-    return { status: "failed", code: "invalid_payload", message: "Open work could not be handed off." };
+    return { status: "failed", code: "invalid_payload", message: "Work reassignment still needs attention." };
   }
   const result = await callTeamRpc(input.supabase, HANDOFF_MEMBER_OPEN_WORK_RPC_V1, {
     p_target_user_id: input.targetUserId,
     p_reassign_to_user_id: reassignTo,
+    p_expected_revision: expectedRevisionOrNull(input.expectedRevision),
+    p_request_id: input.requestId ?? null,
   });
   if (!result.ok) {
     return {
@@ -320,7 +341,7 @@ export async function handoffMemberOpenWork(input: {
       code: result.error.code,
       message:
         result.error.code === "team_unavailable" || result.error.status >= 500
-          ? "Open work could not be handed off. Try again."
+          ? "Work reassignment still needs attention."
           : result.error.message,
     };
   }
@@ -330,7 +351,7 @@ export async function handoffMemberOpenWork(input: {
     return {
       status: "failed",
       code: "team_unavailable",
-      message: "Open work could not be handed off. Try again.",
+      message: "Work reassignment still needs attention.",
     };
   }
   return {
@@ -387,4 +408,73 @@ export async function removeCompanyMember(input: {
     alreadyDisabled: disabled.body.already_disabled === true,
     handoff,
   };
+}
+
+export async function reactivateCompanyMember(input: {
+  supabase: SupabaseClient;
+  targetUserId: string;
+  role: unknown;
+  packages?: unknown;
+  jobIds?: unknown;
+  expectedRevision: unknown;
+  idempotencyKey: unknown;
+}): Promise<{ role: string; accessRevision: number | null; replay: boolean }> {
+  const expectedRevision = expectedRevisionOrNull(input.expectedRevision);
+  const key = typeof input.idempotencyKey === "string" ? input.idempotencyKey.trim() : "";
+  const packages = Array.isArray(input.packages) ? input.packages.filter((item) => typeof item === "string") : [];
+  const jobIds = Array.isArray(input.jobIds) ? input.jobIds.filter((item) => typeof item === "string") : [];
+  if (
+    !isUuidLike(input.targetUserId) ||
+    !isAssignableCompanyMembershipRole(input.role) ||
+    expectedRevision == null ||
+    !/^[A-Za-z0-9._:-]{8,120}$/.test(key) ||
+    jobIds.some((id) => !isUuidLike(id))
+  ) {
+    throw new CompanyMembershipHttpError(400, "invalid_payload");
+  }
+  const result = await callTeamRpc(input.supabase, REACTIVATE_COMPANY_MEMBER_RPC_V1, {
+    p_target_user_id: input.targetUserId,
+    p_role: input.role,
+    p_packages: packages,
+    p_job_ids: jobIds,
+    p_expected_revision: expectedRevision,
+    p_idempotency_key: key,
+  });
+  if (!result.ok) throw result.error;
+  return {
+    role: String(result.body.role ?? input.role),
+    accessRevision: expectedRevisionOrNull(result.body.access_revision),
+    replay: result.body.replay === true,
+  };
+}
+
+export async function transferCompanyOwnership(input: {
+  supabase: SupabaseClient;
+  targetUserId: string;
+  formerRole: unknown;
+  ownerExpectedRevision: unknown;
+  targetExpectedRevision: unknown;
+  idempotencyKey: unknown;
+}): Promise<{ formerRole: string; replay: boolean }> {
+  const ownerRevision = expectedRevisionOrNull(input.ownerExpectedRevision);
+  const targetRevision = expectedRevisionOrNull(input.targetExpectedRevision);
+  const key = typeof input.idempotencyKey === "string" ? input.idempotencyKey.trim() : "";
+  if (
+    !isUuidLike(input.targetUserId) ||
+    !isAssignableCompanyMembershipRole(input.formerRole) ||
+    ownerRevision == null ||
+    targetRevision == null ||
+    !/^[A-Za-z0-9._:-]{8,120}$/.test(key)
+  ) {
+    throw new CompanyMembershipHttpError(400, "invalid_payload");
+  }
+  const result = await callTeamRpc(input.supabase, TRANSFER_COMPANY_OWNERSHIP_RPC_V1, {
+    p_target_user_id: input.targetUserId,
+    p_former_role: input.formerRole,
+    p_owner_expected_revision: ownerRevision,
+    p_target_expected_revision: targetRevision,
+    p_idempotency_key: key,
+  });
+  if (!result.ok) throw result.error;
+  return { formerRole: String(result.body.former_role ?? input.formerRole), replay: result.body.replay === true };
 }
