@@ -15,6 +15,15 @@ export const FOCUSED_EDITOR_SAVE =
 export const FOCUSED_EDITOR_SAVE_SUBDUED =
   "inline-flex min-h-[44px] items-center justify-center rounded-lg bg-slate-200 px-4 text-sm font-semibold text-slate-500 transition disabled:cursor-not-allowed";
 
+export const FOCUSED_EDITOR_SECONDARY =
+  "inline-flex min-h-[44px] items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-800 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2";
+
+export const FOCUSED_EDITOR_DESTRUCTIVE =
+  "inline-flex min-h-[44px] items-center justify-center rounded-lg border border-rose-200 bg-white px-4 text-sm font-medium text-rose-700 shadow-sm transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2";
+
+export const FOCUSED_EDITOR_DESTRUCTIVE_CONFIRM =
+  "inline-flex min-h-[44px] items-center justify-center rounded-lg bg-rose-600 px-4 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2";
+
 export const FOCUSED_EDITOR_CANCEL =
   "inline-flex min-h-[44px] items-center justify-center rounded-lg px-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2";
 

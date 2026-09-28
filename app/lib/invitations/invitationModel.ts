@@ -159,6 +159,13 @@ function expiryLabel(expiresAt: string | null): string | null {
   return /^\d{4}-\d{2}-\d{2}$/.test(day) ? `Expires ${day}` : null;
 }
 
+function screenExpiryLabel(expiresAt: string | null, expired: boolean): string | null {
+  const at = expiresAt ? new Date(expiresAt) : null;
+  if (!at || Number.isNaN(at.getTime())) return null;
+  const day = at.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+  return `${expired ? "Expired" : "Expires"} ${day}`;
+}
+
 export function buildInvitationJoinView(input: {
   preview: InvitationPreview;
   viewer: InvitationViewer;
@@ -202,7 +209,10 @@ export function buildInvitationJoinView(input: {
     companyLabel,
     roleLabel: shownRole,
     accessSummary: summary,
-    expiryLabel: revealed && preview.state !== "accepted" ? expiryLabel(preview.expiresAt) : null,
+    expiryLabel:
+      preview.state === "pending" || preview.state === "expired"
+        ? screenExpiryLabel(preview.expiresAt, preview.state === "expired")
+        : null,
     inviterLabel,
     showAccept: false,
     acceptToken: null,

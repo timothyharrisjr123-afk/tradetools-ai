@@ -43,6 +43,7 @@ import {
   type FieldDiveNavSectionConfig,
   type FieldDiveNavSubItemConfig,
 } from "./fieldDiveNavConfig";
+import { navItemAllowed, useViewerNavAccess } from "./useViewerNavAccess";
 
 export type FieldDiveActiveNav =
   | "jobs"
@@ -376,6 +377,7 @@ export default function FieldDiveAppShell({ activeNav, activeSubId, children }: 
   const [groupExpandedOverrides, setGroupExpandedOverrides] = useState<Record<string, boolean>>({});
   const [jobCardHref, setJobCardHref] = useState("/tools/roofing?entry=job-card");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const viewerAccess = useViewerNavAccess();
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const sheetCloseRef = useRef<HTMLButtonElement | null>(null);
   const sheetPanelRef = useRef<HTMLDivElement | null>(null);
@@ -423,7 +425,13 @@ export default function FieldDiveAppShell({ activeNav, activeSubId, children }: 
     }));
   };
 
-  const navSections = getVisibleNavSections().map((section) => (
+  const navSections = getVisibleNavSections()
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => navItemAllowed(item.key, viewerAccess)),
+    }))
+    .filter((section) => section.items.length > 0)
+    .map((section) => (
     <NavSidebarSection
       key={section.id}
       section={section}

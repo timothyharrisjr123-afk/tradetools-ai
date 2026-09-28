@@ -62,9 +62,12 @@ export async function GET(req: NextRequest) {
         { status: 503 }
       );
     }
-    const members = viewerAccess.canAdminMembers
-      ? await listCompanyAccessAdmin(supabase)
-      : directoryRowsToMemberItems(await listCompanyDirectory(supabase));
+    const viewerOnly = req.nextUrl.searchParams.get("view") === "viewer";
+    const members = viewerOnly
+      ? []
+      : viewerAccess.canAdminMembers
+        ? await listCompanyAccessAdmin(supabase)
+        : directoryRowsToMemberItems(await listCompanyDirectory(supabase));
 
     return NextResponse.json({
       ok: true,

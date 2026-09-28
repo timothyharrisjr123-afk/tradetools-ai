@@ -269,7 +269,8 @@ describe("Mobile navigation", () => {
     assert.match(APP_SHELL, /min-h-\[44px\]/);
     // One nav definition renders both sidebar and sheet.
     assert.equal((APP_SHELL.match(/\{navSections\}/g) ?? []).length, 2);
-    assert.equal((APP_SHELL.match(/getVisibleNavSections\(\)\.map/g) ?? []).length, 1);
+    assert.equal((APP_SHELL.match(/getVisibleNavSections\(\)/g) ?? []).length, 1);
+    assert.match(APP_SHELL, /navItemAllowed\(item\.key, viewerAccess\)/);
   });
 
   test("every required destination is reachable from the shared nav", () => {

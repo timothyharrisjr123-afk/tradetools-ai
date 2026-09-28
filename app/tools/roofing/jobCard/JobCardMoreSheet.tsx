@@ -11,6 +11,7 @@ type JobCardMoreSheetProps = {
   activeDestination: JobCardMoreDestinationId | null;
   onClose: () => void;
   onSelect: (destination: JobCardMoreDestinationId) => void;
+  hiddenDestinations?: readonly string[];
 };
 
 export default function JobCardMoreSheet({
@@ -18,7 +19,11 @@ export default function JobCardMoreSheet({
   activeDestination,
   onClose,
   onSelect,
+  hiddenDestinations = [],
 }: JobCardMoreSheetProps) {
+  const destinations = JOB_CARD_MORE_DESTINATIONS.filter(
+    (destination) => !hiddenDestinations.includes(destination.id)
+  );
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
@@ -77,10 +82,12 @@ export default function JobCardMoreSheet({
           More
         </h2>
         <p className="mt-0.5 px-1 text-xs text-slate-500">
-          Calendar, measurements, proposals, payments, and activity
+          {hiddenDestinations.length > 0
+            ? "Calendar, measurements, and activity"
+            : "Calendar, measurements, proposals, payments, and activity"}
         </p>
         <ul className="mt-3 space-y-1 pb-2" role="list">
-          {JOB_CARD_MORE_DESTINATIONS.map((destination) => {
+          {destinations.map((destination) => {
             const isActive = activeDestination === destination.id;
             return (
               <li key={destination.id}>

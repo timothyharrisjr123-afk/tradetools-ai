@@ -27,6 +27,8 @@ type JobCardTabsProps = {
   mobileActivityFocused?: boolean;
   onMobileActivityFocus?: () => void;
   onClearMobileActivityFocus?: () => void;
+  /** Domains this viewer cannot read (e.g. commercial tabs for Field). */
+  hiddenTabIds?: readonly JobCardTabId[];
 };
 
 export default function JobCardTabs({
@@ -35,7 +37,9 @@ export default function JobCardTabs({
   mobileActivityFocused = false,
   onMobileActivityFocus,
   onClearMobileActivityFocus,
+  hiddenTabIds = [],
 }: JobCardTabsProps) {
+  const visibleTabs = JOB_CARD_VISIBLE_TABS.filter((tab) => !hiddenTabIds.includes(tab.id));
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const mobileSelection = resolveJobCardMobileRailSelection(
@@ -78,10 +82,7 @@ export default function JobCardTabs({
     event.preventDefault();
     const delta = event.key === "ArrowRight" ? 1 : -1;
     const next =
-      JOB_CARD_VISIBLE_TABS[
-        (index + delta + JOB_CARD_VISIBLE_TABS.length) %
-          JOB_CARD_VISIBLE_TABS.length
-      ];
+      visibleTabs[(index + delta + visibleTabs.length) % visibleTabs.length];
     focusDesktopTab(next.id);
   };
 
@@ -127,7 +128,7 @@ export default function JobCardTabs({
           ref={scrollerRef}
           className="-mb-px flex min-w-0 max-w-full touch-pan-x gap-0 overflow-x-auto overscroll-x-contain px-5 sm:px-6 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200/60"
         >
-          {JOB_CARD_VISIBLE_TABS.map((tab, index) => {
+          {visibleTabs.map((tab, index) => {
             const isActive = tab.id === activeTab && !mobileActivityFocused;
             return (
               <button
@@ -225,6 +226,7 @@ export default function JobCardTabs({
         activeDestination={activeMoreDestination}
         onClose={() => setMoreOpen(false)}
         onSelect={onMoreSelect}
+        hiddenDestinations={hiddenTabIds}
       />
     </>
   );

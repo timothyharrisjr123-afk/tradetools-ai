@@ -94,17 +94,41 @@ export function teamSpecialAccessSummary(keys: readonly string[]): string | null
 
 /**
  * Editable choices plus packages this person already has that the current
- * delegator is not allowed to add or remove. The server still decides.
+ * delegator is not allowed to add or remove. Packages the new role cannot hold
+ * are dropped. The server still decides.
  */
 export function packageKeysForSave(input: {
+  role: AssignableCompanyMembershipRole;
   existing: readonly string[];
   selected: readonly string[];
   choices: readonly { key: string }[];
 }): string[] {
   const choiceKeys = new Set(input.choices.map((choice) => choice.key));
-  const preserved = input.existing.filter((key) => !choiceKeys.has(key));
+  const fitsRole = (key: string) =>
+    ACCESS_PACKAGES.some(
+      (pkg) => pkg.key === key && (pkg.eligibleRoles as readonly string[]).includes(input.role)
+    );
+  const preserved = input.existing.filter((key) => !choiceKeys.has(key) && fitsRole(key));
   const selected = input.selected.filter((key) => choiceKeys.has(key));
   return [...new Set([...preserved, ...selected])].sort();
+}
+
+/** Special access the person loses when moved to `role`, as a sentence. */
+export function teamRoleChangeDropsAccess(
+  role: AssignableCompanyMembershipRole,
+  existing: readonly string[]
+): string | null {
+  const dropped = existing.filter(
+    (key) =>
+      TEAM_PACKAGE_LABELS[key] &&
+      !ACCESS_PACKAGES.some(
+        (pkg) => pkg.key === key && (pkg.eligibleRoles as readonly string[]).includes(role)
+      )
+  );
+  if (dropped.length === 0) return null;
+  const labels = dropped.map((key) => TEAM_PACKAGE_LABELS[key]).join(", ");
+  const verb = dropped.length === 1 ? "doesn't" : "don't";
+  return `${labels} ${verb} apply to ${teamRoleLabel(role)} and will be removed.`;
 }
 
 export function teamFieldAccessLine(

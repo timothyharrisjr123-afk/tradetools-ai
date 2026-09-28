@@ -167,6 +167,8 @@ import { formatProductionStartedAt } from "@/app/lib/jobProductionTypes";
 import { formatProjectRecordDate } from "@/app/lib/publicProjectRecordViewModel";
 import JobCardSecondaryPanels from "@/app/tools/roofing/jobCard/JobCardSecondaryPanels";
 
+const COMMERCIAL_JOB_CARD_TABS: readonly JobCardTabId[] = ["proposals", "payments"];
+
 export default function JobCardClient({
   companyId,
   serverJobRecord = null,
@@ -807,6 +809,11 @@ export default function JobCardClient({
     !jobHasCanonicalAcceptedAgreement(jobAcceptedProposalIds);
 
   const suppressCommercial = companyMembers.restrictedFieldRole;
+  useEffect(() => {
+    if (suppressCommercial && COMMERCIAL_JOB_CARD_TABS.includes(jobCardTab)) {
+      setJobCardTab("overview");
+    }
+  }, [suppressCommercial, jobCardTab, setJobCardTab]);
 
   const hasAcceptedAgreement = suppressCommercial
     ? fieldBrief.brief?.hasAcceptedAgreement === true
@@ -1309,17 +1316,17 @@ export default function JobCardClient({
               phone={identity.phone}
               email={identity.email}
               customerHref={
-                hydratedJobRecord?.customer_id
+                hydratedJobRecord?.customer_id && companyMembers.viewerRole !== "field_user"
                   ? buildCustomerWorkspaceHref(hydratedJobRecord.customer_id)
                   : null
               }
               propertyHref={
-                hydratedJobRecord?.property_id
+                hydratedJobRecord?.property_id && companyMembers.viewerRole !== "field_user"
                   ? buildPropertyWorkspaceHref(hydratedJobRecord.property_id)
                   : null
               }
               onChangeProperty={
-                hydratedJobRecord && companyId && currentJobId
+                hydratedJobRecord && companyId && currentJobId && companyMembers.canCreateJobs
                   ? () => setChangePropertyOpen((open) => !open)
                   : null
               }
@@ -1488,6 +1495,7 @@ export default function JobCardClient({
               mobileActivityFocused={mobileActivityFocused}
               onMobileActivityFocus={() => setMobileActivityFocused(true)}
               onClearMobileActivityFocus={() => setMobileActivityFocused(false)}
+              hiddenTabIds={suppressCommercial ? COMMERCIAL_JOB_CARD_TABS : undefined}
             />
             <div className="min-h-0">
               <div

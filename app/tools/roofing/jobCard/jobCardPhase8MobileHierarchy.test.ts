@@ -154,7 +154,8 @@ describe("Phase 8 mobile nav model", () => {
     assert.match(TABS, /data-jobcard-tabs-mode="desktop"/);
     assert.match(TABS, /data-jobcard-tabs-mode="mobile"/);
     assert.match(TABS, /min-\[1200px\]:flex/);
-    assert.match(TABS, /JOB_CARD_VISIBLE_TABS\.map/);
+    assert.match(TABS, /JOB_CARD_VISIBLE_TABS\.filter\(\(tab\) => !hiddenTabIds\.includes\(tab\.id\)\)/);
+    assert.match(TABS, /visibleTabs\.map/);
     assert.match(TABS, /JOB_CARD_MOBILE_PRIMARY_NAV/);
     assert.match(TABS, /JobCardMoreSheet/);
     assert.match(MORE, /data-jobcard-more-sheet/);

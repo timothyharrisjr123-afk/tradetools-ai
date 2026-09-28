@@ -20,6 +20,11 @@ export type ViewerAccessFlags = {
   canIssueScopeChanges: boolean;
   canSendProposals: boolean;
   canReadCommercial: boolean;
+  canCreateJobs: boolean;
+  canManageCompany: boolean;
+  canManagePricing: boolean;
+  canManageTemplates: boolean;
+  canConfigurePayments: boolean;
 };
 
 export const NO_VIEWER_ACCESS: ViewerAccessFlags = {
@@ -32,6 +37,11 @@ export const NO_VIEWER_ACCESS: ViewerAccessFlags = {
   canIssueScopeChanges: false,
   canSendProposals: false,
   canReadCommercial: false,
+  canCreateJobs: false,
+  canManageCompany: false,
+  canManagePricing: false,
+  canManageTemplates: false,
+  canConfigurePayments: false,
 };
 
 function stringSet(value: unknown): Set<string> | null {
@@ -71,6 +81,11 @@ export function mapViewerAccess(data: unknown): ViewerAccessFlags | null {
     canIssueScopeChanges: company.has("scope_changes.issue"),
     canSendProposals: company.has("proposals.send"),
     canReadCommercial: company.has("proposals.read"),
+    canCreateJobs: company.has("jobs.manage"),
+    canManageCompany: company.has("company.manage"),
+    canManagePricing: company.has("pricing.manage"),
+    canManageTemplates: company.has("templates.manage"),
+    canConfigurePayments: company.has("payments.configure"),
   };
 }
 

@@ -9,9 +9,12 @@ import test from "node:test";
 import {
   confirmStrongSignIn,
   startStrongSignIn,
+  startStrongSignInOnce,
   type StrongSignInClient,
 } from "@/app/lib/auth/strongSignIn";
 import { TEAM_STRONG_AUTH } from "@/app/lib/access/teamAccessPresentation";
+import { NO_VIEWER_ACCESS } from "@/app/lib/access/viewerAccess";
+import { navItemAllowed } from "@/app/tools/roofing/useViewerNavAccess";
 
 const root = process.cwd();
 const read = (path: string) => readFileSync(join(root, path), "utf8");
@@ -99,4 +102,67 @@ test("an empty board only offers job creation to people who can send proposals",
   const saved = read("app/tools/roofing/saved/SavedClient.tsx");
   assert.match(saved, /companyMembers\.canSendProposals\s*\?\s*"author"/);
   assert.match(saved, /companyMembers\.restrictedFieldRole\s*\?\s*"field"/);
+});
+
+test("a Production Lead is a coordinator before any field fallback", () => {
+  const saved = read("app/tools/roofing/saved/SavedClient.tsx");
+  const coordinator = saved.search(/companyMembers\.canAssignJobs\s*\?\s*"coordinator"/);
+  const field = saved.search(/companyMembers\.restrictedFieldRole\s*\?\s*"field"/);
+  assert.ok(coordinator >= 0);
+  assert.ok(coordinator < field);
+});
+
+test("navigation offers creation and commercial setup only to members who hold it", () => {
+  const none = { ...NO_VIEWER_ACCESS };
+  assert.equal(navItemAllowed("newJob", null), false);
+  assert.equal(navItemAllowed("pricing", null), false);
+  assert.equal(navItemAllowed("jobs", null), true);
+  assert.equal(navItemAllowed("newJob", none), false);
+  assert.equal(navItemAllowed("newJob", { ...none, canCreateJobs: true }), true);
+  for (const key of ["pricing", "catalog", "templates"] as const) {
+    assert.equal(navItemAllowed(key, none), false, key);
+    assert.equal(navItemAllowed(key, { ...none, canReadCommercial: true }), true, key);
+  }
+  assert.match(read("app/tools/roofing/saved/components/JobsBoardHeader.tsx"), /canCreateJobs \?/);
+});
+
+test("concurrent strong sign-in starts share one enrollment", async () => {
+  const { client, calls } = fakeClient([]);
+  const [a, b] = await Promise.all([startStrongSignInOnce(client), startStrongSignInOnce(client)]);
+  assert.equal(a, b);
+  assert.deepEqual(calls, ["list", "enroll"]);
+  await startStrongSignInOnce(client);
+  assert.deepEqual(calls, ["list", "enroll", "list", "enroll"]);
+  const step = read("app/tools/settings/StrongSignInStep.tsx");
+  assert.match(step, /startStrongSignInOnce/);
+  assert.match(step, /Try again/);
+});
+
+test("Team hides Owner-only choices from Admins and confirms each action", () => {
+  const editor = read("app/tools/settings/CompanySettingsTeamEditor.tsx");
+  assert.match(editor, /viewerIsOwner\s*\?\s*ASSIGNABLE_COMPANY_MEMBERSHIP_ROLES/);
+  assert.match(editor, /viewerIsOwner \|\| member\.role !== "admin"/);
+  assert.match(editor, /Invitation sent again to/);
+  assert.match(editor, /revoked\. The link no longer works\./);
+  assert.match(editor, /is now the Owner\. You're now/);
+});
+
+test("Field Job Cards drop the commercial tabs instead of showing empty money", () => {
+  const card = read("app/tools/roofing/jobCard/JobCardClient.tsx");
+  assert.match(card, /COMMERCIAL_JOB_CARD_TABS: readonly JobCardTabId\[\] = \["proposals", "payments"\]/);
+  assert.match(card, /hiddenTabIds=\{suppressCommercial \? COMMERCIAL_JOB_CARD_TABS/);
+  assert.match(read("app/tools/roofing/jobCard/JobCardMoreSheet.tsx"), /hiddenDestinations/);
+});
+
+test("the join and start screens use the light entry card with 44px actions", () => {
+  const styles = read("app/components/ui/surfaceStyles.ts");
+  assert.match(styles, /ENTRY_PRIMARY_ACTION =\s*"[^"]*min-h-\[44px\]/);
+  assert.match(styles, /ENTRY_SECONDARY_ACTION =\s*"[^"]*min-h-\[44px\]/);
+  for (const path of ["app/join/InvitationJoinScreen.tsx", "app/start/page.tsx"]) {
+    const screen = read(path);
+    assert.match(screen, /ENTRY_CARD/, path);
+    assert.match(screen, /ENTRY_PRIMARY_ACTION/, path);
+    assert.doesNotMatch(screen, /bg-slate-950|bg-zinc-950|h-9\b/, path);
+  }
+  assert.match(read("app/components/auth/SignOutButton.tsx"), /LAST_DB_JOB_ID_STORAGE_KEY/);
 });

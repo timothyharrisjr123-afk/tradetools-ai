@@ -88,6 +88,7 @@ test("special access is package language, eligible for the role and delegator", 
 
 test("a role save keeps packages the delegator cannot edit", () => {
   const saved = packageKeysForSave({
+    role: "office_sales",
     existing: ["request_payments", "approve_jobs"],
     selected: ["coordinate_production"],
     choices: teamPackageChoices("office_sales", "admin"),
@@ -135,7 +136,8 @@ test("contractor errors do not leak internal codes", () => {
 });
 
 test("directory viewers do not get access-admin fields in the editor", () => {
-  assert.match(editor, /canAdminMembers \? teamSpecialAccessSummary/);
+  assert.match(editor, /const activeAccess = canAdminMembers && !member\.removedAt/);
+  assert.match(editor, /activeAccess \? teamSpecialAccessSummary/);
   assert.match(editor, /showEmail = canAdminMembers/);
   assert.match(editor, /An Owner or Admin changes access/);
 });

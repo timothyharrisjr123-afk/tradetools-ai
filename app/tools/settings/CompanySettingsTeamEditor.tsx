@@ -31,10 +31,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import FocusedEditor, {
+  FOCUSED_EDITOR_CANCEL,
+  FOCUSED_EDITOR_DESTRUCTIVE,
+  FOCUSED_EDITOR_DESTRUCTIVE_CONFIRM,
   FOCUSED_EDITOR_HINT,
   FOCUSED_EDITOR_INPUT,
   FOCUSED_EDITOR_LABEL,
   FOCUSED_EDITOR_SAVE,
+  FOCUSED_EDITOR_SECONDARY,
 } from "@/app/components/ui/FocusedEditor";
 import {
   TEAM_HANDOFF_ATTENTION,
@@ -47,6 +51,7 @@ import {
   teamListState,
   teamMemberStatus,
   teamPackageChoices,
+  teamRoleChangeDropsAccess,
   teamRoleLabel,
   teamSpecialAccessSummary,
   type TeamDelegator,
@@ -92,8 +97,10 @@ type Panel =
   | { type: "transfer" }
   | null;
 
-const ACTION =
-  "inline-flex min-h-[44px] w-full items-center justify-center px-1 text-sm font-medium text-slate-700 sm:w-auto sm:justify-start";
+const ACTION = `${FOCUSED_EDITOR_SECONDARY} w-full sm:w-auto`;
+const DESTRUCTIVE_ACTION = `${FOCUSED_EDITOR_DESTRUCTIVE} w-full sm:w-auto`;
+const ACTION_ROW = "mt-3 flex flex-col gap-2 sm:flex-row";
+const FORM_ACTIONS = "flex flex-col gap-2 sm:flex-row sm:items-center";
 
 function actionKey() {
   const id = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}`;
@@ -129,6 +136,9 @@ export default function CompanySettingsTeamEditor({
 }: CompanySettingsTeamEditorProps) {
   const delegator: TeamDelegator = viewerRole === "owner" ? "owner" : "admin";
   const viewerIsOwner = viewerRole === "owner";
+  const assignableRoles = viewerIsOwner
+    ? ASSIGNABLE_COMPANY_MEMBERSHIP_ROLES
+    : ASSIGNABLE_COMPANY_MEMBERSHIP_ROLES.filter((role) => role !== "admin");
   const [panel, setPanel] = useState<Panel>(null);
   const [busy, setBusy] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -242,9 +252,10 @@ export default function CompanySettingsTeamEditor({
         userId: member.userId,
         role: draftRole,
         expectedRevision: member.accessRevision,
-        ...(packagesTouched
+        ...(packagesTouched || draftRole !== member.role
           ? {
               packages: packageKeysForSave({
+                role: draftRole,
                 existing: member.packageKeys ?? [],
                 selected: draftPackages,
                 choices,
@@ -320,6 +331,7 @@ export default function CompanySettingsTeamEditor({
         action: "reactivate",
         role: draftRole,
         packages: packageKeysForSave({
+          role: draftRole,
           existing: [],
           selected: draftPackages,
           choices,
@@ -368,7 +380,7 @@ export default function CompanySettingsTeamEditor({
         throw teamError(body.code, body.message, "Could not send the invitation.");
       }
       if (body.delivery === "failed") setNotice(INVITATION_NOT_SENT_MESSAGE);
-      else setNotice(null);
+      else setNotice(`Invitation sent to ${inviteEmail.trim()}.`);
       const created: PendingInvite = {
         invitationId: body.invitationId,
         email: inviteEmail.trim(),
@@ -417,7 +429,7 @@ export default function CompanySettingsTeamEditor({
       if (!res.ok || body.ok !== true) {
         throw teamError(body.code, body.message, "Could not resend the invitation.");
       }
-      setNotice(body.delivery === "failed" ? INVITATION_NOT_SENT_MESSAGE : null);
+      setNotice(body.delivery === "failed" ? INVITATION_NOT_SENT_MESSAGE : `Invitation sent again to ${invite.email}.`);
       await loadInvitations();
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : "Could not resend the invitation.");
@@ -437,7 +449,7 @@ export default function CompanySettingsTeamEditor({
       if (!res.ok || body.ok !== true) {
         throw teamError(body.code, body.message, "Could not revoke the invitation.");
       }
-      setNotice(null);
+      setNotice(`Invitation to ${invite.email} revoked. The link no longer works.`);
       await loadInvitations();
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : "Could not revoke the invitation.");
@@ -470,8 +482,10 @@ export default function CompanySettingsTeamEditor({
         throw teamError(body.code, body.message, "Could not transfer ownership.");
       }
       setPanel(null);
-      setNotice(null);
       await onChanged();
+      setNotice(
+        `${personName(target, members)} is now the Owner. You're now ${teamRoleLabel(formerRole)}.`
+      );
     } catch (err) {
       if (needsStrongSignIn(err, transferOwnership)) return;
       setLocalError(err instanceof Error ? err.message : "Could not transfer ownership.");
@@ -565,7 +579,7 @@ export default function CompanySettingsTeamEditor({
                         className={FOCUSED_EDITOR_INPUT}
                       >
                         <option value="">Choose a role</option>
-                        {ASSIGNABLE_COMPANY_MEMBERSHIP_ROLES.map((role) => (
+                        {assignableRoles.map((role) => (
                           <option key={role} value={role}>
                             {teamRoleLabel(role)}
                           </option>
@@ -599,9 +613,14 @@ export default function CompanySettingsTeamEditor({
                         ))}
                       </fieldset>
                     ) : null}
-                    <button type="submit" className={`${FOCUSED_EDITOR_SAVE} w-full sm:w-auto`} disabled={busy}>
-                      Send invitation
-                    </button>
+                    <div className={FORM_ACTIONS}>
+                      <button type="submit" className={`${FOCUSED_EDITOR_SAVE} w-full sm:w-auto`} disabled={busy}>
+                        Send invitation
+                      </button>
+                      <button type="button" className={FOCUSED_EDITOR_CANCEL} disabled={busy} onClick={() => setPanel(null)}>
+                        Cancel
+                      </button>
+                    </div>
                   </form>
                 ) : (
                   <button type="button" className={ACTION} onClick={() => openPanel({ type: "invite" })}>
@@ -624,12 +643,12 @@ export default function CompanySettingsTeamEditor({
                     openWork: member.openJobLeadCount + member.openTaskAssigneeCount,
                   });
                   const self = viewerUserId != null && member.userId === viewerUserId;
-                  const special =
-                    canAdminMembers ? teamSpecialAccessSummary(member.packageKeys ?? []) : null;
-                  const fieldLine =
-                    canAdminMembers
-                      ? teamFieldAccessLine(member.role, member.grantedJobCount ?? 0)
-                      : null;
+                  const manageable = !self && member.role !== "owner" && (viewerIsOwner || member.role !== "admin");
+                  const activeAccess = canAdminMembers && !member.removedAt;
+                  const special = activeAccess ? teamSpecialAccessSummary(member.packageKeys ?? []) : null;
+                  const fieldLine = activeAccess
+                    ? teamFieldAccessLine(member.role, member.grantedJobCount ?? 0)
+                    : null;
                   const showEmail = canAdminMembers && member.email && member.email !== name;
                   const editingRole = panel?.type === "role" && panel.userId === member.userId;
                   const removing = panel?.type === "remove" && panel.userId === member.userId;
@@ -652,7 +671,7 @@ export default function CompanySettingsTeamEditor({
                       {showEmail ? <p className="mt-0.5 break-all text-xs text-slate-500">{member.email}</p> : null}
                       {special ? <p className="mt-1 text-sm text-slate-600">Special access: {special}</p> : null}
                       {fieldLine ? <p className="mt-1 text-sm text-slate-600">{fieldLine}</p> : null}
-                      {canAdminMembers && member.restrictionCount ? (
+                      {activeAccess && member.restrictionCount ? (
                         <p className="mt-1 text-sm text-slate-600">Some access is limited.</p>
                       ) : null}
                       {canAdminMembers && status.attention ? (
@@ -661,8 +680,8 @@ export default function CompanySettingsTeamEditor({
                         </p>
                       ) : null}
 
-                      {canAdminMembers && !self && member.role !== "owner" && !member.removedAt ? (
-                        <div className="mt-2 flex flex-col sm:flex-row sm:gap-4">
+                      {canAdminMembers && manageable && !member.removedAt && !editingRole && !removing ? (
+                        <div className={ACTION_ROW}>
                           <button
                             type="button"
                             className={ACTION}
@@ -683,7 +702,7 @@ export default function CompanySettingsTeamEditor({
                           </button>
                           <button
                             type="button"
-                            className={`${ACTION} text-rose-700`}
+                            className={DESTRUCTIVE_ACTION}
                             data-company-settings-team-remove
                             onClick={() => {
                               setReassignToUserId("");
@@ -695,8 +714,8 @@ export default function CompanySettingsTeamEditor({
                         </div>
                       ) : null}
 
-                      {canAdminMembers && !self && member.removedAt ? (
-                        <div className="mt-2 flex flex-col sm:flex-row sm:gap-4">
+                      {canAdminMembers && manageable && member.removedAt && !reactivating && !removing ? (
+                        <div className={ACTION_ROW}>
                           <button
                             type="button"
                             className={ACTION}
@@ -754,7 +773,7 @@ export default function CompanySettingsTeamEditor({
                               }}
                             >
                               <option value="">Choose a role</option>
-                              {ASSIGNABLE_COMPANY_MEMBERSHIP_ROLES.map((role) => (
+                              {assignableRoles.map((role) => (
                                 <option key={role} value={role}>
                                   {teamRoleLabel(role)}
                                 </option>
@@ -762,6 +781,16 @@ export default function CompanySettingsTeamEditor({
                             </select>
                           </label>
                           {draftRole ? <p className={FOCUSED_EDITOR_HINT}>{TEAM_ROLE_BLURB[draftRole]}</p> : null}
+                          {isAssignableCompanyMembershipRole(draftRole) && draftRole !== member.role
+                            ? (() => {
+                                const dropsNote = teamRoleChangeDropsAccess(draftRole, member.packageKeys ?? []);
+                                return dropsNote ? (
+                                  <p className="text-sm text-slate-700" data-company-settings-team-drops-access>
+                                    {dropsNote}
+                                  </p>
+                                ) : null;
+                              })()
+                            : null}
                           {choices.length > 0 ? (
                             <fieldset className="space-y-1">
                               <legend className={FOCUSED_EDITOR_LABEL}>Special access</legend>
@@ -785,9 +814,14 @@ export default function CompanySettingsTeamEditor({
                               ))}
                             </fieldset>
                           ) : null}
-                          <button type="submit" className={`${FOCUSED_EDITOR_SAVE} w-full sm:w-auto`} disabled={busy}>
-                            Save
-                          </button>
+                          <div className={FORM_ACTIONS}>
+                            <button type="submit" className={`${FOCUSED_EDITOR_SAVE} w-full sm:w-auto`} disabled={busy}>
+                              Save
+                            </button>
+                            <button type="button" className={FOCUSED_EDITOR_CANCEL} disabled={busy} onClick={() => setPanel(null)}>
+                              Cancel
+                            </button>
+                          </div>
                         </form>
                       ) : null}
 
@@ -809,7 +843,7 @@ export default function CompanySettingsTeamEditor({
                             </p>
                           )}
                           <label className={FOCUSED_EDITOR_LABEL}>
-                            Open work
+                            Give open work to
                             <select
                               className={FOCUSED_EDITOR_INPUT}
                               value={reassignToUserId}
@@ -826,9 +860,22 @@ export default function CompanySettingsTeamEditor({
                                 ))}
                             </select>
                           </label>
-                          <button type="submit" className={`${FOCUSED_EDITOR_SAVE} w-full sm:w-auto`} disabled={busy}>
-                            {member.removedAt ? "Reassign open work" : "Remove access"}
-                          </button>
+                          <div className={FORM_ACTIONS}>
+                            <button
+                              type="submit"
+                              className={
+                                member.removedAt
+                                  ? `${FOCUSED_EDITOR_SAVE} w-full sm:w-auto`
+                                  : `${FOCUSED_EDITOR_DESTRUCTIVE_CONFIRM} w-full sm:w-auto`
+                              }
+                              disabled={busy || (Boolean(member.removedAt) && !reassignToUserId)}
+                            >
+                              {member.removedAt ? "Reassign open work" : "Remove access"}
+                            </button>
+                            <button type="button" className={FOCUSED_EDITOR_CANCEL} disabled={busy} onClick={() => setPanel(null)}>
+                              Cancel
+                            </button>
+                          </div>
                         </form>
                       ) : null}
 
@@ -861,7 +908,7 @@ export default function CompanySettingsTeamEditor({
                               }}
                             >
                               <option value="">Choose a role</option>
-                              {ASSIGNABLE_COMPANY_MEMBERSHIP_ROLES.map((role) => (
+                              {assignableRoles.map((role) => (
                                 <option key={role} value={role}>
                                   {teamRoleLabel(role)}
                                 </option>
@@ -896,9 +943,14 @@ export default function CompanySettingsTeamEditor({
                               ))}
                             </fieldset>
                           ) : null}
-                          <button type="submit" className={`${FOCUSED_EDITOR_SAVE} w-full sm:w-auto`} disabled={busy}>
-                            Reactivate access
-                          </button>
+                          <div className={FORM_ACTIONS}>
+                            <button type="submit" className={`${FOCUSED_EDITOR_SAVE} w-full sm:w-auto`} disabled={busy}>
+                              Reactivate access
+                            </button>
+                            <button type="button" className={FOCUSED_EDITOR_CANCEL} disabled={busy} onClick={() => setPanel(null)}>
+                              Cancel
+                            </button>
+                          </div>
                         </form>
                       ) : null}
                     </li>
@@ -942,13 +994,13 @@ export default function CompanySettingsTeamEditor({
                           {invite.delivery === "failed" ? (
                             <p className="mt-1 text-sm text-amber-800">{INVITATION_NOT_SENT_MESSAGE}</p>
                           ) : null}
-                          <div className="mt-2 flex flex-col sm:flex-row sm:gap-4">
+                          <div className={ACTION_ROW}>
                             <button type="button" className={ACTION} disabled={busy} onClick={() => void resendInvitation(invite)}>
                               Resend
                             </button>
                             <button
                               type="button"
-                              className={`${ACTION} text-rose-700`}
+                              className={DESTRUCTIVE_ACTION}
                               disabled={busy}
                               onClick={() => void revokeInvitation(invite)}
                             >
@@ -1026,13 +1078,18 @@ export default function CompanySettingsTeamEditor({
                       />
                       I understand I will no longer be the Owner.
                     </label>
-                    <button
-                      type="submit"
-                      className={`${FOCUSED_EDITOR_SAVE} w-full sm:w-auto`}
-                      disabled={busy || !transferArmed || !transferTargetId}
-                    >
-                      Transfer ownership
-                    </button>
+                    <div className={FORM_ACTIONS}>
+                      <button
+                        type="submit"
+                        className={`${FOCUSED_EDITOR_SAVE} w-full sm:w-auto`}
+                        disabled={busy || !transferArmed || !transferTargetId}
+                      >
+                        Transfer ownership
+                      </button>
+                      <button type="button" className={FOCUSED_EDITOR_CANCEL} disabled={busy} onClick={() => setPanel(null)}>
+                        Cancel
+                      </button>
+                    </div>
                   </form>
                 ) : (
                   <button type="button" className={ACTION} onClick={() => openPanel({ type: "transfer" })}>

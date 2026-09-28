@@ -18,9 +18,11 @@ Sections below this checkpoint are historical. Older **NEXT** lines are not the 
 
 ### Current checkpoint (2026-09-28)
 
-- **Code:** `ba4c3e84991be01e156e9a7faa11c4a32b500245` — `feat(auth): harden membership recovery and custody`
-- **Phase 13B:** A–F **CLOSED**. **G NEXT.**
-- **Docs:** this governance checkpoint. Not pushed. No deploy.
+- **Code:** commit `fix(auth): close Phase 13B access launch proof` (on top of `d96f8c5`). Not pushed. No deploy.
+- **Phase 13B:** A–H **CLOSED on staging**. The live desktop and 390 px visual proof is recorded in the Phase 13 blueprint §2.11. Screenshots: `tmp/fielddive-ui-review/phase13b-h-access-launch/`.
+- **Production:** 13B migrations and MFA TOTP enablement are **not** applied to production. Follow the rollout manifest in §2.11, with explicit authorization for each step and after the 13A production gate.
+- **Security follow-up:** a production `sb_secret` service key was printed once in a local agent shell output during Phase H key recovery (not committed, not in any file in the repo). Rotate that production service-role key.
+- **NEXT:** **13C research** (First-Time Business Activation). Broad Astra research first.
 
 ### Locked future sequence
 

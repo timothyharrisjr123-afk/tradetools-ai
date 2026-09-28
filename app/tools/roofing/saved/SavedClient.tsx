@@ -4176,7 +4176,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       )}
 
       <FieldDiveAppShell activeNav="jobs">
-          {boardReady && lastDbJobRecoveryHref ? (
+          {boardReady && lastDbJobRecoveryHref && companyMembers.canCreateJobs ? (
             <div className="mx-auto mb-3 max-w-[1800px] rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
               <Link
                 href={lastDbJobRecoveryHref}
@@ -4228,6 +4228,7 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                   dispositionFilter={dispositionFilter}
                   onDispositionFilterChange={setDispositionFilter}
                   filtersActive={boardFiltersActive}
+                  canCreateJobs={companyMembers.canCreateJobs}
                 />
 
                 <JobsBoardPipelineGuidance readiness={companySetupReadiness} />
@@ -4275,10 +4276,10 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                         ? "author"
                         : companyMembers.viewerRole == null
                           ? "unknown"
-                          : companyMembers.restrictedFieldRole
-                            ? "field"
-                            : companyMembers.canAssignJobs
-                              ? "coordinator"
+                          : companyMembers.canAssignJobs
+                            ? "coordinator"
+                            : companyMembers.restrictedFieldRole
+                              ? "field"
                               : "unknown"
                     }
                   />

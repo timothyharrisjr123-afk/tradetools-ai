@@ -18,6 +18,7 @@ type JobsBoardHeaderProps = {
   dispositionFilter: BoardDispositionFilter;
   onDispositionFilterChange: (value: BoardDispositionFilter) => void;
   filtersActive: boolean;
+  canCreateJobs: boolean;
 };
 
 export default function JobsBoardHeader({
@@ -34,6 +35,7 @@ export default function JobsBoardHeader({
   dispositionFilter,
   onDispositionFilterChange,
   filtersActive,
+  canCreateJobs,
 }: JobsBoardHeaderProps) {
   return (
     <section className="rounded-xl border border-slate-200/80 bg-white px-4 py-4 shadow-sm sm:px-5 sm:py-5">
@@ -113,12 +115,14 @@ export default function JobsBoardHeader({
               filtersActive={filtersActive}
             />
 
-            <Link
-              href="/tools/roofing?entry=packet"
-              className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800"
-            >
-              + New job
-            </Link>
+            {canCreateJobs ? (
+              <Link
+                href="/tools/roofing?entry=packet"
+                className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800"
+              >
+                + New job
+              </Link>
+            ) : null}
           </div>
         </div>
       </div>

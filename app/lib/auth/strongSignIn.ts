@@ -32,6 +32,21 @@ export type StrongSignInStart =
 
 export const STRONG_SIGN_IN_CODE_PATTERN = /^\d{6}$/;
 
+let inflightStart: Promise<StrongSignInStart> | null = null;
+
+/**
+ * Concurrent starts share one request: two enrollments at once collide on the
+ * authenticator name and one fails.
+ */
+export function startStrongSignInOnce(client: StrongSignInClient): Promise<StrongSignInStart> {
+  if (!inflightStart) {
+    inflightStart = startStrongSignIn(client).finally(() => {
+      inflightStart = null;
+    });
+  }
+  return inflightStart;
+}
+
 /** A verified authenticator is challenged; otherwise stale unverified ones are cleared and one is enrolled. */
 export async function startStrongSignIn(client: StrongSignInClient): Promise<StrongSignInStart> {
   const listed = await client.auth.mfa.listFactors();

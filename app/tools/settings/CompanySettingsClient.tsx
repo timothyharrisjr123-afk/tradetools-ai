@@ -69,6 +69,8 @@ type CompanySettingsClientProps = {
 const ROW =
   "group flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors hover:bg-slate-50/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 sm:items-center sm:gap-4 sm:px-5 sm:py-4";
 
+const STATIC_ROW = "flex w-full items-start gap-3 px-4 py-3.5 text-left sm:items-center sm:gap-4 sm:px-5 sm:py-4";
+
 const ROW_ACTION =
   "flex shrink-0 items-center gap-0.5 self-start pt-0.5 text-sm font-medium text-blue-600 group-hover:text-blue-700 sm:self-center sm:pt-0";
 
@@ -90,7 +92,8 @@ function SummaryRow({
   /** Legacy single-line detail fallback. */
   detail?: string;
   missing?: string | null;
-  action: string;
+  /** Omitted for people who can see a setting but not change it. */
+  action?: string;
   onClick?: () => void;
   href?: string;
   testId: string;
@@ -128,12 +131,22 @@ function SummaryRow({
           </span>
         ) : null}
       </span>
-      <span className={ROW_ACTION}>
-        {action}
-        <ChevronRight className="h-4 w-4 opacity-70" aria-hidden />
-      </span>
+      {action ? (
+        <span className={ROW_ACTION}>
+          {action}
+          <ChevronRight className="h-4 w-4 opacity-70" aria-hidden />
+        </span>
+      ) : null}
     </>
   );
+
+  if (!action) {
+    return (
+      <div className={STATIC_ROW} data-company-settings-row={testId} data-company-settings-row-readonly>
+        {body}
+      </div>
+    );
+  }
 
   if (href) {
     return (
@@ -349,6 +362,10 @@ export default function CompanySettingsClient({
     }
   };
 
+  const accessPending = team.loading && team.viewerRole == null;
+  const canManageCompany = team.canManageCompany;
+  const showCommercial = team.canReadCommercial || team.canManagePricing || team.canConfigurePayments;
+  const fieldViewer = team.viewerRole === "field_user";
   const business = summarizeBusiness(profile);
   const businessMissing = formatMissingDetailCount(countMissingBusinessDetails(profile));
   const brandingMissing = formatMissingDetailCount(countMissingBrandingDetails(profile));
@@ -358,7 +375,9 @@ export default function CompanySettingsClient({
       <header>
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Company settings</h1>
         <p className="mt-1 text-sm text-slate-600">
-          Your business identity, branding, payments, and pricing.
+          {accessPending || canManageCompany
+            ? "Your business identity, branding, payments, and pricing."
+            : "Your company's details. An Owner or Admin changes these."}
         </p>
       </header>
 
@@ -379,7 +398,7 @@ export default function CompanySettingsClient({
         className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm"
         data-company-settings-summary
       >
-        {loading ? (
+        {loading || accessPending ? (
           <SummarySkeleton />
         ) : (
           <div className="divide-y divide-slate-200">
@@ -387,39 +406,47 @@ export default function CompanySettingsClient({
               label="Business"
               title={business.title}
               details={
-                business.details.length > 0 ? business.details : ["Add your contact details"]
+                business.details.length > 0
+                  ? business.details
+                  : canManageCompany
+                    ? ["Add your contact details"]
+                    : []
               }
-              missing={businessMissing}
-              action="Edit"
+              missing={canManageCompany ? businessMissing : null}
+              action={canManageCompany ? "Edit" : undefined}
               onClick={() => setEditor("business")}
               testId="business"
             />
             <SummaryRow
               label="Branding"
               detail={summarizeBranding(profile)}
-              missing={brandingMissing}
-              action="Edit"
+              missing={canManageCompany ? brandingMissing : null}
+              action={canManageCompany ? "Edit" : undefined}
               onClick={() => setEditor("branding")}
               testId="branding"
             />
-            <SummaryRow
-              label={COMPANY_PAYMENT_SETUP_LABEL}
-              detail={summarizePayments(payments, paymentsStatus)}
-              action="Manage"
-              onClick={() => setEditor("payments")}
-              testId="payments"
-            />
-            <SummaryRow
-              label="Pricing"
-              detail={summarizePricing(pricing, pricingStatus)}
-              action="Manage"
-              href="/tools/settings/pricing"
-              testId="pricing"
-            />
+            {showCommercial ? (
+              <SummaryRow
+                label={COMPANY_PAYMENT_SETUP_LABEL}
+                detail={summarizePayments(payments, paymentsStatus)}
+                action={team.canConfigurePayments ? "Manage" : undefined}
+                onClick={() => setEditor("payments")}
+                testId="payments"
+              />
+            ) : null}
+            {showCommercial ? (
+              <SummaryRow
+                label="Pricing"
+                detail={summarizePricing(pricing, pricingStatus)}
+                action={team.canManagePricing ? "Manage" : "View"}
+                href="/tools/settings/pricing"
+                testId="pricing"
+              />
+            ) : null}
             <SummaryRow
               label="Preferences"
               detail={summarizeTimezone(timezone, timezoneStatus)}
-              action="Edit"
+              action={canManageCompany ? "Edit" : undefined}
               onClick={() => setEditor("preferences")}
               testId="preferences"
             />
@@ -430,9 +457,11 @@ export default function CompanySettingsClient({
                   ? "Loading…"
                   : team.error
                     ? "Could not load team"
-                    : `${team.liveMembers.length} member${
-                        team.liveMembers.length === 1 ? "" : "s"
-                      }`
+                    : fieldViewer
+                      ? "An Owner or Admin manages the team"
+                      : `${team.liveMembers.length} member${
+                          team.liveMembers.length === 1 ? "" : "s"
+                        }`
               }
               action={team.canAdminMembers ? "Manage" : "View"}
               onClick={() => setEditor("team")}

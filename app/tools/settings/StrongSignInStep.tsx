@@ -9,7 +9,7 @@ import {
 } from "@/app/components/ui/FocusedEditor";
 import {
   confirmStrongSignIn,
-  startStrongSignIn,
+  startStrongSignInOnce,
   type StrongSignInClient,
   type StrongSignInStart,
 } from "@/app/lib/auth/strongSignIn";
@@ -33,12 +33,13 @@ export default function StrongSignInStep({ onConfirmed, onCancel }: StrongSignIn
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     const client = createClient() as unknown as StrongSignInClient;
     clientRef.current = client;
-    startStrongSignIn(client)
+    startStrongSignInOnce(client)
       .then((next) => {
         if (!cancelled) setStart(next);
       })
@@ -48,7 +49,7 @@ export default function StrongSignInStep({ onConfirmed, onCancel }: StrongSignIn
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [attempt]);
 
   const submit = async () => {
     const client = clientRef.current;
@@ -73,9 +74,30 @@ export default function StrongSignInStep({ onConfirmed, onCancel }: StrongSignIn
       {start == null ? (
         <p className={FOCUSED_EDITOR_HINT}>Preparing your authenticator step…</p>
       ) : start.kind === "unavailable" ? (
-        <p className="text-sm text-slate-800" data-team-strong-sign-in-unavailable>
-          Strong sign-in isn&apos;t available right now. Try again in a moment.
-        </p>
+        <div className="space-y-3" data-team-strong-sign-in-unavailable>
+          <p className="text-sm text-slate-800">
+            We couldn&apos;t set up your authenticator step. Nothing was changed.
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              className={`${FOCUSED_EDITOR_SAVE} w-full sm:w-auto`}
+              onClick={() => {
+                setStart(null);
+                setAttempt((n) => n + 1);
+              }}
+            >
+              Try again
+            </button>
+            <button
+              type="button"
+              className="inline-flex min-h-[44px] items-center justify-center px-2 text-sm font-medium text-slate-600"
+              onClick={onCancel}
+            >
+              Not now
+            </button>
+          </div>
+        </div>
       ) : (
         <form
           className="space-y-3"

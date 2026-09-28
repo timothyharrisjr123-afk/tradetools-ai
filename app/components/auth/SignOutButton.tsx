@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { createClient } from "@/app/lib/supabase/client";
+import { LAST_DB_JOB_ID_STORAGE_KEY } from "@/app/lib/jobBoardAdapter";
 
 export function SignOutButton({ className }: { className?: string }) {
   const router = useRouter();
@@ -9,6 +10,11 @@ export function SignOutButton({ className }: { className?: string }) {
   async function handleSignOut() {
     const supabase = createClient();
     await supabase.auth.signOut();
+    try {
+      window.localStorage.removeItem(LAST_DB_JOB_ID_STORAGE_KEY);
+    } catch {
+      // storage unavailable
+    }
     router.refresh();
     router.push("/login");
   }
