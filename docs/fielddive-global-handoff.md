@@ -16,7 +16,280 @@ Domain blueprints remain the product authority for their program. Repo truth rem
 
 Sections below this checkpoint are historical. Older **NEXT** lines are not the current step.
 
-### Current checkpoint (2026-09-28)
+### Current checkpoint (2026-09-30) — Phase 13C
+
+- **Code checkpoint:** `f3331735c01263e3f1f7d55cc7b200b788db507c` — `fix(phase13c): align team board with crew truth`. Local only. Not pushed. No deploy.
+  - Underlying accepted Team/access foundation: `8836af9` — `feat(phase13c): checkpoint team and access foundation` (on top of `da6eb10`).
+- **Docs checkpoint:** pending (the docs commit that adds this section, the Team truth correction record, and the six Phase 13C docs).
+- **Phase:** 13C. The locked future sequence below is unchanged.
+- **Team truth correction:** **COMPLETE** (accepted 2026-09-30; see below).
+- **NEXT:** **DURABLE JOB → CREW ASSIGNMENT FOUNDATION** (scope below). Not started.
+- **Phase 13C is not closed.** First-time activation / onboarding (activation target **FIRST REAL PROPOSAL SENT**) remains open Phase 13C work. `docs/phase13c-first-time-activation-astra-research.md` stays the open research input. A later bounded reconciliation decides the remaining activation/onboarding work before Phase 13C can close. The activation target and roadmap order are unchanged.
+- **Controlling decision:** `docs/phase13c-people-crew-access-product-architecture-decision.md`. Where earlier Phase 13C docs conflict on People / Crew / access / Job → Crew work, this decision controls. Older docs stay as historical records; do not delete or rewrite them. Their unaffected security, custody, tenancy, lifecycle and audit requirements remain binding.
+- **Phase 13C docs (historical inputs to the decision):**
+  - `docs/phase13c-first-time-activation-astra-research.md`
+  - `docs/phase13c-crew-product-contract-repo-reconciliation.md`
+  - `docs/phase13c-crew-visual-operational-synthesis-astra-research.md`
+  - `docs/phase13c-team-astra-implementation-handoff.md`
+  - `docs/phase13c-people-access-crew-operating-model-astra-research.md`
+
+#### What the code checkpoint contains
+
+- **Slice 1 (accepted):**
+  - `jobs.complete` (company scope) is split from `jobs.progress`.
+  - The Lead preset package is `tasks.manage`, `tasks.read` and `jobs.progress` only.
+  - `schedule.manage` guards Schedule, Reschedule and Unschedule in both the routes and the UI.
+  - The company directory is narrowed; Leads see their jobs' people through the Field brief.
+  - "Production lead" wording for `jobs.assigned_to` now reads **Coordinator**. Role keys are unchanged, and the SQL capability evaluator is unchanged.
+  - Lead Start does **not** use `jobs.assigned_to` as assignment-Lead truth. Job-scoped Start stays closed until assignment truth exists.
+- **Team / People / Crew baseline (accepted and committed):**
+  - `/tools/team` is a first-class Operations workspace.
+  - The people/crews foundation is `company_people`, `crews` and `crew_members`, with SECURITY DEFINER RPCs gated by company-scope `jobs.assign`.
+  - `update_company_person_v1` edits a person's name and phone.
+  - The access-management surface sits under `/tools/settings/team`.
+  - The accepted Team visual baseline remains valid. **Do not reopen Team design now.**
+- **Team truth correction (`f333173`, accepted):** aligns the Team board with the controlling decision. Details in the next section.
+- **Migrations (applied to STAGING only):**
+  - `20260929120000_phase13c_s1_access_vocabulary_completion_split.sql`
+  - `20260929130000_phase13c_team_board_people_crews.sql`
+  - `20260929140000_phase13c_team_board_person_details.sql`
+
+  They are **not** applied to production, and Phase 13C production rollout is **not** complete.
+- **Known baseline debt (outside this checkpoint; do not fix as part of 13C):**
+  - `jobSchedules045.test.ts` "all-day and timed labels" fails because the committed test expects garbled text.
+  - Stale `.next/types` references to `roofing/ai`.
+
+#### Phase 13C Team truth correction — COMPLETE
+
+Accepted 2026-09-30 in `f333173`. Files: `app/lib/team/teamBoardModel.ts`, `app/tools/team/TeamBoardClient.tsx`, `app/lib/phase13cTeamBoard.test.ts`. This was a truth correction, not a Team redesign.
+
+- **Accepted corrections:**
+  - A Crew without a usual Lead is a valid, complete Crew and renders as a normal Crew card.
+  - The "Needs a Lead" deficiency treatment is removed, along with the fake missing-person placeholder and the required-Lead call to action.
+  - The usual Lead stays optional and is chosen or changed through the Crew's ⋯ menu.
+  - The normal Team board no longer presents access profiles (Owner, Office Manager, Production Coordinator, Lead, Sales, Field) as occupational titles. A Lead's subline shows only facts such as "2 crews".
+  - The access-derived "Office & coordination" grouping is removed. Everyone not on a Crew appears under **"Not on a crew"** ("On your team, not on a crew.").
+  - The filters are **All crews / Leads / Not on a crew / Invited**. "Coordinators" is removed because it was derived from access, not Job responsibility.
+  - The Leads filter derives from the actual usual-Crew-Lead relationship, not access.
+  - Team ordering is neutral and name-based, not access-ranked. The Crew Lead picker is alphabetical.
+  - The page subtitle is "Your people and crews."
+  - The add-person flow no longer implies that every Person should eventually join a Crew ("{name} added to your team.").
+  - Software access stays visible only in real access contexts: the person sheet's "Signs in as …" fact and the Invited panel.
+  - The Coordinator weekly row ("Coordinates N jobs this week") is unchanged Coordinator/person truth.
+
+#### Usual Crew Lead and Crew membership are independent
+
+**USUAL CREW LEAD and CREW MEMBERSHIP are independent relationships.** Therefore:
+
+- Setting a usual Lead does not create Crew membership.
+- Adding a Crew member does not make that Person the usual Lead.
+- A Person may be both.
+- A usual Lead who is not a member is not counted as a Crew member.
+- A usual Lead who is also an active member counts as real membership truth (for example "3 people, including Mike").
+- The UI avoids repeating the same Person when they are both: the Lead is shown once, above the roster.
+- Future Job → Crew roster snapshots must record actual active Crew membership separately from the usual Lead and the Assignment Lead.
+
+This must be preserved in the Job → Crew implementation.
+
+#### Team backend status
+
+No backend replacement was needed. The committed model already supports:
+
+- a nullable usual Lead;
+- a Crew with only a name;
+- Crew identity independent of its Lead;
+- many-to-many Crew membership;
+- dated membership history;
+- a Person without a login;
+- a Person without a Crew;
+- access removal without deleting Person or Crew history.
+
+The truth correction made no schema, RPC, access or auth change.
+
+#### Team truth correction — test and proof checkpoint
+
+- **Targeted:** `phase13cTeamBoard` **54 / 54** pass.
+- **Broader Team / access regression set:** **228 / 228** pass.
+- **Full suite:** 4639 tests, 4614 pass, **25 fail**. The 25 are the same failing tests as the prior 9/29 baseline run and include no Team regression. The whole repo is **not** green.
+- The known baseline includes the `jobSchedules045` garbled-text expectation and the stale `.next/types` debt recorded above.
+
+#### Team truth correction — live visual proof (STAGING-backed localhost)
+
+- **Location:** `tmp/fielddive-ui-review/phase13c-team-truth-correction/`
+- **Screenshots:**
+  - `01-desktop-full-team.png`
+  - `02-desktop-filters.png`
+  - `03-desktop-leaderless-crew.png`
+  - `04-desktop-multi-crew-lead.png`
+  - `05-desktop-not-on-crew.png`
+  - `06-desktop-person-access-context.png`
+  - `07-mobile-full-team.png`
+  - `08-mobile-leaderless-crew.png`
+  - `09-mobile-not-on-crew.png`
+- **Proof:**
+  - Desktop `innerWidth` 1440. Mobile `innerWidth` 390 with `scrollWidth` ≤ 390.
+  - The leaderless state was proved on the seeded Gutter Crew through the normal staging UI ("No usual Lead"). Its original usual Lead, Carlos Rivera, was restored afterward and verified.
+  - The access context stayed intact, and a Person with no login stayed valid.
+  - All visual truth checks (A–G) and all required interaction checks passed, with no console errors.
+- This is **staging-backed localhost proof**, not production proof.
+
+#### Team / People / Crew truths
+
+- Team is **a first-class operational People + Crews workspace**. It is not an org chart, an HR surface, a permission directory, or a software-user hierarchy.
+- **PERSON ≠ SOFTWARE USER.** Crew membership ≠ software access. Software membership ≠ Crew membership.
+- A Person is independent. A Crew is independent: a reusable, company-defined operational group that the company names freely.
+- A Crew with only a name is valid. A Crew may have no Lead, no Coordinator and no software users, and its roster may be incomplete or unknown.
+- A Person may have no login, may lead several Crews, and may belong to several Crews.
+- A job title is not software access. The usual Lead is not authority. Crew membership is not authority. The Coordinator is not Crew identity.
+- A Crew relationship grants no software authority.
+
+#### Access product decision
+
+- **ACCESS FOLLOWS REAL WORK, NOT LABELS.** If a workflow inherently requires information, access to that workflow includes the information needed to perform it. Separate access only where someone can legitimately do the work without the more sensitive information or authority.
+- Job titles are optional descriptors entered by the company. They grant no authority. Changing a title changes no access, navigation, Crew authority or Job authority.
+- Office Manager, Production Coordinator, Lead, Sales and Field are **not** security primitives.
+- Owner remains protected custody. It is not an ordinary invitation role.
+- The likely user-facing defaults for non-owners are **Working Access** and **Full Team Access**. These are user-facing defaults, not the whole backend authorization model.
+- The existing capability evaluator, scopes, restrictions, delegation, custody and audit remain underneath, unchanged.
+- **Do not** redesign access, add roles, add permission packages, simplify access, migrate stored roles, or start the later access audit now. Visible access expansion is frozen while the operational workflows are completed.
+
+#### Commercial / money rule
+
+- **NORMAL WORK:** authority to create, edit and send proposals inherently includes the customer-facing selling prices. Do **not** create a separate "view proposal price" permission.
+- **INTERNAL BUSINESS NUMBERS:** internal costs, margins, profitability, and internal financial reporting where applicable. These remain distinct and sensitive.
+- **CUSTOMER MONEY:**
+  - View payments
+  - Request payments
+  - Refund / credit
+
+  These are distinct consequences. Do not use "collect payments" as a vague umbrella.
+- **COMPANY CONTROL:**
+  - pricing/catalog administration
+  - payout, banking and payment-provider configuration
+  - FieldDive SaaS subscription billing
+  - ownership/security
+
+  These are exceptional administrative authority, not ordinary proposal or payment access.
+- **Current limitation:** proposal authoring currently reads internal costs. FieldDive therefore cannot truthfully promise "proposal access but hidden internal costs/margins" until cost-safe reads, authoring, documents and data paths are implemented and proved. This limitation does **not** block Job → Crew work.
+
+#### Job → Crew (authoritative)
+
+- Job Crew assignment is the next durable operational foundation.
+- The Assignment Lead is optional.
+- The Coordinator is an optional Job responsibility. It is not required for Job creation, Crew creation, Crew assignment, scheduling or production.
+- A valid simple case: Tim and Jake are the Harris Crew, and the Job is assigned to Harris Crew. No title, no Lead, no Coordinator, no invented hierarchy.
+- An assignment has its own durable identity and lifecycle. Preserve assignment history.
+- Do **not** derive historical Job truth from today's Crew roster. The current Crew roster ≠ historical attendance.
+
+#### One Crew per Job is not an invariant
+
+- ONE ACTIVE CREW PER JOB is **not** a permanent architectural invariant.
+- The durable model is:
+  - one-to-many Job → Crew assignments;
+  - multiple historical assignments;
+  - concurrency-capable for the future;
+  - the same Crew may return later;
+  - future roofing + gutters or phased work must remain possible.
+- **First-release UI direction:** ONE PRIMARY ACTIVE CREW AT A TIME. This is an initial UI/API operating mode only. It must **not** become a universal constraint in the database or in business truth.
+- No heavy work-package engine is required now. The Job Crew assignment identity must stay extensible to future concurrent work-package association.
+
+#### Assignment ≠ access
+
+- Crew assignment creates **no** automatic software access in the next slice, and Crew membership creates **no** automatic software access.
+- The next slice must not:
+  - create, revoke or recompute Job grants;
+  - enable automatic sharing derived from assignments;
+  - enable new job-scoped Start authority.
+
+  Current access behavior is preserved.
+- Automatic sharing and the grant-reason ledger are a later, explicit slice.
+
+#### Calendar
+
+- Calendar remains the **sole** schedule authority. The assignment's effective lifecycle is not a second schedule.
+- The current Team weekly row ("Coordinates N jobs this week") is Coordinator/person-derived work (`jobs.assigned_to` + Calendar `job_schedules`). Do **not** relabel it as Crew work.
+- Future Crew weekly work derives from durable Job Crew assignment + Calendar schedule truth, **not** `jobs.assigned_to`.
+
+#### Superseded / narrowed prior assumptions
+
+See `docs/phase13c-people-crew-access-product-architecture-decision.md` §13 for the full table. At minimum, these are superseded or narrowed:
+
+- mandatory usual Crew Lead ("Needs a Lead" as a deficiency);
+- mandatory Assignment Lead;
+- a Lead being required to unlock normal Crew or Job operation;
+- one active Crew per Job as a permanent invariant;
+- Crew identity existing mainly beneath a Lead or person;
+- access-role labels acting as company job titles;
+- the Coordinator acting as Crew identity or responsibility;
+- assignment implying automatic software access;
+- one blanket financial-access concept;
+- bundling the Job → Crew foundation with automatic grant-ledger conversion;
+- treating proposal-price visibility as a separate permission from proposal work.
+
+On the Team board, the "Needs a Lead" deficiency, Crew-beneath-a-person-only presentation, access-label titles and access-derived grouping were corrected in `f333173` (see "Phase 13C Team truth correction — COMPLETE"). A person-first view of Crews with a usual Lead remains one valid presentation.
+
+Older docs remain historical records. Do not delete them or rewrite their history.
+
+#### NEXT: DURABLE JOB → CREW ASSIGNMENT FOUNDATION
+
+Team is complete; this is the current operational NEXT. It has **not** started, and this checkpoint does not start it.
+
+- **Expected scope:**
+  - durable assignment identity;
+  - a Job → Crew one-to-many relationship;
+  - an optional Assignment Lead;
+  - multiple historical assignments;
+  - facts preserved at assignment time (assignment-time truth), with the roster snapshot recording actual active Crew membership separately from the usual Lead and the Assignment Lead;
+  - the current Crew roster ≠ historical assignment participation;
+  - reads and writes that are safe on the server and within the company;
+  - lifecycle and close behavior;
+  - stale-write and retry protection;
+  - atomic activity/history where required;
+  - compatibility with future concurrent work;
+  - Calendar remaining the schedule authority.
+- **Must work with:**
+  - a Crew with no Lead;
+  - a Job with no Coordinator;
+  - no Crew member having a login.
+- **Explicitly OUT OF SCOPE:**
+  - automatic Crew-derived software access
+  - access-role redesign
+  - role-key migration
+  - title UI
+  - Team redesign
+  - financial-access redesign
+  - cost-safe proposal implementation
+  - automatic assignment-derived Job access
+  - grant-reason ledger conversion
+  - new job-scoped Start authority
+  - availability/capacity
+  - payroll
+  - timekeeping
+  - route optimization
+  - external subcontractor portal
+  - work-package UI
+  - a second scheduling system
+- The decision doc authorizes no implementation by itself. The next task must explicitly authorize the slice, and any SQL, migration or environment mutation needs its own authorization.
+
+#### Production / security open item
+
+- The previously exposed production Supabase `sb_secret` key must be deliberately **rotated** before or with production rollout. Do not print or reuse it.
+- Do not claim that Phase 13C (or 13B) production rollout is complete. The Phase 13C migrations above are staging-only unless repo and deployment truth explicitly prove otherwise.
+
+#### Operational note: localhost briefly ran against production (2026-09-30)
+
+- **What happened:** a Cursor restart ended the terminal that held the staging Supabase variables, which were loaded only in session memory. A plain `npm run dev` in a new terminal then fell back to `.env.local`, which targets production.
+- **Result:** production lacks the Phase 13B access resolver, so FieldDive correctly showed "We couldn't verify your access".
+  - This was **not** account loss and **not** a Team/access regression.
+  - Owner membership and custody were not modified.
+  - The user manually restarted localhost with the staging environment, and access worked again.
+- **Permanent guardrail:**
+  - The user owns the dev server. Agents must never restart it without explicit authorization.
+  - After any local dev-server restart, verify the intended Supabase environment (classification only) before using localhost.
+  - Never assume staging variables persisted across a terminal or process restart.
+  - Do not print secrets or tokens while checking the target environment.
+
+### Previous checkpoint (2026-09-28) — historical
 
 - **Code:** commit `fix(auth): close Phase 13B access launch proof` (on top of `d96f8c5`). Not pushed. No deploy.
 - **Phase 13B:** A–H **CLOSED on staging**. The live desktop and 390 px visual proof is recorded in the Phase 13 blueprint §2.11. Screenshots: `tmp/fielddive-ui-review/phase13b-h-access-launch/`.
