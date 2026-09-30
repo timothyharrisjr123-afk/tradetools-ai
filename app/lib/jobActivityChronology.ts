@@ -455,11 +455,49 @@ export function classifyJobActivityEvent(
     event.event_type === "scope_change_declined" ||
     event.event_type === "scope_change_voided" ||
     event.event_type === "payment_request_emailed" ||
-    event.event_type === "payment_request_email_failed"
+    event.event_type === "payment_request_email_failed" ||
+    event.event_type === "job_crew_assigned" ||
+    event.event_type === "job_crew_replaced" ||
+    event.event_type === "job_crew_assignment_ended" ||
+    event.event_type === "job_crew_assignment_lead_changed"
   ) {
     return JOB_ACTIVITY_VISIBILITY.CONTRACTOR_VISIBLE;
   }
   return JOB_ACTIVITY_VISIBILITY.SYSTEM_INTERNAL;
+}
+
+/** Crew assignment Activity. Names come from the event's own snapshots, never current rows. */
+export function composeJobCrewActivity(
+  eventType: string,
+  payload: Record<string, unknown> | null | undefined
+): { title: string; detail: string | null } | null {
+  const data = payload ?? {};
+  const text = (key: string): string | null => {
+    const value = data[key];
+    return typeof value === "string" && value.trim() ? value.trim() : null;
+  };
+  const crew = text("crew_name");
+  const lead = text("assignment_lead_name");
+  if (eventType === "job_crew_assigned") {
+    const detail = [crew, lead ? `Assignment Lead: ${lead}` : null].filter(Boolean).join(" · ");
+    return { title: "Crew assigned", detail: detail || null };
+  }
+  if (eventType === "job_crew_replaced") {
+    const previous = text("previous_crew_name");
+    const detail = previous && crew ? `${previous} → ${crew}` : crew;
+    return { title: "Crew replaced", detail };
+  }
+  if (eventType === "job_crew_assignment_ended") {
+    const closed = data.end_reason === "job_closed";
+    const detail = [crew, closed ? "Job closed" : null].filter(Boolean).join(" · ");
+    return { title: "Crew assignment ended", detail: detail || null };
+  }
+  if (eventType === "job_crew_assignment_lead_changed") {
+    const previous = text("previous_assignment_lead_name") ?? "No Lead";
+    const change = `${previous} → ${lead ?? "No Lead"}`;
+    return { title: "Assignment Lead changed", detail: crew ? `${crew} · ${change}` : change };
+  }
+  return null;
 }
 
 function isForbiddenItem(item: { label: string; note?: string }): boolean {
@@ -675,6 +713,20 @@ function composeEventRow(
       kind: "work_approved",
       title,
       detail: null,
+      occurredAt: event.occurred_at,
+      actor,
+      source: "durable",
+      sourceIds: [event.id],
+    };
+  }
+
+  const crewItem = composeJobCrewActivity(event.event_type, payload);
+  if (crewItem) {
+    return {
+      id: event.id,
+      kind: "work_approved",
+      title: crewItem.title,
+      detail: crewItem.detail,
       occurredAt: event.occurred_at,
       actor,
       source: "durable",

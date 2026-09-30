@@ -28,6 +28,9 @@ export const TEAM_BOARD_MESSAGES: Record<string, string> = {
   crew_name_taken: "Another crew already has that name.",
   stale_revision: "This changed since you opened it. Refresh and try again.",
   linked_login_active: "This person still has FieldDive access. Remove their access first.",
+  person_active_assignment_lead:
+    "This person is the Assignment Lead on a current crew assignment. Change or clear the Assignment Lead, or end that assignment, first.",
+  crew_actively_assigned: "This crew is currently assigned to a job. Replace or end that assignment first.",
   team_board_unavailable: "Crews are unavailable right now.",
 };
 
@@ -41,6 +44,8 @@ const STATUS: Record<string, number> = {
   crew_name_taken: 409,
   stale_revision: 409,
   linked_login_active: 409,
+  person_active_assignment_lead: 409,
+  crew_actively_assigned: 409,
 };
 
 type RpcResult = { ok?: boolean; code?: string; [key: string]: unknown };

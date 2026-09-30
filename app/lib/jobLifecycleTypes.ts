@@ -86,6 +86,11 @@ export const JOB_ACTIVITY_EVENT_TYPES = [
   /** Astra G10 / Phase 11 — payment-request collection communication. */
   "payment_request_emailed",
   "payment_request_email_failed",
+  /** Phase 13C — durable Job → Crew assignment. */
+  "job_crew_assigned",
+  "job_crew_replaced",
+  "job_crew_assignment_ended",
+  "job_crew_assignment_lead_changed",
 ] as const;
 
 export type JobActivityEventType = (typeof JOB_ACTIVITY_EVENT_TYPES)[number];
