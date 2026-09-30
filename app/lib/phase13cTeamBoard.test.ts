@@ -29,6 +29,7 @@ const read = (path: string) => readFileSync(join(root, path), "utf8");
 const migration = read("supabase/migrations/20260929130000_phase13c_team_board_people_crews.sql");
 const detailsMigration = read("supabase/migrations/20260929140000_phase13c_team_board_person_details.sql");
 const board = read("app/tools/team/TeamBoardClient.tsx");
+const modelSource = read("app/lib/team/teamBoardModel.ts");
 const page = read("app/tools/team/page.tsx");
 
 const U = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -37,9 +38,11 @@ const member = (n: number, role: TeamBoardMemberInput["role"], name: string, ext
   removedAt: null, openJobLeadCount: 0, openTaskAssigneeCount: 0, packageKeys: [], ...extra,
 });
 
-// Owner (Tim) leads Tim Crew; Production Coordinator (Mike) leads Mike Crew; Lead (Carlos)
-// leads Carlos Crew; Office Manager (Lisa) is on no crew; Fred (Field) and Jason (no
-// login) are unassigned; Dana's access was removed but she is still on Mike Crew.
+// Tim (Owner access) leads Tim Crew but is not on its roster; Mike (Production
+// Coordinator access) leads Mike Crew and is also on its roster; Carlos (Lead access)
+// leads Carlos Crew; Gutter Crew has no usual Lead. Lisa (Office Manager access), Fred
+// (Field) and Jason (no login) are on no crew; Dana's access was removed but she is
+// still on Mike Crew.
 const members: TeamBoardMemberInput[] = [
   member(1, "owner", "Tim Harris", { openJobLeadCount: 3 }),
   member(2, "production_lead", "Mike Johnson", { openJobLeadCount: 2, openTaskAssigneeCount: 1 }),
@@ -79,34 +82,69 @@ const snapshot: TeamBoardSnapshot = {
 const model = buildTeamBoardModel({ snapshot, members, accessAdmin: true });
 const names = (rows: { name: string }[]) => rows.map((row) => row.name);
 
-describe("Team Board model: who runs the work, and who works with whom", () => {
-  test("lead → crew → members hierarchy, ordered Owner, Coordinator, Lead, then crews needing a Lead", () => {
-    assert.deepEqual(model.groups.map((g) => g.lead?.name ?? "Needs a Lead"), ["Tim Harris", "Mike Johnson", "Carlos Rivera", "Needs a Lead"]);
-    const mike = model.groups[1];
-    assert.equal(mike.crews[0].name, "Mike Crew");
-    assert.deepEqual(names(mike.crews[0].members), ["Bob Harris", "Dana Wu"], "the Lead is the anchor, not repeated as a member");
-    assert.equal(model.groups[3].crews[0].name, "Gutter Crew");
+const crewOf = (m: typeof model, id: string) => m.groups.flatMap((g) => g.crews).find((c) => c.id === id)!;
+
+describe("Team Board model: your people and crews", () => {
+  test("person-led groups by name, then crews without a usual Lead by crew name; never by access", () => {
+    assert.deepEqual(model.groups.map((g) => g.lead?.name ?? g.crews[0].name), ["Carlos Rivera", "Mike Johnson", "Tim Harris", "Gutter Crew"]);
+    assert.equal(model.groups[1].crews[0].name, "Mike Crew");
     assert.equal(model.crewCount, 4);
+    const reversedAccess = buildTeamBoardModel({
+      snapshot,
+      members: members.map((m) => (m.userId === U(1) ? { ...m, role: "field_user" as const } : m.userId === U(3) ? { ...m, role: "owner" as const } : m)),
+      accessAdmin: true,
+    });
+    assert.deepEqual(reversedAccess.groups.map((g) => g.key), model.groups.map((g) => g.key), "changing access does not reorder the board");
   });
 
-  test("any role may lead: Owner, Production Coordinator, and Lead all anchor crews", () => {
-    assert.deepEqual(model.groups.slice(0, 3).map((g) => g.lead?.roleLabel), ["Owner", "Production Coordinator", "Lead"]);
+  test("a crew with no usual Lead is a complete crew: its own group, no person, nothing missing", () => {
+    const gutter = model.groups[3];
+    assert.equal(gutter.lead, null);
+    assert.equal(gutter.key, `c:${C.gutter}`);
+    assert.deepEqual(gutter.crews.map((c) => c.name), ["Gutter Crew"]);
+    assert.equal(gutter.crews[0].memberCount, 0);
+    const nameOnly = buildTeamBoardModel({
+      snapshot: { people: [], crews: [{ id: C.gutter, name: "ABC Roofing", usualLeadPersonId: null, rowVersion: 1 }], roster: [] },
+      members: [],
+      accessAdmin: true,
+    });
+    assert.equal(nameOnly.groups.length, 1);
+    assert.equal(nameOnly.groups[0].lead, null);
+    assert.equal(nameOnly.entries.length, 0, "no person is invented for a crew without a Lead");
   });
 
-  test("office and coordination people without a crew are shown; unassigned are people on no crew", () => {
-    assert.deepEqual(names(model.office), ["Lisa Harris"]);
-    assert.deepEqual(names(model.unassigned), ["Fred Kim", "Jason Miller"]);
+  test("usual Lead and membership are independent: counts are roster truth", () => {
+    const tim = crewOf(model, C.tim);
+    assert.equal(tim.lead?.name, "Tim Harris");
+    assert.equal(tim.leadIsMember, false);
+    assert.equal(tim.memberCount, 1, "a Lead who is not on the roster is not counted");
+    assert.deepEqual(names(tim.members), ["Bob Harris"]);
+
+    const mike = crewOf(model, C.mike);
+    assert.equal(mike.leadIsMember, true);
+    assert.equal(mike.memberCount, 3, "a Lead who is on the roster is counted");
+    assert.deepEqual(names(mike.members), ["Bob Harris", "Dana Wu"], "the Lead is shown once, above the roster");
+
+    const carlos = crewOf(model, C.carlos);
+    assert.equal(carlos.leadIsMember, false);
+    assert.equal(carlos.memberCount, 2);
+    assert.ok(carlos.members.every((m) => m.leadsCrewIds.length === 0), "members who do not lead are ordinary members");
+  });
+
+  test("people not on a crew are one list, whatever their access", () => {
+    assert.deepEqual(names(model.notOnCrew), ["Fred Kim", "Jason Miller", "Lisa Harris"]);
+    assert.ok(!("office" in model), "no access-derived office grouping");
   });
 
   test("access removed never removes the person operationally", () => {
     const dana = model.groups[1].crews[0].members.find((m) => m.name === "Dana Wu")!;
     assert.equal(dana.access, "removed");
     assert.equal(dana.work, null, "no open-work claim for a removed login");
-    assert.ok(!model.office.concat(model.unassigned).some((e) => e.name === "Dana Wu"));
+    assert.ok(!model.notOnCrew.some((e) => e.name === "Dana Wu"));
   });
 
   test("a person with no login is valid on a crew and is not labelled as a login state", () => {
-    const joe = model.groups[2].crews[0].members.find((m) => m.name === "Joe Smith")!;
+    const joe = crewOf(model, C.carlos).members.find((m) => m.name === "Joe Smith")!;
     assert.equal(joe.access, "none");
     assert.equal(joe.roleLabel, null);
     assert.equal(joe.userId, null);
@@ -125,7 +163,7 @@ describe("Team Board model: who runs the work, and who works with whom", () => {
   });
 
   test("a member with no operational person yet is still shown, and never linked by name", () => {
-    const fred = model.unassigned.find((e) => e.name === "Fred Kim")!;
+    const fred = model.notOnCrew.find((e) => e.name === "Fred Kim")!;
     assert.equal(fred.personId, null);
     assert.equal(fred.key, `u:${U(5)}`);
     const mixed = buildTeamBoardModel({
@@ -150,13 +188,18 @@ describe("Team Board model: who runs the work, and who works with whom", () => {
     assert.equal(dana.access, "unknown", "a linked login missing from the directory is not claimed as no login");
   });
 
-  test("candidates: add excludes the crew's own people; any operational person may lead", () => {
-    const mikeCrew = model.groups[1].crews[0];
-    const add = crewAddCandidates(model, mikeCrew).map((e) => e.key);
+  test("candidates: add excludes the roster only; a Lead not on the roster may be added", () => {
+    const add = crewAddCandidates(model, crewOf(model, C.mike)).map((e) => e.key);
     assert.ok(!add.includes(`p:${P.bob}`) && !add.includes(`p:${P.mike}`) && !add.includes(`p:${P.dana}`));
     assert.ok(add.includes(`u:${U(5)}`) && add.includes(`p:${P.jason}`));
+    assert.ok(crewAddCandidates(model, crewOf(model, C.tim)).some((e) => e.personId === P.tim), "leading is not membership");
+  });
+
+  test("Lead picker: everyone, alphabetical; never Owner-first or access-ranked", () => {
     const leads = crewLeadCandidates(model).map((e) => e.name);
+    assert.deepEqual(leads, [...leads].sort((a, b) => a.localeCompare(b)));
     assert.ok(leads.includes("Jason Miller") && leads.includes("Lisa Harris") && leads.includes("Tim Harris"));
+    assert.notEqual(leads[0], "Tim Harris");
   });
 
   test("invitations are an exceptional state, separate from people", () => {
@@ -214,7 +257,8 @@ describe("Team Board model: who runs the work, and who works with whom", () => {
     const carlos = withGutter.groups.find((g) => g.lead?.personId === P.carlos)!;
     assert.deepEqual(carlos.crews.map((c) => c.name), ["Carlos Crew", "Gutter Crew"]);
     assert.deepEqual(carlos.lead!.leadsCrewIds.length, 2);
-    assert.ok(!withGutter.groups.some((g) => g.lead === null), "no crew is left needing a Lead");
+    assert.ok(!withGutter.groups.some((g) => g.lead === null));
+    assert.notEqual(carlos.crews[0].id, carlos.crews[1].id, "each crew keeps its own identity");
   });
 
   test("snapshot parsing rejects malformed rows rather than inventing people", () => {
@@ -296,19 +340,25 @@ describe("filters and search", () => {
   test("All crews shows every section", () => {
     const v = view("all");
     assert.equal(v.groups.length, 4);
-    assert.deepEqual(v.show, { crews: true, office: true, unassigned: true, invited: true });
+    assert.deepEqual(v.show, { crews: true, notOnCrew: true, invited: true });
   });
 
-  test("Leads are field anchors; Coordinators are office anchors plus Office & coordination", () => {
-    assert.deepEqual(view("leads").groups.map((g) => g.lead?.name), ["Carlos Rivera"]);
-    const coordinators = view("coordinators");
-    assert.deepEqual(coordinators.groups.map((g) => g.lead?.name), ["Tim Harris", "Mike Johnson"]);
-    assert.equal(coordinators.show.office, true);
-    assert.equal(coordinators.show.unassigned, false);
+  test("Leads are every crew with a usual Lead, whatever that person's access", () => {
+    const leads = view("leads");
+    assert.deepEqual(leads.groups.map((g) => g.lead?.name), ["Carlos Rivera", "Mike Johnson", "Tim Harris"]);
+    assert.deepEqual(leads.show, { crews: true, notOnCrew: false, invited: false });
+    const noLogin = buildTeamBoardModel({
+      snapshot: { ...snapshot, crews: snapshot.crews.map((c) => (c.id === C.gutter ? { ...c, usualLeadPersonId: P.jason } : c)) },
+      members,
+      accessAdmin: true,
+    });
+    const jason = filterTeamBoard(noLogin, { filter: "leads", query: "", canSeeInvites: true }).groups.find((g) => g.lead?.personId === P.jason);
+    assert.ok(jason, "a usual Lead with no login is still a Lead");
   });
 
-  test("Unassigned and Invited focus a single support list", () => {
-    assert.deepEqual(view("unassigned").show, { crews: false, office: false, unassigned: true, invited: false });
+  test("Not on a crew and Invited focus a single support list", () => {
+    assert.deepEqual(view("not_on_crew").show, { crews: false, notOnCrew: true, invited: false });
+    assert.deepEqual(names(view("not_on_crew").notOnCrew), ["Fred Kim", "Jason Miller", "Lisa Harris"]);
     assert.equal(view("invited").show.invited, true);
     assert.equal(filterTeamBoard(model, { filter: "invited", query: "", canSeeInvites: false }).show.invited, false);
   });
@@ -321,7 +371,7 @@ describe("filters and search", () => {
     assert.deepEqual(byMember.groups.map((g) => g.crews[0].members.map((m) => m.name)), [["Dana Wu"]]);
     const byLead = view("all", "mike");
     assert.equal(byLead.groups[0].crews[0].members.length, 2, "a Lead match keeps the crew whole");
-    assert.deepEqual(view("all", "jason").unassigned.map((e) => e.name), ["Jason Miller"]);
+    assert.deepEqual(view("all", "jason").notOnCrew.map((e) => e.name), ["Jason Miller"]);
     assert.equal(view("all", "zzz").empty, true);
   });
 });
@@ -420,9 +470,28 @@ describe("Team Board surface", () => {
     assert.match(board, /data-team-lead-group/);
     assert.match(board, /border-l-2 border-slate-200/);
     assert.match(board, /data-team-crew-roster/);
-    assert.match(board, /Office &amp; coordination/);
-    assert.match(board, /Unassigned/);
-    assert.match(board, /Needs a Lead/);
+    assert.match(board, /title="Not on a crew"/);
+    assert.match(board, /On your team, not on a crew\./);
+  });
+
+  test("a crew without a usual Lead is a plain crew card: no placeholder person, no deficiency", () => {
+    assert.doesNotMatch(board, /Needs a Lead|needs-lead|border-dashed border-slate-300 text-slate-400/);
+    assert.match(board, /data-team-lead-group=\{lead \? "lead" : "crew"\}/);
+    assert.match(board, /\) : null\}\s*\{group\.crews\.map\(\(crew, i\) => renderCrew\(crew, !lead && i === 0\)\)\}/, "no header at all without a Lead");
+    assert.match(board, /full\.lead \? "Change Crew Lead" : "Choose Crew Lead"/, "choosing a Lead stays in the crew menu");
+    assert.match(board, /count === 0\) return "No people listed"/);
+  });
+
+  test("no access-derived grouping, filter, or ranking on the board", () => {
+    assert.doesNotMatch(board, /Office &amp; coordination|data-team-office|"coordinators"|Coordinators|Unassigned/);
+    assert.doesNotMatch(modelSource, /OFFICE_ROLES|ROLE_RANK|entryRank|isCoordinatorEntry/);
+  });
+
+  test("crew counts are roster truth; a Lead on the roster is named, not duplicated", () => {
+    assert.match(board, /const count = full\.memberCount;/);
+    assert.match(board, /crew\.leadIsMember && crew\.lead \? `\$\{base\}, including/);
+    const sheet = board.slice(board.indexOf("function PersonSheet"));
+    assert.match(sheet, /const on = entry\.crewIds;/, "person detail lists every real membership, including crews they lead");
   });
 
   test("no org-chart boxes, tables, dashboard tiles, or kanban", () => {
@@ -445,7 +514,7 @@ describe("Team Board surface", () => {
 
   test("ready for drag and drop without implementing it", () => {
     assert.match(board, /data-team-drop-target="crew"/);
-    assert.match(board, /data-team-drop-target="unassigned"/);
+    assert.match(board, /data-team-drop-target="not-on-crew"/);
     assert.match(board, /data-team-movable/);
     assert.doesNotMatch(board, /draggable|onDrag|dnd-kit|react-beautiful-dnd/);
   });
@@ -459,13 +528,17 @@ describe("Team Board surface", () => {
     assert.doesNotMatch(board, /min-w-\[(?:[4-9]\d{2}|\d{4})px\]|w-\[(?:[4-9]\d{2}|\d{4})px\]/);
   });
 
-  test("crew rows and Unassigned carry identity only; roles explain Leads and Office", () => {
+  test("board sublines are operational facts only; access labels stay in access contexts", () => {
     const roster = board.slice(board.indexOf("data-team-crew-roster"), board.indexOf("data-team-remove-from-crew"));
     assert.doesNotMatch(roster, /roleLabel|subline/, "no access taxonomy on ordinary crew rows");
-    assert.match(board, /placement === "unassigned" \? null : entry\.roleLabel/);
-    assert.match(board, /placement === "lead" && leads > 1 \? `\$\{leads\} crews`/);
+    const sub = board.slice(board.indexOf("function subline"), board.indexOf("function crewCountLabel"));
+    assert.doesNotMatch(sub, /roleLabel/, "no Owner / Production Coordinator / Lead / Office Manager titles on the board");
+    assert.match(sub, /placement === "lead"\) return leads > 1 \? `\$\{leads\} crews` : null/);
+    assert.match(sub, /return workLabel\(entry\.work\)/);
     const pickers = board.slice(board.indexOf("function LeadEditor"), board.indexOf("function PersonSheet"));
     assert.doesNotMatch(pickers, /entry\.roleLabel/, "choosing a Lead does not imply a role requirement");
+    const outsideAccess = board.replace(/Signs in\{entry\.roleLabel[^\n]*/, "").replace(/\{invite\.roleLabel\}/, "");
+    assert.doesNotMatch(outsideAccess, /roleLabel/, "roleLabel appears only in the FieldDive sign-in fact and invitations");
   });
 
   test("Lead copy: the crew persists; access is a quiet footnote", () => {
@@ -483,11 +556,13 @@ describe("Team Board surface", () => {
     assert.match(board, /action: "update_person"/);
   });
 
-  test("approved mock header: search, five filter pills, summary, and the two actions", () => {
+  test("header: search, exactly four filter pills, summary, and the two actions", () => {
     assert.match(board, /placeholder="Search people or crews\.\.\."/);
-    for (const label of ["All crews", "Leads", "Coordinators", "Unassigned", "Invited"]) {
-      assert.match(board, new RegExp(`label: "${label}"`), label);
-    }
+    const labels = [...board.slice(board.indexOf("const FILTERS"), board.indexOf("function requestId")).matchAll(/label: "([^"]+)"/g)].map((m) => m[1]);
+    assert.deepEqual(labels, ["All crews", "Leads", "Not on a crew", "Invited"]);
+    assert.match(board, /<p className="mt-1 text-sm text-slate-500">Your people and crews\.<\/p>/);
+    assert.doesNotMatch(board, /Who runs the work|under Unassigned/);
+    assert.match(board, /`\$\{name\} added to your team\.`/);
     assert.match(board, /data-team-summary/);
     assert.match(board, /key !== "invited" \|\| canAdminMembers/, "Invited is an access-admin filter");
     assert.ok(board.indexOf("data-team-add-person-open") < board.indexOf("data-team-create-crew-open"));

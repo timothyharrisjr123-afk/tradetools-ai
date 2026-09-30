@@ -3,11 +3,13 @@
 /**
  * Team Board (Phase 13C). Operations / Team.
  *
- * SCREEN JOB — Who runs the work, and who works with whom.
- * FIRST SCAN — the person who leads, the crews beneath them, each crew's people,
- * then the work that person coordinates this week.
- * SECOND — Office & coordination, then Unassigned. THIRD — FieldDive invitations.
+ * SCREEN JOB — Your people and crews.
+ * FIRST SCAN — crews and their people. A crew with a usual Lead is shown with that
+ * person, and with the jobs that person coordinates this week; a crew without one
+ * is a complete crew card of its own. SECOND — people not on a crew.
+ * THIRD — FieldDive invitations.
  * Access is deep administration: reached from a person, never the board's subject.
+ * Access never titles, places, or orders a person on the board.
  *
  * A person is not a login. A crew is not access. Crew membership never grants
  * FieldDive access; FieldDive access never implies crew membership. Nothing is
@@ -16,7 +18,7 @@
  * There is no availability truth, so no availability is shown.
  *
  * Structure is ready for drag and drop without redesign: every crew roster and
- * the unassigned list are drop targets (data-team-drop-target) and every person
+ * the not-on-a-crew list are drop targets (data-team-drop-target) and every person
  * row is a movable unit (data-team-movable). Drag and drop is not implemented.
  */
 
@@ -99,8 +101,7 @@ const LEAD_TINTS = [
 const FILTERS: { key: TeamBoardFilter; label: string }[] = [
   { key: "all", label: "All crews" },
   { key: "leads", label: "Leads" },
-  { key: "coordinators", label: "Coordinators" },
-  { key: "unassigned", label: "Unassigned" },
+  { key: "not_on_crew", label: "Not on a crew" },
   { key: "invited", label: "Invited" },
 ];
 
@@ -224,18 +225,20 @@ function PersonName({ entry, onOpen, className }: { entry: TeamBoardEntry; onOpe
 }
 
 /**
- * Secondary line under a name. Crew rosters and Unassigned carry identity only: a
- * FieldDive role is shown for Leads and Office & coordination, where it explains
- * why that person sits there, never for ordinary crew members.
+ * Secondary line under a name: operational facts only. FieldDive access labels are
+ * not titles and never appear here; they live in the person's FieldDive detail.
  */
-function subline(entry: TeamBoardEntry, placement: "lead" | "office" | "unassigned"): string | null {
+function subline(entry: TeamBoardEntry, placement: "lead" | "not_on_crew"): string | null {
   const leads = entry.leadsCrewIds.length;
-  const parts = [
-    placement === "unassigned" ? null : entry.roleLabel,
-    placement === "lead" && leads > 1 ? `${leads} crews` : null,
-    placement === "lead" ? null : workLabel(entry.work),
-  ].filter(Boolean);
-  return parts.length ? parts.join(" · ") : null;
+  if (placement === "lead") return leads > 1 ? `${leads} crews` : null;
+  return workLabel(entry.work);
+}
+
+function crewCountLabel(crew: TeamBoardCrew): string {
+  const count = crew.memberCount;
+  if (count === 0) return "No people listed";
+  const base = `${count} ${count === 1 ? "person" : "people"}`;
+  return crew.leadIsMember && crew.lead ? `${base}, including ${crew.lead.name.split(/[\s@]/)[0]}` : base;
 }
 
 /** A support panel: tinted header strip, uppercase title, optional count and menu. */
@@ -248,16 +251,15 @@ function SidePanel({
   children,
   ...rest
 }: {
-  tone: "office" | "unassigned" | "invited";
+  tone: "not_on_crew" | "invited";
   icon: ReactNode;
   title: ReactNode;
   count?: number;
   menu?: ReactNode;
   children: ReactNode;
 } & Record<`data-${string}` | "aria-label", string | undefined>) {
-  const strip = tone === "office" ? "bg-orange-50/70" : tone === "invited" ? "bg-blue-50/70" : "bg-slate-50";
-  const chip =
-    tone === "office" ? "bg-orange-100/80 text-orange-500" : tone === "invited" ? "bg-blue-100/80 text-blue-600" : "bg-slate-100 text-slate-500";
+  const strip = tone === "invited" ? "bg-blue-50/70" : "bg-slate-50";
+  const chip = tone === "invited" ? "bg-blue-100/80 text-blue-600" : "bg-slate-100 text-slate-500";
   return (
     <section className={CARD} {...rest}>
       <header className={`flex min-h-[44px] items-center gap-2.5 rounded-lg px-2 py-1.5 ${strip}`}>
@@ -484,13 +486,19 @@ export default function TeamBoardClient({ companyId }: { companyId: string }) {
   };
 
   // ---- Sections ---------------------------------------------------------------
-  const renderCrew = (crew: TeamBoardCrew, group: TeamBoardGroup) => {
+  const renderCrew = (crew: TeamBoardCrew, first: boolean) => {
     // Editors act on the full crew, not a search-filtered view of it.
     const full = crewById(crew.id) ?? crew;
     const editing = edit?.crewId === crew.id ? edit.mode : null;
-    const count = full.members.length;
+    const count = full.memberCount;
     return (
-      <section key={crew.id} className="mt-3 min-w-0" aria-label={crew.name} data-team-crew={crew.id} data-team-drop-target="crew">
+      <section
+        key={crew.id}
+        className={`${first ? "mt-0.5" : "mt-3"} min-w-0`}
+        aria-label={crew.name}
+        data-team-crew={crew.id}
+        data-team-drop-target="crew"
+      >
         <div className="flex min-w-0 items-center gap-2.5">
           <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-500 ring-1 ring-slate-200/70" aria-hidden>
             <Building2 className="h-4 w-4" strokeWidth={1.75} />
@@ -499,8 +507,8 @@ export default function TeamBoardClient({ companyId }: { companyId: string }) {
             <h3 className="truncate text-sm font-semibold text-slate-900" data-team-crew-name>
               {crew.name}
             </h3>
-            <p className="text-xs text-slate-500">
-              {count === 0 ? "No one yet" : `${count} ${count === 1 ? "person" : "people"}`}
+            <p className="text-xs text-slate-500" data-team-crew-count>
+              {crewCountLabel(full)}
             </p>
           </div>
           <button
@@ -516,7 +524,7 @@ export default function TeamBoardClient({ companyId }: { companyId: string }) {
           <Menu
             label={`${crew.name} options`}
             items={[
-              { label: group.lead ? "Change Crew Lead" : "Choose Crew Lead", onSelect: () => setEdit({ crewId: crew.id, mode: "lead" }) },
+              { label: full.lead ? "Change Crew Lead" : "Choose Crew Lead", onSelect: () => setEdit({ crewId: crew.id, mode: "lead" }) },
               { label: "Rename crew", onSelect: () => setEdit({ crewId: crew.id, mode: "rename" }) },
               { label: "Archive crew", danger: true, onSelect: () => setEdit({ crewId: crew.id, mode: "archive" }) },
             ]}
@@ -553,7 +561,7 @@ export default function TeamBoardClient({ companyId }: { companyId: string }) {
           <div className="mt-3 rounded-lg bg-slate-50 p-3" data-team-archive-confirm>
             <p className="text-sm text-slate-800">
               Archive {crew.name}? People stay on your team
-              {count > 0 ? " and move to Unassigned if they're on no other crew" : ""}.
+              {count > 0 ? " and show under Not on a crew if they're on no other crew" : ""}.
             </p>
             <div className="mt-2 flex gap-2">
               <button
@@ -627,7 +635,7 @@ export default function TeamBoardClient({ companyId }: { companyId: string }) {
     const lead = group.lead;
     const tint = LEAD_TINTS[index % LEAD_TINTS.length];
     return (
-      <article key={group.key} className={`${CARD} mb-4 break-inside-avoid`} data-team-lead-group={lead ? "lead" : "needs-lead"}>
+      <article key={group.key} className={`${CARD} mb-4 break-inside-avoid`} data-team-lead-group={lead ? "lead" : "crew"}>
         {lead ? (
           <header className={`flex min-w-0 items-center gap-3 rounded-lg px-3 py-2.5 ${tint.panel}`} data-team-lead data-team-person-key={lead.key}>
             <Avatar name={lead.name} size="lg" muted={lead.access === "removed"} tint={tint.avatar} />
@@ -644,24 +652,8 @@ export default function TeamBoardClient({ companyId }: { companyId: string }) {
               ]}
             />
           </header>
-        ) : (
-          <header className="flex min-w-0 items-center gap-3 rounded-lg bg-slate-50 px-3 py-2.5" data-team-lead="none">
-            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-dashed border-slate-300 text-slate-400" aria-hidden>
-              <UserPlus className="h-4 w-4" strokeWidth={1.75} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-[15px] font-bold text-slate-700">Needs a Lead</p>
-              <button
-                type="button"
-                className="text-[13px] font-medium text-blue-700 hover:text-blue-800"
-                onClick={() => setEdit({ crewId: group.crews[0].id, mode: "lead" })}
-              >
-                Choose Crew Lead
-              </button>
-            </div>
-          </header>
-        )}
-        {group.crews.map((crew) => renderCrew(crew, group))}
+        ) : null}
+        {group.crews.map((crew, i) => renderCrew(crew, !lead && i === 0))}
         {lead ? (
           <WeekWork
             leadName={lead.name}
@@ -674,13 +666,8 @@ export default function TeamBoardClient({ companyId }: { companyId: string }) {
     );
   };
 
-  const personRow = (entry: TeamBoardEntry, placement: "office" | "unassigned") => (
-    <li
-      key={entry.key}
-      className="flex min-h-[52px] min-w-0 items-center gap-3 py-1.5"
-      data-team-movable={placement === "unassigned" ? "" : undefined}
-      data-team-person-key={entry.key}
-    >
+  const personRow = (entry: TeamBoardEntry) => (
+    <li key={entry.key} className="flex min-h-[52px] min-w-0 items-center gap-3 py-1.5" data-team-movable data-team-person-key={entry.key}>
       <Avatar name={entry.name} muted={entry.access === "removed"} />
       <div className="min-w-0 flex-1">
         <PersonName
@@ -688,35 +675,28 @@ export default function TeamBoardClient({ companyId }: { companyId: string }) {
           onOpen={() => openPerson(entry)}
           className={`text-[13px] font-semibold ${entry.access === "removed" ? "text-slate-500" : "text-slate-900"}`}
         />
-        {subline(entry, placement) ? <p className="text-xs text-slate-500">{subline(entry, placement)}</p> : null}
+        {subline(entry, "not_on_crew") ? <p className="text-xs text-slate-500">{subline(entry, "not_on_crew")}</p> : null}
       </div>
       <AccessState entry={entry} />
     </li>
   );
 
-  const officePanel =
-    view && view.show.office && view.office.length > 0 ? (
-      <SidePanel key="office" tone="office" icon={<Building2 className="h-4 w-4" strokeWidth={1.75} />} title="Office &amp; coordination" aria-label="Office and coordination" data-team-office="">
-        <ul className="mt-1 divide-y divide-slate-100 px-2">{view.office.map((entry) => personRow(entry, "office"))}</ul>
-      </SidePanel>
-    ) : null;
-
-  const unassignedPanel =
-    view && view.show.unassigned && (view.unassigned.length > 0 || !query.trim()) ? (
+  const notOnCrewPanel =
+    view && view.show.notOnCrew && (view.notOnCrew.length > 0 || !query.trim()) ? (
       <SidePanel
-        key="unassigned"
-        tone="unassigned"
+        key="not_on_crew"
+        tone="not_on_crew"
         icon={<Users className="h-4 w-4" strokeWidth={1.75} />}
-        title="Unassigned"
-        count={view.unassigned.length}
-        menu={<Menu label="Unassigned options" items={[{ label: "Add person", onSelect: () => setDialog({ type: "add_person" }) }]} />}
-        aria-label="Unassigned"
-        data-team-unassigned=""
-        data-team-drop-target="unassigned"
+        title="Not on a crew"
+        count={view.notOnCrew.length}
+        menu={<Menu label="Not on a crew options" items={[{ label: "Add person", onSelect: () => setDialog({ type: "add_person" }) }]} />}
+        aria-label="Not on a crew"
+        data-team-not-on-crew=""
+        data-team-drop-target="not-on-crew"
       >
         <p className="mt-2 px-2 text-xs text-slate-500">On your team, not on a crew.</p>
-        {view.unassigned.length > 0 ? (
-          <ul className="mt-1 divide-y divide-slate-100 px-2">{view.unassigned.map((entry) => personRow(entry, "unassigned"))}</ul>
+        {view.notOnCrew.length > 0 ? (
+          <ul className="mt-1 divide-y divide-slate-100 px-2">{view.notOnCrew.map((entry) => personRow(entry))}</ul>
         ) : (
           <p className="px-2 py-3 text-sm text-slate-500">Everyone is on a crew.</p>
         )}
@@ -784,7 +764,7 @@ export default function TeamBoardClient({ companyId }: { companyId: string }) {
         busy={busy}
         onClose={() => setDialog(null)}
         onSave={async (name, phone) => {
-          const saved = await act({ action: "create_person", name, phone }, `${name} added. They're under Unassigned until you add them to a crew.`);
+          const saved = await act({ action: "create_person", name, phone }, `${name} added to your team.`);
           if (saved) setDialog(null);
         }}
       />
@@ -847,13 +827,13 @@ export default function TeamBoardClient({ companyId }: { companyId: string }) {
   const loading = board.status === "loading" || (board.status === "ready" && !model);
   const filters = FILTERS.filter((item) => item.key !== "invited" || canAdminMembers);
   const people = model?.entries.length ?? 0;
-  const support = [officePanel, unassignedPanel, invitedPanel].filter(Boolean);
+  const support = [notOnCrewPanel, invitedPanel].filter(Boolean);
   return (
     <div className="mx-auto w-full max-w-[82rem] pb-12" data-team-board>
       <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
         <div className="min-w-0">
           <h1 className="text-[32px] font-bold leading-tight tracking-tight text-slate-900">Team</h1>
-          <p className="mt-1 text-sm text-slate-500">Who runs the work, and who works with whom.</p>
+          <p className="mt-1 text-sm text-slate-500">Your people and crews.</p>
         </div>
         {board.status === "ready" ? (
           <div className="flex w-full gap-2 sm:w-auto" data-team-board-actions>
@@ -1345,7 +1325,7 @@ function PersonSheet({
   const editable = entry.personId != null && entry.rowVersion != null;
   const [editing, setEditing] = useState(false);
   const leads = entry.leadsCrewIds.map(crewName);
-  const on = entry.crewIds.filter((id) => !entry.leadsCrewIds.includes(id));
+  const on = entry.crewIds;
   const work = workLabel(entry.work);
   const archivable = entry.personId != null && entry.access !== "active" && entry.rowVersion != null;
   return (

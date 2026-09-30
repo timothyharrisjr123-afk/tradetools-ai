@@ -1,10 +1,15 @@
 /**
- * Team Board model: who runs the work, and who works with whom.
+ * Team Board model: your people and crews.
  *
  * Operational truth (people, crews, rosters) comes from the crew tables; FieldDive
  * access comes from company memberships. The two are joined only through an
  * explicit person-to-login link, never by name. Crew membership never implies
  * access, and access never implies crew membership. Nothing here grants authority.
+ *
+ * Access never decides where a person sits, how the board is ordered, or what a
+ * person is called on the board. A crew is complete with a name only. The usual
+ * Lead and crew membership are independent relationships; a person may be either
+ * or both.
  */
 
 import { teamAccessLabel, teamRoleLabel } from "@/app/lib/access/teamAccessPresentation";
@@ -71,7 +76,7 @@ export type TeamBoardEntry = {
   /** FieldDive sign-in email; account detail only, never the board identity when a name exists. */
   email: string | null;
   role: ResolvedCompanyMembershipRole | null;
-  /** Work label from access (Owner, Production Coordinator, Lead, …); null when unknown or no login. */
+  /** FieldDive access label, for access contexts only; never a board title or placement. Null when unknown or no login. */
   roleLabel: string | null;
   access: TeamBoardAccess;
   /** Verified open work; null when this viewer cannot know it (never shown as zero). */
@@ -86,7 +91,12 @@ export type TeamBoardCrew = {
   name: string;
   rowVersion: number;
   lead: TeamBoardEntry | null;
+  /** Active roster rows to show, without repeating the usual Lead shown above them. */
   members: TeamBoardEntry[];
+  /** Active roster membership count. Counts the usual Lead only when they are on the roster. */
+  memberCount: number;
+  /** True when the usual Lead is also on the roster. */
+  leadIsMember: boolean;
 };
 
 export type TeamBoardGroup = {
@@ -105,8 +115,7 @@ export type TeamBoardInvite = {
 
 export type TeamBoardModel = {
   groups: TeamBoardGroup[];
-  office: TeamBoardEntry[];
-  unassigned: TeamBoardEntry[];
+  notOnCrew: TeamBoardEntry[];
   invited: TeamBoardInvite[];
   entries: TeamBoardEntry[];
   crewCount: number;
@@ -128,25 +137,6 @@ function resolveEntryName(
   const profile = member?.displayName?.trim();
   if (profile && profile !== member?.email?.trim()) return { name: profile, nameKnown: true };
   return { name: member?.email?.trim() || own || PERSON_NAME_PLACEHOLDER, nameKnown: false };
-}
-
-const OFFICE_ROLES = new Set<ResolvedCompanyMembershipRole>(["owner", "admin", "office_sales", "production_lead"]);
-
-const ROLE_RANK: Record<string, number> = {
-  owner: 0,
-  production_lead: 1,
-  admin: 2,
-  office_sales: 3,
-  field_user: 4,
-};
-
-function entryRank(entry: TeamBoardEntry | null): number {
-  if (!entry) return 9;
-  if (entry.role && entry.access === "active") {
-    const base = ROLE_RANK[entry.role] ?? 6;
-    return entry.roleLabel === "Lead" ? 3.5 : base;
-  }
-  return 5;
 }
 
 const byName = (a: TeamBoardEntry, b: TeamBoardEntry) => a.name.localeCompare(b.name);
@@ -236,12 +226,20 @@ export function buildTeamBoardModel(input: {
 
   const crews: TeamBoardCrew[] = snapshot.crews.map((crew) => {
     const lead = crew.usualLeadPersonId ? byPerson.get(crew.usualLeadPersonId) ?? null : null;
-    const memberEntries = snapshot.roster
-      .filter((row) => row.crewId === crew.id && row.personId !== crew.usualLeadPersonId)
+    const roster = snapshot.roster
+      .filter((row) => row.crewId === crew.id)
       .map((row) => byPerson.get(row.personId))
-      .filter((entry): entry is TeamBoardEntry => Boolean(entry))
-      .sort(byName);
-    return { id: crew.id, name: crew.name, rowVersion: crew.rowVersion, lead, members: memberEntries };
+      .filter((entry): entry is TeamBoardEntry => Boolean(entry));
+    const leadIsMember = lead !== null && roster.some((entry) => entry.key === lead.key);
+    return {
+      id: crew.id,
+      name: crew.name,
+      rowVersion: crew.rowVersion,
+      lead,
+      members: roster.filter((entry) => entry.key !== lead?.key).sort(byName),
+      memberCount: roster.length,
+      leadIsMember,
+    };
   });
 
   const groupsByLead = new Map<string, TeamBoardGroup>();
@@ -255,17 +253,15 @@ export function buildTeamBoardModel(input: {
     group.crews.push(crew);
     groupsByLead.set(crew.lead.key, group);
   }
+  const byCrewName = (a: TeamBoardCrew, b: TeamBoardCrew) => a.name.localeCompare(b.name);
+  for (const group of groupsByLead.values()) group.crews.sort(byCrewName);
   const groups = [...groupsByLead.values()]
-    .sort((a, b) => entryRank(a.lead) - entryRank(b.lead) || byName(a.lead!, b.lead!))
-    .concat(leaderless.sort((a, b) => a.crews[0].name.localeCompare(b.crews[0].name)));
-  for (const group of groups) group.crews.sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a, b) => byName(a.lead!, b.lead!) || byCrewName(a.crews[0], b.crews[0]))
+    .concat(leaderless.sort((a, b) => byCrewName(a.crews[0], b.crews[0])));
 
+  // A usual Lead is already shown with their crew, so they are not listed again here.
   const placed = (entry: TeamBoardEntry) => entry.crewIds.length > 0 || entry.leadsCrewIds.length > 0;
-  const office = entries
-    .filter((entry) => !placed(entry) && entry.access === "active" && entry.role && OFFICE_ROLES.has(entry.role))
-    .sort((a, b) => entryRank(a) - entryRank(b) || byName(a, b));
-  const officeKeys = new Set(office.map((entry) => entry.key));
-  const unassigned = entries.filter((entry) => !placed(entry) && !officeKeys.has(entry.key)).sort(byName);
+  const notOnCrew = entries.filter((entry) => !placed(entry)).sort(byName);
 
   const invited = (input.invitations ?? []).map((invite) => {
     const role = resolveCompanyMembershipRole(invite.role);
@@ -278,30 +274,24 @@ export function buildTeamBoardModel(input: {
     };
   });
 
-  return { groups, office, unassigned, invited, entries, crewCount: crews.length };
+  return { groups, notOnCrew, invited, entries, crewCount: crews.length };
 }
 
-export type TeamBoardFilter = "all" | "leads" | "coordinators" | "unassigned" | "invited";
-
-/** Office / coordination work (Owner, Office Manager, Production Coordinator, Sales). */
-export function isCoordinatorEntry(entry: TeamBoardEntry | null): boolean {
-  return Boolean(entry && entry.access === "active" && entry.role && OFFICE_ROLES.has(entry.role));
-}
+export type TeamBoardFilter = "all" | "leads" | "not_on_crew" | "invited";
 
 export type TeamBoardView = {
   groups: TeamBoardGroup[];
-  office: TeamBoardEntry[];
-  unassigned: TeamBoardEntry[];
+  notOnCrew: TeamBoardEntry[];
   invited: TeamBoardInvite[];
-  show: { crews: boolean; office: boolean; unassigned: boolean; invited: boolean };
+  show: { crews: boolean; notOnCrew: boolean; invited: boolean };
   empty: boolean;
 };
 
 /**
- * What the board shows for a filter pill and a search. Leads are crew anchors whose
- * work is in the field; Coordinators are office/coordination anchors plus Office &
- * coordination. Search matches people, crews, and invitation emails; a crew matched
- * by name or by its Lead stays whole, otherwise only matching members remain.
+ * What the board shows for a filter pill and a search. Leads are the crews that have
+ * a usual Lead, whatever that person's FieldDive access. Search matches people,
+ * crews, and invitation emails; a crew matched by name or by its Lead stays whole,
+ * otherwise only matching members remain.
  */
 export function filterTeamBoard(
   model: TeamBoardModel,
@@ -310,20 +300,15 @@ export function filterTeamBoard(
   const q = options.query.trim().toLowerCase();
   const hit = (text: string | null | undefined) => !q || (text ?? "").toLowerCase().includes(q);
   const show = {
-    crews: options.filter === "all" || options.filter === "leads" || options.filter === "coordinators",
-    office: options.filter === "all" || options.filter === "coordinators",
-    unassigned: options.filter === "all" || options.filter === "unassigned",
+    crews: options.filter === "all" || options.filter === "leads",
+    notOnCrew: options.filter === "all" || options.filter === "not_on_crew",
     invited: options.canSeeInvites && (options.filter === "all" || options.filter === "invited"),
   };
 
   const groups = !show.crews
     ? []
     : model.groups
-        .filter((group) => {
-          if (options.filter === "leads") return group.lead !== null && !isCoordinatorEntry(group.lead);
-          if (options.filter === "coordinators") return isCoordinatorEntry(group.lead);
-          return true;
-        })
+        .filter((group) => options.filter !== "leads" || group.lead !== null)
         .map((group) => {
           const leadHit = Boolean(q) && hit(group.lead?.name);
           const crews = group.crews
@@ -332,23 +317,25 @@ export function filterTeamBoard(
           return { ...group, crews };
         })
         .filter((group) => group.crews.length > 0);
-  const office = show.office ? model.office.filter((entry) => hit(entry.name)) : [];
-  const unassigned = show.unassigned ? model.unassigned.filter((entry) => hit(entry.name)) : [];
+  const notOnCrew = show.notOnCrew ? model.notOnCrew.filter((entry) => hit(entry.name)) : [];
   const invited = show.invited ? model.invited.filter((invite) => hit(invite.email)) : [];
-  const empty = groups.length === 0 && office.length === 0 && unassigned.length === 0 && invited.length === 0;
-  return { groups, office, unassigned, invited, show, empty };
+  const empty = groups.length === 0 && notOnCrew.length === 0 && invited.length === 0;
+  return { groups, notOnCrew, invited, show, empty };
 }
 
-/** People who can be added to a crew: everyone operational not already on it. */
+/**
+ * People who can be added to a crew: everyone not already on its roster. The usual
+ * Lead may be added; leading a crew is not membership.
+ */
 export function crewAddCandidates(model: TeamBoardModel, crew: TeamBoardCrew): TeamBoardEntry[] {
   const onCrew = new Set(crew.members.map((m) => m.key));
-  if (crew.lead) onCrew.add(crew.lead.key);
+  if (crew.lead && crew.leadIsMember) onCrew.add(crew.lead.key);
   return model.entries.filter((entry) => !onCrew.has(entry.key)).sort(byName);
 }
 
-/** People who can be a usual Crew Lead. Any active operational person is eligible. */
+/** People who can be a usual Crew Lead, by name. Any active operational person is eligible. */
 export function crewLeadCandidates(model: TeamBoardModel): TeamBoardEntry[] {
-  return [...model.entries].sort((a, b) => entryRank(a) - entryRank(b) || byName(a, b));
+  return [...model.entries].sort(byName);
 }
 
 /** Case-insensitive name search; exact matches first. Never merges or hides duplicates. */
