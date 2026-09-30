@@ -11,7 +11,7 @@ import type { JobCardTabId } from "@/app/tools/roofing/jobCard/jobCardTypes";
 import { applyTemplateSetupFetchResult } from "@/app/lib/jobCardTemplateSetupState";
 import type { TemplateSetupReadStatus } from "@/app/lib/jobCardTemplateSetupState";
 import { isUuidLike } from "@/app/lib/uuid";
-import type { CompanyMemberClientItem } from "@/app/tools/roofing/jobCard/useCompanyMembers";
+import type { TaskAssigneeCandidate } from "@/app/tools/roofing/jobCard/useCompanyMembers";
 
 type TasksApi = ReturnType<typeof useJobCardTasks>;
 
@@ -22,7 +22,7 @@ type JobCardSecondaryPanelsProps = {
   listedDraftProposalId: string | null;
   tasks: TasksApi;
   canAssignTasks?: boolean;
-  members?: readonly CompanyMemberClientItem[];
+  members?: readonly TaskAssigneeCandidate[];
 };
 
 /**

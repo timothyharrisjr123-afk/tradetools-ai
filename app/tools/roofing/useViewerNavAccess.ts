@@ -11,6 +11,10 @@ import type { FieldDiveNavItemKey } from "./fieldDiveNavConfig";
 let lastKnown: ViewerAccessFlags | null = null;
 
 export function navItemAllowed(key: FieldDiveNavItemKey | null, access: ViewerAccessFlags | null): boolean {
+  // People who run the work company-wide: team administrators and company-scope job
+  // assigners. Job creation alone (Sales) and job-scoped access (Lead, Field) do not
+  // advertise Team. Presentation only; the members endpoint controls every projection.
+  if (key === "team") return Boolean(access && (access.canAdminMembers || access.canAssignJobs));
   if (key === "newJob") return Boolean(access?.canCreateJobs);
   if (key === "pricing" || key === "catalog" || key === "templates") {
     return Boolean(

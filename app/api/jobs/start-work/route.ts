@@ -43,6 +43,9 @@ export async function POST(req: NextRequest) {
     const jobId = typeof body?.jobId === "string" ? body.jobId.trim() : "";
     const gated = await requireAccess(supabase, user.id, "jobs.progress", { jobId });
     if (!gated.ok) return gated.response;
+    // D-S1: job-scoped jobs.progress also needs the active assignment Lead (Slice 4).
+    const companyWide = await requireAccess(supabase, user.id, "jobs.progress");
+    if (!companyWide.ok) return companyWide.response;
     const companyId = gated.session.companyId;
     if (!isUuidLike(jobId)) {
       return NextResponse.json(

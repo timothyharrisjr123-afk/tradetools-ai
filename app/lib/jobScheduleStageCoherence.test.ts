@@ -142,6 +142,9 @@ describe("Board schedule read fail-closed", () => {
       canApproveJob: false,
       hasActivePlannedSchedule: true,
       scheduleReadStatus: "loading",
+      canStartWork: true,
+      canCompleteJob: true,
+      canManageSchedule: true,
     });
     assert.equal(blocked.allowed, false);
     if (!blocked.allowed) assert.equal(blocked.reason, "schedule_unavailable");

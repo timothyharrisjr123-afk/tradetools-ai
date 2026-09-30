@@ -7,6 +7,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { GET_JOB_FIELD_BRIEF_RPC_V1, parseJobFieldBrief } from "@/app/lib/jobFieldBrief";
 import { isUuidLike } from "@/app/lib/uuid";
 
 export const COMPANY_DIRECTORY_RPC_V1 = "list_company_directory_v1";
@@ -64,21 +65,47 @@ export async function loadCompanyDirectory(
 }
 
 /**
+ * Live members named on the job's Field brief (coordinator and current task
+ * assignees). Viewers without the company directory (Lead) see only these.
+ */
+async function loadJobBriefPeople(
+  supabase: SupabaseClient,
+  jobId: string
+): Promise<CompanyDirectoryRow[] | null> {
+  try {
+    const { data, error } = await supabase.rpc(GET_JOB_FIELD_BRIEF_RPC_V1, { p_job_id: jobId });
+    if (error) return null;
+    const brief = parseJobFieldBrief(data);
+    if (!brief) return null;
+    return brief.people.map((p) => ({ userId: p.userId, displayName: p.displayName, role: "" }));
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Validate that assigneeUserId is an active member of the caller's company
  * (companyId is the session company). Null/empty assignee is Unassigned — callers
- * should not invoke this for null.
+ * should not invoke this for null. With a jobId, a member outside the caller's
+ * directory is also accepted when the job's Field brief names them.
  */
 export async function validateLiveCompanyMember(
   supabase: SupabaseClient,
   companyId: string,
-  assigneeUserId: string
+  assigneeUserId: string,
+  scope?: { jobId?: string | null }
 ): Promise<MemberValidationResult> {
   if (!isUuidLike(companyId) || !isUuidLike(assigneeUserId)) {
     return { ok: false, code: "invalid_assignee" };
   }
   const directory = await loadCompanyDirectory(supabase);
   if (!directory.ok) return { ok: false, code: "member_unavailable" };
-  const row = directory.members.find((m) => m.userId === assigneeUserId);
+  let row = directory.members.find((m) => m.userId === assigneeUserId);
+  if (!row && scope?.jobId && isUuidLike(scope.jobId)) {
+    const people = await loadJobBriefPeople(supabase, scope.jobId);
+    if (!people) return { ok: false, code: "member_unavailable" };
+    row = people.find((m) => m.userId === assigneeUserId);
+  }
   if (!row) return { ok: false, code: "member_not_found" };
   return {
     ok: true,

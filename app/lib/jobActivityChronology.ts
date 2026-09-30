@@ -666,10 +666,10 @@ function composeEventRow(
   ) {
     const title =
       event.event_type === "production_lead_assigned"
-        ? "Production lead assigned"
+        ? "Coordinator assigned"
         : event.event_type === "production_lead_cleared"
-          ? "Production lead cleared"
-          : "Production lead changed";
+          ? "Coordinator cleared"
+          : "Coordinator changed";
     return {
       id: event.id,
       kind: "work_approved",

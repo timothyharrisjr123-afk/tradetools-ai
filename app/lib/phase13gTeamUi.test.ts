@@ -21,10 +21,11 @@ import {
   teamPackageChoices,
   teamSpecialAccessSummary,
 } from "@/app/lib/access/teamAccessPresentation";
+import { readTeamSurfaceSource } from "@/app/lib/teamSurfaceSource.testSupport";
 
 const root = process.cwd();
 const read = (path: string) => readFileSync(join(root, path), "utf8");
-const editor = read("app/tools/settings/CompanySettingsTeamEditor.tsx");
+const editor = readTeamSurfaceSource(root);
 const pending = read("app/api/company/invitations/pending/route.ts");
 const list = read("app/lib/invitations/invitationActions.server.ts");
 const membersRoute = read("app/api/company/members/route.ts");
@@ -70,8 +71,9 @@ test("special access is package language, eligible for the role and delegator", 
   const lead = teamPackageChoices("production_lead", "admin").map((choice) => choice.label);
   assert.deepEqual(lead.sort(), ["Approve jobs", "Manage customers and jobs"]);
 
+  // Phase 13C Slice 1: the Lead package is the Lead access preset, not special access.
   const field = teamPackageChoices("field_user", "owner").map((choice) => choice.label);
-  assert.deepEqual(field, ["Lead assigned work"]);
+  assert.deepEqual(field, []);
 
   for (const choice of [
     ...teamPackageChoices("admin", "owner"),
@@ -100,7 +102,8 @@ test("field access is job language", () => {
   assert.equal(teamFieldAccessLine("field_user", 3), "Assigned jobs (3)");
   assert.equal(teamFieldAccessLine("field_user", 0), "No jobs assigned yet");
   assert.equal(teamFieldAccessLine("production_lead", 4), null);
-  assert.match(editor, /They can work on jobs you assign to them/);
+  assert.match(editor, /teamJobReach\(reach\)/);
+  assert.match(editor, /teamAssignedJobCount\(member\.grantedJobCount/);
   assert.match(editor, /Earlier job access is not restored/);
   assert.doesNotMatch(editor, /granted_jobs|scope =/);
 });
@@ -139,7 +142,7 @@ test("directory viewers do not get access-admin fields in the editor", () => {
   assert.match(editor, /const activeAccess = canAdminMembers && !member\.removedAt/);
   assert.match(editor, /activeAccess \? teamSpecialAccessSummary/);
   assert.match(editor, /showEmail = canAdminMembers/);
-  assert.match(editor, /An Owner or Admin changes access/);
+  assert.match(editor, /An Owner or Office Manager changes access/);
 });
 
 test("pending invitations are session-scoped and do not return secrets", () => {

@@ -27,6 +27,7 @@ import {
   pricingPolicyFormStateToPolicy,
   validatePricingPolicyFormState,
 } from "@/app/tools/settings/pricing/pricingPolicyFormUtils";
+import { readTeamSurfaceSource } from "@/app/lib/teamSurfaceSource.testSupport";
 
 const ROOT = process.cwd();
 const read = (path: string) => readFileSync(join(ROOT, path), "utf8");
@@ -37,7 +38,8 @@ const BUSINESS_EDITOR = read("app/tools/settings/CompanySettingsBusinessEditor.t
 const BRANDING_EDITOR = read("app/tools/settings/CompanySettingsBrandingEditor.tsx");
 const PAYMENTS_EDITOR = read("app/tools/settings/CompanySettingsPaymentsEditor.tsx");
 const PREFERENCES_EDITOR = read("app/tools/settings/CompanySettingsPreferencesEditor.tsx");
-const TEAM_EDITOR = read("app/tools/settings/CompanySettingsTeamEditor.tsx");
+const TEAM_PAGE = read("app/tools/team/page.tsx");
+const TEAM_SURFACE = readTeamSurfaceSource(ROOT);
 const PAYMENTS_ROUTE = read("app/tools/settings/payments/page.tsx");
 const FOCUSED_EDITOR = read("app/components/ui/FocusedEditor.tsx");
 const APP_SHELL = read("app/tools/roofing/FieldDiveAppShell.tsx");
@@ -64,7 +66,7 @@ describe("Company Settings summary-first model", () => {
     assert.match(SETTINGS_CLIENT, /data-company-settings-summary/);
     assert.match(SETTINGS_CLIENT, /divide-y divide-slate-200/);
     assert.match(SETTINGS_CLIENT, /data-company-settings-row=\{testId\}/);
-    for (const row of ["business", "branding", "payments", "pricing", "preferences", "team"]) {
+    for (const row of ["business", "branding", "payments", "pricing", "preferences"]) {
       assert.match(SETTINGS_CLIENT, new RegExp(`testId="${row}"`));
     }
   });
@@ -180,11 +182,21 @@ describe("Company Settings save model", () => {
       assert.doesNotMatch(editor, /open: boolean/);
       assert.match(editor, /open\s*$|open\n/m);
     }
-    for (const id of ["business", "branding", "payments", "preferences", "team"]) {
+    for (const id of ["business", "branding", "payments", "preferences"]) {
       assert.match(SETTINGS_CLIENT, new RegExp(`editor === "${id}" \\?`));
     }
-    assert.match(TEAM_EDITOR, /data-company-settings-editor="team"/);
-    assert.match(TEAM_EDITOR, /canAdminMembers/);
+  });
+
+  test("Team is an operational workspace, not a Settings row or drawer", () => {
+    assert.doesNotMatch(SETTINGS_CLIENT, /testId="team"|href="\/tools\/settings\/team"/);
+    assert.doesNotMatch(SETTINGS_CLIENT, /CompanySettingsTeamEditor|editor === "team"/);
+    assert.match(TEAM_PAGE, /activeNav="team"/);
+    assert.match(TEAM_PAGE, /requireActiveCompanyPage/);
+    assert.match(TEAM_PAGE, /redirectTo=\/tools\/team/);
+    assert.match(TEAM_SURFACE, /data-company-team-page/);
+    assert.match(read("app/tools/settings/team/page.tsx"), /redirect\("\/tools\/team"\)/);
+    assert.match(TEAM_SURFACE, /canAdminMembers/);
+    assert.doesNotMatch(TEAM_SURFACE, /<FocusedEditor/);
   });
 
   test("business and branding save through the single branding persistence path", () => {

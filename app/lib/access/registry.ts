@@ -4,8 +4,9 @@
  * Source of truth for capability names, status, dependencies, built-in role
  * profiles, and special-access packages. The database tables
  * (access_capabilities, access_role_profiles, access_packages, ...) are seeded
- * from this file by migration 20260927190000; registrySql.test.ts fails if the
- * seed and this file diverge. The only evaluator is SQL
+ * from this file by migration 20260927190000 and re-synced by later migrations
+ * that embed buildAccessRegistrySyncSql(); the parity test fails if the latest
+ * embedded sync and this file diverge. The only evaluator is SQL
  * (private.evaluate_access_v1); TypeScript never computes effective access.
  */
 
@@ -39,7 +40,14 @@ export const ACCESS_CAPABILITIES = [
   { key: "jobs.manage", domain: "jobs", status: "active", sensitive: false, scopeKinds: C, dependsOn: ["jobs.read"] },
   { key: "jobs.assign", domain: "jobs", status: "active", sensitive: false, scopeKinds: C, dependsOn: ["jobs.read"] },
   { key: "jobs.approve", domain: "jobs", status: "active", sensitive: false, scopeKinds: C, dependsOn: ["jobs.read"] },
+  /**
+   * Start work. Job-scoped holders (Lead) additionally need to be the job's active
+   * assignment Lead (D-S1); start_job_work_v1 enforces that, so until assignment
+   * truth exists only company-scope holders can start work.
+   */
   { key: "jobs.progress", domain: "jobs", status: "active", sensitive: false, scopeKinds: JOB_SCOPED, dependsOn: ["jobs.read"] },
+  /** Complete job. Company-wide production authority only; never a Lead. */
+  { key: "jobs.complete", domain: "jobs", status: "active", sensitive: false, scopeKinds: C, dependsOn: ["jobs.read"] },
   { key: "jobs.hold", domain: "jobs", status: "active", sensitive: false, scopeKinds: C, dependsOn: ["jobs.read"] },
   { key: "jobs.finalize", domain: "jobs", status: "active", sensitive: false, scopeKinds: C, dependsOn: ["jobs.read"] },
   { key: "measurements.capture", domain: "measurements", status: "active", sensitive: false, scopeKinds: JOB_SCOPED, dependsOn: ["jobs.read"] },
@@ -113,7 +121,7 @@ export const ACCESS_ROLE_PROFILES: readonly RoleProfileDefinition[] = [
     version: 1,
     entries: company(
       "customers.read", "customers.manage",
-      "jobs.read", "jobs.manage", "jobs.assign", "jobs.approve", "jobs.progress", "jobs.hold", "jobs.finalize",
+      "jobs.read", "jobs.manage", "jobs.assign", "jobs.approve", "jobs.progress", "jobs.complete", "jobs.hold", "jobs.finalize",
       "measurements.capture", "measurements.select", "photos.contribute",
       "tasks.read", "tasks.complete", "tasks.manage",
       "schedule.read", "schedule.manage",
@@ -140,7 +148,7 @@ export const ACCESS_ROLE_PROFILES: readonly RoleProfileDefinition[] = [
     version: 1,
     entries: company(
       "customers.read",
-      "jobs.read", "jobs.assign", "jobs.progress", "jobs.hold",
+      "jobs.read", "jobs.assign", "jobs.progress", "jobs.complete", "jobs.hold",
       "measurements.capture", "photos.contribute",
       "tasks.read", "tasks.complete", "tasks.manage",
       "schedule.read", "schedule.manage"
@@ -185,8 +193,9 @@ export const ACCESS_PACKAGES = [
   /** Reserved until Phase F strong authentication is live. */
   { key: "refunds", status: "reserved", sensitive: true, strongAuthRequired: true, scope: "company", eligibleRoles: ["admin"], assignableBy: ["owner"], capabilities: ["payments.refund", "payments.history.read", "payments.summary.read"] },
   { key: "approve_jobs", status: "active", sensitive: false, strongAuthRequired: false, scope: "company", eligibleRoles: ["office_sales", "production_lead"], assignableBy: ["owner", "admin"], capabilities: ["jobs.approve"] },
-  { key: "coordinate_production", status: "active", sensitive: false, strongAuthRequired: false, scope: "company", eligibleRoles: ["office_sales"], assignableBy: ["owner", "admin"], capabilities: ["schedule.manage", "schedule.read", "tasks.manage", "tasks.read", "jobs.progress", "jobs.hold", "jobs.assign"] },
-  { key: "lead_assigned_work", status: "active", sensitive: false, strongAuthRequired: false, scope: "granted_jobs", eligibleRoles: ["field_user"], assignableBy: ["owner", "admin", "production_lead"], capabilities: ["tasks.manage", "tasks.read", "jobs.progress", "schedule.manage", "schedule.read"] },
+  { key: "coordinate_production", status: "active", sensitive: false, strongAuthRequired: false, scope: "company", eligibleRoles: ["office_sales"], assignableBy: ["owner", "admin"], capabilities: ["schedule.manage", "schedule.read", "tasks.manage", "tasks.read", "jobs.progress", "jobs.complete", "jobs.hold", "jobs.assign"] },
+  /** The Lead preset package: runs assigned jobs onsite. No schedule mutation, no completion. */
+  { key: "lead_assigned_work", status: "active", sensitive: false, strongAuthRequired: false, scope: "granted_jobs", eligibleRoles: ["field_user"], assignableBy: ["owner", "admin"], capabilities: ["tasks.manage", "tasks.read", "jobs.progress"] },
   { key: "manage_customers_jobs", status: "active", sensitive: false, strongAuthRequired: false, scope: "company", eligibleRoles: ["production_lead"], assignableBy: ["owner", "admin"], capabilities: ["customers.manage", "customers.read", "jobs.manage", "measurements.select"] },
 ] as const satisfies readonly PackageDefinition[];
 
@@ -205,7 +214,7 @@ export const LEGACY_CAPABILITY_CROSSWALK = {
   job_assign: ["jobs.assign"],
   task_assign: ["tasks.manage"],
   task_complete: ["tasks.complete"],
-  lifecycle_start_complete: ["jobs.progress"],
+  lifecycle_start_complete: ["jobs.progress", "jobs.complete"],
   job_pause_resume: ["jobs.hold"],
   job_disposition_finalize: ["jobs.finalize"],
   member_admin: ["team.manage"],

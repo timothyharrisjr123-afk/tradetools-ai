@@ -315,7 +315,8 @@ export async function setJobTaskAssignee(input: {
     const validated = await validateLiveCompanyMember(
       input.supabase,
       job.company_id,
-      next
+      next,
+      { jobId: job.id }
     );
     if (!validated.ok) {
       throw new JobTaskHttpError(memberValidationStatus(validated.code), validated.code);

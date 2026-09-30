@@ -41,9 +41,9 @@ export const COMPANY_MEMBERSHIP_ROLE_LABELS: Record<
   string
 > = {
   owner: "Owner",
-  admin: "Admin",
+  admin: "Office Manager",
   office_sales: "Sales",
-  production_lead: "Production Lead",
+  production_lead: "Production Coordinator",
   field_user: "Field",
   invalid_role: "Access needs attention",
 };

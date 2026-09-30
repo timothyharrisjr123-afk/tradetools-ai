@@ -1,4 +1,8 @@
-import { COMPANY_MEMBERSHIP_ROLE_LABELS } from "@/app/lib/companyMembershipRoles";
+import {
+  COMPANY_MEMBERSHIP_ROLE_LABELS,
+  resolveCompanyMembershipRole,
+} from "@/app/lib/companyMembershipRoles";
+import { teamAccessLabel, teamPresetOwnsPackage } from "@/app/lib/access/teamAccessPresentation";
 import {
   buildLoginHrefWithReturn,
   buildSignupHrefWithReturn,
@@ -14,7 +18,6 @@ const PACKAGE_LABELS: Record<string, string> = {
   issue_scope_changes: "Issue scope changes",
   approve_jobs: "Approve jobs",
   coordinate_production: "Coordinate production",
-  lead_assigned_work: "Lead assigned work",
   manage_customers_jobs: "Manage customers and jobs",
 };
 
@@ -89,21 +92,29 @@ function canonicalEmail(value: string | null): string | null {
   return canonical.length > 0 ? canonical : null;
 }
 
-export function roleLabel(role: string | null): string | null {
+/** Access label for an invitation; a Field invitation with the Lead package reads as Lead. */
+export function roleLabel(role: string | null, packageKeys: readonly string[] = []): string | null {
   if (!role) return null;
   if (role in COMPANY_MEMBERSHIP_ROLE_LABELS) {
-    return COMPANY_MEMBERSHIP_ROLE_LABELS[role as keyof typeof COMPANY_MEMBERSHIP_ROLE_LABELS];
+    return teamAccessLabel(resolveCompanyMembershipRole(role), packageKeys);
   }
   return null;
 }
 
-/** Plain labels only. Unknown keys are omitted so internal names never reach the screen or the email. */
+/**
+ * Plain labels only. Unknown keys are omitted so internal names never reach the
+ * screen or the email; packages that define the access label (Lead) are not
+ * repeated as extra access.
+ */
 export function plainAccessSummary(packageKeys: string[], hasAdditionalAccess: boolean): string | null {
-  const labels = packageKeys
+  const extra = packageKeys.filter((key) => !teamPresetOwnsPackage(key));
+  const labels = extra
     .map((key) => PACKAGE_LABELS[key])
     .filter((label): label is string => Boolean(label));
   if (labels.length > 0) return labels.join(", ");
-  if (hasAdditionalAccess) return "Includes additional approved access.";
+  if (hasAdditionalAccess && (packageKeys.length === 0 || extra.length > 0)) {
+    return "Includes additional approved access.";
+  }
   return null;
 }
 
@@ -191,7 +202,7 @@ export function buildInvitationJoinView(input: {
     (preview.state === "accepted" && preview.acceptedBySelf);
 
   const companyLabel = revealed ? preview.companyLabel : null;
-  const shownRole = roleLabel(revealed ? preview.role : null);
+  const shownRole = roleLabel(revealed ? preview.role : null, preview.packageKeys);
   const summary = !revealed
     ? null
     : emailMatches
@@ -374,7 +385,7 @@ export function buildInvitationEmail(input: {
   joinUrl: string;
 }): { subject: string; text: string; html: string } {
   const company = input.companyLabel.trim() || "a company";
-  const role = roleLabel(input.role);
+  const role = roleLabel(input.role, input.packageKeys);
   const summary = plainAccessSummary(input.packageKeys, false);
   const expires = expiryLabel(input.expiresAt);
   const subject = `You're invited to ${company} on FieldDive`;

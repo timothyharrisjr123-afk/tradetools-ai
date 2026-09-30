@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json().catch(() => ({}));
     const jobId = typeof body?.jobId === "string" ? body.jobId.trim() : "";
-    const gated = await requireAccess(supabase, user.id, "jobs.progress", { jobId });
+    const gated = await requireAccess(supabase, user.id, "jobs.complete", { jobId });
     if (!gated.ok) return gated.response;
     const companyId = gated.session.companyId;
     if (!isUuidLike(jobId)) {

@@ -76,7 +76,11 @@ import {
   resolveCanonicalJobStageLabel,
   resolveStageEnteredAtIso,
 } from "@/app/lib/jobLifecycleMapper";
-import { resolveCanonicalJobActionEligibilityFromFacts } from "@/app/lib/jobLifecycleActionEligibility";
+import {
+  resolveCanonicalJobActionEligibilityFromFacts,
+  withLifecycleActionAuthority,
+} from "@/app/lib/jobLifecycleActionEligibility";
+import { useCompanyMembers } from "@/app/tools/roofing/jobCard/useCompanyMembers";
 import {
   applyKnownDispositionToJobRecord,
   dispositionBlockedWorkCopy,
@@ -1240,6 +1244,10 @@ export default function RoofingClient({
   });
   const jobPayments = useJobPayments(
     entryMode === "job-card" ? currentJobId : null
+  );
+  const jobCardViewerAccess = useCompanyMembers(
+    entryMode === "job-card" && Boolean(currentJobId),
+    currentJobId
   );
   const [isCreatingJob, setIsCreatingJob] = useState(false);
   const [jobCreationError, setJobCreationError] = useState<string | null>(null);
@@ -8392,12 +8400,13 @@ Thanks,`;
       loadedForJobId: jobSchedulesLoadedForJobId,
       settlement: jobScheduleSettlement,
     });
-    const jobCardActionEligibility = resolveCanonicalJobActionEligibilityFromFacts(
-      {
+    const jobCardActionEligibility = withLifecycleActionAuthority(
+      resolveCanonicalJobActionEligibilityFromFacts({
         stage: hydratedJobRecord?.stage,
         disposition: hydratedJobRecord?.status,
         schedule: jobCardSchedule.active,
-      }
+      }),
+      jobCardViewerAccess
     );
     const jobCardActivityItems: JobCardActivityItem[] = [];
     const ATTACHMENT_CATEGORIES = [

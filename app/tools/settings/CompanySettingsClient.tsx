@@ -24,7 +24,6 @@ import CompanySettingsPaymentsEditor, {
   COMPANY_PAYMENT_SETUP_LABEL,
 } from "@/app/tools/settings/CompanySettingsPaymentsEditor";
 import CompanySettingsPreferencesEditor from "@/app/tools/settings/CompanySettingsPreferencesEditor";
-import CompanySettingsTeamEditor from "@/app/tools/settings/CompanySettingsTeamEditor";
 import { useCompanyMembers } from "@/app/tools/roofing/jobCard/useCompanyMembers";
 import {
   loadCompanyPaymentsStatus,
@@ -55,7 +54,6 @@ export type CompanySettingsEditorId =
   | "branding"
   | "payments"
   | "preferences"
-  | "team"
   | null;
 
 type CompanySettingsClientProps = {
@@ -365,7 +363,6 @@ export default function CompanySettingsClient({
   const accessPending = team.loading && team.viewerRole == null;
   const canManageCompany = team.canManageCompany;
   const showCommercial = team.canReadCommercial || team.canManagePricing || team.canConfigurePayments;
-  const fieldViewer = team.viewerRole === "field_user";
   const business = summarizeBusiness(profile);
   const businessMissing = formatMissingDetailCount(countMissingBusinessDetails(profile));
   const brandingMissing = formatMissingDetailCount(countMissingBrandingDetails(profile));
@@ -377,7 +374,7 @@ export default function CompanySettingsClient({
         <p className="mt-1 text-sm text-slate-600">
           {accessPending || canManageCompany
             ? "Your business identity, branding, payments, and pricing."
-            : "Your company's details. An Owner or Admin changes these."}
+            : "Your company's details. An Owner or Office Manager changes these."}
         </p>
       </header>
 
@@ -450,23 +447,6 @@ export default function CompanySettingsClient({
               onClick={() => setEditor("preferences")}
               testId="preferences"
             />
-            <SummaryRow
-              label="Team"
-              detail={
-                team.loading
-                  ? "Loading…"
-                  : team.error
-                    ? "Could not load team"
-                    : fieldViewer
-                      ? "An Owner or Admin manages the team"
-                      : `${team.liveMembers.length} member${
-                          team.liveMembers.length === 1 ? "" : "s"
-                        }`
-              }
-              action={team.canAdminMembers ? "Manage" : "View"}
-              onClick={() => setEditor("team")}
-              testId="team"
-            />
           </div>
         )}
       </div>
@@ -507,18 +487,6 @@ export default function CompanySettingsClient({
           error={editorError}
           onClose={closeEditor}
           onSave={(next) => void saveTimezone(next)}
-        />
-      ) : null}
-      {editor === "team" ? (
-        <CompanySettingsTeamEditor
-          canAdminMembers={team.canAdminMembers}
-          viewerRole={team.viewerRole}
-          viewerUserId={team.viewerUserId}
-          members={team.members}
-          loading={team.loading}
-          error={team.error}
-          onClose={closeEditor}
-          onChanged={() => team.refresh()}
         />
       ) : null}
     </div>

@@ -132,6 +132,26 @@ export function resolveCanonicalJobActionEligibility(
   };
 }
 
+/**
+ * Stage eligibility is necessary, never sufficient: Start work, Complete job, and
+ * schedule changes are offered only when the viewer also holds the authority.
+ * Unknown authority (loading or unreadable) is passed as false and hides the action.
+ */
+export function withLifecycleActionAuthority(
+  eligibility: CanonicalJobActionEligibility,
+  authority: { canStartWork: boolean; canCompleteJob: boolean; canManageSchedule: boolean }
+): CanonicalJobActionEligibility {
+  const schedule = authority.canManageSchedule === true;
+  return {
+    ...eligibility,
+    canStartWork: eligibility.canStartWork && authority.canStartWork === true,
+    canCompleteJob: eligibility.canCompleteJob && authority.canCompleteJob === true,
+    canSchedule: eligibility.canSchedule && schedule,
+    canReschedule: eligibility.canReschedule && schedule,
+    canUnschedule: eligibility.canUnschedule && schedule,
+  };
+}
+
 export function resolveCanonicalJobActionEligibilityFromFacts(input: {
   stage: string | null | undefined;
   disposition: string | null | undefined;

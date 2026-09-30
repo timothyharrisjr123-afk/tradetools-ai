@@ -87,6 +87,7 @@ import {
   hasActivePlannedWorkSchedule,
   isActiveJobDisposition,
   resolveDbBoardJobActionEligibility,
+  withLifecycleActionAuthority,
 } from "@/app/lib/jobLifecycleActionEligibility";
 import InlineNotice from "@/app/components/ui/InlineNotice";
 import LoadingState from "@/app/components/ui/LoadingState";
@@ -2400,6 +2401,9 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
     companyId,
   });
   const companyMembers = useCompanyMembers(hydrated);
+  const viewerCanStartWork = companyMembers.canStartWork;
+  const viewerCanCompleteJob = companyMembers.canCompleteJob;
+  const viewerCanManageSchedule = companyMembers.canManageSchedule;
   const scheduleLoadBanner = boardScheduleLoadBanner(r3fSchedulesLoadStatus);
   const coreBoardReady = hydrated && dbJobsStatus === "ready";
   const companySetupReadiness = useCompanySetupReadiness(companyId, {
@@ -3591,9 +3595,19 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
           scheduleTrusted && hasActivePlannedWorkSchedule(schedule),
         scheduleReadStatus: r3fSchedulesLoadStatus,
         schedule,
+        canStartWork: viewerCanStartWork,
+        canCompleteJob: viewerCanCompleteJob,
+        canManageSchedule: viewerCanManageSchedule,
       };
     },
-    [attentionByJobId, r3fSchedulesByJobId, r3fSchedulesLoadStatus]
+    [
+      attentionByJobId,
+      r3fSchedulesByJobId,
+      r3fSchedulesLoadStatus,
+      viewerCanCompleteJob,
+      viewerCanManageSchedule,
+      viewerCanStartWork,
+    ]
   );
 
   const closeBoardMovementConfirm = useCallback(() => {
@@ -3771,6 +3785,9 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
         canApproveJob: facts.canApproveJob,
         hasActivePlannedSchedule: facts.hasActivePlannedSchedule,
         scheduleReadStatus: facts.scheduleReadStatus,
+        canStartWork: facts.canStartWork,
+        canCompleteJob: facts.canCompleteJob,
+        canManageSchedule: facts.canManageSchedule,
       });
       if (!resolution.allowed) {
         if (resolution.message) setToast(resolution.message);
@@ -3803,12 +3820,19 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       const scheduleTrusted = plannedScheduleReadIsAuthoritative(
         r3fSchedulesLoadStatus
       );
-      const canonicalActions = resolveDbBoardJobActionEligibility(job, schedule, {
+      const stageActions = resolveDbBoardJobActionEligibility(job, schedule, {
         approvalAcceptancePending: approvalPendingFromAttentionType(
           attention?.primaryType
         ),
         scheduleReadStatus: r3fSchedulesLoadStatus,
       });
+      const canonicalActions = stageActions
+        ? withLifecycleActionAuthority(stageActions, {
+            canStartWork: viewerCanStartWork,
+            canCompleteJob: viewerCanCompleteJob,
+            canManageSchedule: viewerCanManageSchedule,
+          })
+        : null;
       const coherence = resolvePlannedScheduleCoherence({
         stage: fromStage,
         plannedScheduleCount:
@@ -3883,6 +3907,9 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
       r3gStartingJobId,
       r3hCompletingJobId,
       r3cApprovingJobId,
+      viewerCanCompleteJob,
+      viewerCanManageSchedule,
+      viewerCanStartWork,
     ]
   );
 
@@ -4403,6 +4430,11 @@ export default function SavedClient({ companyId }: { companyId?: string }) {
                                               boardDragFacts.hasActivePlannedSchedule,
                                             scheduleReadStatus:
                                               boardDragFacts.scheduleReadStatus,
+                                            canStartWork: boardDragFacts.canStartWork,
+                                            canCompleteJob:
+                                              boardDragFacts.canCompleteJob,
+                                            canManageSchedule:
+                                              boardDragFacts.canManageSchedule,
                                           });
                                           return validity === "none"
                                             ? null

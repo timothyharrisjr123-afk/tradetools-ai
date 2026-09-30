@@ -59,6 +59,31 @@ function memberDisplayName(member: {
   return email || null;
 }
 
+export type TaskAssigneeCandidate = {
+  userId: string;
+  displayName?: string | null;
+  email?: string | null;
+};
+
+/**
+ * People a task can be assigned to: the company directory (company-wide viewers)
+ * plus the job's own people from the Field brief (coordinator and current task
+ * assignees), which is all a Lead may see.
+ */
+export function taskAssigneeCandidates(
+  liveMembers: readonly TaskAssigneeCandidate[],
+  jobPeople: readonly { userId: string; displayName: string | null }[] | null | undefined
+): TaskAssigneeCandidate[] {
+  const out: TaskAssigneeCandidate[] = [...liveMembers];
+  const seen = new Set(out.map((row) => row.userId));
+  for (const person of jobPeople ?? []) {
+    if (seen.has(person.userId)) continue;
+    seen.add(person.userId);
+    out.push({ userId: person.userId, displayName: person.displayName });
+  }
+  return out;
+}
+
 export function labelForCompanyMember(
   userId: string | null | undefined,
   members: readonly { userId: string; displayName?: string | null; email?: string | null }[],

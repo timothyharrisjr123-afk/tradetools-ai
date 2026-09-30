@@ -14,6 +14,7 @@ import {
   BOARD_COMPLETE_CONFIRM_TITLE,
   BOARD_DRAG_THRESHOLD_PX,
   BOARD_MOVEMENT_ACCEPTANCE_REQUIRED_COPY,
+  BOARD_MOVEMENT_NOT_PERMITTED_COPY,
   BOARD_MOVEMENT_REACTIVATE_COPY,
   BOARD_START_WORK_CONFIRM_TITLE,
   BOARD_UNSCHEDULE_CONFIRM_BODY,
@@ -43,6 +44,9 @@ function move(
     canApproveJob?: boolean;
     hasActivePlannedSchedule?: boolean;
     scheduleReadStatus?: "loading" | "ready" | "error";
+    canStartWork?: boolean;
+    canCompleteJob?: boolean;
+    canManageSchedule?: boolean;
   }
 ) {
   return resolveBoardGuardedMovement({
@@ -52,6 +56,9 @@ function move(
     canApproveJob: opts?.canApproveJob ?? false,
     hasActivePlannedSchedule: opts?.hasActivePlannedSchedule ?? false,
     scheduleReadStatus: opts?.scheduleReadStatus ?? "ready",
+    canStartWork: opts?.canStartWork ?? true,
+    canCompleteJob: opts?.canCompleteJob ?? true,
+    canManageSchedule: opts?.canManageSchedule ?? true,
   });
 }
 
@@ -99,6 +106,36 @@ describe("canonical transition matrix", () => {
     });
     assert.equal(allowed.allowed, true);
     if (allowed.allowed) assert.equal(allowed.intent.kind, "complete_job");
+  });
+
+  test("stage alone never permits Start work or Complete job", () => {
+    const start = move("scheduled", "production", {
+      hasActivePlannedSchedule: true,
+      canStartWork: false,
+    });
+    assert.equal(start.allowed, false);
+    if (!start.allowed) {
+      assert.equal(start.reason, "not_permitted");
+      assert.equal(start.message, BOARD_MOVEMENT_NOT_PERMITTED_COPY);
+    }
+    const complete = move("production", "complete", {
+      hasActivePlannedSchedule: true,
+      canCompleteJob: false,
+    });
+    assert.equal(complete.allowed, false);
+    if (!complete.allowed) assert.equal(complete.reason, "not_permitted");
+  });
+
+  test("schedule and unschedule need schedule authority", () => {
+    const schedule = move("approved", "scheduled", { canManageSchedule: false });
+    assert.equal(schedule.allowed, false);
+    if (!schedule.allowed) assert.equal(schedule.reason, "not_permitted");
+    const unschedule = move("scheduled", "approved", {
+      hasActivePlannedSchedule: true,
+      canManageSchedule: false,
+    });
+    assert.equal(unschedule.allowed, false);
+    if (!unschedule.allowed) assert.equal(unschedule.reason, "not_permitted");
   });
 
   test("Scheduled → Approved is Unschedule when scheduled", () => {
@@ -202,6 +239,9 @@ describe("drop target visuals and click vs drag", () => {
         dispositionActive: true,
         canApproveJob: false,
         hasActivePlannedSchedule: false,
+        canStartWork: true,
+        canCompleteJob: true,
+        canManageSchedule: true,
       }),
       "none"
     );

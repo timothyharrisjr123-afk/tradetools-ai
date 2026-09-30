@@ -16,7 +16,7 @@ import {
 } from "@/app/lib/jobTaskTypes";
 import JobCardSectionPanel from "@/app/tools/roofing/jobCard/JobCardSectionPanel";
 import type { JobCardTabId } from "@/app/tools/roofing/jobCard/jobCardTypes";
-import type { CompanyMemberClientItem } from "@/app/tools/roofing/jobCard/useCompanyMembers";
+import type { TaskAssigneeCandidate } from "@/app/tools/roofing/jobCard/useCompanyMembers";
 import { labelForCompanyMember } from "@/app/tools/roofing/jobCard/useCompanyMembers";
 
 type TaskDraft = {
@@ -34,7 +34,7 @@ type JobCardTasksWorkspaceProps = {
   error?: string | null;
   today?: string;
   canAssignTasks?: boolean;
-  members?: readonly CompanyMemberClientItem[];
+  members?: readonly TaskAssigneeCandidate[];
   onCreate: (input: {
     title: string;
     notes: string | null;
@@ -77,7 +77,7 @@ function TaskAssigneeControl({
 }: {
   task: JobTaskListItem;
   canAssignTasks: boolean;
-  members: readonly CompanyMemberClientItem[];
+  members: readonly TaskAssigneeCandidate[];
   onAssign?: (taskId: string, assignedTo: string | null) => Promise<boolean> | boolean;
 }) {
   const label = labelForCompanyMember(task.assignedTo, members);

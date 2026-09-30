@@ -28,7 +28,10 @@ import {
   resolveCanonicalJobStage,
   resolveCanonicalJobStageLabel,
 } from "@/app/lib/jobLifecycleMapper";
-import { resolveCanonicalJobActionEligibilityFromFacts } from "@/app/lib/jobLifecycleActionEligibility";
+import {
+  resolveCanonicalJobActionEligibilityFromFacts,
+  withLifecycleActionAuthority,
+} from "@/app/lib/jobLifecycleActionEligibility";
 import { isUuidLike } from "@/app/lib/uuid";
 import { loadCompanyProfile } from "@/app/lib/companyProfile";
 import { resolveTrustedJobCardSeed } from "@/app/lib/jobCardServerSeed";
@@ -148,7 +151,10 @@ import JobCardMeasurementCapture from "@/app/tools/roofing/jobCard/JobCardMeasur
 import { PREPARE_PROPOSAL_MEASUREMENT_CAPTURE_HINT } from "@/app/tools/roofing/jobCard/jobCardCreateProposalModalModel";
 import { useJobCardPrepareProposal } from "@/app/tools/roofing/jobCard/useJobCardPrepareProposal";
 import { useJobCardTasks } from "@/app/tools/roofing/jobCard/useJobCardTasks";
-import { useCompanyMembers } from "@/app/tools/roofing/jobCard/useCompanyMembers";
+import {
+  taskAssigneeCandidates,
+  useCompanyMembers,
+} from "@/app/tools/roofing/jobCard/useCompanyMembers";
 import JobCardActivityPanelWithCustomerRequests from "@/app/tools/roofing/jobCard/JobCardActivityPanelWithCustomerRequests";
 import { resolveJobCardIdentityFromRecord } from "@/app/tools/roofing/jobCard/jobCardIdentityUtils";
 import {
@@ -673,20 +679,23 @@ export default function JobCardClient({
     loadedForJobId: jobSchedulesLoadedForJobId,
     settlement: jobScheduleSettlement,
   });
-  const jobCardActionEligibility = resolveCanonicalJobActionEligibilityFromFacts({
-    stage: hydratedJobRecord?.stage,
-    disposition: hydratedJobRecord?.status,
-    schedule: jobCardSchedule.active,
-    scheduleReadStatus:
-      jobCardSchedule.loadStatus === "error"
-        ? "error"
-        : jobCardSchedule.ready
-          ? "ready"
-          : "loading",
-    approvalAcceptancePending: Boolean(
-      findApproveJobAcceptanceItem(jobAttention.items)
-    ),
-  });
+  const jobCardActionEligibility = withLifecycleActionAuthority(
+    resolveCanonicalJobActionEligibilityFromFacts({
+      stage: hydratedJobRecord?.stage,
+      disposition: hydratedJobRecord?.status,
+      schedule: jobCardSchedule.active,
+      scheduleReadStatus:
+        jobCardSchedule.loadStatus === "error"
+          ? "error"
+          : jobCardSchedule.ready
+            ? "ready"
+            : "loading",
+      approvalAcceptancePending: Boolean(
+        findApproveJobAcceptanceItem(jobAttention.items)
+      ),
+    }),
+    companyMembers
+  );
   const approveAcceptanceItem = findApproveJobAcceptanceItem(jobAttention.items);
   const canCompleteIfActive = resolveCanonicalJobActionEligibilityFromFacts({
     stage: hydratedJobRecord?.stage,
@@ -701,7 +710,7 @@ export default function JobCardClient({
     approvalAcceptancePending: Boolean(
       findApproveJobAcceptanceItem(jobAttention.items)
     ),
-  }).canCompleteJob;
+  }).canCompleteJob && companyMembers.canCompleteJob;
   const overviewPrimary = resolveJobCardOverviewPrimaryAction(
     jobCardActionEligibility,
     {
@@ -1293,7 +1302,8 @@ export default function JobCardClient({
     onReopenJob: companyMembers.canFinalizeDisposition
       ? resumeOrReopenJob
       : undefined,
-    onReopenAndComplete: companyMembers.canFinalizeDisposition
+    onReopenAndComplete:
+      companyMembers.canFinalizeDisposition && companyMembers.canCompleteJob
       ? () => {
           setDispositionRecoveryError(null);
           setReopenAndCompleteConfirmOpen(true);
@@ -1868,7 +1878,10 @@ export default function JobCardClient({
                   listedDraftProposalId={listedJobDraftProposalId}
                   tasks={jobTasks}
                   canAssignTasks={companyMembers.canAssignTasks}
-                  members={companyMembers.liveMembers}
+                  members={taskAssigneeCandidates(
+                    companyMembers.liveMembers,
+                    fieldBrief.brief?.people
+                  )}
                 />
                 </div>
               </div>

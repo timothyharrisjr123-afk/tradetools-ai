@@ -16,6 +16,14 @@ export type ViewerAccessFlags = {
   canAssignTasks: boolean;
   canPauseResume: boolean;
   canFinalizeDisposition: boolean;
+  /**
+   * Start work: company-scope jobs.progress (and not restricted at the job). A
+   * job-scoped holder (Lead) also needs to be the active assignment Lead (D-S1),
+   * which the server cannot confirm yet, so it is never offered to them.
+   */
+  canStartWork: boolean;
+  canCompleteJob: boolean;
+  canManageSchedule: boolean;
   canWriteScopeChanges: boolean;
   canIssueScopeChanges: boolean;
   canSendProposals: boolean;
@@ -33,6 +41,9 @@ export const NO_VIEWER_ACCESS: ViewerAccessFlags = {
   canAssignTasks: false,
   canPauseResume: false,
   canFinalizeDisposition: false,
+  canStartWork: false,
+  canCompleteJob: false,
+  canManageSchedule: false,
   canWriteScopeChanges: false,
   canIssueScopeChanges: false,
   canSendProposals: false,
@@ -71,12 +82,17 @@ export function mapViewerAccess(data: unknown): ViewerAccessFlags | null {
   const job = body.job_capabilities == null ? null : stringSet(body.job_capabilities);
   if (body.job_capabilities != null && !job) return null;
   const atJob = (cap: string) => company.has(cap) || (job?.has(cap) ?? false);
+  const companyAndJob = (cap: string) => company.has(cap) && (job == null || job.has(cap));
+  const evaluatedAtJob = (cap: string) => (job ? job.has(cap) : company.has(cap));
   return {
     canAdminMembers: company.has("team.manage"),
     canAssignJobs: company.has("jobs.assign"),
     canAssignTasks: atJob("tasks.manage"),
     canPauseResume: company.has("jobs.hold"),
     canFinalizeDisposition: company.has("jobs.finalize"),
+    canStartWork: companyAndJob("jobs.progress"),
+    canCompleteJob: companyAndJob("jobs.complete"),
+    canManageSchedule: evaluatedAtJob("schedule.manage"),
     canWriteScopeChanges: company.has("scope_changes.write"),
     canIssueScopeChanges: company.has("scope_changes.issue"),
     canSendProposals: company.has("proposals.send"),

@@ -71,7 +71,7 @@ export default function JobCardProductionLeadControl({
         setError(
           typeof body.message === "string"
             ? body.message
-            : "Could not update production lead."
+            : "Could not update coordinator."
         );
         return;
       }
@@ -82,7 +82,7 @@ export default function JobCardProductionLeadControl({
       });
       setEditing(false);
     } catch {
-      setError("Could not update production lead.");
+      setError("Could not update coordinator.");
     } finally {
       setBusy(false);
     }
@@ -106,7 +106,7 @@ export default function JobCardProductionLeadControl({
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-400">
-              Production lead
+              Coordinator
             </p>
             <p
               className={
@@ -167,7 +167,7 @@ export default function JobCardProductionLeadControl({
               className="min-h-[40px] min-w-[10rem] flex-1 rounded-md border border-slate-200 bg-white px-2.5 text-sm text-slate-900 outline-none focus:border-slate-400"
               value={draftAssignee}
               disabled={busy}
-              aria-label="Production lead"
+              aria-label="Coordinator"
               onChange={(event) => setDraftAssignee(event.target.value)}
               data-jobcard-production-lead-select
             >

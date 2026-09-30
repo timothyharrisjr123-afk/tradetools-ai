@@ -15,6 +15,7 @@ import {
   memberValidationStatus,
 } from "./companyMemberValidation";
 import { mapContractorAccess } from "./contractorCapabilityAuth";
+import { readTeamSurfaceSource } from "./teamSurfaceSource.testSupport";
 import { userCompanyAccessFromResolution } from "./ensureUserIdentity";
 import { mapActiveMembershipGate } from "./requireCapabilitySession";
 
@@ -599,7 +600,7 @@ describe("Phase 13B-B route gates", () => {
   });
 
   test("Team editor shows load failure and handoff failure instead of empty/zero", () => {
-    const src = read("app/tools/settings/CompanySettingsTeamEditor.tsx");
+    const src = readTeamSurfaceSource();
     assert.match(src, /data-company-settings-team-unavailable/);
     assert.match(src, /Access removed\. \$\{handoffError\}/);
     assert.match(src, /action: "handoff"/);

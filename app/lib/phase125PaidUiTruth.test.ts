@@ -472,12 +472,13 @@ describe("Phase 12.5 G2 — Jobs board priority and phone default", () => {
     assert.equal(resolveInitialBoardViewMode({ explicit: null, isPhone: false }), "board");
   });
 
-  test("age is neutral and card uses Production lead", () => {
+  test("age is neutral and card uses Coordinator for jobs.assigned_to", () => {
     for (const tone of ["neutral", "warning", "danger"] as const) {
       assert.equal(timeInStageToneClass(tone as never), "text-slate-400");
     }
     const card = read("app/tools/roofing/saved/components/JobsBoardCard.tsx");
-    assert.match(card, /Production lead/);
+    assert.match(card, /Coordinator · /);
+    assert.doesNotMatch(card, /Production lead/);
     const header = read("app/tools/roofing/saved/components/JobsBoardHeader.tsx");
     assert.match(header, />\s*Jobs\s*</);
   });

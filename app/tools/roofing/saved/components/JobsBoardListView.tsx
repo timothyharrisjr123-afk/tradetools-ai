@@ -161,7 +161,7 @@ export default function JobsBoardListView({
             ) : null}
             {date || owner ? (
               <p className="text-[13px] text-slate-500">
-                {[date, owner ? `Production lead · ${owner}` : null]
+                {[date, owner ? `Coordinator · ${owner}` : null]
                   .filter(Boolean)
                   .join(" · ")}
               </p>
@@ -187,7 +187,7 @@ export default function JobsBoardListView({
               <th className="px-4 py-2.5 font-medium">Address</th>
               <th className="px-4 py-2.5 font-medium">Action</th>
               <th className="px-4 py-2.5 font-medium">Date</th>
-              <th className="px-4 py-2.5 font-medium">Production lead</th>
+              <th className="px-4 py-2.5 font-medium">Coordinator</th>
               <th className="px-4 py-2.5 font-medium">Stage</th>
             </tr>
           </thead>

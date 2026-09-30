@@ -18,6 +18,7 @@ import {
   resolveCompanyMembershipRole,
 } from "./companyMembershipRoles";
 import { mapLiveMembershipRow } from "./companyMembershipSession";
+import { readTeamSurfaceSource } from "./teamSurfaceSource.testSupport";
 import { mapActiveMembershipGate } from "./requireCapabilitySession";
 import { mapAccessCheck } from "./access/requireAccess";
 import {
@@ -189,7 +190,7 @@ describe("Phase 13B-A stable role resolution", () => {
     assert.equal(isAssignableCompanyMembershipRole("owner"), false);
     assert.equal(isAssignableCompanyMembershipRole("invalid_role"), false);
     assert.equal(COMPANY_MEMBERSHIP_ROLE_LABELS.owner, "Owner");
-    assert.equal(COMPANY_MEMBERSHIP_ROLE_LABELS.admin, "Admin");
+    assert.equal(COMPANY_MEMBERSHIP_ROLE_LABELS.admin, "Office Manager");
   });
 });
 
@@ -592,7 +593,7 @@ describe("Phase 13B-A repo contracts", () => {
   });
 
   test("team editor never offers Owner and does not edit the Owner row", () => {
-    const src = read("app/tools/settings/CompanySettingsTeamEditor.tsx");
+    const src = readTeamSurfaceSource();
     assert.match(src, /ASSIGNABLE_COMPANY_MEMBERSHIP_ROLES\.map/);
     assert.match(src, /member\.role !== "owner"/);
     assert.doesNotMatch(src, /owner_admin|COMPANY_MEMBERSHIP_PRESETS/);

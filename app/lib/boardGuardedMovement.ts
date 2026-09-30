@@ -27,6 +27,8 @@ export const BOARD_MOVEMENT_SCHEDULE_UNAVAILABLE_COPY =
 export const BOARD_MOVEMENT_TERMINAL_COPY = "Completed jobs cannot be moved.";
 export const BOARD_MOVEMENT_BLOCKED_COPY = "That move is not available.";
 export const BOARD_MOVEMENT_UNKNOWN_TARGET_COPY = "That stage is not available.";
+export const BOARD_MOVEMENT_NOT_PERMITTED_COPY =
+  "Your access does not include this step.";
 
 export const BOARD_APPROVE_CONFIRM_TITLE = "Approve job?";
 export const BOARD_START_WORK_CONFIRM_TITLE = "Start work?";
@@ -55,6 +57,7 @@ export type BoardMovementRejectReason =
   | "missing_acceptance"
   | "missing_schedule"
   | "schedule_unavailable"
+  | "not_permitted"
   | "unknown_target";
 
 export type BoardMovementResolution =
@@ -72,6 +75,10 @@ export type BoardGuardedMovementInput = {
   canApproveJob: boolean;
   hasActivePlannedSchedule: boolean;
   scheduleReadStatus?: PlannedScheduleReadStatus;
+  /** Viewer authority; stage alone never allows Start work, Complete job, or schedule changes. */
+  canStartWork: boolean;
+  canCompleteJob: boolean;
+  canManageSchedule: boolean;
 };
 
 const ALLOWED_FORWARD: ReadonlyArray<
@@ -193,6 +200,8 @@ export function movementRejectMessage(
       return BOARD_MOVEMENT_TERMINAL_COPY;
     case "unknown_target":
       return BOARD_MOVEMENT_UNKNOWN_TARGET_COPY;
+    case "not_permitted":
+      return BOARD_MOVEMENT_NOT_PERMITTED_COPY;
     case "same_lane":
       return "";
     case "blocked":
@@ -238,6 +247,13 @@ export function resolveBoardGuardedMovement(
   }
 
   if (fromStage === "scheduled" && toStage === "approved") {
+    if (input.canManageSchedule !== true) {
+      return {
+        allowed: false,
+        reason: "not_permitted",
+        message: movementRejectMessage("not_permitted"),
+      };
+    }
     if (!scheduleTrusted) {
       return {
         allowed: false,
@@ -267,6 +283,18 @@ export function resolveBoardGuardedMovement(
   }
 
   const kind = forward[2];
+
+  if (
+    (kind === "start_work" && input.canStartWork !== true) ||
+    (kind === "complete_job" && input.canCompleteJob !== true) ||
+    (kind === "open_schedule_workspace" && input.canManageSchedule !== true)
+  ) {
+    return {
+      allowed: false,
+      reason: "not_permitted",
+      message: movementRejectMessage("not_permitted"),
+    };
+  }
 
   if (kind === "approve_job" && !input.canApproveJob) {
     return {

@@ -51,6 +51,7 @@ export type FieldDiveActiveNav =
   | "catalog"
   | "templates"
   | "calendar"
+  | "team"
   | "company"
   | "pricing";
 export type FieldDiveActiveSubNav = "packet" | "job-card" | "instant";

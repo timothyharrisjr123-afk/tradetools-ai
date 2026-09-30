@@ -12,7 +12,8 @@ import {
   startStrongSignInOnce,
   type StrongSignInClient,
 } from "@/app/lib/auth/strongSignIn";
-import { TEAM_STRONG_AUTH } from "@/app/lib/access/teamAccessPresentation";
+import { TEAM_STRONG_AUTH, teamPresetChoices } from "@/app/lib/access/teamAccessPresentation";
+import { readTeamSurfaceSource } from "@/app/lib/teamSurfaceSource.testSupport";
 import { NO_VIEWER_ACCESS } from "@/app/lib/access/viewerAccess";
 import { navItemAllowed } from "@/app/tools/roofing/useViewerNavAccess";
 
@@ -81,7 +82,7 @@ test("strong sign-in copy no longer claims the step is missing", () => {
   assert.match(step, /Confirm and continue/);
   assert.match(step, /Not now/);
   assert.doesNotMatch(step, /aal2|factorId\}/);
-  const editor = read("app/tools/settings/CompanySettingsTeamEditor.tsx");
+  const editor = readTeamSurfaceSource();
   for (const retry of ["saveRole(member)", "reactivate(member)", "sendInvitation", "transferOwnership"]) {
     assert.ok(editor.includes(`needsStrongSignIn(err, ${retry.includes("(") ? `() => ${retry}` : retry})`), retry);
   }
@@ -139,8 +140,10 @@ test("concurrent strong sign-in starts share one enrollment", async () => {
 });
 
 test("Team hides Owner-only choices from Admins and confirms each action", () => {
-  const editor = read("app/tools/settings/CompanySettingsTeamEditor.tsx");
-  assert.match(editor, /viewerIsOwner\s*\?\s*ASSIGNABLE_COMPANY_MEMBERSHIP_ROLES/);
+  const editor = readTeamSurfaceSource();
+  assert.match(editor, /teamPresetChoices\(delegator\)/);
+  assert.equal(teamPresetChoices("admin").some((preset) => preset.role === "admin"), false);
+  assert.equal(teamPresetChoices("owner").some((preset) => preset.role === "admin"), true);
   assert.match(editor, /viewerIsOwner \|\| member\.role !== "admin"/);
   assert.match(editor, /Invitation sent again to/);
   assert.match(editor, /revoked\. The link no longer works\./);

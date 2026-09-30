@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
+import { readTeamSurfaceSource } from "./teamSurfaceSource.testSupport";
 
 const root = join(__dirname, "..", "..");
 const sql = readFileSync(
@@ -9,7 +10,7 @@ const sql = readFileSync(
   "utf8"
 );
 const persistence = readFileSync(join(root, "app/lib/companyMembershipPersistence.ts"), "utf8");
-const editor = readFileSync(join(root, "app/tools/settings/CompanySettingsTeamEditor.tsx"), "utf8");
+const editor = readTeamSurfaceSource(root);
 const start = readFileSync(join(root, "app/start/page.tsx"), "utf8");
 const evaluator = readFileSync(
   join(root, "supabase/migrations/20260927192000_phase13b_c_access_evaluator.sql"),

@@ -378,7 +378,7 @@ export default function JobsBoardCard({
         <footer className="mt-auto flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 border-t border-slate-100 px-4 py-2 text-xs leading-5">
           {showOwner ? (
             <p className="min-w-0 truncate text-slate-700" data-board-card-owner>
-              <span className="text-slate-400">Production lead · </span>
+              <span className="text-slate-400">Coordinator · </span>
               <span className={assignee === "Unassigned" ? "text-slate-500" : undefined}>
                 {assignee}
               </span>

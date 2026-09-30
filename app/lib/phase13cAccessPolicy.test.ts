@@ -17,7 +17,11 @@ import {
   isActiveCapabilityKey,
   validateAccessRegistry,
 } from "./access/registry";
-import { buildAccessRegistrySeedSql, extractRegistrySeed } from "./access/registrySql";
+import {
+  buildAccessRegistrySyncSql,
+  extractRegistrySeed,
+  extractRegistrySync,
+} from "./access/registrySql";
 import { mapAccessCheck } from "./access/requireAccess";
 import { mapViewerAccess, NO_VIEWER_ACCESS } from "./access/viewerAccess";
 import { parseJobFieldBrief } from "./jobFieldBrief";
@@ -65,15 +69,15 @@ describe("Phase 13B-C registry (§5–7, §13–14, §20)", () => {
     assert.deepEqual(validateAccessRegistry(), []);
   });
 
-  test("exactly five roles, one v1 profile each; display labels Owner/Admin/Sales/Production Lead/Field", () => {
+  test("exactly five roles, one v1 profile each; display labels Owner/Office Manager/Sales/Production Coordinator/Field", () => {
     assert.deepEqual(
       ACCESS_ROLE_PROFILES.map((p) => `${p.role}@${p.version}`).sort(),
       ["admin@1", "field_user@1", "office_sales@1", "owner@1", "production_lead@1"]
     );
     assert.equal(COMPANY_MEMBERSHIP_ROLE_LABELS.owner, "Owner");
-    assert.equal(COMPANY_MEMBERSHIP_ROLE_LABELS.admin, "Admin");
+    assert.equal(COMPANY_MEMBERSHIP_ROLE_LABELS.admin, "Office Manager");
     assert.equal(COMPANY_MEMBERSHIP_ROLE_LABELS.office_sales, "Sales");
-    assert.equal(COMPANY_MEMBERSHIP_ROLE_LABELS.production_lead, "Production Lead");
+    assert.equal(COMPANY_MEMBERSHIP_ROLE_LABELS.production_lead, "Production Coordinator");
     assert.equal(COMPANY_MEMBERSHIP_ROLE_LABELS.field_user, "Field");
   });
 
@@ -142,8 +146,15 @@ describe("Phase 13B-C registry (§5–7, §13–14, §20)", () => {
 });
 
 describe("Phase 13B-C M1 registry tables + generated seed parity (§18)", () => {
-  test("migration seed is byte-identical to the TypeScript registry", () => {
-    assert.equal(extractRegistrySeed(M1), buildAccessRegistrySeedSql());
+  test("M1 keeps its historical generated seed; the latest registry sync is byte-identical to the TypeScript registry", () => {
+    assert.ok(extractRegistrySeed(M1));
+    const syncing = readdirSync(join(process.cwd(), MIG))
+      .filter((f) => f.endsWith(".sql"))
+      .sort()
+      .filter((f) => extractRegistrySync(read(`${MIG}${f}`)) != null);
+    assert.ok(syncing.length > 0);
+    const latest = read(`${MIG}${syncing[syncing.length - 1]}`);
+    assert.equal(extractRegistrySync(latest), buildAccessRegistrySyncSql());
   });
 
   test("registry tables are RLS-on with no policies and no client grants", () => {

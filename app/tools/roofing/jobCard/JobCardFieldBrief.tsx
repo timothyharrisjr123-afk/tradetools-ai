@@ -117,7 +117,7 @@ export default function JobCardFieldBrief({
       {utilities ? (overviewMode ? utilities : <div className="pt-2">{utilities}</div>) : null}
       {overviewMode === "record" ? (
         <div>
-          <p className={OVERVIEW_FACT_LABEL}>Production lead</p>
+          <p className={OVERVIEW_FACT_LABEL}>Coordinator</p>
           <p className={OVERVIEW_FACT_TEXT_QUIET}>{schedule.productionLeadLabel}</p>
           {schedule.crewLabel ? <p className={OVERVIEW_META}>{schedule.crewLabel}</p> : null}
           {leadAction}
@@ -308,7 +308,7 @@ export default function JobCardFieldBrief({
             </div>
           ) : null}
           <div className="min-w-0">
-            <p className={OVERVIEW_FACT_LABEL}>Production lead</p>
+            <p className={OVERVIEW_FACT_LABEL}>Coordinator</p>
             <p
               className={
                 schedule.productionLeadLabel === "Unassigned"

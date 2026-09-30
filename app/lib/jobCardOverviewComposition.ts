@@ -117,7 +117,7 @@ function leadFact(label: string, crewLabel: string | null | undefined): JobCardO
   const crew = String(crewLabel ?? "").trim();
   return {
     key: "lead",
-    label: "Production lead",
+    label: "Coordinator",
     text: label,
     meta: crew || null,
     quiet: label === "Unassigned",

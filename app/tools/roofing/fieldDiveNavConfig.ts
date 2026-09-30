@@ -11,6 +11,7 @@ export type FieldDiveNavItemKey =
   | "catalog"
   | "templates"
   | "calendar"
+  | "team"
   | "company"
   | "pricing";
 
@@ -86,6 +87,13 @@ export const FIELD_DIVE_NAV_SECTIONS: FieldDiveNavSectionConfig[] = [
         href: "/tools/roofing/calendar",
         kind: "link",
         icon: "calendar",
+      },
+      {
+        key: "team",
+        label: "Team",
+        href: "/tools/team",
+        kind: "link",
+        icon: "users",
       },
     ],
   },
