@@ -18,9 +18,11 @@ Sections below this checkpoint are historical. Older **NEXT** lines are not the 
 
 ### Current checkpoint (2026-09-30) — Phase 13C
 
-- **Code checkpoint:** `f3331735c01263e3f1f7d55cc7b200b788db507c` — `fix(phase13c): align team board with crew truth`. Local only. Not pushed. No deploy.
-  - Underlying accepted Team/access foundation: `8836af9` — `feat(phase13c): checkpoint team and access foundation` (on top of `da6eb10`).
-- **Docs checkpoint:** pending (the docs commit that adds this section, the Team truth correction record, and the six Phase 13C docs).
+- **Code checkpoint:** `52dfb1022f70007b0752368cdbf7bab92c62c8b5` — `feat(phase13c): harden coordinator assignment flow`. Local only. Not pushed. No deploy.
+  - Phase 13C code lineage since the last docs checkpoint (`955afdc`): `2cdd8d5` durable Job crew assignments → `86415b5` premium Job crew experience → `8f22a00` people linked to FieldDive access → `50c7cfb` access chooser selection states → `52dfb10` Coordinator integrity (database-owned Coordinator write, direct `assigned_to` writes revoked, Coordinator-derived Job access ends with the responsibility, shared `PersonChoiceList` Coordinator sheet).
+  - Coordinator migrations (applied to STAGING only): `20261001140000_phase13c_coordinator_integrity.sql`, `20261001150000_phase13c_coordinator_access_lifecycle.sql`.
+  - Earlier: `f333173` Team truth correction; `8836af9` Team/access foundation (on top of `da6eb10`).
+- **Docs checkpoint:** this section (Coordinator checkpoint + task-derived access debt). Previous: `955afdc`.
 - **Phase:** 13C. The locked future sequence below is unchanged.
 - **Team truth correction:** **COMPLETE** (accepted 2026-09-30; see below).
 - **NEXT:** **DURABLE JOB → CREW ASSIGNMENT FOUNDATION** (scope below). Not started.
@@ -58,6 +60,10 @@ Sections below this checkpoint are historical. Older **NEXT** lines are not the 
 - **Known baseline debt (outside this checkpoint; do not fix as part of 13C):**
   - `jobSchedules045.test.ts` "all-day and timed labels" fails because the committed test expects garbled text.
   - Stale `.next/types` references to `roofing/ai`.
+- **REQUIRED lifecycle/coherence item — TASK-DERIVED JOB ACCESS LIFECYCLE (open; not part of the Coordinator work in `52dfb10`):**
+  - Current behavior: removing or reassigning a task assignment does not retire Job access (`job_access_grants.source = 'task_assignment'`) that exists solely because of that task.
+  - The Coordinator side is closed: Coordinator-derived grants end when the Coordinator changes or is cleared, and independent reasons survive (`private.retire_coordinator_job_access_v1`, `private.job_access_derived_reason_v1`). A task-derived fix should reuse that same source/derived-reason model, not add a second reason system.
+  - Must be resolved before the relevant access/task closure, and no later than Phase 13C closure if still applicable.
 
 #### Phase 13C Team truth correction — COMPLETE
 
