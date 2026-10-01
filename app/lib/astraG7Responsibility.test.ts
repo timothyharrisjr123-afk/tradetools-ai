@@ -124,11 +124,10 @@ describe("Astra G7 repo authority contracts", () => {
     assert.doesNotMatch(sql, /create table.*assignment_matrix/i);
   });
 
-  test("production lead API validates and does not touch stage", () => {
+  test("production lead API writes only through the Coordinator RPC and does not touch stage", () => {
     const persist = read("app/lib/jobResponsibilityPersistence.ts");
-    assert.match(persist, /validateLiveCompanyMember/);
-    assert.match(persist, /assigned_to/);
-    assert.match(persist, /stageUnchanged/);
+    assert.match(persist, /"set_job_coordinator_v1"/);
+    assert.doesNotMatch(persist, /\.from\("jobs"\)/);
     assert.doesNotMatch(persist, /transition_job_stage/i);
     const route = read("app/api/jobs/[jobId]/production-lead/route.ts");
     assert.match(route, /"jobs\.assign"/);

@@ -137,6 +137,8 @@ import {
   OVERVIEW_SOFT_ACTION,
 } from "@/app/tools/roofing/jobCard/jobCardOverviewStyles";
 import JobCardProductionLeadControl from "@/app/tools/roofing/jobCard/JobCardProductionLeadControl";
+import { useJobCoordinator } from "@/app/tools/roofing/jobCard/useJobCoordinator";
+import { coordinatorCandidates, coordinatorDisplay } from "@/app/lib/jobCoordinatorView";
 import {
   JobCardCrewActionButton,
   JobCardCrewLayer,
@@ -257,6 +259,7 @@ export default function JobCardClient({
   const jobScopeChanges = useJobScopeChanges(currentJobId);
   const companyMembers = useCompanyMembers(Boolean(currentJobId), currentJobId);
   const fieldBrief = useJobFieldBrief(currentJobId, companyMembers.restrictedFieldRole);
+  const jobCoordinator = useJobCoordinator(currentJobId);
   const fieldBriefPeople = fieldBrief.brief?.people ?? null;
   const labelForMember = (userId: string | null | undefined) =>
     companyMembers.labelFor(
@@ -898,8 +901,9 @@ export default function JobCardClient({
   const pendingProposedSummaries =
     buildPendingProposedSummariesFromScopeChanges(scopeSummaryRows);
 
-  const productionLeadAssignedTo = hydratedJobRecord?.assigned_to ?? null;
-  const productionLeadLabel = labelForMember(productionLeadAssignedTo);
+  const coordinatorView = coordinatorDisplay(jobCoordinator.state);
+  const productionLeadAssignedTo = coordinatorView.assignedTo;
+  const productionLeadLabel = coordinatorView.label;
   const jobCrew = useJobCrewAssignment(currentJobId, hydratedJobRecord?.status ?? null);
   const crewView = buildJobCrewFactView({
     status: jobCrew.status,
@@ -1109,23 +1113,35 @@ export default function JobCardClient({
     hasCurrentRequest: Boolean(overviewCurrentRequest),
     readFailed: jobPayments.loadStatus === "error",
   });
+  const sheetJobName =
+    [identity.displayName, identity.addressLine].filter(Boolean).join(" · ") || "This job";
   const overviewPeople = currentJobId ? (
     <JobCardOverviewPeople
       coordinator={
         <JobCardProductionLeadControl
           jobId={currentJobId}
           assignedTo={productionLeadAssignedTo}
-          canAssign={companyMembers.canAssignJobs}
-          members={companyMembers.liveMembers}
+          label={productionLeadLabel}
+          canAssign={
+            companyMembers.canAssignJobs && jobCoordinator.state.status === "ready"
+          }
+          members={coordinatorCandidates(companyMembers.members)}
+          jobName={sheetJobName}
+          membersStatus={
+            companyMembers.loading ? "loading" : companyMembers.error ? "error" : "ready"
+          }
+          onRefreshMembers={() => void companyMembers.refresh()}
           cardTriggerClassName={OVERVIEW_SOFT_ACTION}
-          renderCard={({ trigger, editor }) => (
+          renderCard={({ trigger }) => (
             <JobCardOverviewCoordinatorCard
               name={productionLeadLabel}
+              state={coordinatorView.state}
               trigger={trigger}
-              editor={editor}
             />
           )}
-          onUpdated={({ assignedTo }) => {
+          onStale={() => void jobCoordinator.reload()}
+          onUpdated={({ assignedTo, displayName }) => {
+            jobCoordinator.applyWrite({ assignedTo, displayName, email: null });
             setHydratedJobRecord((prev) =>
               prev
                 ? {
@@ -1168,7 +1184,7 @@ export default function JobCardClient({
       open={crewSheetOpen}
       toast={crewToast}
       onToastDone={clearCrewToast}
-      jobName={[identity.displayName, identity.addressLine].filter(Boolean).join(" · ") || "This job"}
+      jobName={sheetJobName}
       jobStatus={hydratedJobRecord?.status ?? null}
       timezone={companyTimezone}
       crew={jobCrew}

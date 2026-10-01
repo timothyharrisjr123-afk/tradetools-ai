@@ -7,10 +7,6 @@ import {
 } from "@/app/lib/jobSchedulePersistence";
 import { requireAccess } from "@/app/lib/access/requireAccess";
 import { createClient } from "@/app/lib/supabase/server";
-import {
-  JobResponsibilityHttpError,
-  setJobProductionLead,
-} from "@/app/lib/jobResponsibilityPersistence";
 
 export const runtime = "nodejs";
 
@@ -40,11 +36,9 @@ export async function POST(req: NextRequest) {
     if (!isUuidLike(jobId)) {
       return NextResponse.json({ ok: false, code: "invalid_payload" }, { status: 400 });
     }
-    // Confirming the production lead writes jobs.assigned_to (jobs.assign), checked
-    // before scheduling so a denied lead change never leaves a partial write.
+    // Scheduling never changes the Coordinator; that is PATCH /api/jobs/[jobId]/production-lead.
     if (Object.prototype.hasOwnProperty.call(body, "assignedTo")) {
-      const leadGate = await requireAccess(supabase, user.id, "jobs.assign");
-      if (!leadGate.ok) return leadGate.response;
+      return NextResponse.json({ ok: false, code: "coordinator_not_schedulable" }, { status: 400 });
     }
 
     const result = await scheduleJobViaRpc(supabase, companyId, {
@@ -59,39 +53,6 @@ export async function POST(req: NextRequest) {
 
     if (!result.ok) {
       return NextResponse.json(result, { status: statusForCode(result.code) });
-    }
-
-    // Optional confirm/set of the SAME jobs.assigned_to production-lead fact.
-    if (Object.prototype.hasOwnProperty.call(body, "assignedTo")) {
-      const assignedTo =
-        body.assignedTo === null ||
-        body.assignedTo === undefined ||
-        body.assignedTo === ""
-          ? null
-          : String(body.assignedTo).trim();
-      try {
-        const lead = await setJobProductionLead({
-          supabase,
-          companyId,
-          jobId,
-          actorUserId: user.id,
-          assignedTo,
-        });
-        return NextResponse.json({ ...result, productionLead: lead });
-      } catch (leadError) {
-        if (leadError instanceof JobResponsibilityHttpError) {
-          return NextResponse.json(
-            {
-              ok: false,
-              code: leadError.code,
-              message: leadError.message,
-              schedule: result,
-            },
-            { status: leadError.status }
-          );
-        }
-        throw leadError;
-      }
     }
 
     return NextResponse.json(result);

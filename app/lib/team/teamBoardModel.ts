@@ -13,6 +13,7 @@
  */
 
 import { teamAccessLabel, teamRoleLabel } from "@/app/lib/access/teamAccessPresentation";
+import { MEMBER_NAME_NOT_SET } from "@/app/lib/memberDisplayName";
 import {
   resolveCompanyMembershipRole,
   type ResolvedCompanyMembershipRole,
@@ -137,7 +138,7 @@ export type TeamBoardModel = {
 export const PERSON_NAME_PLACEHOLDER = "Team member";
 
 /** Read-time label when no trustworthy name exists. Never stored. */
-export const PERSON_NAME_NOT_SET = "Name not set";
+export const PERSON_NAME_NOT_SET = MEMBER_NAME_NOT_SET;
 
 /**
  * Operational identity: the person's own name, then the login's profile name, then

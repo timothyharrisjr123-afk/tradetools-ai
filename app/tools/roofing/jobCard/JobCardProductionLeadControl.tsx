@@ -1,84 +1,121 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Pencil, UserPlus } from "lucide-react";
 import type { CompanyMemberClientItem } from "@/app/tools/roofing/jobCard/useCompanyMembers";
 import { labelForCompanyMember } from "@/app/tools/roofing/jobCard/useCompanyMembers";
+import { COORDINATOR_UNASSIGNED, coordinatorSavedMessage } from "@/app/lib/jobCoordinatorView";
+import JobCardCoordinatorSheet, {
+  type CoordinatorMembersStatus,
+} from "@/app/tools/roofing/jobCard/JobCardCoordinatorSheet";
 
 type JobCardProductionLeadControlProps = {
   jobId: string;
+  /** Shown under the sheet title. */
+  jobName?: string;
+  /** The Coordinator the viewer sees; sent back as the expected previous value. */
   assignedTo: string | null;
+  /** Visible Coordinator name (shared database resolution). */
+  label?: string;
   canAssign: boolean;
+  /** Active same-company software members (the company directory). */
   members: readonly CompanyMemberClientItem[];
-  onUpdated: (next: { assignedTo: string | null }) => void;
+  /** Directory read behind the picker; loading and failure are shown, never an empty list. */
+  membersStatus?: CoordinatorMembersStatus;
+  /** Re-read the directory (on open and on Try again). */
+  onRefreshMembers?: () => void;
+  onUpdated: (next: { assignedTo: string | null; displayName: string | null }) => void;
+  /** The Coordinator changed elsewhere; the caller re-reads it. */
+  onStale?: () => void;
   /**
    * When embedded in the field brief, show only the Assign/Change control
    * (lead name already appears in the brief hierarchy).
    */
   embedInBrief?: boolean;
   /**
-   * Overview card placement: the caller lays out the trigger and the editor.
+   * Overview card placement: the caller lays out the trigger.
    * The trigger is null when the viewer can't assign.
    */
-  renderCard?: (parts: { trigger: ReactNode; editor: ReactNode }) => ReactNode;
+  renderCard?: (parts: { trigger: ReactNode }) => ReactNode;
   cardTriggerClassName?: string;
 };
+
+function newRequestId(): string {
+  return `coord-${crypto.randomUUID()}`;
+}
 
 /** The Coordinator only. The Crew is a separate fact with its own control. */
 export default function JobCardProductionLeadControl({
   jobId,
+  jobName = "This job",
   assignedTo,
+  label,
   canAssign,
   members,
+  membersStatus = "ready",
+  onRefreshMembers,
   onUpdated,
+  onStale,
   embedInBrief = false,
   renderCard,
   cardTriggerClassName = "",
 }: JobCardProductionLeadControlProps) {
-  const [editing, setEditing] = useState(false);
-  const [draftAssignee, setDraftAssignee] = useState(assignedTo ?? "");
+  const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  // One request id per intended change, reused when a lost response is retried.
+  const pending = useRef<{ key: string; requestId: string } | null>(null);
 
   useEffect(() => {
-    if (editing) return;
-    setDraftAssignee(assignedTo ?? "");
-  }, [assignedTo, editing]);
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), 4000);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
 
-  const leadLabel = labelForCompanyMember(assignedTo, members);
+  const leadLabel = label ?? labelForCompanyMember(assignedTo, members);
+  const candidates = members.map((member) => ({
+    userId: member.userId,
+    label: labelForCompanyMember(member.userId, members),
+  }));
 
-  const save = async () => {
+  const save = async (nextAssigned: string | null) => {
     if (!canAssign || busy) return;
     setBusy(true);
     setError(null);
+    const key = `${assignedTo ?? ""}>${nextAssigned ?? ""}`;
+    if (pending.current?.key !== key) pending.current = { key, requestId: newRequestId() };
     try {
-      const nextAssigned = draftAssignee.trim() ? draftAssignee.trim() : null;
-      const res = await fetch(
-        `/api/jobs/${encodeURIComponent(jobId)}/production-lead`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ assignedTo: nextAssigned }),
-        }
-      );
+      const res = await fetch(`/api/jobs/${encodeURIComponent(jobId)}/production-lead`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assignedTo: nextAssigned,
+          expectedAssignedTo: assignedTo,
+          requestId: pending.current.requestId,
+        }),
+      });
       const body = (await res.json().catch(() => ({}))) as {
         ok?: boolean;
+        code?: string;
         assignedTo?: string | null;
+        displayName?: string | null;
         message?: string;
       };
       if (!res.ok || body.ok !== true) {
-        setError(
-          typeof body.message === "string"
-            ? body.message
-            : "Could not update coordinator."
-        );
+        if (body.code) pending.current = null;
+        setError(typeof body.message === "string" ? body.message : "Could not update coordinator.");
+        if (body.code === "stale_coordinator") onStale?.();
         return;
       }
-      onUpdated({
-        assignedTo:
-          body.assignedTo === undefined ? nextAssigned : body.assignedTo,
-      });
-      setEditing(false);
+      pending.current = null;
+      const saved = {
+        assignedTo: body.assignedTo === undefined ? nextAssigned : body.assignedTo,
+        displayName: typeof body.displayName === "string" ? body.displayName : null,
+      };
+      onUpdated(saved);
+      setOpen(false);
+      setToast(coordinatorSavedMessage(saved));
     } catch {
       setError("Could not update coordinator.");
     } finally {
@@ -86,48 +123,46 @@ export default function JobCardProductionLeadControl({
     }
   };
 
-  const toggleEditing = () => {
+  const openSheet = () => {
     setError(null);
-    setDraftAssignee(assignedTo ?? "");
-    setEditing((open) => !open);
+    setOpen(true);
+    onRefreshMembers?.();
   };
 
-  const editor =
-    editing && canAssign ? (
-      <div className="space-y-2" data-jobcard-production-lead-editor>
-        <div className="flex flex-wrap items-center gap-2">
-          <select
-            className="min-h-[44px] min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-slate-400"
-            value={draftAssignee}
-            disabled={busy}
-            aria-label="Coordinator"
-            onChange={(event) => setDraftAssignee(event.target.value)}
-            data-jobcard-production-lead-select
+  const triggerText = assignedTo ? "Change" : "Assign";
+  const sheetLayer = (
+    <>
+      {open ? (
+        <JobCardCoordinatorSheet
+          jobId={jobId}
+          jobName={jobName}
+          assignedTo={assignedTo}
+          currentLabel={leadLabel}
+          candidates={candidates}
+          membersStatus={membersStatus}
+          onRetryMembers={() => onRefreshMembers?.()}
+          saving={busy}
+          error={error}
+          onConfirm={(next) => void save(next)}
+          onClose={() => setOpen(false)}
+        />
+      ) : null}
+      {toast ? (
+        <div
+          className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 pb-[env(safe-area-inset-bottom)]"
+          data-jobcard-coordinator-toast
+        >
+          <p
+            role="status"
+            aria-live="polite"
+            className="max-w-sm rounded-full bg-slate-900 px-4 py-2 text-center text-sm font-medium text-white shadow-lg [overflow-wrap:anywhere]"
           >
-            <option value="">Unassigned</option>
-            {members.map((member) => (
-              <option key={member.userId} value={member.userId}>
-                {labelForCompanyMember(member.userId, members)}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            disabled={busy}
-            className="inline-flex min-h-[44px] shrink-0 items-center rounded-lg bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-            onClick={() => void save()}
-            data-jobcard-production-lead-save
-          >
-            {busy ? "Saving…" : "Save"}
-          </button>
-        </div>
-        {error ? (
-          <p className="text-sm text-rose-700" data-jobcard-production-lead-error>
-            {error}
+            {toast}
           </p>
-        ) : null}
-      </div>
-    ) : null;
+        </div>
+      ) : null}
+    </>
+  );
 
   if (renderCard) {
     const TriggerIcon = assignedTo ? Pencil : UserPlus;
@@ -136,16 +171,18 @@ export default function JobCardProductionLeadControl({
         type="button"
         className={cardTriggerClassName}
         data-testid="job-production-lead-assign"
-        aria-expanded={editing}
-        onClick={toggleEditing}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={openSheet}
       >
-        {editing ? null : <TriggerIcon className="h-4 w-4" strokeWidth={2} aria-hidden />}
-        {editing ? "Cancel" : assignedTo ? "Change" : "Assign"}
+        <TriggerIcon className="h-4 w-4" strokeWidth={2} aria-hidden />
+        {triggerText}
       </button>
     ) : null;
     return (
       <div className="contents" data-testid="job-production-lead" data-jobcard-production-lead="true">
-        {renderCard({ trigger, editor })}
+        {renderCard({ trigger })}
+        {sheetLayer}
       </div>
     );
   }
@@ -154,13 +191,26 @@ export default function JobCardProductionLeadControl({
     return null;
   }
 
-  return (
-    <div
+  const plainTrigger = canAssign ? (
+    <button
+      type="button"
       className={
         embedInBrief
-          ? "min-w-0"
-          : "border-t border-slate-100 pt-3"
+          ? "min-h-[36px] text-sm font-medium text-blue-600 hover:text-blue-700"
+          : "min-h-[40px] shrink-0 text-sm font-medium text-blue-600 hover:text-blue-700"
       }
+      data-testid="job-production-lead-assign"
+      aria-haspopup="dialog"
+      aria-expanded={open}
+      onClick={openSheet}
+    >
+      {triggerText}
+    </button>
+  ) : null;
+
+  return (
+    <div
+      className={embedInBrief ? "min-w-0" : "border-t border-slate-100 pt-3"}
       data-testid="job-production-lead"
       data-jobcard-production-lead="true"
     >
@@ -172,7 +222,7 @@ export default function JobCardProductionLeadControl({
             </p>
             <p
               className={
-                leadLabel === "Unassigned"
+                leadLabel === COORDINATOR_UNASSIGNED
                   ? "mt-0.5 text-sm font-medium text-slate-400"
                   : "mt-0.5 text-sm font-semibold text-slate-900"
               }
@@ -180,29 +230,12 @@ export default function JobCardProductionLeadControl({
               {leadLabel}
             </p>
           </div>
-          {canAssign ? (
-            <button
-              type="button"
-              className="min-h-[40px] shrink-0 text-sm font-medium text-blue-600 hover:text-blue-700"
-              data-testid="job-production-lead-assign"
-              onClick={toggleEditing}
-            >
-              {editing ? "Cancel" : assignedTo ? "Change" : "Assign"}
-            </button>
-          ) : null}
+          {plainTrigger}
         </div>
-      ) : canAssign ? (
-        <button
-          type="button"
-          className="min-h-[36px] text-sm font-medium text-blue-600 hover:text-blue-700"
-          data-testid="job-production-lead-assign"
-          onClick={toggleEditing}
-        >
-          {editing ? "Cancel" : assignedTo ? "Change" : "Assign"}
-        </button>
-      ) : null}
-
-      {editor ? <div className="mt-2">{editor}</div> : null}
+      ) : (
+        plainTrigger
+      )}
+      {sheetLayer}
     </div>
   );
 }

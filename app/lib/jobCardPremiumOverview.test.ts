@@ -161,7 +161,7 @@ describe("Coordinator + Crew", () => {
   test("the Coordinator context appears only when someone coordinates", () => {
     assert.match(PEOPLE, /"Coordinates this job\."/);
     assert.doesNotMatch(PEOPLE, /runs this job/);
-    assert.match(PEOPLE, /unassigned \? null :/);
+    assert.match(PEOPLE, /!assigned \? null :/);
   });
 });
 

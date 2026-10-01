@@ -288,7 +288,8 @@ export function jobDraftToInsertRow(draft: JobDraft | Partial<JobDraft>): Partia
     row.address_formatted = formatted;
   }
 
-  if (draft.assigned_to !== undefined) row.assigned_to = draft.assigned_to ?? null;
+  // The Coordinator (assigned_to) is written only through set_job_coordinator_v1.
+  // Generic job creates and updates must not carry it.
   if (draft.created_by !== undefined) row.created_by = draft.created_by ?? null;
   if (draft.updated_by !== undefined) row.updated_by = draft.updated_by ?? null;
   if (draft.notes !== undefined) row.notes = normalizeNullableString(draft.notes);

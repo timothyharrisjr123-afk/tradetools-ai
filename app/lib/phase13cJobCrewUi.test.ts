@@ -465,7 +465,10 @@ describe("request safety", () => {
 describe("coordinator separation", () => {
   test("the Coordinator control has no Crew label input and never sends crewLabel", () => {
     assert.doesNotMatch(LEAD_CONTROL, /crewLabel|crew_label|Crew label|production-lead-crew/);
-    assert.match(LEAD_CONTROL, /JSON\.stringify\(\{ assignedTo: nextAssigned \}\)/);
+    assert.match(
+      LEAD_CONTROL,
+      /JSON\.stringify\(\{\s*assignedTo: nextAssigned,\s*expectedAssignedTo: assignedTo,\s*requestId: pending\.current\.requestId,\s*\}\)/
+    );
   });
 
   test("no crew_label under the Coordinator and no combined Assigned to", () => {

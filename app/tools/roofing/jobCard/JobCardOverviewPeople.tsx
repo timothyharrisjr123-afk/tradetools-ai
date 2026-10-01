@@ -27,6 +27,7 @@ function PersonCard({
   action = null,
   below = null,
   factState,
+  coordinatorState,
 }: {
   kind: "coordinator" | "crew";
   icon: ReactNode;
@@ -38,12 +39,14 @@ function PersonCard({
   action?: ReactNode;
   below?: ReactNode;
   factState?: string;
+  coordinatorState?: string;
 }) {
   return (
     <div
       className={`${OVERVIEW_CARD} min-w-0 px-5 py-5`}
       data-jobcard-overview-person={kind}
       data-job-crew-fact={factState}
+      data-jobcard-coordinator-state={coordinatorState}
     >
       <div className="flex items-start gap-4">
         <span className={iconClassName} aria-hidden>
@@ -66,24 +69,28 @@ function PersonCard({
 /** The Coordinator: who coordinates the job. Never the Crew, never access. */
 export function JobCardOverviewCoordinatorCard({
   name,
+  state,
   trigger = null,
   editor = null,
 }: {
   name: string;
+  /** Loading and read failure are quiet like Unassigned but never claim it. */
+  state?: "assigned" | "unassigned" | "loading" | "error";
   trigger?: ReactNode;
   editor?: ReactNode;
 }) {
-  const unassigned = name === "Unassigned";
+  const assigned = state ? state === "assigned" : name !== "Unassigned";
   return (
     <PersonCard
       kind="coordinator"
       icon={<UserRound className="h-5 w-5" strokeWidth={1.75} />}
-      iconClassName={unassigned ? OVERVIEW_ICON_QUIET : OVERVIEW_ICON_BLUE}
+      iconClassName={assigned ? OVERVIEW_ICON_BLUE : OVERVIEW_ICON_QUIET}
       label="Coordinator"
       name={name}
-      quiet={unassigned}
+      quiet={!assigned}
+      coordinatorState={state}
       lines={
-        unassigned ? null : (
+        !assigned ? null : (
           <p className="mt-1 text-sm text-slate-500" data-jobcard-coordinator-context>
             {JOB_CARD_COORDINATOR_CONTEXT}
           </p>

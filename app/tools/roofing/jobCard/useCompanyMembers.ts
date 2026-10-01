@@ -14,6 +14,7 @@ import {
   NO_VIEWER_ACCESS,
   type ViewerAccessFlags,
 } from "@/app/lib/access/viewerAccess";
+import { MEMBER_NAME_NOT_SET } from "@/app/lib/memberDisplayName";
 
 /** Client mirror of company members API rows (not imported from server-only persistence). */
 export type CompanyMemberClientItem = {
@@ -96,7 +97,7 @@ export function labelForCompanyMember(
     (match ? memberDisplayName(match) : null) ||
     (typeof fallbackName === "string" ? fallbackName.trim() : "") ||
     "";
-  return named || "Team member";
+  return named || MEMBER_NAME_NOT_SET;
 }
 
 function parseViewerAccess(value: unknown): ViewerAccessFlags {
