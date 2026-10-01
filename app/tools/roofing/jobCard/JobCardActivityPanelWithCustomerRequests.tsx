@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { composeJobActivityItems } from "@/app/lib/jobActivityComposer";
-import { listJobActivityEventsForJob } from "@/app/lib/jobActivityReadPersistence";
+import { listJobActivityEventsForJobStrict } from "@/app/lib/jobActivityReadPersistence";
 import type { JobActivityEvent } from "@/app/lib/jobLifecycleTypes";
 import type { JobCardProposalSentFactsById } from "@/app/lib/proposalJobCardLifecycleRead";
 import type { ProposalRecordStatusSummary } from "@/app/lib/proposalRecordTypes";
@@ -28,6 +28,7 @@ import { applyPaymentEnrichmentFailure } from "@/app/lib/surfaceReadFailureSeman
 import JobCardActivityPanel, {
   type JobCardActivityItem,
 } from "./JobCardActivityPanel";
+import JobCardOverviewRecentActivity from "./JobCardOverviewRecentActivity";
 
 type JobCardActivityPanelWithCustomerRequestsProps = {
   jobId: string | null | undefined;
@@ -42,6 +43,10 @@ type JobCardActivityPanelWithCustomerRequestsProps = {
   ownedSignatureItems?: readonly ProposalSignatureActivityItem[] | null;
   /** When true, Job Card payment strip API is the payment owner — do not re-read. */
   skipPaymentEnrichment?: boolean;
+  /** "recent": the Overview's collapsed summary of the same chronology. */
+  presentation?: "panel" | "recent";
+  /** Opens the full Activity destination (recent presentation only). */
+  onOpenActivity?: () => void;
 };
 
 export default function JobCardActivityPanelWithCustomerRequests({
@@ -55,10 +60,13 @@ export default function JobCardActivityPanelWithCustomerRequests({
   ownedAcceptanceItems = null,
   ownedSignatureItems = null,
   skipPaymentEnrichment = false,
+  presentation = "panel",
+  onOpenActivity,
 }: JobCardActivityPanelWithCustomerRequestsProps) {
   void proposalIds;
   void baseItems;
   const [jobEvents, setJobEvents] = useState<JobActivityEvent[]>([]);
+  const [eventsRead, setEventsRead] = useState<{ jobId: string; ok: boolean } | null>(null);
   const [acceptanceItems, setAcceptanceItems] = useState<
     ProposalAcceptanceActivityItem[]
   >([]);
@@ -75,8 +83,11 @@ export default function JobCardActivityPanelWithCustomerRequests({
     if (!id || !secondaryEffectsEnabled) {
       return;
     }
-    void listJobActivityEventsForJob(id).then((events) => {
-      if (!cancelled) setJobEvents(events);
+    void listJobActivityEventsForJobStrict(id).then((events) => {
+      if (cancelled) return;
+      // A failed read keeps prior events and is never presented as "no activity".
+      if (events) setJobEvents(events);
+      setEventsRead({ jobId: id, ok: events !== null });
     });
     return () => {
       cancelled = true;
@@ -183,6 +194,18 @@ export default function JobCardActivityPanelWithCustomerRequests({
     proposals,
     sentFactsByProposalId,
   ]);
+
+  if (presentation === "recent") {
+    const id = (jobId ?? "").trim();
+    const read = eventsRead && eventsRead.jobId === id ? eventsRead : null;
+    return (
+      <JobCardOverviewRecentActivity
+        items={items}
+        status={!read ? "loading" : read.ok ? "ready" : "error"}
+        onOpenActivity={onOpenActivity}
+      />
+    );
+  }
 
   return (
     <div

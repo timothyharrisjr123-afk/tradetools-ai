@@ -132,8 +132,25 @@ import {
 } from "@/app/tools/roofing/jobCard/jobCardTypes";
 import JobCardSectionPanel from "@/app/tools/roofing/jobCard/JobCardSectionPanel";
 import JobCardOverviewSummary from "@/app/tools/roofing/jobCard/JobCardOverviewSummary";
-import { OVERVIEW_LINK } from "@/app/tools/roofing/jobCard/jobCardOverviewStyles";
+import {
+  OVERVIEW_LINK,
+  OVERVIEW_SOFT_ACTION,
+} from "@/app/tools/roofing/jobCard/jobCardOverviewStyles";
 import JobCardProductionLeadControl from "@/app/tools/roofing/jobCard/JobCardProductionLeadControl";
+import {
+  JobCardCrewActionButton,
+  JobCardCrewLayer,
+} from "@/app/tools/roofing/jobCard/JobCardCrewFact";
+import JobCardOverviewPeople, {
+  JobCardOverviewCoordinatorCard,
+  JobCardOverviewCrewCard,
+} from "@/app/tools/roofing/jobCard/JobCardOverviewPeople";
+import { useJobCrewAssignment } from "@/app/tools/roofing/jobCard/useJobCrewAssignment";
+import { buildJobCrewFactView } from "@/app/lib/jobCrewAssignmentView";
+import {
+  buildJobCardOverviewTimeline,
+  calendarDateInTimeZone,
+} from "@/app/lib/jobCardOverviewPresentation";
 import JobCardFieldBrief from "@/app/tools/roofing/jobCard/JobCardFieldBrief";
 import JobCardForwardLifecycleAction from "@/app/tools/roofing/jobCard/JobCardForwardLifecycleAction";
 import JobCardScheduleSection from "@/app/tools/roofing/jobCard/JobCardScheduleSection";
@@ -278,6 +295,10 @@ export default function JobCardClient({
   const [reopenAndCompleteConfirmOpen, setReopenAndCompleteConfirmOpen] =
     useState(false);
   const [scheduleActivityTick, setScheduleActivityTick] = useState(0);
+  const [crewSheetOpen, setCrewSheetOpen] = useState(false);
+  const [crewToast, setCrewToast] = useState<string | null>(null);
+  const clearCrewToast = useCallback(() => setCrewToast(null), []);
+  const [overviewOpenedAt] = useState(() => new Date());
   const [scheduleHydrateRetryTick, setScheduleHydrateRetryTick] = useState(0);
   const [jobCardSecondaryEnabled, setJobCardSecondaryEnabled] = useState(false);
   const [listedJobDraftSummaries, setListedJobDraftSummaries] = useState<
@@ -878,8 +899,15 @@ export default function JobCardClient({
     buildPendingProposedSummariesFromScopeChanges(scopeSummaryRows);
 
   const productionLeadAssignedTo = hydratedJobRecord?.assigned_to ?? null;
-  const productionLeadCrewLabel = hydratedJobRecord?.crew_label ?? null;
   const productionLeadLabel = labelForMember(productionLeadAssignedTo);
+  const jobCrew = useJobCrewAssignment(currentJobId, hydratedJobRecord?.status ?? null);
+  const crewView = buildJobCrewFactView({
+    status: jobCrew.status,
+    model: jobCrew.model,
+    jobStatus: hydratedJobRecord?.status ?? null,
+    legacyCrewLabel: hydratedJobRecord?.crew_label ?? null,
+    canAssign: companyMembers.canAssignJobs,
+  });
 
   const scheduleWindowLabel = jobCardSchedule.active
     ? formatScheduleWindowLabel(jobCardSchedule.active)
@@ -999,7 +1027,6 @@ export default function JobCardClient({
     scheduleTimezone: jobCardSchedule.active?.timezone ?? companyTimezone,
     scheduleWindowLabel,
     productionLeadLabel,
-    crewLabel: productionLeadCrewLabel,
     approvedScopeLabel: suppressCommercial
       ? fieldBrief.brief?.approvedScopeLabel ?? null
       : resolveFieldBriefApprovedScopeLabel({
@@ -1058,7 +1085,13 @@ export default function JobCardClient({
       companyTimezone
     ),
     productionLeadLabel,
-    crewLabel: productionLeadCrewLabel,
+    crew: {
+      label: crewView.label,
+      text: crewView.text,
+      meta: crewView.leadName ?? crewView.legacyNote ?? crewView.dispositionNote,
+      quiet: crewView.quiet,
+      present: Boolean(crewView.current),
+    },
   });
   const paymentsWorkspace = jobPayments.workspace;
   const overviewCurrentRequest = paymentsWorkspace?.currentRequest
@@ -1076,25 +1109,82 @@ export default function JobCardClient({
     hasCurrentRequest: Boolean(overviewCurrentRequest),
     readFailed: jobPayments.loadStatus === "error",
   });
-  const overviewLeadControl = currentJobId ? (
-    <JobCardProductionLeadControl
-      jobId={currentJobId}
-      assignedTo={productionLeadAssignedTo}
-      crewLabel={productionLeadCrewLabel}
-      canAssign={companyMembers.canAssignJobs}
-      members={companyMembers.liveMembers}
-      embedInBrief
-      onUpdated={({ assignedTo, crewLabel }) => {
-        setHydratedJobRecord((prev) =>
-          prev
-            ? {
-                ...prev,
-                assigned_to: assignedTo,
-                crew_label: crewLabel,
-              }
-            : prev
-        );
+  const overviewPeople = currentJobId ? (
+    <JobCardOverviewPeople
+      coordinator={
+        <JobCardProductionLeadControl
+          jobId={currentJobId}
+          assignedTo={productionLeadAssignedTo}
+          canAssign={companyMembers.canAssignJobs}
+          members={companyMembers.liveMembers}
+          cardTriggerClassName={OVERVIEW_SOFT_ACTION}
+          renderCard={({ trigger, editor }) => (
+            <JobCardOverviewCoordinatorCard
+              name={productionLeadLabel}
+              trigger={trigger}
+              editor={editor}
+            />
+          )}
+          onUpdated={({ assignedTo }) => {
+            setHydratedJobRecord((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    assigned_to: assignedTo,
+                  }
+                : prev
+            );
+            setScheduleActivityTick((n) => n + 1);
+          }}
+        />
+      }
+      crew={
+        <JobCardOverviewCrewCard
+          view={crewView}
+          action={
+            <JobCardCrewActionButton
+              view={crewView}
+              appearance="card"
+              onOpen={() => setCrewSheetOpen(true)}
+              onRetry={() => void jobCrew.reload()}
+            />
+          }
+        />
+      }
+    />
+  ) : null;
+  const overviewTimeline = buildJobCardOverviewTimeline({
+    kind: overviewSituation.kind,
+    startsOn: jobCardSchedule.active?.starts_on ?? null,
+    endsOn: jobCardSchedule.active?.ends_on ?? null,
+    today: calendarDateInTimeZone(overviewOpenedAt, overviewTimezone),
+    startedOn: hydratedJobRecord?.production_started_at
+      ? calendarDateInTimeZone(hydratedJobRecord.production_started_at, overviewTimezone)
+      : null,
+    primaryKind: overviewPrimary?.kind ?? null,
+  });
+  const crewLayer = currentJobId ? (
+    <JobCardCrewLayer
+      open={crewSheetOpen}
+      toast={crewToast}
+      onToastDone={clearCrewToast}
+      jobName={[identity.displayName, identity.addressLine].filter(Boolean).join(" · ") || "This job"}
+      jobStatus={hydratedJobRecord?.status ?? null}
+      timezone={companyTimezone}
+      crew={jobCrew}
+      members={companyMembers.members}
+      onClose={() => setCrewSheetOpen(false)}
+      onSaved={(message) => {
+        setCrewSheetOpen(false);
+        setCrewToast(message);
         setScheduleActivityTick((n) => n + 1);
+      }}
+      onOpenActivity={() => {
+        setCrewSheetOpen(false);
+        setMobileActivityFocused(true);
+      }}
+      onJobChanged={() => {
+        void refreshHydratedJobRecord(currentJobId);
       }}
     />
   ) : null;
@@ -1391,6 +1481,7 @@ export default function JobCardClient({
                 />
               }
             />
+            {crewLayer}
             {companyId && currentJobId ? (
               <JobCardChangePropertyPanel
                 open={changePropertyOpen}
@@ -1553,9 +1644,10 @@ export default function JobCardClient({
                     operationalLayout
                     state={overviewComposition.state}
                     stateFactActions={{
-                      lead: overviewComposition.leadInState ? overviewLeadControl : null,
                       planned: overviewChangePlan,
                     }}
+                    timeline={overviewTimeline}
+                    people={overviewPeople}
                     leadingSection={
                       overviewSituation.closeoutLeads &&
                       jobCardCloseout &&
@@ -1631,25 +1723,27 @@ export default function JobCardClient({
                         onOpenProposals={
                           suppressCommercial ? undefined : () => setJobCardTab("proposals")
                         }
-                        leadAction={
-                          overviewComposition.leadInState ? null : overviewLeadControl
-                        }
+                        peopleElsewhere
                       />
                     }
                     recentActivitySummary={
-                      <section
-                        data-jobcard-overview-activity-teaser
-                        className="border-t border-slate-100 pt-3"
-                      >
-                        <button
-                          type="button"
-                          className="inline-flex min-h-[40px] items-center gap-1 text-sm font-medium text-slate-600 hover:text-slate-950"
-                          onClick={() => setMobileActivityFocused(true)}
-                          data-jobcard-overview-activity-open
-                        >
-                          View activity
-                          <span aria-hidden>→</span>
-                        </button>
+                      <section data-jobcard-overview-activity-teaser>
+                        {currentJobId ? (
+                          <JobCardActivityPanelWithCustomerRequests
+                            key={`${currentJobId}-${scheduleActivityTick}-recent`}
+                            presentation="recent"
+                            onOpenActivity={() => setMobileActivityFocused(true)}
+                            jobId={currentJobId}
+                            proposalIds={jobCardProposalRows.map((row) => row.proposalId)}
+                            jobCreatedAt={hydratedJobRecord?.created_at ?? null}
+                            proposals={listedJobDraftSummaries}
+                            sentFactsByProposalId={listedJobSentFacts}
+                            secondaryEffectsEnabled={jobCardSecondaryEnabled}
+                            ownedAcceptanceItems={jobAcceptanceActivityItems}
+                            ownedSignatureItems={jobSignatureActivityItems}
+                            skipPaymentEnrichment
+                          />
+                        ) : null}
                       </section>
                     }
                   />

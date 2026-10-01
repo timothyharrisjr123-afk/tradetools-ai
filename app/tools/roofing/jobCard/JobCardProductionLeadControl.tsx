@@ -1,46 +1,49 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { Pencil, UserPlus } from "lucide-react";
 import type { CompanyMemberClientItem } from "@/app/tools/roofing/jobCard/useCompanyMembers";
 import { labelForCompanyMember } from "@/app/tools/roofing/jobCard/useCompanyMembers";
 
 type JobCardProductionLeadControlProps = {
   jobId: string;
   assignedTo: string | null;
-  crewLabel: string | null;
   canAssign: boolean;
   members: readonly CompanyMemberClientItem[];
-  onUpdated: (next: {
-    assignedTo: string | null;
-    crewLabel: string | null;
-  }) => void;
+  onUpdated: (next: { assignedTo: string | null }) => void;
   /**
    * When embedded in the field brief, show only the Assign/Change control
    * (lead name already appears in the brief hierarchy).
    */
   embedInBrief?: boolean;
+  /**
+   * Overview card placement: the caller lays out the trigger and the editor.
+   * The trigger is null when the viewer can't assign.
+   */
+  renderCard?: (parts: { trigger: ReactNode; editor: ReactNode }) => ReactNode;
+  cardTriggerClassName?: string;
 };
 
+/** The Coordinator only. The Crew is a separate fact with its own control. */
 export default function JobCardProductionLeadControl({
   jobId,
   assignedTo,
-  crewLabel,
   canAssign,
   members,
   onUpdated,
   embedInBrief = false,
+  renderCard,
+  cardTriggerClassName = "",
 }: JobCardProductionLeadControlProps) {
   const [editing, setEditing] = useState(false);
   const [draftAssignee, setDraftAssignee] = useState(assignedTo ?? "");
-  const [draftCrew, setDraftCrew] = useState(crewLabel ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (editing) return;
     setDraftAssignee(assignedTo ?? "");
-    setDraftCrew(crewLabel ?? "");
-  }, [assignedTo, crewLabel, editing]);
+  }, [assignedTo, editing]);
 
   const leadLabel = labelForCompanyMember(assignedTo, members);
 
@@ -50,16 +53,12 @@ export default function JobCardProductionLeadControl({
     setError(null);
     try {
       const nextAssigned = draftAssignee.trim() ? draftAssignee.trim() : null;
-      const nextCrew = draftCrew.trim() ? draftCrew.trim().slice(0, 80) : null;
       const res = await fetch(
         `/api/jobs/${encodeURIComponent(jobId)}/production-lead`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            assignedTo: nextAssigned,
-            crewLabel: nextCrew,
-          }),
+          body: JSON.stringify({ assignedTo: nextAssigned }),
         }
       );
       const body = (await res.json().catch(() => ({}))) as {
@@ -78,7 +77,6 @@ export default function JobCardProductionLeadControl({
       onUpdated({
         assignedTo:
           body.assignedTo === undefined ? nextAssigned : body.assignedTo,
-        crewLabel: nextCrew,
       });
       setEditing(false);
     } catch {
@@ -87,6 +85,70 @@ export default function JobCardProductionLeadControl({
       setBusy(false);
     }
   };
+
+  const toggleEditing = () => {
+    setError(null);
+    setDraftAssignee(assignedTo ?? "");
+    setEditing((open) => !open);
+  };
+
+  const editor =
+    editing && canAssign ? (
+      <div className="space-y-2" data-jobcard-production-lead-editor>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            className="min-h-[44px] min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-slate-400"
+            value={draftAssignee}
+            disabled={busy}
+            aria-label="Coordinator"
+            onChange={(event) => setDraftAssignee(event.target.value)}
+            data-jobcard-production-lead-select
+          >
+            <option value="">Unassigned</option>
+            {members.map((member) => (
+              <option key={member.userId} value={member.userId}>
+                {labelForCompanyMember(member.userId, members)}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            disabled={busy}
+            className="inline-flex min-h-[44px] shrink-0 items-center rounded-lg bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={() => void save()}
+            data-jobcard-production-lead-save
+          >
+            {busy ? "Saving…" : "Save"}
+          </button>
+        </div>
+        {error ? (
+          <p className="text-sm text-rose-700" data-jobcard-production-lead-error>
+            {error}
+          </p>
+        ) : null}
+      </div>
+    ) : null;
+
+  if (renderCard) {
+    const TriggerIcon = assignedTo ? Pencil : UserPlus;
+    const trigger = canAssign ? (
+      <button
+        type="button"
+        className={cardTriggerClassName}
+        data-testid="job-production-lead-assign"
+        aria-expanded={editing}
+        onClick={toggleEditing}
+      >
+        {editing ? null : <TriggerIcon className="h-4 w-4" strokeWidth={2} aria-hidden />}
+        {editing ? "Cancel" : assignedTo ? "Change" : "Assign"}
+      </button>
+    ) : null;
+    return (
+      <div className="contents" data-testid="job-production-lead" data-jobcard-production-lead="true">
+        {renderCard({ trigger, editor })}
+      </div>
+    );
+  }
 
   if (!canAssign && embedInBrief) {
     return null;
@@ -117,21 +179,13 @@ export default function JobCardProductionLeadControl({
             >
               {leadLabel}
             </p>
-            {crewLabel?.trim() ? (
-              <p className="mt-0.5 text-xs text-slate-400">{crewLabel.trim()}</p>
-            ) : null}
           </div>
           {canAssign ? (
             <button
               type="button"
               className="min-h-[40px] shrink-0 text-sm font-medium text-blue-600 hover:text-blue-700"
               data-testid="job-production-lead-assign"
-              onClick={() => {
-                setError(null);
-                setDraftAssignee(assignedTo ?? "");
-                setDraftCrew(crewLabel ?? "");
-                setEditing((open) => !open);
-              }}
+              onClick={toggleEditing}
             >
               {editing ? "Cancel" : assignedTo ? "Change" : "Assign"}
             </button>
@@ -142,70 +196,13 @@ export default function JobCardProductionLeadControl({
           type="button"
           className="min-h-[36px] text-sm font-medium text-blue-600 hover:text-blue-700"
           data-testid="job-production-lead-assign"
-          onClick={() => {
-            setError(null);
-            setDraftAssignee(assignedTo ?? "");
-            setDraftCrew(crewLabel ?? "");
-            setEditing((open) => !open);
-          }}
+          onClick={toggleEditing}
         >
           {editing ? "Cancel" : assignedTo ? "Change" : "Assign"}
         </button>
       ) : null}
 
-      {editing && canAssign ? (
-        <div
-          className={
-            embedInBrief
-              ? "mt-2 space-y-2 sm:text-left"
-              : "mt-2 space-y-2"
-          }
-          data-jobcard-production-lead-editor
-        >
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              className="min-h-[40px] min-w-[10rem] flex-1 rounded-md border border-slate-200 bg-white px-2.5 text-sm text-slate-900 outline-none focus:border-slate-400"
-              value={draftAssignee}
-              disabled={busy}
-              aria-label="Coordinator"
-              onChange={(event) => setDraftAssignee(event.target.value)}
-              data-jobcard-production-lead-select
-            >
-              <option value="">Unassigned</option>
-              {members.map((member) => (
-                <option key={member.userId} value={member.userId}>
-                  {labelForCompanyMember(member.userId, members)}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              disabled={busy}
-              className="inline-flex min-h-[40px] shrink-0 items-center rounded-md bg-slate-900 px-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-              onClick={() => void save()}
-              data-jobcard-production-lead-save
-            >
-              {busy ? "Saving…" : "Save"}
-            </button>
-          </div>
-          <input
-            type="text"
-            maxLength={80}
-            value={draftCrew}
-            disabled={busy}
-            placeholder="Crew label (optional)"
-            aria-label="Crew label optional"
-            className="min-h-[36px] w-full rounded-md border border-slate-200/80 bg-white px-2.5 text-xs text-slate-700 outline-none placeholder:text-slate-400 focus:border-slate-400"
-            onChange={(event) => setDraftCrew(event.target.value)}
-            data-jobcard-production-lead-crew
-          />
-          {error ? (
-            <p className="text-sm text-rose-700" data-jobcard-production-lead-error>
-              {error}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
+      {editor ? <div className="mt-2">{editor}</div> : null}
     </div>
   );
 }

@@ -19,13 +19,13 @@ import { isUuidLike } from "@/app/lib/uuid";
 export const JOB_CREW_ASSIGNMENT_MESSAGES: Record<string, string> = {
   unauthorized: "Sign in to continue.",
   forbidden: "You don't have access to this job.",
-  capability_denied: "Crews are assigned by the people who run production.",
+  capability_denied: "You don't have access to change the crew on this job.",
   invalid_payload: "Check the details and try again.",
   not_found: "This job or crew assignment is no longer available. Refresh and try again.",
   disposition_blocks_assignment: "Resume or reopen this job before changing its crew.",
-  stale_assignment: "The crew on this job changed since you opened it. Refresh and try again.",
-  crew_not_eligible: "That crew is no longer available.",
-  lead_not_eligible: "That person is no longer available.",
+  stale_assignment: "The crew on this job just changed. Here's the latest.",
+  crew_not_eligible: "That crew is no longer available. Pick another.",
+  lead_not_eligible: "That person is no longer available as a lead. Pick another.",
   request_id_conflict: "That change could not be submitted. Refresh and try again.",
   crew_assignment_unavailable: "Crew assignments are unavailable right now.",
 };
@@ -96,8 +96,28 @@ export type SetPrimaryJobCrewResult = {
 };
 
 /**
+ * A company login without an operational person gets one (idempotent, never merged
+ * by name) the first time it is chosen as the Lead for a job.
+ */
+async function resolveMemberLead(supabase: SupabaseClient, userId: string): Promise<string> {
+  let body: RpcResult;
+  try {
+    body = await callRpc(supabase, "ensure_member_person_v1", { p_user_id: userId });
+  } catch (error) {
+    if (error instanceof JobCrewAssignmentHttpError && error.code === "not_found") {
+      throw new JobCrewAssignmentHttpError(409, "lead_not_eligible");
+    }
+    throw error;
+  }
+  const personId = uuid(body.person_id);
+  if (!personId) throw new JobCrewAssignmentHttpError(503, "crew_assignment_unavailable");
+  return personId;
+}
+
+/**
  * Assign, replace, or change/clear the Assignment Lead of the primary Crew. A retried
  * request id returns the original result (changed: false), never a stale error.
+ * The Lead is a person id, or a company login (assignmentLeadUserId) resolved to its person.
  */
 export async function setPrimaryJobCrew(
   supabase: SupabaseClient,
@@ -105,13 +125,15 @@ export async function setPrimaryJobCrew(
     jobId: unknown;
     crewId: unknown;
     assignmentLeadPersonId?: unknown;
+    assignmentLeadUserId?: unknown;
     expectedPrimaryAssignmentId?: unknown;
     requestId: unknown;
   }
 ): Promise<SetPrimaryJobCrewResult> {
   const jobId = uuid(input.jobId);
   const crewId = uuid(input.crewId);
-  const lead = input.assignmentLeadPersonId == null ? null : uuid(input.assignmentLeadPersonId);
+  const leadPerson = input.assignmentLeadPersonId == null ? null : uuid(input.assignmentLeadPersonId);
+  const leadUser = input.assignmentLeadUserId == null ? null : uuid(input.assignmentLeadUserId);
   const expected = input.expectedPrimaryAssignmentId == null ? null : uuid(input.expectedPrimaryAssignmentId);
   const requestId =
     typeof input.requestId === "string" && input.requestId.trim().length >= 1 && input.requestId.trim().length <= 120
@@ -119,11 +141,14 @@ export async function setPrimaryJobCrew(
       : null;
   if (
     !jobId || !crewId || !requestId ||
-    (input.assignmentLeadPersonId != null && !lead) ||
+    (input.assignmentLeadPersonId != null && !leadPerson) ||
+    (input.assignmentLeadUserId != null && !leadUser) ||
+    (leadPerson && leadUser) ||
     (input.expectedPrimaryAssignmentId != null && !expected)
   ) {
     throw invalid();
   }
+  const lead = leadPerson ?? (leadUser ? await resolveMemberLead(supabase, leadUser) : null);
   const body = await callRpc(supabase, SET_PRIMARY_JOB_CREW_RPC_V1, {
     p_job_id: jobId,
     p_crew_id: crewId,

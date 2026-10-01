@@ -58,7 +58,6 @@ export default function Phase7FieldRoleHarnessPage() {
                   <JobCardProductionLeadControl
                     jobId="00000000-0000-4000-8000-000000000001"
                     assignedTo="lead-1"
-                    crewLabel={null}
                     canAssign={false}
                     members={[
                       {

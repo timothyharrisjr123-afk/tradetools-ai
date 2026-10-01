@@ -29,7 +29,7 @@ export const TEAM_BOARD_MESSAGES: Record<string, string> = {
   stale_revision: "This changed since you opened it. Refresh and try again.",
   linked_login_active: "This person still has FieldDive access. Remove their access first.",
   person_active_assignment_lead:
-    "This person is the Assignment Lead on a current crew assignment. Change or clear the Assignment Lead, or end that assignment, first.",
+    "This person is leading a crew on a current job. Choose someone else to lead it, or remove that crew from the job, first.",
   crew_actively_assigned: "This crew is currently assigned to a job. Replace or end that assignment first.",
   team_board_unavailable: "Crews are unavailable right now.",
 };

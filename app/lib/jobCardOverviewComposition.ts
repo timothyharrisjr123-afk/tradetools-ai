@@ -13,7 +13,7 @@ import type {
   JobCardOverviewSituationKind,
 } from "@/app/lib/jobCardOverviewSituation";
 
-export type JobCardOverviewFactKey = "planned" | "started" | "completed" | "lead";
+export type JobCardOverviewFactKey = "planned" | "started" | "completed" | "lead" | "crew";
 
 export type JobCardOverviewFact = {
   key: JobCardOverviewFactKey;
@@ -68,7 +68,8 @@ export type JobCardOverviewCompositionInput = {
   /** Formatted completion date; null when absent or unparseable. */
   completedDateLabel: string | null;
   productionLeadLabel: string;
-  crewLabel?: string | null;
+  /** The durable Crew fact (who does the work); separate from the Coordinator. */
+  crew?: { label: string; text: string; meta: string | null; quiet: boolean; present: boolean } | null;
 };
 
 export const JOB_CARD_OVERVIEW_AUTHORIZED_WORK_HEADING = "Authorized work" as const;
@@ -113,15 +114,18 @@ function plannedFact(
   return null;
 }
 
-function leadFact(label: string, crewLabel: string | null | undefined): JobCardOverviewFact {
-  const crew = String(crewLabel ?? "").trim();
+function leadFact(label: string): JobCardOverviewFact {
   return {
     key: "lead",
     label: "Coordinator",
     text: label,
-    meta: crew || null,
     quiet: label === "Unassigned",
   };
+}
+
+function pushCrewFact(facts: JobCardOverviewFact[], crew: JobCardOverviewCompositionInput["crew"]) {
+  if (!crew) return;
+  facts.push({ key: "crew", label: crew.label, text: crew.text, meta: crew.meta, quiet: crew.quiet });
 }
 
 export function buildJobCardOverviewComposition(
@@ -135,7 +139,8 @@ export function buildJobCardOverviewComposition(
       : null,
     leadInState: false,
     scheduleInState: false,
-    briefShowsScheduleLead: !NO_SCOPE_KINDS.has(kind) || input.productionLeadLabel !== "Unassigned",
+    briefShowsScheduleLead:
+      !NO_SCOPE_KINDS.has(kind) || input.productionLeadLabel !== "Unassigned" || Boolean(input.crew?.present),
     briefShowsPlanned: !COMPLETE_KINDS.has(kind),
     showAuthorizedWork: !NO_SCOPE_KINDS.has(kind),
     authorizedWorkHeading:
@@ -152,7 +157,8 @@ export function buildJobCardOverviewComposition(
 
   const facts: JobCardOverviewFact[] = [];
   if (kind === "approved") {
-    facts.push(leadFact(input.productionLeadLabel, input.crewLabel));
+    facts.push(leadFact(input.productionLeadLabel));
+    pushCrewFact(facts, input.crew);
     return {
       ...base,
       state: { ...base.state, facts },
@@ -171,7 +177,8 @@ export function buildJobCardOverviewComposition(
         quiet: !input.productionStartedLabel,
       });
     }
-    facts.push(leadFact(input.productionLeadLabel, input.crewLabel));
+    facts.push(leadFact(input.productionLeadLabel));
+    pushCrewFact(facts, input.crew);
     return {
       ...base,
       state: { ...base.state, facts },

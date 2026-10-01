@@ -44,8 +44,15 @@ export function rowToJobActivityEvent(row: Record<string, unknown>): JobActivity
 export async function listJobActivityEventsForJob(
   jobId: string
 ): Promise<JobActivityEvent[]> {
+  return (await listJobActivityEventsForJobStrict(jobId)) ?? [];
+}
+
+/** Same read, but a failed read is null so callers never present it as "no activity". */
+export async function listJobActivityEventsForJobStrict(
+  jobId: string
+): Promise<JobActivityEvent[] | null> {
   const supabase = getSupabaseClient();
-  if (!supabase) return [];
+  if (!supabase) return null;
   const id = String(jobId || "").trim();
   if (!isUuidLike(id)) return [];
 
@@ -55,7 +62,7 @@ export async function listJobActivityEventsForJob(
     .eq("job_id", id)
     .order("occurred_at", { ascending: false });
 
-  if (error || !Array.isArray(data)) return [];
+  if (error || !Array.isArray(data)) return null;
   return data
     .map((row) => rowToJobActivityEvent(row as Record<string, unknown>))
     .filter((row): row is JobActivityEvent => row != null);

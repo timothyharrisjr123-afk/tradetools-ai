@@ -1,10 +1,31 @@
 "use client";
 
-import type { JobCardOverviewPrimaryAction } from "@/app/lib/jobCardForwardLifecycleAction";
+import {
+  CalendarPlus,
+  Check,
+  CircleCheckBig,
+  Play,
+  RotateCcw,
+  type LucideIcon,
+} from "lucide-react";
+import type {
+  JobCardOverviewPrimaryAction,
+  JobCardOverviewPrimaryKind,
+} from "@/app/lib/jobCardForwardLifecycleAction";
 import { useStickyActionYield } from "@/app/lib/stickyActionYield";
 
 const PRIMARY_BUTTON =
-  "inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto";
+  "inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 sm:w-auto";
+
+const ACTION_ICONS: Partial<Record<JobCardOverviewPrimaryKind, LucideIcon>> = {
+  approve_job: Check,
+  schedule: CalendarPlus,
+  start_work: Play,
+  complete_job: CircleCheckBig,
+  resume_job: Play,
+  reopen_job: RotateCcw,
+  reopen_and_complete: RotateCcw,
+};
 
 type JobCardForwardLifecycleActionProps = {
   action: JobCardOverviewPrimaryAction | null;
@@ -62,6 +83,7 @@ export default function JobCardForwardLifecycleAction({
                 : onReopenAndComplete;
   if (!onClick) return null;
 
+  const Icon = ACTION_ICONS[action.kind] ?? null;
   const button = (
     <button
       type="button"
@@ -71,6 +93,7 @@ export default function JobCardForwardLifecycleAction({
       data-jobcard-overview-forward-action={action.kind}
       data-jobcard-primary-lifecycle={action.kind}
     >
+      {Icon && !busy ? <Icon className="h-4 w-4" strokeWidth={2} aria-hidden /> : null}
       {busy ? busyLabel(action) : action.label}
     </button>
   );

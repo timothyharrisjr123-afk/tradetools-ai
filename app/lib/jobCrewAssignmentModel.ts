@@ -151,7 +151,7 @@ export function endReasonLabel(reason: JobCrewEndReason | null): string | null {
     case "replaced":
       return "Replaced";
     case "lead_changed":
-      return "Assignment Lead changed";
+      return "Changed who's leading the crew";
     case "ended":
       return "Ended";
     case "job_closed":

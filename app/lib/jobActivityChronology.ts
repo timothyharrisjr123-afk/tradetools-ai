@@ -479,7 +479,7 @@ export function composeJobCrewActivity(
   const crew = text("crew_name");
   const lead = text("assignment_lead_name");
   if (eventType === "job_crew_assigned") {
-    const detail = [crew, lead ? `Assignment Lead: ${lead}` : null].filter(Boolean).join(" · ");
+    const detail = [crew, lead ? `Led by ${lead}` : null].filter(Boolean).join(" · ");
     return { title: "Crew assigned", detail: detail || null };
   }
   if (eventType === "job_crew_replaced") {
@@ -493,9 +493,9 @@ export function composeJobCrewActivity(
     return { title: "Crew assignment ended", detail: detail || null };
   }
   if (eventType === "job_crew_assignment_lead_changed") {
-    const previous = text("previous_assignment_lead_name") ?? "No Lead";
-    const change = `${previous} → ${lead ?? "No Lead"}`;
-    return { title: "Assignment Lead changed", detail: crew ? `${crew} · ${change}` : change };
+    const previous = text("previous_assignment_lead_name") ?? "No one";
+    const change = `${previous} → ${lead ?? "No one"}`;
+    return { title: "Changed who's leading the crew", detail: crew ? `${crew} · ${change}` : change };
   }
   return null;
 }

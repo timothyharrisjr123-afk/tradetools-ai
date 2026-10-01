@@ -40,7 +40,7 @@ function compose(
     productionStartedLabel: "Aug 26, 9:21 AM",
     completedDateLabel: "September 23, 2026",
     productionLeadLabel: "Unassigned",
-    crewLabel: null,
+    crew: null,
     ...overrides,
   });
 }
@@ -97,10 +97,32 @@ describe("Job Card Overview composition", () => {
     const lead = compose("approved").state?.facts.find((f) => f.key === "lead");
     assert.equal(lead?.text, "Unassigned");
     assert.equal(lead?.quiet, true);
-    const assigned = compose("approved", { productionLeadLabel: "Dana Ruiz", crewLabel: "Crew A" })
+    const assigned = compose("approved", { productionLeadLabel: "Dana Ruiz" })
       .state?.facts.find((f) => f.key === "lead");
     assert.equal(assigned?.quiet, false);
-    assert.equal(assigned?.meta, "Crew A");
+    assert.equal(assigned?.meta ?? null, null);
+  });
+
+  test("Crew is its own fact beside the Coordinator, never the Coordinator's meta", () => {
+    const crew = { label: "Crew", text: "Harris Crew", meta: "Tim Harris · Lead", quiet: false, present: true };
+    for (const kind of ["approved", "scheduled", "production"] as const) {
+      const c = compose(kind, { productionLeadLabel: "Dana Ruiz", crew });
+      const keys = factKeys(c);
+      assert.equal(keys[keys.length - 1], "crew");
+      assert.equal(keys[keys.length - 2], "lead");
+      assert.equal(c.state?.facts.find((f) => f.key === "lead")?.meta ?? null, null);
+      const fact = c.state?.facts.find((f) => f.key === "crew");
+      assert.equal(fact?.text, "Harris Crew");
+      assert.equal(fact?.meta, "Tim Harris · Lead");
+    }
+  });
+
+  test("an earlier-stage job shows the brief lead row once a Crew exists", () => {
+    assert.equal(compose("intake").briefShowsScheduleLead, false);
+    const crew = { label: "Crew", text: "Harris Crew", meta: null, quiet: false, present: true };
+    assert.equal(compose("intake", { crew }).briefShowsScheduleLead, true);
+    const none = { label: "Crew", text: "No crew assigned", meta: null, quiet: true, present: false };
+    assert.equal(compose("intake", { crew: none }).briefShowsScheduleLead, false);
   });
 
   test("Accepted awaiting approval is 'Accepted work', not authorized", () => {

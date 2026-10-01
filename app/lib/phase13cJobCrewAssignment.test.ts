@@ -438,7 +438,7 @@ describe("activity", () => {
     assert.deepEqual(assigned, { title: "Crew assigned", detail: "Harris Crew" });
     assert.deepEqual(composeJobCrewActivity("job_crew_assigned", { crew_name: "Harris Crew", assignment_lead_name: "Tim" }), {
       title: "Crew assigned",
-      detail: "Harris Crew · Assignment Lead: Tim",
+      detail: "Harris Crew · Led by Tim",
     });
     assert.deepEqual(composeJobCrewActivity("job_crew_replaced", { crew_name: "Harris Crew", previous_crew_name: "Carlos Crew" }), {
       title: "Crew replaced",
@@ -454,11 +454,11 @@ describe("activity", () => {
     });
     assert.deepEqual(
       composeJobCrewActivity("job_crew_assignment_lead_changed", { crew_name: "Harris Crew", previous_assignment_lead_name: "Tim" }),
-      { title: "Assignment Lead changed", detail: "Harris Crew · Tim → No Lead" }
+      { title: "Changed who's leading the crew", detail: "Harris Crew · Tim → No one" }
     );
     for (const type of ["job_crew_assigned", "job_crew_replaced", "job_crew_assignment_ended", "job_crew_assignment_lead_changed"]) {
       const item = composeJobCrewActivity(type, { crew_name: "X", previous_crew_name: "Y", assignment_lead_name: "Z" });
-      assert.doesNotMatch(`${item?.title} ${item?.detail}`, /Crew Lead|Coordinator|worked|onsite/i);
+      assert.doesNotMatch(`${item?.title} ${item?.detail}`, /Crew Lead|Assignment Lead|· Lead|Coordinator|worked|onsite/i);
     }
     assert.equal(composeJobCrewActivity("production_lead_assigned", {}), null);
   });
@@ -671,7 +671,11 @@ describe("route", () => {
 
 describe("Team error copy", () => {
   test("archival blocks explain the explicit resolution", async () => {
-    assert.match(TEAM_BOARD_MESSAGES.person_active_assignment_lead, /Change or clear the Assignment Lead, or end that assignment/);
+    assert.match(
+      TEAM_BOARD_MESSAGES.person_active_assignment_lead,
+      /Choose someone else to lead it, or remove that crew from the job, first\./
+    );
+    assert.doesNotMatch(TEAM_BOARD_MESSAGES.person_active_assignment_lead, /Assignment Lead/);
     assert.match(TEAM_BOARD_MESSAGES.crew_actively_assigned, /Replace or end that assignment/);
     for (const code of ["person_active_assignment_lead", "crew_actively_assigned"]) {
       const { client } = fakeClient({ data: { ok: false, code } });

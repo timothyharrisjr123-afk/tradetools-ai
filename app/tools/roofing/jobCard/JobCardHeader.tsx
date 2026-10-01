@@ -2,8 +2,20 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { Mail, MapPin, Phone } from "lucide-react";
+import { CalendarDays, Hammer, Mail, MapPin, Phone, type LucideIcon } from "lucide-react";
 import type { JobCardDisplayModel } from "./jobCardDisplayTypes";
+
+/** Stage color is contextual: only the active work stages are tinted. */
+function stageChipLook(label: string): { className: string; Icon: LucideIcon | null } {
+  const value = label.trim().toLowerCase();
+  if (value.includes("scheduled")) {
+    return { className: "bg-blue-50 text-blue-700 ring-1 ring-blue-100", Icon: CalendarDays };
+  }
+  if (value.includes("production")) {
+    return { className: "bg-blue-50 text-blue-700 ring-1 ring-blue-100", Icon: Hammer };
+  }
+  return { className: "bg-slate-100 text-slate-800", Icon: null };
+}
 
 type JobCardHeaderProps = {
   display: JobCardDisplayModel;
@@ -33,19 +45,20 @@ export default function JobCardHeader({
   const backLabel = "Back to Jobs";
   const phoneValue = phone.trim();
   const emailValue = email.trim();
+  const stageChip = stageChipLook(display.stageLabel);
 
   return (
     <header className="border-b border-slate-200/80 bg-white px-4 pb-4 pt-3 sm:px-6">
       <Link
         href={backHref}
-        className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 transition hover:text-slate-800"
+        className="inline-flex items-center gap-1 text-[13px] font-medium text-slate-500 transition hover:text-slate-800"
       >
         ← {backLabel}
       </Link>
 
       <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0 flex-1">
-          <h1 className="break-words text-2xl font-semibold tracking-tight text-slate-900 sm:truncate sm:text-[1.65rem]">
+          <h1 className="break-words text-[1.75rem] font-bold leading-tight tracking-tight text-slate-950 sm:truncate sm:text-[2rem]">
             {customerHref ? (
               <Link href={customerHref} className="hover:underline">
                 {display.customerName}
@@ -54,8 +67,8 @@ export default function JobCardHeader({
               display.customerName
             )}
           </h1>
-          <div className="mt-1.5 flex min-w-0 items-start gap-1.5 text-sm text-slate-600">
-            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" strokeWidth={1.75} aria-hidden />
+          <div className="mt-2 flex min-w-0 items-start gap-2 text-[15px] text-slate-700">
+            <MapPin className="mt-[3px] h-4 w-4 shrink-0 text-slate-500" strokeWidth={1.75} aria-hidden />
             {propertyHref ? (
               <Link
                 href={propertyHref}
@@ -71,7 +84,7 @@ export default function JobCardHeader({
               <button
                 type="button"
                 onClick={onChangeProperty}
-                className="shrink-0 text-xs font-medium text-slate-500 hover:text-slate-800"
+                className="ml-1 shrink-0 text-sm font-medium text-blue-600 hover:text-blue-700"
                 data-jobcard-change-property
               >
                 Change
@@ -101,14 +114,15 @@ export default function JobCardHeader({
         <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
           <div className="flex flex-wrap items-center gap-2 sm:justify-end">
             <span
-              className="inline-flex items-center rounded-md bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-800"
+              className={`inline-flex min-h-[36px] items-center gap-2 rounded-lg px-3.5 text-sm font-semibold ${stageChip.className}`}
               data-jobcard-stage={display.stageLabel}
             >
+              {stageChip.Icon ? <stageChip.Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden /> : null}
               {display.stageLabel}
             </span>
             {display.dispositionLabel ? (
               <span
-                className="inline-flex items-center rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600"
+                className="inline-flex min-h-[36px] items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600"
                 data-jobcard-disposition={display.dispositionLabel}
               >
                 {display.dispositionLabel}

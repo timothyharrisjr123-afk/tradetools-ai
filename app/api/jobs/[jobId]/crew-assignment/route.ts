@@ -65,6 +65,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ jobId:
         jobId,
         crewId: body.crewId,
         assignmentLeadPersonId: body.assignmentLeadPersonId,
+        assignmentLeadUserId: body.assignmentLeadUserId,
         expectedPrimaryAssignmentId: body.expectedPrimaryAssignmentId,
         requestId: body.requestId,
       });

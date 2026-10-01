@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { ChevronDown, Ellipsis } from "lucide-react";
 import type { CanonicalJobStage, OperationalJobDisposition } from "@/app/lib/jobLifecycleTypes";
 import {
   CLOSE_COMMITMENT_STATIC_NOTES,
@@ -248,9 +249,11 @@ export default function JobCardDispositionControl({
             return next;
           });
         }}
-        className="inline-flex h-8 items-center rounded-md border border-transparent bg-transparent px-2 text-xs font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/70 disabled:opacity-60"
+        className="inline-flex min-h-[36px] items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/70 disabled:opacity-60"
       >
+        <Ellipsis className="h-4 w-4 text-slate-500" strokeWidth={2} aria-hidden />
         More job actions
+        <ChevronDown className="h-4 w-4 text-slate-400" strokeWidth={2} aria-hidden />
       </button>
       {menuOpen ? (
         <div
