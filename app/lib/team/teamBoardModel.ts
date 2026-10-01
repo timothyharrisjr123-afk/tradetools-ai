@@ -54,6 +54,8 @@ export type TeamBoardMemberInput = {
 
 export type TeamBoardInviteInput = {
   invitationId: string;
+  /** The Person this invitation gives access to; null only for legacy invitations. */
+  personId?: string | null;
   email: string;
   role: string;
   packageKeys: string[];
@@ -61,8 +63,16 @@ export type TeamBoardInviteInput = {
   delivery: "sent" | "failed" | "unknown";
 };
 
-/** FieldDive login state for a person. `unknown` is never shown as "no login". */
-export type TeamBoardAccess = "active" | "removed" | "none" | "unknown";
+/**
+ * FieldDive login state for a person. `unknown` is never shown as "no login".
+ * `invited` is a person with no login and a pending invitation for them.
+ * `checking` and `unverified` are a person with no login while invitations are still
+ * loading or failed to load: neither is ever shown as "no access".
+ */
+export type TeamBoardAccess = "active" | "removed" | "invited" | "none" | "checking" | "unverified" | "unknown";
+
+/** Read state of the pending-invitation list. `hidden`: this viewer cannot see invitations. */
+export type TeamBoardInvitationsRead = "ready" | "loading" | "failed" | "hidden";
 
 export type TeamBoardEntry = {
   /** Stable key: `p:<personId>` when an operational person exists, else `u:<userId>`. */
@@ -84,6 +94,8 @@ export type TeamBoardEntry = {
   rowVersion: number | null;
   crewIds: string[];
   leadsCrewIds: string[];
+  /** The pending invitation for this person when `access` is `invited`. */
+  invitation?: TeamBoardInvite | null;
 };
 
 export type TeamBoardCrew = {
@@ -121,8 +133,11 @@ export type TeamBoardModel = {
   crewCount: number;
 };
 
-/** Name `ensure_member_person_v1` stores when a login has no profile name. Not a real name. */
+/** Name older `ensure_member_person_v1` stored when a login had no profile name. Not a real name. */
 export const PERSON_NAME_PLACEHOLDER = "Team member";
+
+/** Read-time label when no trustworthy name exists. Never stored. */
+export const PERSON_NAME_NOT_SET = "Name not set";
 
 /**
  * Operational identity: the person's own name, then the login's profile name, then
@@ -136,7 +151,7 @@ function resolveEntryName(
   if (own && own !== PERSON_NAME_PLACEHOLDER) return { name: own, nameKnown: true };
   const profile = member?.displayName?.trim();
   if (profile && profile !== member?.email?.trim()) return { name: profile, nameKnown: true };
-  return { name: member?.email?.trim() || own || PERSON_NAME_PLACEHOLDER, nameKnown: false };
+  return { name: member?.email?.trim() || PERSON_NAME_NOT_SET, nameKnown: false };
 }
 
 const byName = (a: TeamBoardEntry, b: TeamBoardEntry) => a.name.localeCompare(b.name);
@@ -153,10 +168,21 @@ export function buildTeamBoardModel(input: {
   snapshot: TeamBoardSnapshot;
   members: readonly TeamBoardMemberInput[];
   invitations?: readonly TeamBoardInviteInput[];
+  /** Whether `invitations` is the known pending list. Defaults to `ready`. */
+  invitationsRead?: TeamBoardInvitationsRead;
   /** True when members come from the access-admin projection (packages, removed members, open work). */
   accessAdmin: boolean;
 }): TeamBoardModel {
   const { snapshot, members, accessAdmin } = input;
+  const invitationsRead = input.invitationsRead ?? "ready";
+  const unlinkedAccess: TeamBoardAccess =
+    invitationsRead === "ready"
+      ? "none"
+      : invitationsRead === "loading"
+        ? "checking"
+        : invitationsRead === "failed"
+          ? "unverified"
+          : "unknown";
   const memberByUser = new Map(members.map((m) => [m.userId, m]));
   const linkedUsers = new Set<string>();
   const entries: TeamBoardEntry[] = [];
@@ -173,6 +199,22 @@ export function buildTeamBoardModel(input: {
     if (!crew.usualLeadPersonId) continue;
     leadsByPerson.set(crew.usualLeadPersonId, [...(leadsByPerson.get(crew.usualLeadPersonId) ?? []), crew.id]);
   }
+
+  const toInvite = (invite: TeamBoardInviteInput): TeamBoardInvite => {
+    const role = resolveCompanyMembershipRole(invite.role);
+    return {
+      invitationId: invite.invitationId,
+      email: invite.email,
+      roleLabel: role === "invalid_role" ? "Invited" : teamAccessLabel(role, invite.packageKeys),
+      expiresAt: invite.expiresAt,
+      emailFailed: invite.delivery === "failed",
+    };
+  };
+  const inviteByPerson = new Map<string, TeamBoardInviteInput>();
+  for (const invite of input.invitations ?? []) {
+    if (invite.personId) inviteByPerson.set(invite.personId, invite);
+  }
+  const attachedInvites = new Set<string>();
 
   const memberFields = (member: TeamBoardMemberInput) => ({
     email: member.email?.trim() || null,
@@ -198,13 +240,20 @@ export function buildTeamBoardModel(input: {
       role: null,
       roleLabel: null,
       // A linked login missing from a directory-only read may have been removed; do not claim.
-      access: person.linkedUserId ? (accessAdmin ? "none" : "unknown") : "none",
+      access: person.linkedUserId ? (accessAdmin ? "none" : "unknown") : unlinkedAccess,
       work: null,
       rowVersion: person.rowVersion,
       crewIds: rosterByPerson.get(person.id) ?? [],
       leadsCrewIds: leadsByPerson.get(person.id) ?? [],
       ...(member ? memberFields(member) : {}),
     };
+    // A pending invitation is this person's access state, never a second row.
+    const invite = person.linkedUserId || invitationsRead !== "ready" ? undefined : inviteByPerson.get(person.id);
+    if (invite) {
+      entry.access = "invited";
+      entry.invitation = toInvite(invite);
+      attachedInvites.add(invite.invitationId);
+    }
     entries.push(entry);
     byPerson.set(person.id, entry);
   }
@@ -263,16 +312,10 @@ export function buildTeamBoardModel(input: {
   const placed = (entry: TeamBoardEntry) => entry.crewIds.length > 0 || entry.leadsCrewIds.length > 0;
   const notOnCrew = entries.filter((entry) => !placed(entry)).sort(byName);
 
-  const invited = (input.invitations ?? []).map((invite) => {
-    const role = resolveCompanyMembershipRole(invite.role);
-    return {
-      invitationId: invite.invitationId,
-      email: invite.email,
-      roleLabel: role === "invalid_role" ? "Invited" : teamAccessLabel(role, invite.packageKeys),
-      expiresAt: invite.expiresAt,
-      emailFailed: invite.delivery === "failed",
-    };
-  });
+  // Only invitations with no Person on the board (legacy) stand on their own.
+  const invited = (input.invitations ?? [])
+    .filter((invite) => !attachedInvites.has(invite.invitationId))
+    .map(toInvite);
 
   return { groups, notOnCrew, invited, entries, crewCount: crews.length };
 }
@@ -283,6 +326,8 @@ export type TeamBoardView = {
   groups: TeamBoardGroup[];
   notOnCrew: TeamBoardEntry[];
   invited: TeamBoardInvite[];
+  /** People with a pending invitation; listed only under the Invited filter, where crews are hidden. */
+  invitedPeople: TeamBoardEntry[];
   show: { crews: boolean; notOnCrew: boolean; invited: boolean };
   empty: boolean;
 };
@@ -319,8 +364,14 @@ export function filterTeamBoard(
         .filter((group) => group.crews.length > 0);
   const notOnCrew = show.notOnCrew ? model.notOnCrew.filter((entry) => hit(entry.name)) : [];
   const invited = show.invited ? model.invited.filter((invite) => hit(invite.email)) : [];
-  const empty = groups.length === 0 && notOnCrew.length === 0 && invited.length === 0;
-  return { groups, notOnCrew, invited, show, empty };
+  const invitedPeople =
+    show.invited && options.filter === "invited"
+      ? model.entries
+          .filter((entry) => entry.access === "invited" && (hit(entry.name) || hit(entry.invitation?.email)))
+          .sort(byName)
+      : [];
+  const empty = groups.length === 0 && notOnCrew.length === 0 && invited.length === 0 && invitedPeople.length === 0;
+  return { groups, notOnCrew, invited, invitedPeople, show, empty };
 }
 
 /**

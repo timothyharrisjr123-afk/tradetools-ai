@@ -145,6 +145,13 @@ function Avatar({
 
 /** Exceptional FieldDive state only. Active access and "no login" are not badges. */
 function AccessState({ entry }: { entry: TeamBoardEntry }) {
+  if (entry.access === "invited") {
+    return (
+      <span className="shrink-0 text-xs font-medium text-blue-600" data-team-access-state="invited">
+        Invited
+      </span>
+    );
+  }
   if (entry.access !== "removed") return null;
   return (
     <span className="shrink-0 text-xs font-medium text-slate-400" data-team-access-state="removed">
@@ -361,6 +368,7 @@ export default function TeamBoardClient({ companyId }: { companyId: string }) {
   const { canAdminMembers, viewerRole, viewerUserId } = team;
   const [board, setBoard] = useState<BoardState>({ status: "loading" });
   const [invitations, setInvitations] = useState<TeamBoardInviteInput[]>([]);
+  const [invitationsRead, setInvitationsRead] = useState<"loading" | "ready" | "failed">("loading");
   const [week, setWeek] = useState<TeamWeek | null>(null);
   const [dialog, setDialog] = useState<Dialog>(null);
   const [edit, setEdit] = useState<CrewEdit>(null);
@@ -395,9 +403,15 @@ export default function TeamBoardClient({ companyId }: { companyId: string }) {
     try {
       const res = await fetch("/api/company/invitations/pending", { cache: "no-store" });
       const body = (await res.json().catch(() => ({}))) as { ok?: boolean; invitations?: TeamBoardInviteInput[] };
-      if (res.ok && body.ok === true && Array.isArray(body.invitations)) setInvitations(body.invitations);
+      if (res.ok && body.ok === true && Array.isArray(body.invitations)) {
+        setInvitations(body.invitations);
+        setInvitationsRead("ready");
+      } else {
+        setInvitationsRead("failed");
+      }
     } catch {
-      // Invitations are secondary; the board stays usable without them.
+      // The board stays usable; people without a login read as unverified, never as no access.
+      setInvitationsRead("failed");
     }
   }, [canAdminMembers]);
 
@@ -427,9 +441,10 @@ export default function TeamBoardClient({ companyId }: { companyId: string }) {
       snapshot: board.snapshot,
       members: team.members,
       invitations,
+      invitationsRead: canAdminMembers ? invitationsRead : "hidden",
       accessAdmin: canAdminMembers,
     });
-  }, [board, membersReady, team.members, invitations, canAdminMembers]);
+  }, [board, membersReady, team.members, invitations, invitationsRead, canAdminMembers]);
   const view = useMemo(
     () => (model ? filterTeamBoard(model, { filter, query, canSeeInvites: canAdminMembers }) : null),
     [model, filter, query, canAdminMembers]
@@ -719,6 +734,9 @@ export default function TeamBoardClient({ companyId }: { companyId: string }) {
         aria-label="FieldDive invitations"
         data-team-invited=""
       >
+        {view.invitedPeople.length > 0 ? (
+          <ul className="mt-1 divide-y divide-slate-100 px-2">{view.invitedPeople.map((entry) => personRow(entry))}</ul>
+        ) : null}
         {view.invited.length > 0 ? (
           <ul className="mt-1 px-1">
             {view.invited.map((invite) => (
@@ -743,7 +761,7 @@ export default function TeamBoardClient({ companyId }: { companyId: string }) {
               </li>
             ))}
           </ul>
-        ) : (
+        ) : view.invitedPeople.length > 0 ? null : (
           <button
             type="button"
             className={`${QUIET_LINK} px-2`}
@@ -790,6 +808,7 @@ export default function TeamBoardClient({ companyId }: { companyId: string }) {
           entry={entry}
           crewName={(id) => crewById(id)?.name ?? "a crew"}
           canManageAccess={canAdminMembers && entry.userId != null && entry.access !== "unknown" && entry.access !== "none"}
+          canAdminAccess={canAdminMembers}
           isSelf={entry.userId != null && entry.userId === viewerUserId}
           busy={busy}
           onClose={() => setDialog(null)}
@@ -800,7 +819,22 @@ export default function TeamBoardClient({ companyId }: { companyId: string }) {
           onManageAccess={() => {
             if (!entry.userId) return;
             setDialog(null);
-            setAccessRequest({ type: "person", userId: entry.userId, nonce: Date.now() });
+            setAccessRequest({ type: "person", userId: entry.userId, personName: entry.nameKnown ? entry.name : undefined, nonce: Date.now() });
+          }}
+          onGiveAccess={() => {
+            if (!entry.personId) return;
+            setDialog(null);
+            setAccessRequest({ type: "invite", person: { personId: entry.personId, name: entry.nameKnown ? entry.name : "This person" }, nonce: Date.now() });
+          }}
+          onOpenInvitation={() => {
+            if (!entry.invitation) return;
+            setDialog(null);
+            setAccessRequest({
+              type: "invitation",
+              invitationId: entry.invitation.invitationId,
+              personName: entry.nameKnown ? entry.name : undefined,
+              nonce: Date.now(),
+            });
           }}
           onSaveDetails={async (name, phone) => {
             if (!entry.personId || entry.rowVersion == null) return false;
@@ -1298,26 +1332,36 @@ function CreateCrewSheet({
   );
 }
 
+const ACCESS_ACTION =
+  "mt-1 inline-flex min-h-[40px] items-center text-sm font-medium text-blue-700 hover:text-blue-800";
+
 function PersonSheet({
   entry,
   crewName,
   canManageAccess,
+  canAdminAccess,
   isSelf,
   busy,
   onClose,
   onRemoveFromCrew,
   onManageAccess,
+  onGiveAccess,
+  onOpenInvitation,
   onSaveDetails,
   onArchive,
 }: {
   entry: TeamBoardEntry;
   crewName: (id: string) => string;
   canManageAccess: boolean;
+  /** Viewer may issue and manage invitations (team.manage). */
+  canAdminAccess: boolean;
   isSelf: boolean;
   busy: boolean;
   onClose: () => void;
   onRemoveFromCrew: (crewId: string) => void;
   onManageAccess: () => void;
+  onGiveAccess: () => void;
+  onOpenInvitation: () => void;
   onSaveDetails: (name: string, phone: string | null) => Promise<boolean>;
   onArchive: () => Promise<void>;
 }) {
@@ -1327,7 +1371,15 @@ function PersonSheet({
   const leads = entry.leadsCrewIds.map(crewName);
   const on = entry.crewIds;
   const work = workLabel(entry.work);
-  const archivable = entry.personId != null && entry.access !== "active" && entry.rowVersion != null;
+  const canGiveAccess = canAdminAccess && entry.personId != null && entry.userId == null;
+  // A pending invitation blocks archive; it is revoked explicitly first. Unresolved access hides it too.
+  const archivable =
+    entry.personId != null &&
+    entry.access !== "active" &&
+    entry.access !== "invited" &&
+    entry.access !== "checking" &&
+    entry.access !== "unverified" &&
+    entry.rowVersion != null;
   return (
     <TeamSheet
       view="team-person"
@@ -1389,8 +1441,16 @@ function PersonSheet({
             </a>
           </PersonFact>
         ) : null}
-        <PersonFact label="FieldDive" testId="access">
-          {entry.access === "active" ? (
+        <PersonFact label="FieldDive access" testId="access">
+          {entry.access === "invited" && entry.invitation ? (
+            <>
+              <p className="text-sm text-slate-900" data-team-person-access="invited">
+                Invited<span className="text-slate-500"> · {expiryLabel(entry.invitation.expiresAt)}</span>
+              </p>
+              <p className="text-[13px] text-slate-500 [overflow-wrap:anywhere]">{entry.invitation.email}</p>
+              {entry.invitation.emailFailed ? <p className="text-[13px] text-amber-800">Email not sent</p> : null}
+            </>
+          ) : entry.access === "active" ? (
             <>
               <p className="text-sm text-slate-900">
                 Signs in{entry.roleLabel ? <> as <span className="font-medium">{entry.roleLabel}</span></> : null}
@@ -1405,13 +1465,32 @@ function PersonSheet({
           ) : entry.access === "removed" ? (
             <p className="text-sm text-slate-600">Access removed. They stay on your team and crews.</p>
           ) : entry.access === "none" ? (
-            <p className="text-sm text-slate-600">No login. They don&apos;t need one to be on a crew.</p>
+            <>
+              <p className="text-sm text-slate-900" data-team-person-access="none">No access</p>
+              <p className="text-[13px] text-slate-500">They don&apos;t need a login to be on a crew.</p>
+            </>
+          ) : entry.access === "checking" ? (
+            <p className="text-sm text-slate-500" data-team-person-access="checking" aria-live="polite">
+              Checking access…
+            </p>
+          ) : entry.access === "unverified" ? (
+            <p className="text-sm text-amber-800" data-team-person-access="unverified">
+              Couldn&apos;t check FieldDive access. Refresh to try again.
+            </p>
           ) : (
             <p className="text-sm text-slate-600">An Owner or Office Manager manages FieldDive access.</p>
           )}
-          {canManageAccess ? (
-            <button type="button" className="mt-1 inline-flex min-h-[40px] items-center text-sm font-medium text-blue-700 hover:text-blue-800" onClick={onManageAccess} data-team-manage-access>
-              Manage FieldDive access
+          {entry.access === "invited" && entry.invitation && canAdminAccess ? (
+            <button type="button" className={ACCESS_ACTION} onClick={onOpenInvitation} data-team-person-invitation>
+              Resend or revoke
+            </button>
+          ) : entry.access === "none" && canGiveAccess ? (
+            <button type="button" className={ACCESS_ACTION} onClick={onGiveAccess} data-team-give-access>
+              Give FieldDive access
+            </button>
+          ) : canManageAccess ? (
+            <button type="button" className={ACCESS_ACTION} onClick={onManageAccess} data-team-manage-access>
+              {entry.access === "removed" ? "Restore access" : "Manage FieldDive access"}
             </button>
           ) : null}
         </PersonFact>
@@ -1453,6 +1532,10 @@ function PersonSheet({
             </button>
           )}
         </div>
+      ) : entry.access === "invited" && canAdminAccess ? (
+        <p className="mt-2 border-t border-slate-100 pt-3 text-[13px] text-slate-500" data-team-archive-blocked>
+          Revoke the invitation before archiving {entry.name}.
+        </p>
       ) : null}
     </TeamSheet>
   );

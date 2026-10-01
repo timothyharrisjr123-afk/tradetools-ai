@@ -271,7 +271,7 @@ describe("Phase 13B-E delivery separation", () => {
   test("the invitation transaction returns before email is sent, and delivery is recorded after", () => {
     const actions = read("app/lib/invitations/invitationActions.server.ts");
     const issue = sliceBetween(actions, "export async function issueCompanyInvitation", "export async function resendCompanyInvitation");
-    assert.ok(issue.indexOf("issue_company_invitation_v1") < issue.indexOf("deliverInvitation"));
+    assert.ok(issue.indexOf("issue_company_invitation_v2") < issue.indexOf("deliverInvitation"));
     assert.doesNotMatch(issue, /postInvitationEmail|api\.resend\.com/);
     const deliver = sliceBetween(actions, "async function deliverInvitation", "export async function issueCompanyInvitation");
     assert.ok(deliver.indexOf("postInvitationEmail") < deliver.indexOf("record_company_invitation_delivery_v1"));

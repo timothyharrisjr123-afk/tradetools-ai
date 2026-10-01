@@ -82,6 +82,7 @@ import { TeamAccessChooser, TeamAdditionalAccess } from "@/app/tools/settings/te
 
 type PendingInvite = {
   invitationId: string;
+  personId: string | null;
   email: string;
   role: string;
   expiresAt: string;
@@ -93,10 +94,13 @@ type PendingInvite = {
 
 type PersonMode = "read" | "change" | "extras";
 
+/** An existing Team Person the invitation gives access to. */
+type InvitePerson = { personId: string; name: string };
+
 type View =
   | { type: "list" }
   | { type: "person"; userId: string; mode: PersonMode }
-  | { type: "invite" }
+  | { type: "invite"; person: InvitePerson | null }
   | { type: "invitation"; invitationId: string }
   | { type: "remove"; userId: string }
   | { type: "handoff"; userId: string }
@@ -168,9 +172,9 @@ function Included({ text }: { text: string }) {
 
 /** A deep-administration sheet the Team Board asks for. */
 export type TeamAccessRequest =
-  | { type: "person"; userId: string; nonce: number }
-  | { type: "invite"; nonce: number }
-  | { type: "invitation"; invitationId: string; nonce: number }
+  | { type: "person"; userId: string; personName?: string; nonce: number }
+  | { type: "invite"; person?: InvitePerson; nonce: number }
+  | { type: "invitation"; invitationId: string; personName?: string; nonce: number }
   | { type: "transfer"; nonce: number };
 
 type CompanyTeamClientProps = {
@@ -204,6 +208,7 @@ export default function CompanyTeamClient({ companyId, headless }: CompanyTeamCl
   const [draftPackages, setDraftPackages] = useState<string[]>([]);
   const [touched, setTouched] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteName, setInviteName] = useState("");
   const [reassignToUserId, setReassignToUserId] = useState("");
   const [transferTargetId, setTransferTargetId] = useState("");
   const [formerRole, setFormerRole] = useState<AssignableCompanyMembershipRole>("admin");
@@ -214,6 +219,18 @@ export default function CompanyTeamClient({ companyId, headless }: CompanyTeamCl
   const [invitationsFailed, setInvitationsFailed] = useState(false);
   const [strongRetry, setStrongRetry] = useState<(() => Promise<void>) | null>(null);
   const [removedOpen, setRemovedOpen] = useState(false);
+  // The Team Person's name, passed explicitly by the board for the login or invitation it opened.
+  const [personIdentity, setPersonIdentity] = useState<
+    { userId: string; name: string } | { invitationId: string; name: string } | null
+  >(null);
+  const nameFor = (member: CompanyMemberClientItem) =>
+    personIdentity && "userId" in personIdentity && personIdentity.userId === member.userId
+      ? personIdentity.name
+      : personName(member, members);
+  const inviteNameFor = (invite: PendingInvite) =>
+    personIdentity && "invitationId" in personIdentity && personIdentity.invitationId === invite.invitationId
+      ? personIdentity.name
+      : null;
 
   const needsStrongSignIn = (err: unknown, retry: () => Promise<void>) => {
     if ((err as { code?: unknown } | null)?.code !== "assurance_required") return false;
@@ -269,6 +286,7 @@ export default function CompanyTeamClient({ companyId, headless }: CompanyTeamCl
   }, [loadInvitations]);
 
   const openView = (next: View) => {
+    if (next.type === "list") setPersonIdentity(null);
     setView(next);
     setLocalError(null);
     setStrongRetry(null);
@@ -340,7 +358,7 @@ export default function CompanyTeamClient({ companyId, headless }: CompanyTeamCl
           presetPackages: selectedPreset.packages,
         }),
       });
-      setNotice(`${personName(member, members)} now has ${selectedPreset.label} access.`);
+      setNotice(`${nameFor(member)} now has ${selectedPreset.label} access.`);
       openView({ type: "person", userId: member.userId, mode: "read" });
       await onChanged();
     } catch (err) {
@@ -364,7 +382,7 @@ export default function CompanyTeamClient({ companyId, headless }: CompanyTeamCl
         reassignToUserId: reassignToUserId || null,
       });
       const handoffError = handoffFailureMessage(body.handoff);
-      setNotice(handoffError ? `Access removed. ${handoffError}` : `${personName(member, members)} no longer has access.`);
+      setNotice(handoffError ? `Access removed. ${handoffError}` : `${nameFor(member)} no longer has access.`);
       backToList();
       await onChanged();
     } catch (err) {
@@ -418,7 +436,7 @@ export default function CompanyTeamClient({ companyId, headless }: CompanyTeamCl
         expectedRevision: member.accessRevision,
         idempotencyKey: requestKey,
       });
-      setNotice(`${personName(member, members)} has access again.`);
+      setNotice(`${nameFor(member)} has access again.`);
       backToList();
       await onChanged();
     } catch (err) {
@@ -430,7 +448,10 @@ export default function CompanyTeamClient({ companyId, headless }: CompanyTeamCl
   };
 
   const sendInvitation = async () => {
+    if (view.type !== "invite") return;
+    const invitePerson = view.person;
     if (!canAdminMembers || !selectedPreset || !inviteEmail.trim()) return;
+    if (!invitePerson && !inviteName.trim()) return;
     const inviteRole = selectedPreset.role;
     setBusy(true);
     setLocalError(null);
@@ -451,6 +472,7 @@ export default function CompanyTeamClient({ companyId, headless }: CompanyTeamCl
           packages,
           jobIds: [],
           idempotencyKey: requestKey,
+          ...(invitePerson ? { personId: invitePerson.personId } : { name: inviteName.trim() }),
         }),
       });
       const body = (await res.json().catch(() => ({}))) as {
@@ -461,14 +483,16 @@ export default function CompanyTeamClient({ companyId, headless }: CompanyTeamCl
         delivery?: string;
         generation?: number | null;
         expiresAt?: string | null;
+        personId?: string | null;
       };
       if (!res.ok || body.ok !== true || !body.invitationId) {
         throw teamError(body.code, body.message, "Could not send the invitation.");
       }
       if (body.delivery === "failed") setNotice(INVITATION_NOT_SENT_MESSAGE);
-      else setNotice(`Invitation sent to ${inviteEmail.trim()}.`);
+      else setNotice(`Invitation sent to ${invitePerson?.name ?? inviteEmail.trim()}.`);
       const created: PendingInvite = {
         invitationId: body.invitationId,
+        personId: typeof body.personId === "string" ? body.personId : null,
         email: inviteEmail.trim(),
         role: inviteRole,
         expiresAt: typeof body.expiresAt === "string" ? body.expiresAt : "",
@@ -482,6 +506,7 @@ export default function CompanyTeamClient({ companyId, headless }: CompanyTeamCl
         ...current.filter((invite) => invite.invitationId !== created.invitationId),
       ]);
       setInviteEmail("");
+      setInviteName("");
       setDraftPreset("");
       setDraftPackages([]);
       backToList();
@@ -515,7 +540,7 @@ export default function CompanyTeamClient({ companyId, headless }: CompanyTeamCl
       if (!res.ok || body.ok !== true) {
         throw teamError(body.code, body.message, "Could not resend the invitation.");
       }
-      setNotice(body.delivery === "failed" ? INVITATION_NOT_SENT_MESSAGE : `Invitation sent again to ${invite.email}.`);
+      setNotice(body.delivery === "failed" ? INVITATION_NOT_SENT_MESSAGE : `Invitation sent again to ${inviteNameFor(invite) ?? invite.email}.`);
       backToList();
       await loadInvitations();
     } catch (err) {
@@ -536,7 +561,7 @@ export default function CompanyTeamClient({ companyId, headless }: CompanyTeamCl
       if (!res.ok || body.ok !== true) {
         throw teamError(body.code, body.message, "Could not revoke the invitation.");
       }
-      setNotice(`Invitation to ${invite.email} revoked. The link no longer works.`);
+      setNotice(`Invitation to ${inviteNameFor(invite) ?? invite.email} revoked. The link no longer works.`);
       backToList();
       await loadInvitations();
     } catch (err) {
@@ -614,12 +639,13 @@ export default function CompanyTeamClient({ companyId, headless }: CompanyTeamCl
   const reassignOptions = (member: CompanyMemberClientItem) =>
     activePeople.filter((row) => row.userId !== member.userId);
 
-  const openInvite = () => {
+  const openInvite = (person: InvitePerson | null = null) => {
     setInviteEmail("");
+    setInviteName("");
     setDraftPreset("");
     setDraftPackages([]);
     setNotice(null);
-    openView({ type: "invite" });
+    openView({ type: "invite", person });
   };
 
   // ---- Board-hosted requests -------------------------------------------------
@@ -632,12 +658,16 @@ export default function CompanyTeamClient({ companyId, headless }: CompanyTeamCl
       const member = members.find((row) => row.userId === hostedRequest.userId);
       if (!member) return;
       openPerson(member);
+      setPersonIdentity(hostedRequest.personName ? { userId: member.userId, name: hostedRequest.personName } : null);
     } else if (hostedRequest.type === "invite") {
-      openInvite();
+      openInvite(hostedRequest.person ?? null);
     } else if (hostedRequest.type === "invitation") {
       if (!invitations.some((invite) => invite.invitationId === hostedRequest.invitationId)) return;
       setNotice(null);
       openView({ type: "invitation", invitationId: hostedRequest.invitationId });
+      setPersonIdentity(
+        hostedRequest.personName ? { invitationId: hostedRequest.invitationId, name: hostedRequest.personName } : null
+      );
     } else {
       setNotice(null);
       openView({ type: "transfer" });
@@ -665,7 +695,7 @@ export default function CompanyTeamClient({ companyId, headless }: CompanyTeamCl
       openWork: member.openJobLeadCount + member.openTaskAssigneeCount,
     });
     const activeAccess = canAdminMembers && !member.removedAt;
-    const name = personName(member, people);
+    const name = nameFor(member);
     return {
       key: `m:${member.userId}`,
       kind: member.removedAt ? "removed" : "member",
@@ -745,7 +775,7 @@ export default function CompanyTeamClient({ companyId, headless }: CompanyTeamCl
 
   if (view.type === "person" && viewMember) {
     const member = viewMember;
-    const name = personName(member, people);
+    const name = nameFor(member);
     const manageable = canAdminMembers && isManageable(member);
     const activeAccess = canAdminMembers && !member.removedAt;
     const special = activeAccess ? teamSpecialAccessSummary(member.packageKeys ?? []) : null;
@@ -995,12 +1025,18 @@ export default function CompanyTeamClient({ companyId, headless }: CompanyTeamCl
       );
     }
   } else if (view.type === "invite") {
-    const dirty = touched || inviteEmail.trim() !== "";
+    const invitePerson = view.person;
+    const dirty = touched || inviteEmail.trim() !== "" || inviteName.trim() !== "";
+    const ready = Boolean(inviteEmail.trim() && selectedPreset && (invitePerson || inviteName.trim()));
     sheet = (
       <TeamSheet
         view="invite"
-        title="Invite person"
-        subtitle="They join after they accept from their email."
+        title={invitePerson ? "Give FieldDive access" : "Invite person"}
+        subtitle={
+          invitePerson
+            ? `${invitePerson.name} can sign in after they accept from their email.`
+            : "They join after they accept from their email."
+        }
         dirty={dirty}
         busy={busy}
         error={localError}
@@ -1012,7 +1048,7 @@ export default function CompanyTeamClient({ companyId, headless }: CompanyTeamCl
             <button
               type="button"
               className={TEAM_SHEET_PRIMARY}
-              disabled={busy || !inviteEmail.trim() || !selectedPreset}
+              disabled={busy || !ready}
               onClick={() => void sendInvitation()}
               data-team-sheet-save
             >
@@ -1029,7 +1065,24 @@ export default function CompanyTeamClient({ companyId, headless }: CompanyTeamCl
             event.preventDefault();
             void sendInvitation();
           }}
+          data-team-invite-person={invitePerson ? invitePerson.personId : undefined}
         >
+          {invitePerson ? null : (
+            <label className={FOCUSED_EDITOR_LABEL}>
+              <span className="text-[13px] font-medium text-slate-500">Name</span>
+              <input
+                type="text"
+                autoComplete="name"
+                required
+                maxLength={80}
+                value={inviteName}
+                onChange={(event) => setInviteName(event.target.value)}
+                className={FOCUSED_EDITOR_INPUT}
+                placeholder="Full name"
+                data-team-invite-name
+              />
+            </label>
+          )}
           <label className={FOCUSED_EDITOR_LABEL}>
             <span className="text-[13px] font-medium text-slate-500">Email</span>
             <input
@@ -1059,12 +1112,14 @@ export default function CompanyTeamClient({ companyId, headless }: CompanyTeamCl
     const role = resolveCompanyMembershipRole(invite.role);
     const when = expiryLabel(invite.expiresAt);
     const special = teamSpecialAccessSummary(invite.packageKeys);
+    const inviteeName = inviteNameFor(invite);
+    const invitedLabel = when ? `Invited · ${when}` : "Invited";
     sheet = (
       <TeamSheet
         view="invitation"
-        title={invite.email}
-        subtitle={when ? `Invited · ${when}` : "Invited"}
-        leading={<TeamMonogram name={invite.email} kind="invited" size="lg" />}
+        title={inviteeName ?? invite.email}
+        subtitle={inviteeName ? `${invite.email} · ${invitedLabel}` : invitedLabel}
+        leading={<TeamMonogram name={inviteeName ?? invite.email} kind="invited" size="lg" />}
         busy={busy}
         error={localError}
         onClose={backToList}
@@ -1113,7 +1168,7 @@ export default function CompanyTeamClient({ companyId, headless }: CompanyTeamCl
     );
   } else if (view.type === "remove" && viewMember) {
     const member = viewMember;
-    const name = personName(member, people);
+    const name = nameFor(member);
     sheet = (
       <TeamSheet
         view="remove"
@@ -1164,7 +1219,7 @@ export default function CompanyTeamClient({ companyId, headless }: CompanyTeamCl
     );
   } else if (view.type === "handoff" && viewMember) {
     const member = viewMember;
-    const name = personName(member, people);
+    const name = nameFor(member);
     sheet = (
       <TeamSheet
         view="handoff"
@@ -1214,7 +1269,7 @@ export default function CompanyTeamClient({ companyId, headless }: CompanyTeamCl
     );
   } else if (view.type === "reactivate" && viewMember) {
     const member = viewMember;
-    const name = personName(member, people);
+    const name = nameFor(member);
     sheet = (
       <TeamSheet
         view="reactivate"
@@ -1358,7 +1413,7 @@ export default function CompanyTeamClient({ companyId, headless }: CompanyTeamCl
           <p className="mt-1 text-sm text-slate-600">The people behind your work.</p>
         </div>
         {canAdminMembers && !loadFailed ? (
-          <button type="button" className={`${TEAM_SHEET_PRIMARY} gap-2`} onClick={openInvite} data-company-settings-team-invite-open>
+          <button type="button" className={`${TEAM_SHEET_PRIMARY} gap-2`} onClick={() => openInvite()} data-company-settings-team-invite-open>
             <UserPlus className="h-4 w-4" aria-hidden />
             Invite person
           </button>

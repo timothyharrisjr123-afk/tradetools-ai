@@ -307,6 +307,11 @@ export function contractorFacingMessage(
   }
   if (code === "invalid_email") return "Enter a valid email address.";
   if (code === "self_invite") return "You can\u2019t invite yourself.";
+  if (code === "person_required" || code === "invalid_person_name") return "Enter their name.";
+  if (code === "person_already_linked") return "This person already has FieldDive access.";
+  if (code === "person_not_found" || code === "person_unavailable") {
+    return "This person is no longer on your team.";
+  }
   if (
     typeof message === "string" &&
     message.trim() &&

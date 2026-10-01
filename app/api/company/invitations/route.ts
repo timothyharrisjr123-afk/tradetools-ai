@@ -4,6 +4,15 @@ import { createClient } from "@/app/lib/supabase/server";
 
 const KEY = /^[A-Za-z0-9._:-]{8,120}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const INVALID_CODES = new Set(["invalid_email", "person_required", "invalid_person_name"]);
+const CONFLICT_CODES = new Set([
+  "invitation_pending",
+  "recipient_membership_exists",
+  "idempotency_conflict",
+  "person_not_found",
+  "person_unavailable",
+  "person_already_linked",
+]);
 
 /**
  * Minimum invitation issue endpoint. Company authority comes from the session
@@ -40,6 +49,14 @@ export async function POST(request: Request) {
   if (Array.isArray(body.jobIds) && jobIds.length !== body.jobIds.length) {
     return NextResponse.json({ ok: false, code: "invalid_payload" }, { status: 400 });
   }
+  const personId = typeof body.personId === "string" ? body.personId : null;
+  const personName = typeof body.name === "string" ? body.name.trim() : "";
+  if ((personId === null) === (personName === "")) {
+    return NextResponse.json({ ok: false, code: "person_required" }, { status: 400 });
+  }
+  if (personId !== null && !UUID.test(personId)) {
+    return NextResponse.json({ ok: false, code: "invalid_payload" }, { status: 400 });
+  }
 
   const result = await issueCompanyInvitation({
     email,
@@ -47,9 +64,18 @@ export async function POST(request: Request) {
     packages,
     jobIds,
     idempotencyKey,
+    person: personId !== null ? { personId } : { personName },
   });
   if (!result.ok) {
-    const status = result.unavailable ? 503 : result.code === "unauthorized" ? 401 : 403;
+    const status = result.unavailable
+      ? 503
+      : result.code === "unauthorized"
+        ? 401
+        : INVALID_CODES.has(result.code)
+          ? 400
+          : CONFLICT_CODES.has(result.code)
+            ? 409
+            : 403;
     return NextResponse.json({ ok: false, code: result.code }, { status });
   }
   return NextResponse.json({
@@ -59,5 +85,6 @@ export async function POST(request: Request) {
     message: result.message,
     generation: typeof result.generation === "number" ? result.generation : null,
     expiresAt: typeof result.expiresAt === "string" ? result.expiresAt : null,
+    personId: result.personId ?? null,
   });
 }

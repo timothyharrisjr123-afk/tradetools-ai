@@ -32,11 +32,14 @@ export type InvitationCommandResult =
       message: string | null;
       generation?: number | null;
       expiresAt?: string | null;
+      personId?: string | null;
     }
   | { ok: false; code: string; unavailable: boolean };
 
 export type PendingCompanyInvitation = {
   invitationId: string;
+  /** The Person this invitation gives access to; null only for legacy invitations. */
+  personId: string | null;
   email: string;
   role: string;
   expiresAt: string;
@@ -149,22 +152,29 @@ async function deliverInvitation(input: {
   };
 }
 
+/**
+ * Every new invitation names its Person: an existing one (personId) or a new one
+ * created with the invitation (personName). Exactly one is required.
+ */
 export async function issueCompanyInvitation(input: {
   email: string;
   role: string;
   packages: string[];
   jobIds: string[];
   idempotencyKey: string;
+  person: { personId: string } | { personName: string };
 }): Promise<InvitationCommandResult> {
   const token = generateInvitationToken();
   const supabase = await client();
-  const { data, error } = await supabase.rpc("issue_company_invitation_v1", {
+  const { data, error } = await supabase.rpc("issue_company_invitation_v2", {
     p_email: input.email,
     p_role: input.role,
     p_packages: input.packages,
     p_job_ids: input.jobIds,
     p_token_hash: hashInvitationToken(token),
     p_idempotency_key: input.idempotencyKey,
+    p_person_id: "personId" in input.person ? input.person.personId : null,
+    p_person_name: "personName" in input.person ? input.person.personName : null,
   });
   if (error) return { ok: false, code: "authorization_unavailable", unavailable: true };
   const result = row(data);
@@ -177,7 +187,8 @@ export async function issueCompanyInvitation(input: {
     };
   }
   const invitationId = typeof result.invitation_id === "string" ? result.invitation_id : "";
-  if (!invitationId) return { ok: false, code: "authorization_unavailable", unavailable: true };
+  const personId = typeof result.person_id === "string" ? result.person_id : null;
+  if (!invitationId || !personId) return { ok: false, code: "authorization_unavailable", unavailable: true };
   if (result.send !== true) {
     return {
       ok: true,
@@ -186,9 +197,10 @@ export async function issueCompanyInvitation(input: {
       message: null,
       generation: typeof result.generation === "number" ? result.generation : null,
       expiresAt: typeof result.expires_at === "string" ? result.expires_at : null,
+      personId,
     };
   }
-  return deliverInvitation({
+  const delivered = await deliverInvitation({
     supabase,
     invitationId,
     generation: typeof result.generation === "number" ? result.generation : 1,
@@ -201,6 +213,7 @@ export async function issueCompanyInvitation(input: {
     expiresAt: typeof result.expires_at === "string" ? result.expires_at : null,
     encodedToken: encodeInvitationToken(token),
   });
+  return delivered.ok ? { ...delivered, personId } : delivered;
 }
 
 export async function resendCompanyInvitation(input: {
@@ -358,7 +371,7 @@ export async function listPendingCompanyInvitations(
   }
   const listed = await admin
     .from("company_invitations")
-    .select("id, email_canonical, role, expires_at, generation, packages, job_ids")
+    .select("id, person_id, email_canonical, role, expires_at, generation, packages, job_ids")
     .eq("company_id", companyId)
     .eq("status", "pending");
   if (listed.error || !Array.isArray(listed.data)) return { ok: false, unavailable: true };
@@ -406,8 +419,12 @@ export async function listPendingCompanyInvitations(
     if (!jobIds || jobIds.some((item) => typeof item !== "string")) {
       return { ok: false, unavailable: true };
     }
+    if (row.person_id !== null && typeof row.person_id !== "string") {
+      return { ok: false, unavailable: true };
+    }
     invitations.push({
       invitationId,
+      personId: row.person_id,
       email,
       role,
       expiresAt,

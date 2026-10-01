@@ -27,6 +27,7 @@ export const JOB_CREW_ASSIGNMENT_MESSAGES: Record<string, string> = {
   crew_not_eligible: "That crew is no longer available. Pick another.",
   lead_not_eligible: "That person is no longer available as a lead. Pick another.",
   request_id_conflict: "That change could not be submitted. Refresh and try again.",
+  person_name_required: "This login has no name yet. They can add it in their FieldDive profile.",
   crew_assignment_unavailable: "Crew assignments are unavailable right now.",
 };
 
@@ -41,6 +42,7 @@ const STATUS: Record<string, number> = {
   crew_not_eligible: 409,
   lead_not_eligible: 409,
   request_id_conflict: 409,
+  person_name_required: 409,
 };
 
 export class JobCrewAssignmentHttpError extends Error {

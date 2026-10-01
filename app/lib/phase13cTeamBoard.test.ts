@@ -501,8 +501,9 @@ describe("Team Board surface", () => {
   test("access is secondary: no per-person FieldDive status, reached from person detail", () => {
     assert.doesNotMatch(board, /FieldDive • Active|Details &amp; access|Details & access/);
     assert.match(board, /Manage FieldDive access/);
-    assert.ok(board.indexOf('label="Crew"') < board.indexOf('label="FieldDive"'), "operational truth precedes access");
-    assert.match(board, /entry\.access !== "removed"\) return null/, "only removed access is a board state");
+    assert.ok(board.indexOf('label="Crew"') < board.indexOf('label="FieldDive access"'), "operational truth precedes access");
+    assert.match(board, /entry\.access !== "removed"\) return null/, "only removed and invited access are board states");
+    assert.match(board, /data-team-access-state="invited"/);
   });
 
   test("direct actions live where the user is looking", () => {
@@ -548,10 +549,10 @@ describe("Team Board surface", () => {
 
   test("person detail: operational facts first, email only inside FieldDive, name editable", () => {
     const sheet = board.slice(board.indexOf("function PersonSheet"));
-    const order = ['label="Crew"', 'label="Current work"', 'label="Phone"', 'label="FieldDive"', "data-team-person-edit", "Archive person"];
+    const order = ['label="Crew"', 'label="Current work"', 'label="Phone"', 'label="FieldDive access"', "data-team-person-edit", "Archive person"];
     const at = order.map((marker) => sheet.indexOf(marker));
     assert.ok(at.every((i, n) => i > 0 && (n === 0 || i > at[n - 1])), `order: ${at.join(",")}`);
-    assert.ok(sheet.indexOf("data-team-person-email") > sheet.indexOf('label="FieldDive"'));
+    assert.ok(sheet.indexOf("data-team-person-email") > sheet.indexOf('label="FieldDive access"'));
     assert.match(sheet, /subtitle=\{entry\.nameKnown \? null : "Name not set"\}/);
     assert.match(board, /action: "update_person"/);
   });
