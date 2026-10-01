@@ -16,16 +16,35 @@ Domain blueprints remain the product authority for their program. Repo truth rem
 
 Sections below this checkpoint are historical. Older **NEXT** lines are not the current step.
 
-### Current checkpoint (2026-09-30) — Phase 13C
+### Current checkpoint (2026-10-01) — Phase 13C
 
 - **Code checkpoint:** `52dfb1022f70007b0752368cdbf7bab92c62c8b5` — `feat(phase13c): harden coordinator assignment flow`. Local only. Not pushed. No deploy.
-  - Phase 13C code lineage since the last docs checkpoint (`955afdc`): `2cdd8d5` durable Job crew assignments → `86415b5` premium Job crew experience → `8f22a00` people linked to FieldDive access → `50c7cfb` access chooser selection states → `52dfb10` Coordinator integrity (database-owned Coordinator write, direct `assigned_to` writes revoked, Coordinator-derived Job access ends with the responsibility, shared `PersonChoiceList` Coordinator sheet).
-  - Coordinator migrations (applied to STAGING only): `20261001140000_phase13c_coordinator_integrity.sql`, `20261001150000_phase13c_coordinator_access_lifecycle.sql`.
+  - Phase 13C code lineage since docs checkpoint `955afdc`: `2cdd8d5` → `86415b5` → `8f22a00` → `50c7cfb` → `52dfb10` (status of each below).
   - Earlier: `f333173` Team truth correction; `8836af9` Team/access foundation (on top of `da6eb10`).
-- **Docs checkpoint:** this section (Coordinator checkpoint + task-derived access debt). Previous: `955afdc`.
-- **Phase:** 13C. The locked future sequence below is unchanged.
-- **Team truth correction:** **COMPLETE** (accepted 2026-09-30; see below).
-- **NEXT:** **DURABLE JOB → CREW ASSIGNMENT FOUNDATION** (scope below). Not started.
+- **Docs checkpoint:** this section. Previous: `955afdc`.
+- **Phase:** 13C (in progress). The order of the locked future sequence below is unchanged; only status markers were added.
+- **Phase 13C implementation status (committed, staging-proven, not in production):**
+  - **Team truth correction:** **COMPLETE** — `f333173` (see below).
+  - **Durable Job → Crew assignment foundation:** **COMPLETE** — `2cdd8d5` (`20260930120000_phase13c_job_crew_assignments.sql`). Write-once assignment rows with a single end transition, optional Assignment Lead, assignment-time roster snapshot, one active *primary* per Job (concurrency stays possible), history preserved; Calendar stays the schedule authority; grants no software access.
+  - **Premium Job Overview / Crew experience:** **COMPLETE** — `86415b5`. Job Card Overview People (Coordinator card + Crew card), Crew sheet (assign / switch / Assignment Lead / create / remove), Crew fact in the Field brief, Crew activity.
+  - **Person ↔ FieldDive access coherence, slice 1:** **COMPLETE** — `8f22a00` (`20261001120000_phase13c_person_backed_invitations.sql`) + `50c7cfb` (access chooser selection states). New invitations name a Person; acceptance links that login to that Person in the same transaction. Person association is by explicit `person_id` and is never inferred from name, phone, or email. Verified email still verifies the invited login identity. Pre-existing person-less invitations keep their old behaviour.
+  - **Coordinator integrity:** **COMPLETE** — `52dfb10` (`20261001140000_phase13c_coordinator_integrity.sql`, `20261001150000_phase13c_coordinator_access_lifecycle.sql`). One database-owned Coordinator write (`set_job_coordinator_v1`, replay/stale safe, atomic activity), direct authenticated `jobs.assigned_to` writes revoked, Coordinator-derived Job access ends with the responsibility while independent reasons survive, shared `PersonChoiceList` Coordinator sheet.
+- **Remaining Phase 13C sequence (locked order):**
+  1. Crew integration reconciliation / audit across Team / Job Board / Calendar / Team week.
+  2. Access simplification.
+  3. Phase 13C closure.
+
+  Person ↔ FieldDive identity coherence and Coordinator integrity are already complete (above).
+- **NEXT:** the **READ-ONLY Crew integration audit** (Team / Job Board / Calendar / Team week). Not started. This handoff does not authorize implementation; any implementation slice that follows the audit needs its own explicit authorization.
+- **Required open Phase 13C items (must be resolved before Phase 13C closure):**
+  - task-derived Job access lifecycle (required item below);
+  - first-time activation / onboarding (next bullet);
+  - **Access simplification remains required before Phase 13C closure.** Implementation has not started. Durable direction only (the full design lives in the canonical product/governance docs):
+    - company-controlled names/titles are separate from authority;
+    - normal selectable base access direction is **Working Access** / **Full Team Access**;
+    - Owner remains protected custody, not a normal selectable tier;
+    - bounded Additional Access remains separate;
+    - current occupational access presets are transitional.
 - **Phase 13C is not closed.** First-time activation / onboarding (activation target **FIRST REAL PROPOSAL SENT**) remains open Phase 13C work. `docs/phase13c-first-time-activation-astra-research.md` stays the open research input. A later bounded reconciliation decides the remaining activation/onboarding work before Phase 13C can close. The activation target and roadmap order are unchanged.
 - **Controlling decision:** `docs/phase13c-people-crew-access-product-architecture-decision.md`. Where earlier Phase 13C docs conflict on People / Crew / access / Job → Crew work, this decision controls. Older docs stay as historical records; do not delete or rewrite them. Their unaffected security, custody, tenancy, lifecycle and audit requirements remain binding.
 - **Phase 13C docs (historical inputs to the decision):**
@@ -43,7 +62,7 @@ Sections below this checkpoint are historical. Older **NEXT** lines are not the 
   - `schedule.manage` guards Schedule, Reschedule and Unschedule in both the routes and the UI.
   - The company directory is narrowed; Leads see their jobs' people through the Field brief.
   - "Production lead" wording for `jobs.assigned_to` now reads **Coordinator**. Role keys are unchanged, and the SQL capability evaluator is unchanged.
-  - Lead Start does **not** use `jobs.assigned_to` as assignment-Lead truth. Job-scoped Start stays closed until assignment truth exists.
+  - Lead Start does **not** use `jobs.assigned_to` as assignment-Lead truth. Job-scoped Start stays closed. Durable assignment truth now exists (`2cdd8d5`), but no Start authority has been derived from it; opening it needs its own authorized slice.
 - **Team / People / Crew baseline (accepted and committed):**
   - `/tools/team` is a first-class Operations workspace.
   - The people/crews foundation is `company_people`, `crews` and `crew_members`, with SECURITY DEFINER RPCs gated by company-scope `jobs.assign`.
@@ -55,8 +74,12 @@ Sections below this checkpoint are historical. Older **NEXT** lines are not the 
   - `20260929120000_phase13c_s1_access_vocabulary_completion_split.sql`
   - `20260929130000_phase13c_team_board_people_crews.sql`
   - `20260929140000_phase13c_team_board_person_details.sql`
+  - `20260930120000_phase13c_job_crew_assignments.sql`
+  - `20261001120000_phase13c_person_backed_invitations.sql`
+  - `20261001140000_phase13c_coordinator_integrity.sql`
+  - `20261001150000_phase13c_coordinator_access_lifecycle.sql`
 
-  They are **not** applied to production, and Phase 13C production rollout is **not** complete.
+  All seven are applied on staging (verified with `supabase migration list --linked`, 2026-10-01). They are **not** applied to production, and Phase 13C production rollout is **not** complete.
 - **Known baseline debt (outside this checkpoint; do not fix as part of 13C):**
   - `jobSchedules045.test.ts` "all-day and timed labels" fails because the committed test expects garbled text.
   - Stale `.next/types` references to `roofing/ai`.
@@ -180,7 +203,7 @@ The truth correction made no schema, RPC, access or auth change.
 
 #### Job → Crew (authoritative)
 
-- Job Crew assignment is the next durable operational foundation.
+- Job Crew assignment is the durable operational foundation (implemented in `2cdd8d5`; experience in `86415b5`).
 - The Assignment Lead is optional.
 - The Coordinator is an optional Job responsibility. It is not required for Job creation, Crew creation, Crew assignment, scheduling or production.
 - A valid simple case: Tim and Jake are the Harris Crew, and the Job is assigned to Harris Crew. No title, no Lead, no Coordinator, no invented hierarchy.
@@ -201,14 +224,9 @@ The truth correction made no schema, RPC, access or auth change.
 
 #### Assignment ≠ access
 
-- Crew assignment creates **no** automatic software access in the next slice, and Crew membership creates **no** automatic software access.
-- The next slice must not:
-  - create, revoke or recompute Job grants;
-  - enable automatic sharing derived from assignments;
-  - enable new job-scoped Start authority.
-
-  Current access behavior is preserved.
-- Automatic sharing and the grant-reason ledger are a later, explicit slice.
+- Crew assignment creates **no** automatic software access, and Crew membership creates **no** automatic software access. This holds as implemented in `2cdd8d5` / `86415b5`: Crew assignment does not create, revoke or recompute Job grants, enables no assignment-derived sharing, and adds no job-scoped Start authority.
+- This is separate from the pre-existing Coordinator coupling: assigning a granted-jobs (Field) member as **Coordinator** (`jobs.assigned_to`) opens that Job for them (`source = 'production_lead_assignment'`). Since `52dfb10` that grant ends when the Coordinator changes or is cleared, unless an independent reason exists. This is Coordinator truth, not Crew truth.
+- Automatic Crew-derived sharing and any broader grant-reason ledger remain a later, explicit slice.
 
 #### Calendar
 
@@ -236,11 +254,11 @@ On the Team board, the "Needs a Lead" deficiency, Crew-beneath-a-person-only pre
 
 Older docs remain historical records. Do not delete them or rewrite their history.
 
-#### NEXT: DURABLE JOB → CREW ASSIGNMENT FOUNDATION
+#### Job → Crew assignment foundation — COMPLETE (`2cdd8d5`; experience `86415b5`)
 
-Team is complete; this is the current operational NEXT. It has **not** started, and this checkpoint does not start it.
+Formerly the operational NEXT; now implemented and staging-proven. The scope below is kept as the record of what this foundation was held to. Crew integration into Job Board / Calendar / Team week is **not** part of it and has not started.
 
-- **Expected scope:**
+- **Scope held:**
   - durable assignment identity;
   - a Job → Crew one-to-many relationship;
   - an optional Assignment Lead;
@@ -275,7 +293,7 @@ Team is complete; this is the current operational NEXT. It has **not** started, 
   - external subcontractor portal
   - work-package UI
   - a second scheduling system
-- The decision doc authorizes no implementation by itself. The next task must explicitly authorize the slice, and any SQL, migration or environment mutation needs its own authorization.
+- The decision doc authorizes no implementation by itself. Every further slice must be explicitly authorized, and any SQL, migration or environment mutation needs its own authorization.
 
 #### Production / security open item
 
@@ -305,9 +323,9 @@ Team is complete; this is the current operational NEXT. It has **not** started, 
 
 ### Locked future sequence
 
-1. **13B-G** — Minimal Team UI
-2. **13B-H** — End-to-end access launch proof
-3. **13C** — First-Time Business Activation & Product Onboarding. Broad Astra research first. Activation target: **FIRST REAL PROPOSAL SENT**.
+1. **13B-G** — Minimal Team UI — **CLOSED on staging** (2026-09-28)
+2. **13B-H** — End-to-end access launch proof — **CLOSED on staging** (2026-09-28)
+3. **13C** — First-Time Business Activation & Product Onboarding. Broad Astra research first. Activation target: **FIRST REAL PROPOSAL SENT**. — **IN PROGRESS (current phase; see Current checkpoint)**
 4. **13D** — Returning / Invited User Entry
 5. **13E-A** — Whole-Product / Paid-Product Audit
 6. **13E-B** — Competitive Capability & Differentiation Audit
