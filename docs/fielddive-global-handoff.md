@@ -6,9 +6,9 @@
 
 All future FieldDive work must follow:
 
-- `docs/fielddive-product-execution-standards.md` — how implementation work is done: paid-product standard, product principles, architecture, Fix-When-Found, state truth, tenancy, server ownership, visual proof, Astra and Sol use, prompt lessons, and release/environment truth.
-- `docs/fielddive-ui-product-cohesion-standard.md` — mandatory whenever any visible UI is touched: screen job, scan order, information ownership, hierarchy, color, banners, and real viewport proof.
-- `docs/fielddive-audit-playbook.md` — how whole-product audits (13E-A) and competitive audits (13E-B) are run, and how findings close.
+- `docs/fielddive-product-execution-standards.md` — how implementation work is done: paid-product standard, all standards applying together, product principles, architecture and long-term correctness over ease, Fix-When-Found, state truth, whole-product coherence, tenancy, people/title/authority, access product direction, derived access lifecycle, server ownership, visual proof, Astra and Sol use, prompt lessons and failure classes, and release/environment truth.
+- `docs/fielddive-ui-product-cohesion-standard.md` — mandatory whenever any visible UI is touched: screen job, scan order, information ownership, hierarchy, color, banners, real viewport proof, independent visual review, and the screenshot ZIP gate.
+- `docs/fielddive-audit-playbook.md` — the required audit map, cross-surface coherence gate and evidence rule for any meaningful audit; how whole-product audits (13E-A) and competitive audits (13E-B) are run, and how findings close.
 
 These are canonical standing instructions. Do not improvise replacements, silently weaken them, or omit applicable standards from future implementation or audit work.
 
@@ -39,7 +39,7 @@ Sections below this checkpoint are historical. Older **NEXT** lines are not the 
 - **Required open Phase 13C items (must be resolved before Phase 13C closure):**
   - task-derived Job access lifecycle (required item below);
   - first-time activation / onboarding (next bullet);
-  - **Access simplification remains required before Phase 13C closure.** Implementation has not started. Durable direction only (the full design lives in the canonical product/governance docs):
+  - **Access simplification remains required before Phase 13C closure.** Implementation has not started. Durable direction only (canonical: "Access product direction" in `docs/fielddive-product-execution-standards.md`):
     - company-controlled names/titles are separate from authority;
     - normal selectable base access direction is **Working Access** / **Full Team Access**;
     - Owner remains protected custody, not a normal selectable tier;

@@ -26,6 +26,32 @@ Checklist compliance is necessary, not sufficient.
 
 Correctness and product truth come before speed.
 
+### All applicable standards apply together
+
+A slice is accepted only when it satisfies every standard that applies to it, at the same time:
+
+- product truth
+- database invariants
+- server authority
+- tenant isolation
+- identity
+- lifecycle
+- replay, idempotency and stale-write handling
+- every legitimate write path, with no client bypass
+- UI cohesion
+- truthful loading, error and empty states
+- desktop and mobile
+- adjacent regressions
+- fixture restoration
+- environment safety
+- visual review where the change is visible
+
+Strength in one standard does not buy an exception in another:
+
+- A green test suite does not override a broken product contract.
+- A polished UI does not override incorrect authority.
+- A correct isolated feature does not override whole-app incoherence.
+
 ---
 
 ## Core product principles
@@ -67,6 +93,17 @@ durable, stable, production-grade architecture with no unnecessary complexity
 Prefer durable root-cause corrections over patches or shortcuts.
 
 Do not add abstractions, generalized infrastructure, future-proofing, adjacent cleanup, or frameworks unless repo truth proves they are needed.
+
+### Long-term correctness over ease
+
+Durable production-grade architecture wins over the easiest implementation.
+
+- Effort, difficulty, file count, or convenience are not reasons to choose a weaker architecture.
+- Do not patch a symptom when the durable answer is a shared abstraction, a domain contract, a reusable primitive, a lifecycle rule, a database invariant, or a clearer product model. When repo truth shows the same truth or interaction in more than one place, that is the proof of need the rule above asks for.
+- Protect already-correct systems while improving the architecture next to them.
+- Avoid speculative overengineering, but never use that as a justification for knowingly weak architecture.
+
+Acceptance consequence: a slice that knowingly ships the weaker architecture because the durable one was more work is not complete. The test stays the same: would this hold up as a paid product in front of real contractors?
 
 Before editing a critical system, identify:
 
@@ -158,6 +195,24 @@ Examples:
 
 ---
 
+## Whole-product coherence
+
+A technically correct island is not a finished product.
+
+Before closing a meaningful feature cluster, verify that the same truth stays coherent across the adjacent surfaces and workflows, not only on the surface that changed.
+
+If the same real-world thing appears on more than one surface, validate it across every relevant surface before moving on. Examples:
+
+- **Person:** Team, invitations and access, Crew membership, Coordinator, Field brief, activity and history.
+- **Crew:** Team, Job assignment, Job Overview, Field brief, Job Board where relevant, Calendar once integrated, activity and history.
+- **Job:** Job Board, Job Card, Calendar, Crew assignment, proposals, payments, lifecycle.
+
+Do not force an entity onto a screen where it does not belong. Wherever it legitimately appears, it shows one coherent truth: the same identity, the same name, the same state and the same source.
+
+Acceptance consequence: a feature cluster is not closed until the cross-surface coherence gate in `docs/fielddive-audit-playbook.md` passes.
+
+---
+
 ## Tenancy
 
 No cross-tenant:
@@ -182,6 +237,96 @@ through:
 Silent tenant mixing is a P0 launch blocker.
 
 Company is the tenant. Authentication alone is never company access. Users never supply a company id as authority.
+
+---
+
+## People, titles and authority
+
+PERSON != SOFTWARE USER
+
+TITLE != AUTHORITY
+
+CREW != SECURITY GROUP
+
+JOB RESPONSIBILITY != TITLE
+
+ASSIGNMENT != SCHEDULE != ACCESS
+
+ACCESS FOLLOWS REAL WORK, NOT LABELS.
+
+FieldDive controls the product concepts. The contractor controls what people are called. A company may call people Supervisor, Foreman, Project Manager, Lead, Coordinator, or anything else. Those labels never automatically define software authority, navigation, Crew relationships or Job responsibility.
+
+Person association is by explicit identity, never inferred from name, phone or email.
+
+The controlling Phase 13C interpretation is `docs/phase13c-people-crew-access-product-architecture-decision.md`.
+
+### Team experience
+
+Team can be sophisticated internally, but it must be simple externally. Without training, a contractor should understand how to:
+
+- add a Person
+- optionally give that Person FieldDive access, and understand what that access means
+- create a Crew, and add or remove its members
+- optionally set the Crew's usual leadership
+- assign a Crew to a Job
+- change any of those relationships later
+
+The interface must not require the contractor to understand auth users, membership rows, raw capabilities, RLS, grant ledgers, or the internal identity architecture.
+
+POWER LIVES UNDER THE HOOD. CLARITY LIVES IN THE INTERFACE.
+
+---
+
+## Access product direction
+
+**This is product direction, not implemented state.** Access simplification has not been implemented. The current stored roles and occupational access presets (for example Office Manager, Production Coordinator, Lead, Sales, Field) are transitional. Current implementation status lives in `docs/fielddive-global-handoff.md`.
+
+Access is a guardrail, not workflow. ACCESS FOLLOWS REAL WORK.
+
+| Access | Direction |
+|---|---|
+| **Owner** | Protected custody with inherent authority. Not a normal selectable tier. |
+| **Working Access** | Limited operational access to assigned or shared work. |
+| **Full Team Access** | Broad normal operations. Does **not** automatically include authority to manage other people's FieldDive access. |
+| **Additional Access** | Bounded authority layered onto an appropriate base access, grouped by understandable business purpose. |
+
+Do not invent extra tiers for visual symmetry. Do not expose backend capability identifiers as the user's mental model. The existing capability evaluator, scopes, restrictions, delegation ceilings, custody and audit remain underneath.
+
+### Manage FieldDive access
+
+Manage People & Crews != Manage FieldDive access.
+
+"Manage FieldDive access" means inviting, changing access, removing access and restoring access. Owner has it inherently. Full Team Access does not automatically include it. Working Access should not offer it as a normal option.
+
+### Payments
+
+- **View payments:** balances, paid and unpaid state, payment history, and relevant payment status or issues. No active collection authority.
+- **Full payment access:** includes View payments, plus requesting and sending payment collection, recording or confirming receipt where FieldDive supports it, and managing operational collection follow-up and issues. It does not imply Owner-only financial authority.
+
+Refunds and credits stay separate and are never inherited from viewing, requesting or recording payments. Owner-only and sensitive financial controls (banking and payout configuration, FieldDive subscription billing, ownership and security) stay separate in protected Company Settings. Internal costs and profitability stay separate from customer prices. The full commercial and money rule, including the current cost-visibility limitation, lives in the controlling decision §5.
+
+### Access explanation
+
+Every user-facing access choice explains, before the contractor confirms it:
+
+- what the person can see
+- what they can do
+- what they cannot do
+- whether the access is company-wide or limited to assigned or shared work
+
+Critical authority must never be explained only in a tooltip.
+
+---
+
+## Derived access lifecycle
+
+If access exists because of an operational reason, the lifecycle must define what happens when that reason ends.
+
+- Do not revoke blindly when another legitimate reason remains.
+- Prefer source- and reason-aware authority and cleanup, enforced by the server and database, over client heuristics.
+- Examples of reasons: Coordinator responsibility, task assignment, manual access, invitation or migration reasons.
+
+Acceptance consequence: a slice that creates derived access, or changes the operational reason behind it, is not complete until create, change, clear, replace and replay are defined for that reason. This standard does not itself authorize any access implementation.
 
 ---
 
@@ -246,7 +391,7 @@ Standing visible-browser rule:
 
 Cursor saves screenshots under `tmp/fielddive-ui-review/...`.
 
-Cursor inspects them itself.
+Cursor inspects them itself. That inspection is evidence, not acceptance: visible changes need independent visual review, and proof sets larger than 20 screenshots follow the ZIP gate. Both are defined in `docs/fielddive-ui-product-cohesion-standard.md`.
 
 Cursor opens that folder in File Explorer afterward and leaves it open.
 
@@ -344,6 +489,19 @@ Avoid vague prompts such as "polish this", "make it premium", or "clean this up"
 When Cursor, Astra, or Sol returns work that is technically correct and product-wrong, do not merely correct the output.
 
 Identify what instruction was missing, vague, misleading, or overconstrained, and improve future prompts.
+
+When Cursor or an implementation repeatedly misses a class of problem, future prompts and checklists must explicitly test for that class. The process must improve, not only the current defect.
+
+Known failure classes to test for explicitly:
+
+- occupational labels becoming authority
+- a local patch instead of a shared abstraction
+- incomplete writer audits
+- missing lifecycle cleanup, including derived access
+- cross-surface identity mismatch
+- generic or CRUD-looking UI
+- false loading, error or empty states
+- the visual-proof packaging rule missed
 
 Known examples:
 

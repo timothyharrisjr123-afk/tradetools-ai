@@ -262,6 +262,37 @@ The user owns `npm run dev`. Do not start, stop, restart, or kill Node or the de
 
 If schema or environment incompatibility prevents a valid runtime proof, do not fake it. Record the proof debt and validate it at the next compatible gate.
 
+### Independent visual review
+
+Any visible UI change requires independent GPT or user visual review before final acceptance. Cursor may collect the proof. Cursor may not self-approve the visual result, and a Cursor PASS is evidence, not acceptance.
+
+The reviewer inspects the actual screenshots for:
+
+- hierarchy, spacing, typography and density
+- action ranking
+- states
+- alignment and visual noise
+- clipping and overflow
+- responsive behavior and desktop/mobile intent
+- cohesion with the best FieldDive screens
+- generic CRUD or admin feel
+- reusable versus one-off interaction design
+
+Standing question: if this exact screen shipped in the same product as our best FieldDive screens, would it feel intentionally designed by the same system?
+
+### Screenshot ZIP gate
+
+Before returning visual proof, apply this mechanically:
+
+1. Count the final screenshot set.
+2. Record both lines in the report: `Visual proof count: N` and `ZIP rule evaluated: YES`.
+3. If N <= 20, individual screenshots are allowed.
+4. If N > 20, a ZIP must be created under `tmp/fielddive-ui-review/`, and the report states `ZIP path: ...`. Do not return more than 20 individual screenshots as the primary proof handoff.
+
+The ZIP contains only the relevant screenshots and an optional `INDEX.txt`. Never include credentials, cookies, browser profiles, secrets, env files, scripts or unrelated files.
+
+Open the proof folder or the ZIP location in File Explorer.
+
 ---
 
 ## Final UI standard

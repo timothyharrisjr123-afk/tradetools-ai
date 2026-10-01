@@ -1,6 +1,6 @@
 # FieldDive audit playbook
 
-**Status:** Mandatory method for future FieldDive whole-product audits and competitive audits.
+**Status:** Mandatory method for future FieldDive whole-product audits and competitive audits. The required audit map, cross-surface coherence gate and evidence rule below also apply to every meaningful feature or system audit and to feature-cluster closure.
 
 **Also required:** `docs/fielddive-product-execution-standards.md` and, wherever a finding is about what the contractor sees, `docs/fielddive-ui-product-cohesion-standard.md`.
 
@@ -27,6 +27,52 @@ Register it. Classify it. Decide explicitly whether it is in scope to fix now, d
 The paid-product question for every audit is:
 
 WOULD THIS HOLD UP AS A PAID PRODUCT IN FRONT OF REAL CONTRACTORS?
+
+---
+
+## Required audit map
+
+A meaningful audit of any feature or system maps:
+
+- **A. Entity:** the canonical real-world thing and its identity.
+- **B. Source of truth:** the one authoritative record.
+- **C. All readers:** every route, RPC, store, view, surface and derived summary that reads it.
+- **D. All writers:** every legitimate write path, including RPCs, triggers, migrations, harnesses and stores. Confirm there is no direct client bypass.
+- **E. Authority:** who may act, enforced where (server and database), within which tenant and scope.
+- **F. Lifecycle:** create, change, clear or end, archive, restore, replace, replay, and stale or concurrent paths where relevant.
+- **G. Derived consequences:** derived state and derived access, and what happens to each when its reason ends (see "Derived access lifecycle" in `docs/fielddive-product-execution-standards.md`).
+- **H. Failure semantics:** loading, error, empty, unknown, partial failure and retry, kept distinct.
+- **I. Cross-surface proof:** the same truth everywhere the entity legitimately appears.
+- **J. Visual proof** where UI changed, following `docs/fielddive-ui-product-cohesion-standard.md`, including independent review and the ZIP gate.
+
+A writer audit that stops at the obvious route is incomplete.
+
+## Cross-surface coherence gate
+
+This gate enforces "Whole-product coherence" in `docs/fielddive-product-execution-standards.md`. Before closing a feature cluster, audit at minimum:
+
+- canonical entity identity and canonical source of truth
+- every reader and every writer
+- server and database authority, and security boundaries
+- tenant isolation
+- lifecycle, historical identity and derived state
+- derived-access cleanup
+- replay, idempotency and stale writes
+- loading, error and empty states
+- terminology, and picker or source consistency
+- hidden setup dependencies and workflow dead ends
+- desktop and mobile, and visual cohesion
+- adjacent regressions
+
+A cluster that fails the gate stays open, even if each slice inside it passed on its own.
+
+## Evidence, not acceptance
+
+Cursor PASS/FAIL labels and summaries are evidence only. Do not approve because Cursor says PASS.
+
+Check every load-bearing claim independently against the actual evidence: the diff, the schema, RPC and trigger contract, the tests, the lifecycle behavior, the browser proof, the screenshots, and the relevant files.
+
+When a class of problem keeps getting missed, apply the failure-class rule in the prompt-learning loop of `docs/fielddive-product-execution-standards.md`: future prompts and checklists test for that class explicitly.
 
 ---
 
