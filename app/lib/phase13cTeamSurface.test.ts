@@ -195,6 +195,12 @@ describe("invite is a short task", () => {
     assert.match(invite, /Send invitation/);
   });
 
+  test("only the chosen access row is filled; hover never paints an unselected row", () => {
+    assert.match(chooser, /checked \? "bg-blue-50\/70 ring-1 ring-inset ring-blue-200" : ""/);
+    assert.doesNotMatch(chooser, /hover:bg-/);
+    assert.match(chooser, /focus-visible:ring-2 focus-visible:ring-blue-500/);
+  });
+
   test("Lead shows its job scope only when chosen", () => {
     assert.match(chooser, /checked && scoped \?/);
     assert.match(chooser, /teamJobReach\(preset\.role\)/);

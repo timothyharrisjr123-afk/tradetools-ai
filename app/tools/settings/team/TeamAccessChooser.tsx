@@ -31,8 +31,8 @@ function ChoiceRow({
       role="radio"
       aria-checked={checked}
       onClick={onSelect}
-      className={`flex w-full min-w-0 items-start gap-3 rounded-lg px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
-        checked ? "bg-blue-50/70 ring-1 ring-inset ring-blue-200" : "hover:bg-slate-50"
+      className={`group flex w-full min-w-0 items-start gap-3 rounded-lg px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+        checked ? "bg-blue-50/70 ring-1 ring-inset ring-blue-200" : ""
       }`}
       data-company-settings-team-preset={preset.key}
     >
@@ -50,7 +50,7 @@ function ChoiceRow({
       </span>
       <span
         className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
-          checked ? "bg-blue-600 text-white" : "border border-slate-300 bg-white"
+          checked ? "bg-blue-600 text-white" : "border border-slate-300 bg-white transition-colors group-hover:border-slate-500"
         }`}
         aria-hidden
       >
