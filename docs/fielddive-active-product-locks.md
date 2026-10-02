@@ -6,7 +6,7 @@
 
 **Answers one question:** what must every future FieldDive implementation or audit know before reasoning about behavior?
 
-Last updated: 2026-10-02.
+Last updated: 2026-10-02 (D9 sequencing lock added).
 
 ---
 
@@ -173,6 +173,8 @@ Erroneous or unused records with no meaningful business history may use a separa
 
 **INACTIVE PRESERVES IDENTITY AND HISTORY WITHOUT PRESERVING CURRENT OPERATIONS.**
 
+Sequencing (D9): the People side applies now wherever access removal and Site Manager handoff need it. Crew Inactive/reactivation implementation is parked.
+
 ### D8. Offline / manual payments
 
 A canonical manual/offline payment-recording workflow is **required before launch**. It will be deliberately planned and mapped before implementation. Expected methods include, as applicable: check, cash, ACH/bank transfer outside the integrated provider, and other legitimate offline receipt.
@@ -186,6 +188,44 @@ Future design must:
 
 Exact UI and data contract are not decided. **THIS CAPABILITY MUST BE PLANNED/MAPPED AND DELIVERED BEFORE LAUNCH.**
 
+### D9. Core flow before Team/Crew expansion (sequencing lock)
+
+**FIELDIVE CORE OPERATING FLOW FIRST. TEAM/CREW LATER AS AN ADDITION TO A STABLE PRODUCT.**
+
+**THE CORE CONTRACTOR WORKFLOW MUST FEEL COMPLETE BEFORE OPTIONAL OPERATING COMPLEXITY IS ADDED.** **DO NOT ADD AN OPERATING LAYER ON TOP OF A CORE PRODUCT THAT IS NOT YET DIALED IN.**
+
+Team/People/Crew work is **PARKED / PRESERVED / DEFERRED FROM THE ACTIVE ROADMAP**. It is not cancelled.
+
+- All Team/People/Crew research, product decisions, migrations, UI work and the uncommitted Crew Slice 1 stay preserved. The preservation inventory is in the global handoff ("Team/Crew preservation").
+- Team/Crew is removed from the active launch-critical roadmap.
+- None of the following continues:
+  - new Team/Crew feature implementation
+  - Crew UI expansion
+  - Crew scheduling projections
+  - Team-week, Board or Calendar Crew integration
+  - Crew archive/reactivation work
+  - Crew-lead workflow
+  - Team-driven access complexity
+- Still active, because the core app needs them:
+  - company members, invitations and Owner custody
+  - access removal
+  - the Site Manager/Coordinator Job responsibility (D4)
+  - the People side of D7 where access removal needs it
+  - security fixes in shared Job logic, including Job logic the parked Crew work touches
+- **Reactivation gate.** Reassess whether Team/Crew belongs in launch or ships later only once all of these hold:
+  - the core contractor flow is stable;
+  - the first real proposal flow is clear;
+  - photos, measurements, proposals, scheduling and payments are dialed in;
+  - lifecycle truth is coherent;
+  - error, loading and retry behavior is honest;
+  - desktop and mobile are cohesive;
+  - a whole-app audit no longer exposes core-product instability;
+  - launch readiness is near.
+
+Future prompts must not resume Team/Crew implementation unless the roadmap is deliberately reactivated after that core-product readiness review. Earlier Team/Crew locks stay recorded and binding as architecture whenever that work resumes. Their implementation is deferred.
+
+**DO NOT DELETE TEAM/CREW RESEARCH OR ARCHITECTURE. DO NOT USE TEAM/CREW AS THE ACTIVE PRODUCT CENTER UNTIL CORE APP READINESS IS REASSESSED.**
+
 ---
 
 ## 5. Other active architecture locks (pointers)
@@ -194,11 +234,11 @@ Exact UI and data contract are not decided. **THIS CAPABILITY MUST BE PLANNED/MA
 |---|---|
 | PERSON != SOFTWARE USER; TITLE != AUTHORITY; CREW != SECURITY GROUP; JOB RESPONSIBILITY != TITLE; ASSIGNMENT != SCHEDULE != ACCESS; ACCESS FOLLOWS REAL WORK, NOT LABELS | execution standards → "People, titles and authority"; Phase 13C decision §§2–3 |
 | COMPANY ACCESS != JOB RESPONSIBILITY (D4) | this index D4; execution standards → "Derived access lifecycle" |
-| Team is the People + Crews operational home | handoff → "Team / People / Crew truths"; Phase 13C decision §6 |
+| Team is the People + Crews operational home *(preserved; implementation parked under D9)* | handoff → "Team / People / Crew truths"; Phase 13C decision §6 |
 | Calendar owns schedule truth; assignment is not a second schedule | execution standards → "Domain ownership"; Phase 13C decision §11 |
 | Job Card owns deep Job work; domain tabs own truth; Overview summarizes | execution standards → "Domain ownership"; UI cohesion standard → "Information ownership" |
 | Board is operational scanning, not duplicate domain authority | handoff 2026-09-25 Job Card / Job Board checkpoint; execution standards → "Domain ownership" |
-| Durable Job → Crew assignment; one primary active Crew is a UI mode, not an invariant; closure ends active assignments and reopening does not restore them | Phase 13C decision §§7, 14; handoff → "Job → Crew (authoritative)" |
+| Durable Job → Crew assignment; one primary active Crew is a UI mode, not an invariant; closure ends active assignments and reopening does not restore them *(preserved; further implementation parked under D9)* | Phase 13C decision §§7, 14; handoff → "Job → Crew (authoritative)" |
 | Deterministic pricing; AI does not invent pricing | handoff pricing sections (§6H–§6S); proposal generation contract |
 | Payment truth separate from lifecycle truth; OPERATIONAL COMPLETION != FINANCIAL SETTLEMENT; Stripe handles money, FieldDive orchestrates product state | execution standards → "Domain ownership", "External providers"; Phase 13C decision §5 |
 | ERROR != EMPTY; UNKNOWN != ZERO; FAILED != SUCCESS; DISABLED != NO ACCOUNT; PENDING INVITATION != MEMBERSHIP; DELIVERY != ACCESS AUTHORITY | execution standards → "Error and state truth"; UI cohesion standard → "Error, loading, and empty" |
@@ -213,11 +253,13 @@ Exact UI and data contract are not decided. **THIS CAPABILITY MUST BE PLANNED/MA
 
 Recording D1–D8 changes no code. Current code still differs from them in several places (for example permanent Reopen for Lost, an optional Lost reason, and schedules and Coordinator state that survive terminal transitions). Those differences are tracked in the global handoff's correction program, not here. Do not cite current behavior as evidence against a settled decision.
 
+D9 sets the order of work. The active roadmap is core-app-first and lives in the global handoff's current checkpoint, along with the active correction ledger of non-Team audit findings.
+
 ## 7. Canonical governance documents
 
 - `docs/fielddive-product-execution-standards.md` — how work is done, including the Real-World Workflow Reasoning Method.
 - `docs/fielddive-ui-product-cohesion-standard.md` — mandatory for any visible UI.
 - `docs/fielddive-audit-playbook.md` — audit method, including the real-world contractor scenario audit.
 - `docs/fielddive-global-handoff.md` — current checkpoint, program sequence and correction order.
-- `docs/phase13c-people-crew-access-product-architecture-decision.md` — controlling People / Crew / access decision (D4 and D7 extend it; they do not contradict it).
+- `docs/phase13c-people-crew-access-product-architecture-decision.md` — controlling People / Crew / access decision (D4 and D7 extend it; they do not contradict it). Preserved. Its Team/Crew implementation is parked under D9, and its access and tenancy principles stay binding.
 - `docs/fielddive-release-discipline.md` — release and environment isolation.

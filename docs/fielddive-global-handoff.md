@@ -17,7 +17,210 @@ Domain blueprints remain the product authority for their program. Repo truth rem
 
 Sections below this checkpoint are historical. Older **NEXT** lines are not the current step.
 
-### Current checkpoint (2026-10-02) — Phase 13C: contractor operating model + settled product decisions (docs only)
+### Current checkpoint (2026-10-02, later) — Team/Crew parked; roadmap refocused on the core contractor flow (docs only)
+
+- **Governance checkpoint:** builds on `7d54135` (contractor operating model and D1–D8). **Code checkpoint:** unchanged at `52dfb10`. This pass changes no product behavior and authorizes **no implementation**.
+- **New sequencing lock (D9 in `docs/fielddive-active-product-locks.md`):** **FIELDIVE CORE OPERATING FLOW FIRST. TEAM/CREW LATER AS AN ADDITION TO A STABLE PRODUCT.** THE CORE CONTRACTOR WORKFLOW MUST FEEL COMPLETE BEFORE OPTIONAL OPERATING COMPLEXITY IS ADDED. DO NOT ADD AN OPERATING LAYER ON TOP OF A CORE PRODUCT THAT IS NOT YET DIALED IN.
+- **Team/Crew active implementation is PAUSED.** All Team/Crew research and work is **preserved** (inventory below). It is parked, not cancelled. Whether Team/Crew ships in launch or later is decided only near launch readiness, after the D9 reactivation gate.
+- **Crew Slice 1 remains UNCOMMITTED** in the working tree:
+  - 16 modified files, plus `app/api/jobs/current-crews/`, `app/lib/crew/`, `app/lib/phase13cCrewLifecycleProjection.test.ts` and `supabase/migrations/20261001160000_phase13c_crew_lifecycle_projection.sql`.
+  - The Slice 1 implementation report says that migration was applied to **staging**, so staging is ahead of the committed repo for `change_job_disposition_v1` and the Crew lifecycle trigger. This docs pass did not re-verify that.
+- **Audit artifacts remain uncommitted working documents** (evidence, not product authority):
+  - `docs/fielddive-whole-app-contractor-reality-audit.md` (Cursor)
+  - `docs/fielddive-whole-app-contractor-reality-astra-audit.md` (Astra)
+  - `docs/fielddive-full-site-contractor-flow-audit.md` (full-site contractor flow)
+- **Phase 13C re-scope:**
+  - **Parked:** the Team/Crew items of the old 13C sequence, namely Crew integration reconciliation across Team / Job Board / Calendar / Team week, and Crew-related closure work.
+  - **Still active, folded into the roadmap below:** first-time activation (target **FIRST REAL PROPOSAL SENT**) in step 3; the task-derived Job access lifecycle in step 1/6; access simplification only as far as a functional app needs it, in step 6.
+  - The later program phases (13D onward in "Locked future sequence") keep their order. The core-app roadmap below is the current execution content ahead of them.
+- **All non-Team audit findings stay active** in the ledger below.
+
+#### Active roadmap — core-app-first
+
+Each step needs its own explicit authorization.
+
+1. **Immediate safety / authority correction.**
+   - Disposition RPC P0: exact per-target capability in the database.
+   - Direct Job-write authority P0: `archived`, `deleted_at`, `customer_id`, proposal pointers.
+   - Unauthenticated `/api/approval/status` PII.
+   - Any other confirmed security blockers: direct task writes, direct proposal pointer writes, the invitation/account oracle, the task-derived access lifecycle.
+   - **Contain Crew Slice 1 only as far as needed** so it doesn't leave insecure or contradictory shared Job logic. That means the disposition function it re-creates (and the test asserting byte identity), the false Lost confirmation copy, and the "Reopen" Lost copy. It also means reconciling staging with whatever is committed or not committed. Commit-as-foundation vs. hold/revert is a decision for this step. No Crew feature work.
+2. **Core Job lifecycle / operational truth.** Lost (reason required; no Lost after Complete), Complete, Closed (D2 gate), On Hold (D3 Keep/Release and held-date expiry), schedule retirement, Site Manager responsibility (D4), tasks/attention outcomes (D5), terminal snapshot, Lost by mistake (D6), and public-action eligibility.
+3. **Core customer-to-proposal workflow.** Customer, property, New Job, photos, measurements, scope, proposal, template/default setup, pricing prerequisites, first real proposal (activation), and reuse for returning customers and properties.
+4. **Proposal / public / commercial truth.** Frozen sent version, acceptance, contractor review, authorized scope, public links, payment requests, provider checkout/session lifecycle, and terminal/On Hold eligibility.
+5. **Honest reads / retry / field usability.** ERROR != EMPTY, UNKNOWN != MISSING, retry-safe intake, Board refresh, Calendar refresh, pricing-policy read, measurement read, photo upload, mobile field flow, and offline/failure recovery where appropriate.
+6. **Company access / people, only as far as a functional app needs.** Company members, invitations, Owner custody, Working / Full Team access concepts if still needed, Site Manager Job responsibility, and access removal and handoff. No Team/Crew operating-model expansion.
+7. **Whole-product simplification / cohesion.** The actual contractor day, natural next actions, hidden prerequisites, proposal usability, Job Card usability, Calendar usability, photo findability, first-time setup, desktop/mobile, less module hopping, and less administrative memory burden.
+8. **Pre-launch readiness.** Offline/manual payment workflow (D8), bounded reads and scale proof, legacy containment, an end-to-end release audit, and then the Team/Crew launch decision.
+
+**NEXT:**
+1. Settle the remaining core-product decisions needed for implementation.
+2. Repair the immediate security/authority blockers.
+3. Execute the core contractor-flow correction roadmap.
+4. Run whole-product cohesion verification.
+5. Only then reassess Team/Crew.
+
+#### Active correction ledger — non-Team findings (all remain active)
+
+Sources:
+- **[C]** `docs/fielddive-whole-app-contractor-reality-audit.md`
+- **[A]** `docs/fielddive-whole-app-contractor-reality-astra-audit.md`
+- **[F]** `docs/fielddive-full-site-contractor-flow-audit.md`
+
+Severities follow [F] where the audits differ. Items one audit raised and another couldn't independently support stay active until verified. They are not dropped.
+
+**Security / authority**
+- Disposition RPC accepts `jobs.hold` for Lost/Closed (P0) [C][A][F].
+- Direct Job column writes: `archived`, `deleted_at`, `customer_id`, proposal pointers; no trigger guard; hard DELETE (P0) [C][F].
+- Direct `job_tasks` writes by `tasks.complete` holders, including access-granting reassignment (P1) [C][F].
+- Direct `proposals` pointer/status writes, plus `proposal_versions` INSERT (P1; acceptance binding needs live verification) [C][F].
+- `/api/approval/status` unauthenticated PII (P1) [C][F].
+- Invitation/account cross-tenant oracle; ex-members can never be invited by another company (P1) [C][F].
+- Task-derived access never retired (P1) [C][A].
+- `measurement_records` deletable by capture holders (P2) [C][F].
+- Disposition RPC has no expected-from/stale-intent protection (needs verification) [A].
+- Live grant state on staging/production needs `\dp` verification [F].
+
+**Lifecycle**
+- Lost:
+  - reason optional; not structured; missing from header
+  - permanent Reopen
+  - no Lost by mistake
+  - confirmation copy false
+  - Complete can be marked Lost
+  - [C][A][F]
+- Complete: can be put On Hold (needs verification) [C]. Handoff skips Complete jobs [F].
+- Closed:
+  - allowed with pending obligations (D2)
+  - open requests stay payable
+  - Closed Reopen policy
+  - [C][F]
+- On Hold:
+  - no Keep/Release
+  - held date never expires; Resume revives it
+  - Calendar offers rejected actions
+  - untracked Unschedule release resets the stage
+  - [C][A][F]
+- Schedule cleanup: Lost/Closed/Complete schedules stay active; the Calendar ignores disposition; terminal schedules can't be released [C][A][F].
+- Task/attention lifecycle:
+  - no "No longer applicable"
+  - obsolete tasks/attention never retired
+  - unresolvable acceptance attention on Lost
+  - open-task counts include Lost jobs
+  - [C][A][F]
+- Public-action lifetime: acceptance, scope authorization and checkout outlive the Job's eligibility [C][A][F].
+- Payment lifetime:
+  - pay on Lost/Closed/On Hold
+  - balance request blocked on Lost (D1)
+  - On Hold blocks balance
+  - Closed-balance behavior
+  - [C][F]
+- Site Manager lifecycle: Coordinator survives Lost/Closed and is assignable there; present-tense "Coordinates"; a removed member stays Coordinator/task owner; reactivation returns stale ownership [C][A][F].
+
+**Proposal / commercial**
+- Acceptance recorded on terminal jobs [C][A][F].
+- Public scope-change authorization skips the lifecycle check [A][F].
+- Scope totals ignore `base_acceptance_id` (needs verification) [C].
+- Superseded-acceptance ordering on non-active/approved jobs (needs verification) [C][A].
+- Acceptance review: contract total and Field Brief use the newest unapproved acceptance [C][F].
+- Deposit opens on review-required acceptance [C][F].
+- Resend/revise after acceptance; acceptance doesn't lock the proposal [C][A][F].
+- Old public links stay actionable; no "no longer active" page; no proposal decline/void/withdraw [C][A].
+- Cancelled request leaves a live Stripe session [F].
+- `payment_failed` kills a retryable request [F].
+- Proposals can be sent/revised on Lost (needs verification) [C].
+- Stale measurement re-frozen (needs verification) [C].
+- Pricing computed on the client, not server-verified [C].
+- Cost-hidden authoring not enforceable [A].
+
+**Intake / read truth**
+- Duplicate customer on retry after a partial save [C][A][F].
+- Lookup error shown as "no match" [A][F].
+- Board error shown as empty [C][A][F].
+- Board schedule map stale after Job refresh (needs live verification) [A].
+- Proposals, signatures and sent-facts errors shown as empty [C][F].
+- Measurement error shown as missing [C][A][F].
+- Calendar picker and candidate errors; stale prior-range events; "Job" fallbacks [C][A][F].
+- Pricing-policy read error looks "not configured" and can overwrite the real policy [F].
+- Deposit status unknown shown as received/false [C][F].
+- Customer DB error shown as "not found"; Property workspace likewise [C][F].
+- Photo upload failure truth: wrong "format" message, raw codes, no offline queue or leave warning, HEIC rejected [F].
+- Customer name not synced to jobs [C][F].
+- Non-transactional intake; "Customer" placeholder name [C].
+- Settings payments refresh silently stale [A].
+
+**Core flow / UX**
+- Photo placement/findability: job-only, no property history, Measurements under "More" on mobile [F].
+- First-proposal prerequisites: email only asked at send; payments discovered at send; silent company-wide starter install; raw send-freeze reasons [F].
+- Template/default usability; price composition spread out; catalog/policy staleness unchecked [C][A].
+- Proposal simplicity and natural next action after acceptance [C][F].
+- Module hopping; no Customers nav; identical repeat Job names [C][F].
+- UI shows actions the server rejects (Calendar editor on dead jobs, Company Settings editors, task Add) [C][A].
+- Board follow-up control posts to a 410 route [F].
+- Mobile field flow [F].
+- Setup burden; occupational settings copy [A][F].
+- Wording drift: Lost / Not proceeding / Marked lost; Complete vs Completed; `paid` lane labelled "Complete" [C][F].
+
+**Scale / pre-launch**
+- Bounded reads: unbounded Board history, schedules without a date floor, per-proposal queries, sequential photo signing, 40-job workspace cap [C][A][F].
+- Legacy reachability:
+  - RoofingClient host
+  - legacy estimates on the Board
+  - `/api/email/generate`
+  - `/tools` framing
+  - dead admin clients
+  - `paymentsTable.ts` must not be revived
+  - [C][A][F]
+- Manual/offline payments (D8); false "moved to Job Card" tombstone copy [C][A][F].
+- Final coherence proof [F].
+
+#### Team/Crew preservation
+
+**DO NOT DELETE TEAM/CREW RESEARCH OR ARCHITECTURE. DO NOT USE TEAM/CREW AS THE ACTIVE PRODUCT CENTER UNTIL CORE APP READINESS IS REASSESSED.**
+
+The following stays preserved as-is and keeps its recorded status. It is parked, not discarded:
+
+- **Research:**
+  - `docs/phase13c-people-access-crew-operating-model-astra-research.md`
+  - `docs/phase13c-crew-visual-operational-synthesis-astra-research.md`
+  - Team-page research and the accepted Team visual baseline in `docs/phase13c-team-astra-implementation-handoff.md`
+- **Product decisions:**
+  - `docs/phase13c-people-crew-access-product-architecture-decision.md` (controlling; its access and tenancy principles stay binding now)
+  - `docs/phase13c-crew-product-contract-repo-reconciliation.md` (locked contract, narrowed by the decision)
+  - D7 (Inactive People/Crews) in the locks index
+- **Crew identity model:** `company_people`, `crews`, Crew name/identity, nullable usual Lead, name-only Crews, non-login People.
+- **Membership model:** many-to-many dated `crew_members`.
+- **Assignment history model:**
+  - durable, write-once Job → Crew assignments with a single end transition
+  - optional Assignment Lead and assignment-time roster snapshot
+  - one active primary as a UI mode, not an invariant
+  - concurrency possible
+  - Calendar owns dates; no access derived from assignment
+- **Crew Lead reasoning:** leadership is optional, never a title or an authority source, and Lead Start stays closed pending its own policy.
+- **Access separation reasoning:** PERSON != SOFTWARE USER; TITLE != AUTHORITY; CREW != SECURITY GROUP; ASSIGNMENT != SCHEDULE != ACCESS; Manage People & Crews != Manage FieldDive access; Working / Full Team direction.
+- **Committed code and staging-applied migrations (left in place):**
+  - code: `8836af9`, `f333173`, `2cdd8d5`, `86415b5`, `8f22a00`, `50c7cfb`, `52dfb10`
+  - migrations: `20260929120000` through `20261001150000`
+  - `/tools/team`; the Job Card Crew card and sheet; the Field Brief Crew fact; Crew activity
+- **Current uncommitted Crew Slice 1:**
+  - lifecycle trigger ending Crews on Lost/Closed/Complete
+  - current-Crew projections
+  - Team week from assignments plus Calendar
+  - "Last crew" presentation
+  - All files are preserved untouched. Only the containment in roadmap step 1 may touch them, and only after authorization.
+- **Team/Crew-specific audit findings (parked with the work):**
+  - Team-week wording that can imply no work [A]
+  - no Crew Inactive view or restore; duplicate Crews on recreate; archived Crews leave member rows open [C][A][F]
+  - usual Lead silently cleared on archive [C]
+  - no restore for Persons without a login; duplicate Persons [C][A][F]
+  - Team doesn't show Site Manager load [F]
+  - Assignment Lead can't Start [A][F]
+  - whether the Crew ends at Complete (product decision) [F]
+  - Crew sheet loads the full Team board; `current-crews` route has no consumer [C]
+
+  Where one of these touches core security or lifecycle, it moves to the active ledger instead (for example, the disposition function inside Slice 1).
+
+### Checkpoint (2026-10-02) — Phase 13C: contractor operating model + settled product decisions (docs only; NEXT superseded by the later 2026-10-02 checkpoint)
 
 - **Code checkpoint:** unchanged, `52dfb10`. This is a governance checkpoint; no product behavior changed.
 - **Now mandatory:**
@@ -37,7 +240,7 @@ Sections below this checkpoint are historical. Older **NEXT** lines are not the 
 - **No implementation has been authorized from these decisions.** Current code still differs from several of them (for example permanent Reopen for Lost, optional Lost reason, schedule and Coordinator state surviving terminal transitions).
 - **Crew Slice 1 remains UNCOMMITTED** in the working tree (16 modified files, plus `app/api/jobs/current-crews/`, `app/lib/crew/`, `app/lib/phase13cCrewLifecycleProjection.test.ts` and `supabase/migrations/20261001160000_phase13c_crew_lifecycle_projection.sql`). It is pending correction and independent visual review.
 - **Whole-app contractor reality audit work** identified a broader correction program. The audit artifacts are uncommitted working documents, not product authority; the decisions above were reviewed independently.
-- **Next implementation order (each step needs its own explicit authorization):**
+- **Next implementation order (SUPERSEDED by the core-app-first roadmap in the later 2026-10-02 checkpoint above; kept as history):**
   1. Finish Crew Slice 1 safely:
      - disposition authority correction;
      - Lost and other touched copy correction;

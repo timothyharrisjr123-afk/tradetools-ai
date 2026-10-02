@@ -132,6 +132,20 @@ Permanent test: **IF A CONTRACTOR HAS TO STOP AND THINK ABOUT HOW FIELDIVE IS OR
 
 This method is the design-side counterpart of the real-world contractor scenario audit in `docs/fielddive-audit-playbook.md`.
 
+### Core flow before optional operating layers
+
+**THE CORE CONTRACTOR WORKFLOW MUST FEEL COMPLETE BEFORE OPTIONAL OPERATING COMPLEXITY IS ADDED.**
+
+**DO NOT ADD AN OPERATING LAYER ON TOP OF A CORE PRODUCT THAT IS NOT YET DIALED IN.**
+
+This applies FOLLOW THE WORK, NOT THE SOFTWARE to sequencing. The work every contractor does is the core:
+- customer, property and Job
+- photos, measurements, scope and proposal
+- acceptance, scheduling and production
+- payment and closeout
+
+Optional operating layers (Team/Crew structure, advanced staffing, richer access models) only help once that core is truthful and easy. When choosing what to build next, a core-flow defect outranks an operating-layer feature. Sequencing lock and parked Team/Crew scope: `docs/fielddive-active-product-locks.md` → D9.
+
 ### Prompts are not standalone
 
 An implementation, audit or research prompt is not a standalone product specification. Every task applies, in order:
@@ -322,6 +336,8 @@ Person association is by explicit identity, never inferred from name, phone or e
 The controlling Phase 13C interpretation is `docs/phase13c-people-crew-access-product-architecture-decision.md`.
 
 ### Team experience
+
+*Sequencing:* Team/Crew implementation is parked under D9 in `docs/fielddive-active-product-locks.md`. This standard stays binding whenever that work resumes.
 
 Team can be sophisticated internally, but it must be simple externally. Without training, a contractor should understand how to:
 
