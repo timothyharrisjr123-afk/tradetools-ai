@@ -8,7 +8,8 @@ All future FieldDive work must follow:
 
 - `docs/fielddive-product-execution-standards.md` — how implementation work is done: paid-product standard, all standards applying together, product principles, architecture and long-term correctness over ease, Fix-When-Found, state truth, whole-product coherence, tenancy, people/title/authority, access product direction, derived access lifecycle, server ownership, visual proof, Astra and Sol use, prompt lessons and failure classes, and release/environment truth.
 - `docs/fielddive-ui-product-cohesion-standard.md` — mandatory whenever any visible UI is touched: screen job, scan order, information ownership, hierarchy, color, banners, real viewport proof, independent visual review, and the screenshot ZIP gate.
-- `docs/fielddive-audit-playbook.md` — the required audit map, cross-surface coherence gate and evidence rule for any meaningful audit; how whole-product audits (13E-A) and competitive audits (13E-B) are run, and how findings close.
+- `docs/fielddive-audit-playbook.md` — the required audit map, cross-surface coherence gate and evidence rule for any meaningful audit; the real-world contractor scenario audit; how whole-product audits (13E-A) and competitive audits (13E-B) are run, and how findings close.
+- `docs/fielddive-active-product-locks.md` — **read first.** Index of active cross-cutting product locks, the precedence rule, and settled product decisions. Future prompts must load it. Agents do not independently re-decide a settled decision recorded there.
 
 These are canonical standing instructions. Do not improvise replacements, silently weaken them, or omit applicable standards from future implementation or audit work.
 
@@ -16,7 +17,42 @@ Domain blueprints remain the product authority for their program. Repo truth rem
 
 Sections below this checkpoint are historical. Older **NEXT** lines are not the current step.
 
-### Current checkpoint (2026-10-01) — Phase 13C
+### Current checkpoint (2026-10-02) — Phase 13C: contractor operating model + settled product decisions (docs only)
+
+- **Code checkpoint:** unchanged, `52dfb10`. This is a governance checkpoint; no product behavior changed.
+- **Now mandatory:**
+  - **CONTRACTOR OPERATING MODEL FIRST** — primary product lens (`docs/fielddive-product-execution-standards.md` → "Contractor operating model first").
+  - **FIELDIVE REAL-WORLD WORKFLOW REASONING METHOD** — FOLLOW THE WORK, NOT THE SOFTWARE; real contractor example first, product behavior second, system translation third (same section). Audits apply it through the "Real-world contractor scenario audit" in `docs/fielddive-audit-playbook.md`: domain correctness **and** real-world contractor flow.
+  - **`docs/fielddive-active-product-locks.md`** — new index of active locks and settled decisions. LATEST EXPLICIT CONTROLLING PRODUCT DECISION WINS. Prompts are not standalone specifications.
+- **Settled product decisions (detail in the locks index §4):**
+  1. **Lost before Complete** — Lost is allowed at any point before Complete (including during production or after money was received), requires a reason, retires current operational commitments, keeps obligations truthful, never follows Complete; a returning customer gets a new Job.
+  2. **Closed** — not allowed while any operational, financial, administrative, customer or closeout work is pending. COMPLETE = THE WORK IS FINISHED. CLOSED = EVERYTHING ABOUT THE JOB IS FINISHED.
+  3. **On Hold + Calendar** — a scheduled Job placed On Hold asks Keep or Release the slot; a retained date that passes becomes history and needs a fresh scheduling decision.
+  4. **Job manager / Site Manager** — stays current until deliberately replaced; continues through Complete and closeout; responsibility ends at Closed or Lost; terminal history keeps the last manager. **SOFTWARE ACCESS != JOB RESPONSIBILITY.**
+  5. **Tasks / Attention** — obsolete work retires (never faked as Completed); real obligations stay pending; Closed is blocked while they remain.
+  6. **Lost by mistake** — a quiet 24-hour correction that restores the known pre-Lost state and is audited. Not permanent Reopen.
+  7. **Inactive People / Crews** — keep identity and history, leave current choices; reactivation reuses identity and restores no old operational relationship or access.
+  8. **Offline / manual payments** — a canonical workflow on the same Job payment truth is **required before launch** and will be planned and mapped before implementation.
+  - Plus the **terminal business-story snapshot** principle: TERMINAL JOBS PRESERVE THE LAST KNOWN BUSINESS STORY WITHOUT PRESERVING ACTIVE OPERATIONAL RESPONSIBILITY.
+- **No implementation has been authorized from these decisions.** Current code still differs from several of them (for example permanent Reopen for Lost, optional Lost reason, schedule and Coordinator state surviving terminal transitions).
+- **Crew Slice 1 remains UNCOMMITTED** in the working tree (16 modified files, plus `app/api/jobs/current-crews/`, `app/lib/crew/`, `app/lib/phase13cCrewLifecycleProjection.test.ts` and `supabase/migrations/20261001160000_phase13c_crew_lifecycle_projection.sql`). It is pending correction and independent visual review.
+- **Whole-app contractor reality audit work** identified a broader correction program. The audit artifacts are uncommitted working documents, not product authority; the decisions above were reviewed independently.
+- **Next implementation order (each step needs its own explicit authorization):**
+  1. Finish Crew Slice 1 safely:
+     - disposition authority correction;
+     - Lost and other touched copy correction;
+     - honest Team-week wording;
+     - independent visual review;
+     - foundation commit if accepted.
+  2. Whole-Job operational exit / coherence.
+  3. Commercial / public action lifetime.
+  4. Intake recovery + honest reads.
+  5. People / access lifecycle completion.
+  6. Phase 13C closure + scale proof.
+- **Manual/offline payment workflow:** required before launch; mapped before implementation. Not part of the order above unless separately scheduled.
+- The 2026-10-01 checkpoint below remains the current code, migration and Phase 13C status record. Its **NEXT** line (read-only Crew integration audit) is superseded by this order. Its required open items (task-derived Job access lifecycle, access simplification, first-time activation) remain required before Phase 13C closure.
+
+### Checkpoint (2026-10-01) — Phase 13C code and migration status (NEXT superseded by 2026-10-02)
 
 - **Code checkpoint:** `52dfb1022f70007b0752368cdbf7bab92c62c8b5` — `feat(phase13c): harden coordinator assignment flow`. Local only. Not pushed. No deploy.
   - Phase 13C code lineage since docs checkpoint `955afdc`: `2cdd8d5` → `86415b5` → `8f22a00` → `50c7cfb` → `52dfb10` (status of each below).

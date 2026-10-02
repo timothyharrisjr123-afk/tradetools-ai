@@ -8,7 +8,7 @@
 
 If a standard and a locked blueprint appear to conflict, stop and report the conflict. Do not pick a weaker reading, improvise a replacement, or silently drop either side.
 
-Current checkpoint and program sequence live in `docs/fielddive-global-handoff.md`. Visible UI also follows `docs/fielddive-ui-product-cohesion-standard.md`. Whole-product and competitive audits follow `docs/fielddive-audit-playbook.md`.
+Current checkpoint and program sequence live in `docs/fielddive-global-handoff.md`. Visible UI also follows `docs/fielddive-ui-product-cohesion-standard.md`. Whole-product and competitive audits follow `docs/fielddive-audit-playbook.md`. Active cross-cutting product locks and settled product decisions are indexed in `docs/fielddive-active-product-locks.md`, which every task reads first.
 
 ---
 
@@ -81,6 +81,67 @@ Do not equate "avoid overbuilding" with "remove capability."
 Use the simplest durable internal architecture that supports current launch needs, strong security, and future expansion without replacement.
 
 The Astra architecture report wrote the three action lines with em dashes (`KNOW IT — DO IT`). The arrow form above is the standing phrase for future work. The meaning is the same.
+
+HISTORY != CURRENT OPERATIONS.
+
+FIELDIVE SHOULD REDUCE THE CONTRACTOR'S ADMINISTRATIVE MEMORY BURDEN, NOT MIRROR THE DATABASE BACK AT THEM.
+
+---
+
+## Contractor operating model first
+
+**CONTRACTOR OPERATING MODEL FIRST.** This is the primary product lens.
+
+FieldDive is designed around how a real contractor operates day to day, not around database tables, internal modules, state-machine convenience or software architecture.
+
+Test: **"If a contractor used FieldDive all day without knowing how FieldDive is built, would the workflow feel obvious?"**
+
+If a technically correct implementation feels unnatural to a contractor, the product flow is not finished.
+
+### Real-world workflow reasoning method
+
+Mandatory before designing, changing, auditing or approving a workflow.
+
+**FOLLOW THE WORK, NOT THE SOFTWARE.**
+
+**REAL CONTRACTOR EXAMPLE FIRST. PRODUCT BEHAVIOR SECOND. SYSTEM/ARCHITECTURE TRANSLATION THIRD.** Contractor examples precede system abstractions when reasoning about product behavior. System-oriented wording first causes product drift.
+
+1. **Tell the real contractor story first.** Use actual people, customer, property and Job context when it helps. Example: "Mike is managing the Miller residence. Mike is sick. Mark takes over. What would the contractor expect FieldDive to show now?"
+2. **Walk the work in the order it actually happens.** For example: customer/address → property visit → photos → measurement → scope → proposal → approval → scheduling → production → completion → financial/admin closeout → Closed.
+3. **At every step ask:**
+   - What happened in the real business?
+   - What does the contractor believe is true right now?
+   - What would they naturally do next?
+   - What does FieldDive already know?
+   - What should FieldDive do automatically?
+   - What genuinely requires contractor judgment?
+   - What should remain current?
+   - What belongs only in history?
+   - If this screen is never opened again, does the system remain truthful?
+   - Is FieldDive reducing administrative work or creating it?
+4. **Reuse known information.** Do not make a contractor re-enter customer, property, person or Job context FieldDive already knows.
+5. **Bring required setup into the workflow when practical.** Do not force the contractor to understand internal module organization. Example: if a proposal needs a template, ask whether a usable default should already exist, or whether the missing requirement should be handled in the proposal flow rather than sending the contractor to hunt through Setup.
+6. **Automate consequences FieldDive can know.** Do not ask the contractor to clean up stale Crew, schedule, task or access state manually when the business event already determines the answer.
+7. **Ask where real business intent is ambiguous.** Example: a scheduled Job placed On Hold. FieldDive cannot know whether the contractor wants to protect or release that capacity, so it asks there.
+8. **Preserve history without making history behave like current operations.**
+9. **Use tailored exceptions when real human behavior requires them.** Do not weaken a good main workflow to accommodate an edge case. Example: Lost is terminal, but a 24-hour "Lost by mistake" correction is a bounded exception for human error.
+10. **Do not add complexity merely for architectural neatness.** No new state, page, module, role or workflow unless contractor reality requires it.
+11. **Only after the contractor behavior is understood,** translate it into domain model, database invariants, server authority, permissions, components, screens, tests and history/audit representation.
+
+Permanent test: **IF A CONTRACTOR HAS TO STOP AND THINK ABOUT HOW FIELDIVE IS ORGANIZED IN ORDER TO FINISH THEIR REAL-WORLD TASK, THE FLOW IS NOT FINISHED.**
+
+This method is the design-side counterpart of the real-world contractor scenario audit in `docs/fielddive-audit-playbook.md`.
+
+### Prompts are not standalone
+
+An implementation, audit or research prompt is not a standalone product specification. Every task applies, in order:
+
+1. current canonical governance;
+2. `docs/fielddive-active-product-locks.md`;
+3. the latest controlling domain decision;
+4. task-specific instructions.
+
+**LATEST EXPLICIT CONTROLLING PRODUCT DECISION WINS.** Historical docs, migrations, tests and screenshots are evidence, not authority over a newer explicit decision. A test that encodes a superseded assumption is updated when that behavior is implemented; it is not product authority merely because it passes. Do not ask an agent to independently re-decide a settled decision.
 
 ---
 
@@ -325,6 +386,7 @@ If access exists because of an operational reason, the lifecycle must define wha
 - Do not revoke blindly when another legitimate reason remains.
 - Prefer source- and reason-aware authority and cleanup, enforced by the server and database, over client heuristics.
 - Examples of reasons: Coordinator responsibility, task assignment, manual access, invitation or migration reasons.
+- SOFTWARE ACCESS != JOB RESPONSIBILITY. A person's normal company access persists until the company changes or removes it. It is not created and removed per Job. A Job relationship may supply the scope or reason for a person whose access is intentionally limited to assigned or shared Jobs. Ending that relationship never erases unrelated company access.
 
 Acceptance consequence: a slice that creates derived access, or changes the operational reason behind it, is not complete until create, change, clear, replace and replay are defined for that reason. This standard does not itself authorize any access implementation.
 
@@ -467,6 +529,8 @@ Cursor quality improved materially when prompts were tighter.
 
 Prompts should state:
 
+- that `docs/fielddive-active-product-locks.md` and current governance apply
+- the real contractor story the work serves
 - purpose
 - the screen or system job
 - source of truth
@@ -502,6 +566,9 @@ Known failure classes to test for explicitly:
 - generic or CRUD-looking UI
 - false loading, error or empty states
 - the visual-proof packaging rule missed
+- technically correct behavior that fails the contractor story (system-first reasoning)
+- terminal or ended states that leave live operational commitments behind
+- re-deciding a settled product decision instead of reading the active locks
 
 Known examples:
 

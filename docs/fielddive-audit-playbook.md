@@ -2,7 +2,7 @@
 
 **Status:** Mandatory method for future FieldDive whole-product audits and competitive audits. The required audit map, cross-surface coherence gate and evidence rule below also apply to every meaningful feature or system audit and to feature-cluster closure.
 
-**Also required:** `docs/fielddive-product-execution-standards.md` and, wherever a finding is about what the contractor sees, `docs/fielddive-ui-product-cohesion-standard.md`.
+**Also required:** `docs/fielddive-active-product-locks.md` (read first; settled decisions are not re-decided by an audit), `docs/fielddive-product-execution-standards.md` and, wherever a finding is about what the contractor sees, `docs/fielddive-ui-product-cohesion-standard.md`.
 
 This playbook is the method. It is not a substitute for looking at the product, and it is not permission to expand the product because a competitor has a feature.
 
@@ -44,8 +44,59 @@ A meaningful audit of any feature or system maps:
 - **H. Failure semantics:** loading, error, empty, unknown, partial failure and retry, kept distinct.
 - **I. Cross-surface proof:** the same truth everywhere the entity legitimately appears.
 - **J. Visual proof** where UI changed, following `docs/fielddive-ui-product-cohesion-standard.md`, including independent review and the ZIP gate.
+- **K. Real-world contractor flow:** the end-to-end contractor scenarios that pass through this entity, walked in the order the work actually happens (see "Real-world contractor scenario audit" below).
 
 A writer audit that stops at the obvious route is incomplete.
+
+## Real-world contractor scenario audit
+
+Applies the "Real-world workflow reasoning method" in `docs/fielddive-product-execution-standards.md` to audits. Mandatory for whole-app audits and for every meaningful feature or system audit.
+
+Every audit checks both:
+
+- **A. DOMAIN CORRECTNESS** — the required audit map above: identity, source of truth, readers, writers, authority, lifecycle, derived consequences, failure semantics.
+- **B. REAL-WORLD CONTRACTOR FLOW** — complete contractor scenarios walked end to end, in the order the work actually happens.
+
+**An audit may not declare an area sound merely because each underlying module is technically correct.** A TECHNICALLY CORRECT ISLAND IS NOT A FINISHED PRODUCT.
+
+Tell the contractor story first, then judge the behavior, then trace the system. Example scenarios (extend where the area requires):
+
+- new customer → address/property → site visit → photos → measurement → scope → proposal
+- returning customer → known customer/property → new Job
+- proposal → accepted → scheduling → Crew → production
+- scheduled Job → On Hold → keep/release schedule choice → resume
+- Job → Lost → frozen terminal story → unresolved obligations only
+- Production → Complete → financial/admin closeout → Closed
+- employee leaves → Inactive → history preserved → later reactivation without resurrecting old work
+- card / check / cash payment → one canonical Job payment truth
+
+For each scenario, audit:
+
+- natural next action
+- repeated entry
+- manual cleanup
+- stale operational state
+- history/current confusion
+- module hopping
+- hidden prerequisites
+- error vs empty
+- UI/server mismatch
+- permissions
+- desktop/mobile flow where relevant
+
+Auditors explicitly look for:
+
+- technically correct islands
+- natural-next-step failures
+- module hopping
+- repeated entry of known information
+- manual cleanup of state FieldDive already knows is stale
+- stale history acting as current operations
+- hidden setup prerequisites
+- generic rules where a tailored real-world exception is needed
+- actions that sound correct architecturally but fail the contractor story
+
+Judge findings against settled decisions in `docs/fielddive-active-product-locks.md`, not against current code behavior. Current behavior that differs from a settled decision is a finding, not evidence against the decision.
 
 ## Cross-surface coherence gate
 
@@ -140,6 +191,8 @@ Trace one job across the real authorities:
 auth → company → customer and job → measurement → proposal → send → acceptance → contractor approval → schedule → production → payment → completion
 
 Audit tenancy, permissions, public authority, money truth, lifecycle, idempotency, retries, stale sessions, provider state, recovery, and supportability.
+
+Then walk the branch and exit scenarios from "Real-world contractor scenario audit" (On Hold, Lost, Complete → Closed, employee leaves, offline payment), not only the happy path.
 
 No cross-tenant association, read, write, reassignment, or inference. Silent tenant mixing is a P0 launch blocker.
 
@@ -338,6 +391,8 @@ Independent verification means a separate pass against the actual product behavi
 
 ## What an audit must not do
 
+- Do not declare an area sound only because each module is technically correct; walk the contractor scenarios.
+- Do not re-decide a settled product decision recorded in `docs/fielddive-active-product-locks.md`.
 - Do not anchor Sol to Cursor's conclusions.
 - Do not anchor research to a short list of competitors.
 - Do not treat tests, a green build, or a checklist as the paid-product answer.
