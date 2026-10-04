@@ -6,7 +6,7 @@
 
 **Answers one question:** what must every future FieldDive implementation or audit know before reasoning about behavior?
 
-Last updated: 2026-10-02 (D9 sequencing lock added).
+Last updated: 2026-10-04 (plain-language product copy lock added).
 
 ---
 
@@ -47,6 +47,7 @@ Standing phrases (canonical in `docs/fielddive-product-execution-standards.md`):
 - A TECHNICALLY CORRECT ISLAND IS NOT A FINISHED PRODUCT.
 - HISTORY != CURRENT OPERATIONS.
 - FIELDIVE SHOULD REDUCE THE CONTRACTOR'S ADMINISTRATIVE MEMORY BURDEN, NOT MIRROR THE DATABASE BACK AT THEM.
+- THE CONTRACTOR SHOULD SEE WHAT SOMETHING MEANS, NOT HOW FIELDIVE IMPLEMENTS IT.
 
 ## 3. Mandatory method — FIELDIVE REAL-WORLD WORKFLOW REASONING METHOD
 
@@ -246,6 +247,7 @@ Future prompts must not resume Team/Crew implementation unless the roadmap is de
 | Derived access ends when its reason ends; independent reasons survive | execution standards → "Derived access lifecycle" |
 | Proposal acceptance is not operational approval; permission never bypasses domain eligibility | execution standards → "Domain ownership" |
 | Latest explicit controlling decision supersedes older assumptions | this index §1 |
+| **PLAIN-LANGUAGE PRODUCT COPY** — THE CONTRACTOR SHOULD SEE WHAT SOMETHING MEANS, NOT HOW FIELDIVE IMPLEMENTS IT. No FieldDive/system/lifecycle narration. COPY IS CONTEXTUAL, NOT MINIMAL BY DEFAULT: keep a short plain consequence note when removing it could leave a contractor unsure about an important consequence; otherwise don't add one | execution standards → "Plain-language product copy"; audit playbook → "Plain-language copy audit" |
 
 ---
 

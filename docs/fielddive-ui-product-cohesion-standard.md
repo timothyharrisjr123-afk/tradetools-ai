@@ -277,6 +277,7 @@ The reviewer inspects the actual screenshots for:
 - cohesion with the best FieldDive screens
 - generic CRUD or admin feel
 - reusable versus one-off interaction design
+- copy, not only layout: business meaning rather than implementation narration, no internal jargon, no unneeded explanation, and no statement that assumes the wrong Job stage (`docs/fielddive-product-execution-standards.md` → "Plain-language product copy")
 
 Standing question: if this exact screen shipped in the same product as our best FieldDive screens, would it feel intentionally designed by the same system?
 

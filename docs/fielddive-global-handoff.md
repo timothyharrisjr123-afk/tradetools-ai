@@ -9,6 +9,7 @@ All future FieldDive work must follow:
 - `docs/fielddive-product-execution-standards.md` — how implementation work is done: paid-product standard, all standards applying together, product principles, architecture and long-term correctness over ease, Fix-When-Found, state truth, whole-product coherence, tenancy, people/title/authority, access product direction, derived access lifecycle, server ownership, visual proof, Astra and Sol use, prompt lessons and failure classes, and release/environment truth.
 - `docs/fielddive-ui-product-cohesion-standard.md` — mandatory whenever any visible UI is touched: screen job, scan order, information ownership, hierarchy, color, banners, real viewport proof, independent visual review, and the screenshot ZIP gate.
 - `docs/fielddive-audit-playbook.md` — the required audit map, cross-surface coherence gate and evidence rule for any meaningful audit; the real-world contractor scenario audit; how whole-product audits (13E-A) and competitive audits (13E-B) are run, and how findings close.
+- Plain-language product copy (2026-10-04) is part of these standards: execution standards → "Plain-language product copy"; audit playbook → "Plain-language copy audit".
 - `docs/fielddive-active-product-locks.md` — **read first.** Index of active cross-cutting product locks, the precedence rule, and settled product decisions. Future prompts must load it. Agents do not independently re-decide a settled decision recorded there.
 
 These are canonical standing instructions. Do not improvise replacements, silently weaken them, or omit applicable standards from future implementation or audit work.
@@ -16,6 +17,18 @@ These are canonical standing instructions. Do not improvise replacements, silent
 Domain blueprints remain the product authority for their program. Repo truth remains the authority for what the code actually does. If a governance standard and a locked blueprint appear to conflict, stop and report it. Do not pick a weaker reading.
 
 Sections below this checkpoint are historical. Older **NEXT** lines are not the current step.
+
+### Governance update (2026-10-04) — plain-language product copy standard locked (docs only)
+
+- **Active governance:** **THE CONTRACTOR SHOULD SEE WHAT SOMETHING MEANS, NOT HOW FIELDIVE IMPLEMENTS IT.** UI COPY SHOULD DESCRIBE THE BUSINESS MEANING OR NEXT ACTION, NOT NARRATE WHAT FIELDIVE/THE SYSTEM IS DOING. **COPY IS CONTEXTUAL, NOT MINIMAL BY DEFAULT:** obvious actions need no prose; consequential, irreversible, ambiguous or risky actions get a short plain-language consequence note when removing it could leave a contractor unsure.
+- Where it lives:
+  - Detailed standard (reasoning questions, review-required patterns, preferred style, context-aware copy): `docs/fielddive-product-execution-standards.md` → "Plain-language product copy".
+  - Index entry: `docs/fielddive-active-product-locks.md` §5.
+  - Audit check: `docs/fielddive-audit-playbook.md` → "Plain-language copy audit".
+  - Visual review: copy is inspected, not only layout (`docs/fielddive-ui-product-cohesion-standard.md` → "Independent visual review").
+- **Prompt requirement:** every future implementation prompt touching visible UI carries the copy-quality requirement in execution standards → "Cursor prompt lessons".
+- **Roadmap unchanged** except that core-flow remediation now includes a user-facing copy/jargon audit (roadmap steps 2 and 7 below).
+- **Code state:** HEAD `49fc56b`. The core safety/authority slice remains **uncommitted** and is awaiting independent visual review. It includes migration `20261002120000`, which is applied to staging only. Its Lost confirmation copy is a known instance of the copy problem this standard addresses (execution standards → "Plain-language product copy", known example).
 
 ### Current checkpoint (2026-10-02, later) — Team/Crew parked; roadmap refocused on the core contractor flow (docs only)
 
@@ -45,12 +58,12 @@ Each step needs its own explicit authorization.
    - Unauthenticated `/api/approval/status` PII.
    - Any other confirmed security blockers: direct task writes, direct proposal pointer writes, the invitation/account oracle, the task-derived access lifecycle.
    - **Contain Crew Slice 1 only as far as needed** so it doesn't leave insecure or contradictory shared Job logic. That means the disposition function it re-creates (and the test asserting byte identity), the false Lost confirmation copy, and the "Reopen" Lost copy. It also means reconciling staging with whatever is committed or not committed. Commit-as-foundation vs. hold/revert is a decision for this step. No Crew feature work.
-2. **Core Job lifecycle / operational truth.** Lost (reason required; no Lost after Complete), Complete, Closed (D2 gate), On Hold (D3 Keep/Release and held-date expiry), schedule retirement, Site Manager responsibility (D4), tasks/attention outcomes (D5), terminal snapshot, Lost by mistake (D6), and public-action eligibility.
+2. **Core Job lifecycle / operational truth.** Lost (reason required; no Lost after Complete), Complete, Closed (D2 gate), On Hold (D3 Keep/Release and held-date expiry), schedule retirement, Site Manager responsibility (D4), tasks/attention outcomes (D5), terminal snapshot, Lost by mistake (D6), and public-action eligibility. Lifecycle copy follows the plain-language copy standard (context-aware, no lifecycle narration).
 3. **Core customer-to-proposal workflow.** Customer, property, New Job, photos, measurements, scope, proposal, template/default setup, pricing prerequisites, first real proposal (activation), and reuse for returning customers and properties.
 4. **Proposal / public / commercial truth.** Frozen sent version, acceptance, contractor review, authorized scope, public links, payment requests, provider checkout/session lifecycle, and terminal/On Hold eligibility.
 5. **Honest reads / retry / field usability.** ERROR != EMPTY, UNKNOWN != MISSING, retry-safe intake, Board refresh, Calendar refresh, pricing-policy read, measurement read, photo upload, mobile field flow, and offline/failure recovery where appropriate.
 6. **Company access / people, only as far as a functional app needs.** Company members, invitations, Owner custody, Working / Full Team access concepts if still needed, Site Manager Job responsibility, and access removal and handoff. No Team/Crew operating-model expansion.
-7. **Whole-product simplification / cohesion.** The actual contractor day, natural next actions, hidden prerequisites, proposal usability, Job Card usability, Calendar usability, photo findability, first-time setup, desktop/mobile, less module hopping, and less administrative memory burden.
+7. **Whole-product simplification / cohesion.** The actual contractor day, natural next actions, hidden prerequisites, proposal usability, Job Card usability, Calendar usability, photo findability, first-time setup, desktop/mobile, less module hopping, less administrative memory burden, and a whole-app user-facing copy/jargon audit (audit playbook → "Plain-language copy audit").
 8. **Pre-launch readiness.** Offline/manual payment workflow (D8), bounded reads and scale proof, legacy containment, an end-to-end release audit, and then the Team/Crew launch decision.
 
 **NEXT:**

@@ -98,6 +98,23 @@ Auditors explicitly look for:
 
 Judge findings against settled decisions in `docs/fielddive-active-product-locks.md`, not against current code behavior. Current behavior that differs from a settled decision is a finding, not evidence against the decision.
 
+## Plain-language copy audit
+
+Applies "Plain-language product copy" in `docs/fielddive-product-execution-standards.md`. Mandatory for whole-app audits and for feature audits that include visible UI.
+
+**THE CONTRACTOR SHOULD SEE WHAT SOMETHING MEANS, NOT HOW FIELDIVE IMPLEMENTS IT.** Real contractor language is the comparison standard: would a roofer say this to a customer or a crew lead?
+
+Flag:
+- implementation narration ("FieldDive will…", "the system…", lifecycle or state-machine explanations)
+- jargon and internal terminology leaking to users (canonical, authority, transition, derived access, record retained)
+- duplicate explanations of the same fact on one screen
+- generic paragraphs where no explanation is needed
+- the reverse: a consequential, irreversible or risky action with no plain consequence note where a reasonable contractor would be unsure (COPY IS CONTEXTUAL, NOT MINIMAL BY DEFAULT)
+- copy that assumes the wrong Job stage or business condition
+- wording that sounds like documentation instead of contractor software
+
+Record each finding with the surface, the exact text and the business meaning it should convey. Copy findings are product findings. They are not cosmetic, and they go through the normal register, classify and decide path.
+
 ## Cross-surface coherence gate
 
 This gate enforces "Whole-product coherence" in `docs/fielddive-product-execution-standards.md`. Before closing a feature cluster, audit at minimum:
@@ -111,6 +128,7 @@ This gate enforces "Whole-product coherence" in `docs/fielddive-product-executio
 - replay, idempotency and stale writes
 - loading, error and empty states
 - terminology, and picker or source consistency
+- plain-language copy (see "Plain-language copy audit")
 - hidden setup dependencies and workflow dead ends
 - desktop and mobile, and visual cohesion
 - adjacent regressions

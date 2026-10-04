@@ -146,6 +146,70 @@ This applies FOLLOW THE WORK, NOT THE SOFTWARE to sequencing. The work every con
 
 Optional operating layers (Team/Crew structure, advanced staffing, richer access models) only help once that core is truthful and easy. When choosing what to build next, a core-flow defect outranks an operating-layer feature. Sequencing lock and parked Team/Crew scope: `docs/fielddive-active-product-locks.md` → D9.
 
+### Plain-language product copy
+
+**THE CONTRACTOR SHOULD SEE WHAT SOMETHING MEANS, NOT HOW FIELDIVE IMPLEMENTS IT.**
+
+**UI COPY SHOULD DESCRIBE THE BUSINESS MEANING OR NEXT ACTION, NOT NARRATE WHAT FIELDIVE/THE SYSTEM IS DOING.**
+
+This is the copy counterpart of POWER LIVES UNDER THE HOOD. CLARITY LIVES IN THE INTERFACE. It applies to every user-facing word, on desktop and mobile:
+- dialogs, buttons, badges and helper text
+- empty states, errors and onboarding
+- Job lifecycle copy, proposals and payments
+- Calendar, settings and access
+
+**Copy reasoning method.** Before approving user-facing copy, ask:
+
+1. Would a contractor naturally say or understand this?
+2. Does it describe the business outcome rather than system mechanics?
+3. Does the contractor actually need this sentence?
+4. Can it be shorter without losing required meaning?
+5. Does the wording assume a Job stage or business condition that may not be true?
+6. Can FieldDive use known context instead of one generic explanation?
+7. Is it warning about a real consequence the contractor needs to know now?
+8. Is internal terminology leaking into the interface?
+
+If the answer exposes implementation rather than business meaning, rewrite it.
+
+**Review-required patterns.** User-facing copy containing any of these triggers review:
+- "FieldDive will…", "The system will…", "the app will…"
+- "lifecycle stage", "transition", "state machine"
+- "canonical", "authority", "derived access"
+- "assignment is preserved", "record is retained/preserved"
+- backend or database terminology, and implementation explanations
+
+This is not a mechanical ban on every English use of those words. The rule: **if the phrase explains internal implementation rather than contractor-facing business meaning, it does not belong in normal product UI.**
+
+**Preferred style.** Direct business language, for example: Lost · On hold · Complete · Closed · Reason · Payment still due · Needs attention · No scheduled jobs this week · Scheduled date removed · No longer active · Records and history kept.
+
+**COPY IS CONTEXTUAL, NOT MINIMAL BY DEFAULT.** This is not a "no explanatory copy" rule. Use the amount of copy the action deserves.
+
+- **Ordinary or obvious actions:** the button or label may be enough. Do not add prose merely because a dialog exists. **IF THE ACTION AND RESULT ARE ALREADY OBVIOUS, DO NOT ADD A PARAGRAPH EXPLAINING THEM.**
+- **Consequential, irreversible, ambiguous or risky actions:** a short consequence note is often valuable. State the business outcome in plain contractor language, and only what the contractor needs to know before acting:
+  - material consequences
+  - irreversible actions
+  - ambiguous outcomes
+  - required next steps
+  - real risk
+
+**IF REMOVING THE NOTE COULD LEAVE A REASONABLE CONTRACTOR UNSURE ABOUT AN IMPORTANT CONSEQUENCE, KEEP THE NOTE. OTHERWISE, DO NOT ADD IT.**
+
+Acceptable example: a consequence note in plain language, with no implementation narration.
+
+```
+Mark job lost
+This job will be marked lost. Records and history will remain.
+Reason
+[ field ]
+Cancel | Mark lost
+```
+
+**Context-aware copy.** Do not use generic copy that assumes every Job is in the same business condition. Example: Mark Lost can happen during intake, proposal, scheduling or production, so copy must not say "active work stops" when no production has started. Where a material consequence differs by current state, use known context and say only the relevant consequence. Do not narrate internal lifecycle handling.
+
+Known example (2026-10-04): the Lost confirmation in the uncommitted core-safety slice reads "Lifecycle stage stays Intake. Agreements, payments, and schedule stay on record. A current crew assignment ends." That narrates mechanics, names an internal concept, and states a crew consequence whether or not a crew exists. The acceptable form is the consequence note above ("This job will be marked lost. Records and history will remain."), plus only the further consequences that actually apply to this Job.
+
+Audit application: `docs/fielddive-audit-playbook.md` → "Plain-language copy audit". Visual review application: `docs/fielddive-ui-product-cohesion-standard.md` → "Independent visual review".
+
 ### Prompts are not standalone
 
 An implementation, audit or research prompt is not a standalone product specification. Every task applies, in order:
@@ -560,6 +624,14 @@ Prompts should state:
 - proof requirements
 - the expected final report
 
+Every implementation prompt that touches visible UI must include a copy-quality requirement equivalent to:
+
+> "User-facing copy must follow FieldDive plain-language product-copy standards. Describe contractor-facing business meaning, not system implementation. Do not introduce FieldDive/system/lifecycle/state-machine narration. Remove unnecessary explanatory prose. Use contextual copy only where the contractor needs to understand a real consequence."
+
+This does not mean "remove all explanation". COPY IS CONTEXTUAL, NOT MINIMAL BY DEFAULT. A short plain-language consequence note stays wherever removing it could leave a contractor unsure about an important consequence.
+
+Visual reviews inspect copy as well as layout: wording, implementation narration, jargon, duplicated explanations and stage-inappropriate statements are review findings, the same as spacing or hierarchy.
+
 Avoid vague prompts such as "polish this", "make it premium", or "clean this up" when the real information architecture can be specified.
 
 ---
@@ -585,6 +657,7 @@ Known failure classes to test for explicitly:
 - technically correct behavior that fails the contractor story (system-first reasoning)
 - terminal or ended states that leave live operational commitments behind
 - re-deciding a settled product decision instead of reading the active locks
+- user-facing copy that narrates implementation, leaks internal terms, over-explains, or assumes the wrong Job stage
 
 Known examples:
 
