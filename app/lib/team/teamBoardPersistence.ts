@@ -12,10 +12,43 @@ export class TeamBoardHttpError extends Error {
   constructor(
     public status: number,
     public code: string,
-    message?: string
+    message?: string,
+    /** Safe extra facts for the client (e.g. the Jobs keeping a Crew current). */
+    public details: Record<string, unknown> = {}
   ) {
     super(message ?? TEAM_BOARD_MESSAGES[code] ?? "Something went wrong. Try again.");
   }
+}
+
+export type CrewArchiveBlockingJob = { jobId: string; label: string };
+export type CrewArchiveBlock = { blockingJobs: CrewArchiveBlockingJob[]; blockingJobCount: number };
+
+/** archive_crew_v1's crew_actively_assigned facts. Only readable Jobs are named. */
+export function parseCrewArchiveBlock(body: Record<string, unknown>): CrewArchiveBlock {
+  const jobs = Array.isArray(body.blocking_jobs) ? body.blocking_jobs : [];
+  const blockingJobs = jobs.flatMap((raw): CrewArchiveBlockingJob[] => {
+    const row = (raw ?? {}) as Record<string, unknown>;
+    return typeof row.job_id === "string" && isUuidLike(row.job_id) && typeof row.label === "string" && row.label.trim()
+      ? [{ jobId: row.job_id, label: row.label.trim() }]
+      : [];
+  });
+  const count = body.blocking_job_count;
+  const blockingJobCount = typeof count === "number" && Number.isInteger(count) && count >= blockingJobs.length ? count : blockingJobs.length;
+  return { blockingJobs, blockingJobCount };
+}
+
+/** Client read of the route's archive-block body. */
+export function readCrewArchiveBlock(body: Record<string, unknown>): CrewArchiveBlock | null {
+  if (body.code !== "crew_actively_assigned" || !Array.isArray(body.blockingJobs)) return null;
+  const blockingJobs = body.blockingJobs.filter(
+    (row): row is CrewArchiveBlockingJob =>
+      Boolean(row) && typeof row.jobId === "string" && isUuidLike(row.jobId) && typeof row.label === "string" && row.label.length > 0
+  );
+  const count = body.blockingJobCount;
+  return {
+    blockingJobs,
+    blockingJobCount: typeof count === "number" && Number.isInteger(count) && count >= blockingJobs.length ? count : blockingJobs.length,
+  };
 }
 
 export const TEAM_BOARD_MESSAGES: Record<string, string> = {
@@ -30,7 +63,7 @@ export const TEAM_BOARD_MESSAGES: Record<string, string> = {
   linked_login_active: "This person still has FieldDive access. Remove their access first.",
   person_active_assignment_lead:
     "This person is leading a crew on a current job. Choose someone else to lead it, or remove that crew from the job, first.",
-  crew_actively_assigned: "This crew is currently assigned to a job. Replace or end that assignment first.",
+  crew_actively_assigned: "This crew is still the crew on a current job. Remove or replace it on that job first.",
   person_name_required: "This login has no name yet. They can add it in their FieldDive profile.",
   team_board_unavailable: "Crews are unavailable right now.",
 };
@@ -68,7 +101,8 @@ async function callRpc(supabase: SupabaseClient, fn: string, args: Record<string
   const body = data as RpcResult;
   if (body.ok !== true) {
     const code = typeof body.code === "string" ? body.code : "team_board_unavailable";
-    throw new TeamBoardHttpError(STATUS[code] ?? 503, code);
+    const details = code === "crew_actively_assigned" ? parseCrewArchiveBlock(body) : {};
+    throw new TeamBoardHttpError(STATUS[code] ?? 503, code, undefined, details);
   }
   return body;
 }

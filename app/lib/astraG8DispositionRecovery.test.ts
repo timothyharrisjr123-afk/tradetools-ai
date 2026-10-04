@@ -121,9 +121,9 @@ describe("Astra G8 disposition wording + menu", () => {
       visibleDispositionLabel("on_hold", "Waiting on materials"),
       "On hold · Waiting on materials"
     );
-    assert.equal(visibleDispositionLabel("lost"), "Not proceeding");
+    assert.equal(visibleDispositionLabel("lost"), "Lost");
     assert.equal(visibleDispositionLabel("closed"), "Closed to active work");
-    assert.equal(compactDispositionBadgeLabel("lost"), "Not proceeding");
+    assert.equal(compactDispositionBadgeLabel("lost"), "Lost");
     assert.equal(compactDispositionBadgeLabel("closed"), "Closed");
   });
 
@@ -166,10 +166,32 @@ describe("Astra G8 disposition wording + menu", () => {
     );
   });
 
-  test("blocked copy uses Resume/Reopen", () => {
+  test("blocked copy uses Resume/Reopen only where recovery exists; Lost never offers Reopen", () => {
     assert.match(String(dispositionBlockedWorkCopy("on_hold")), /Resume/);
-    assert.match(String(dispositionBlockedWorkCopy("lost")), /Reopen/);
+    assert.doesNotMatch(String(dispositionBlockedWorkCopy("lost")), /Reopen/);
     assert.match(String(dispositionBlockedWorkCopy("closed")), /Reopen/);
+  });
+
+  test("a Complete job cannot be marked lost from the menu", () => {
+    for (const disposition of ["active", "on_hold"]) {
+      const kinds = resolveDispositionManagementActions(disposition, { stage: "complete" }).map((a) => a.kind);
+      assert.equal(kinds.includes("lost"), false, disposition);
+      assert.equal(kinds.includes("close"), true, disposition);
+    }
+    assert.ok(
+      resolveDispositionManagementActions("active", { stage: "production" }).some((a) => a.kind === "lost")
+    );
+  });
+
+  test("Lost has no menu or recovery actions, even with recovery in the menu", () => {
+    assert.deepEqual(
+      resolveDispositionManagementActions("lost", { omitPrimaryRecoveryFromMenu: false }),
+      []
+    );
+    assert.deepEqual(
+      resolveDispositionManagementActions("closed", { omitPrimaryRecoveryFromMenu: false }).map((a) => a.kind),
+      ["reopen"]
+    );
   });
 });
 
@@ -188,7 +210,7 @@ describe("Astra G8 primary CTA priority", () => {
     assert.equal(action?.label, "Resume job");
   });
 
-  test("lost → Reopen job", () => {
+  test("lost → no primary action (Lost is terminal)", () => {
     const action = resolveJobCardOverviewPrimaryAction(
       eligibility("proposal", "lost"),
       {
@@ -197,7 +219,7 @@ describe("Astra G8 primary CTA priority", () => {
         canFinalizeDisposition: true,
       }
     );
-    assert.equal(action?.kind, "reopen_job");
+    assert.equal(action, null);
   });
 
   test("closed + production + complete-eligible → Reopen and complete", () => {
@@ -373,9 +395,9 @@ describe("Astra G8 stage × disposition matrix (representative)", () => {
     { stage: "approved", disposition: "on_hold", primary: "resume_job", lifecycleBlocked: true },
     { stage: "scheduled", disposition: "on_hold", primary: "resume_job", lifecycleBlocked: true },
     { stage: "production", disposition: "on_hold", primary: "resume_job", lifecycleBlocked: true },
-    { stage: "proposal", disposition: "lost", primary: "reopen_job", lifecycleBlocked: true },
-    { stage: "approved", disposition: "lost", primary: "reopen_job", lifecycleBlocked: true },
-    { stage: "production", disposition: "lost", primary: "reopen_job", lifecycleBlocked: true },
+    { stage: "proposal", disposition: "lost", primary: null, lifecycleBlocked: true },
+    { stage: "approved", disposition: "lost", primary: null, lifecycleBlocked: true },
+    { stage: "production", disposition: "lost", primary: null, lifecycleBlocked: true },
     { stage: "approved", disposition: "closed", primary: "reopen_job", lifecycleBlocked: true },
     {
       stage: "production",

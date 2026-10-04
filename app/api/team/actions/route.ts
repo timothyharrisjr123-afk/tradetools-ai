@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
     if (error instanceof TeamBoardHttpError) {
-      return NextResponse.json({ ok: false, code: error.code, message: error.message }, { status: error.status });
+      return NextResponse.json({ ok: false, code: error.code, message: error.message, ...error.details }, { status: error.status });
     }
     return NextResponse.json({ ok: false, code: "internal_error" }, { status: 500 });
   }

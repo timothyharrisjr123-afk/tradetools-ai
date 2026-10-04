@@ -20,6 +20,9 @@ import { dispositionActionNeedsCapability } from "@/app/lib/jobDispositionAuthor
 
 export const DISPOSITION_REASON_MAX_LENGTH = 240;
 
+export const LOST_CONFIRM_NOTE =
+  "This job will be marked lost. Records and history will remain." as const;
+
 export type DispositionManagementTarget = OperationalJobDisposition;
 
 export type DispositionManagementActionKind =
@@ -44,7 +47,15 @@ export type ChangeDispositionApiErrorCode =
   | "capability_denied"
   | "not_found"
   | "illegal_disposition_target"
+  | "lost_reason_required"
+  | "lost_is_terminal"
+  | "complete_cannot_be_lost"
   | "internal_error";
+
+/** Lost requires a reason (enforced by change_job_disposition_v1). */
+export function dispositionReasonRequired(target: DispositionManagementTarget): boolean {
+  return target === "lost";
+}
 
 export function resolveOperationalDisposition(
   value: string | null | undefined
@@ -71,7 +82,7 @@ export function visibleDispositionLabel(
     return note ? `On hold · ${note}` : "On hold";
   }
   if (disposition === "lost") {
-    return note ? `Not proceeding · ${note}` : "Not proceeding";
+    return note ? `Lost · ${note}` : "Lost";
   }
   return "Closed to active work";
 }
@@ -83,7 +94,7 @@ export function compactDispositionBadgeLabel(
   const disposition = resolveOperationalDisposition(value);
   if (!disposition || disposition === "active") return null;
   if (disposition === "on_hold") return "On hold";
-  if (disposition === "lost") return "Not proceeding";
+  if (disposition === "lost") return "Lost";
   return "Closed";
 }
 
@@ -92,11 +103,29 @@ export function resolveDispositionManagementActions(
   options?: {
     /** When true, recovery actions stay out of More (they are primary CTAs). */
     omitPrimaryRecoveryFromMenu?: boolean;
+    /** Lifecycle stage; a Complete job cannot be marked lost. */
+    stage?: CanonicalJobStage | string | null;
   }
 ): DispositionManagementAction[] {
   const disposition = resolveOperationalDisposition(current);
   if (!disposition) return [];
   const omitRecovery = options?.omitPrimaryRecoveryFromMenu !== false;
+  const canMarkLost =
+    options?.stage == null || resolveCanonicalJobStage({ stage: options.stage }) !== "complete";
+  const lostAction: DispositionManagementAction = {
+    target: "lost",
+    kind: "lost",
+    menuLabel: "Mark lost",
+    confirmTitle: "Mark job lost",
+    confirmActionLabel: "Mark lost",
+  };
+  const closeAction: DispositionManagementAction = {
+    target: "closed",
+    kind: "close",
+    menuLabel: "Close job",
+    confirmTitle: "Close job",
+    confirmActionLabel: "Close job",
+  };
 
   if (disposition === "active") {
     return [
@@ -107,39 +136,15 @@ export function resolveDispositionManagementActions(
         confirmTitle: "Put job on hold",
         confirmActionLabel: "Put on hold",
       },
-      {
-        target: "lost",
-        kind: "lost",
-        menuLabel: "Mark lost",
-        confirmTitle: "Mark job not proceeding",
-        confirmActionLabel: "Mark not proceeding",
-      },
-      {
-        target: "closed",
-        kind: "close",
-        menuLabel: "Close job",
-        confirmTitle: "Close job",
-        confirmActionLabel: "Close job",
-      },
+      ...(canMarkLost ? [lostAction] : []),
+      closeAction,
     ];
   }
 
   if (disposition === "on_hold") {
     const secondary: DispositionManagementAction[] = [
-      {
-        target: "lost",
-        kind: "lost",
-        menuLabel: "Mark lost",
-        confirmTitle: "Mark job not proceeding",
-        confirmActionLabel: "Mark not proceeding",
-      },
-      {
-        target: "closed",
-        kind: "close",
-        menuLabel: "Close job",
-        confirmTitle: "Close job",
-        confirmActionLabel: "Close job",
-      },
+      ...(canMarkLost ? [lostAction] : []),
+      closeAction,
     ];
     if (omitRecovery) return secondary;
     return [
@@ -154,7 +159,10 @@ export function resolveDispositionManagementActions(
     ];
   }
 
-  // lost / closed — recovery is primary; menu empty when omitRecovery
+  // Lost is terminal: no reopen.
+  if (disposition === "lost") return [];
+
+  // closed — recovery is primary; menu empty when omitRecovery
   if (omitRecovery) return [];
   return [
     {
@@ -184,9 +192,7 @@ export function dispositionBlockedWorkCopy(
   if (disposition === "on_hold") {
     return "Job is on hold. Resume to continue work.";
   }
-  if (disposition === "lost") {
-    return "Not proceeding. Reopen to continue work.";
-  }
+  if (disposition === "lost") return null;
   return "Closed to active work. Reopen to continue.";
 }
 
@@ -206,7 +212,7 @@ export function dispositionConfirmCopy(input: {
   }
   if (input.target === "lost") {
     return {
-      body: `Lifecycle stage stays ${stageLabel}. Agreements, payments, schedule, and assignments are preserved. This does not complete the job.`,
+      body: LOST_CONFIRM_NOTE,
       closeDoesNotComplete: false,
     };
   }
@@ -298,6 +304,20 @@ export function normalizeDispositionReason(
   return trimmed.slice(0, DISPOSITION_REASON_MAX_LENGTH);
 }
 
+export function statusForDispositionCode(code: string): number {
+  if (code === "unauthorized") return 401;
+  if (code === "forbidden" || code === "capability_denied") return 403;
+  if (code === "not_found") return 404;
+  if (
+    code === "illegal_disposition_target" ||
+    code === "lost_is_terminal" ||
+    code === "complete_cannot_be_lost"
+  ) {
+    return 409;
+  }
+  return 400;
+}
+
 export function mapDispositionMutationError(
   code: string | null | undefined
 ): string {
@@ -312,6 +332,12 @@ export function mapDispositionMutationError(
       return "This job could not be found.";
     case "illegal_disposition_target":
       return "That job status is not allowed.";
+    case "lost_reason_required":
+      return "Add a reason before marking this job lost.";
+    case "lost_is_terminal":
+      return "This job is marked lost and can't be changed.";
+    case "complete_cannot_be_lost":
+      return "A completed job can't be marked lost.";
     case "invalid_payload":
       return "That change could not be submitted. Refresh and try again.";
     default:

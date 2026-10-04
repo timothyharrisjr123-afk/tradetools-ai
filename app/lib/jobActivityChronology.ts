@@ -17,6 +17,11 @@ import type { ProposalAcceptanceActivityItem } from "@/app/lib/proposalAcceptanc
 import type { ProposalSignatureActivityItem } from "@/app/lib/proposalSignatureActivity";
 import type { JobPaymentActivityItem } from "@/app/lib/jobPaymentReadModel";
 import {
+  JOB_CREW_LIFECYCLE_END_REASONS,
+  endReasonLabel,
+  type JobCrewEndReason,
+} from "@/app/lib/jobCrewAssignmentModel";
+import {
   composeScheduleActivityItem,
   isSuppressedScheduleStageChange,
 } from "@/app/lib/jobScheduleActivity";
@@ -488,8 +493,11 @@ export function composeJobCrewActivity(
     return { title: "Crew replaced", detail };
   }
   if (eventType === "job_crew_assignment_ended") {
-    const closed = data.end_reason === "job_closed";
-    const detail = [crew, closed ? "Job closed" : null].filter(Boolean).join(" · ");
+    const reason = (JOB_CREW_LIFECYCLE_END_REASONS as readonly unknown[]).includes(data.end_reason)
+      ? (data.end_reason as JobCrewEndReason)
+      : null;
+    const why = endReasonLabel(reason);
+    const detail = [crew, why].filter(Boolean).join(" · ");
     return { title: "Crew assignment ended", detail: detail || null };
   }
   if (eventType === "job_crew_assignment_lead_changed") {

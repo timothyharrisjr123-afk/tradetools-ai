@@ -52,9 +52,14 @@ export function crewIntentSignature(input: JobCrewSetPrimaryInput): string {
 /**
  * Job → Crew read + writes for one job. The same intent keeps the same request id
  * until it settles, so a retry after a lost response replays instead of writing twice.
- * The read refreshes whenever the job's disposition changes (close ends assignments).
+ * The read refreshes whenever the job's disposition or stage changes: Lost, Complete,
+ * and Closed end the Crew in the database.
  */
-export function useJobCrewAssignment(jobId: string | null, jobStatus: string | null | undefined) {
+export function useJobCrewAssignment(
+  jobId: string | null,
+  jobStatus: string | null | undefined,
+  jobStage?: string | null | undefined
+) {
   const [read, setRead] = useState<{
     jobId: string | null;
     status: JobCrewReadStatus;
@@ -83,7 +88,7 @@ export function useJobCrewAssignment(jobId: string | null, jobStatus: string | n
     return () => {
       cancelled = true;
     };
-  }, [jobId, jobStatus]);
+  }, [jobId, jobStatus, jobStage]);
 
   const current = read.jobId === jobId;
   const status: JobCrewReadStatus = current ? read.status : "loading";

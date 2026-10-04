@@ -63,7 +63,7 @@ export type ResolveJobCardOverviewPrimaryOptions = {
 /**
  * Exactly one primary operational CTA.
  * Priority:
- * 1. disposition != active → Resume / Reopen / Reopen and complete
+ * 1. disposition != active → Resume (on hold) / Reopen or Reopen and complete (closed); none (lost)
  * 2. else Phase 8 lifecycle CTA
  * 3. else none
  */
@@ -86,12 +86,7 @@ export function resolveJobCardOverviewPrimaryAction(
       };
     }
     if (disposition === "lost") {
-      if (!canFinalize) return null;
-      return {
-        kind: "reopen_job",
-        label: "Reopen job",
-        owner: "overview_primary",
-      };
+      return null;
     }
     if (disposition === "closed") {
       if (!canFinalize) return null;

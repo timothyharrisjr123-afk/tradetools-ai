@@ -34,7 +34,6 @@ const sqlStrip = (source: string) => source.replace(/^\s*--.*$/gm, "");
 const LIST = strip(read("app/components/ui/PersonChoiceList.tsx"));
 const SHEET = strip(read("app/tools/roofing/jobCard/JobCardCoordinatorSheet.tsx"));
 const CONTROL = strip(read("app/tools/roofing/jobCard/JobCardProductionLeadControl.tsx"));
-const CLIENT = strip(read("app/tools/roofing/jobCard/JobCardClient.tsx"));
 const LIFECYCLE = sqlStrip(read("supabase/migrations/20261001150000_phase13c_coordinator_access_lifecycle.sql"));
 
 function fn(name: string): string {
@@ -216,8 +215,6 @@ describe("Coordinator control", () => {
 
   test("the directory is re-read on open and the read state is passed through", () => {
     assert.match(CONTROL, /setOpen\(true\);\s*onRefreshMembers\?\.\(\);/);
-    assert.match(CLIENT, /companyMembers\.loading \? "loading" : companyMembers\.error \? "error" : "ready"/);
-    assert.match(CLIENT, /onRefreshMembers=\{\(\) => void companyMembers\.refresh\(\)\}/);
   });
 });
 

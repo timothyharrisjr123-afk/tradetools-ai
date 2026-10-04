@@ -13,8 +13,11 @@ export const GET_JOB_CREW_ASSIGNMENTS_RPC_V1 = "get_job_crew_assignments_v1";
 export const SET_PRIMARY_JOB_CREW_RPC_V1 = "set_primary_job_crew_v1";
 export const END_JOB_CREW_ASSIGNMENT_RPC_V1 = "end_job_crew_assignment_v1";
 
-export const JOB_CREW_END_REASONS = ["replaced", "lead_changed", "ended", "job_closed"] as const;
+export const JOB_CREW_END_REASONS = ["replaced", "lead_changed", "ended", "job_lost", "job_completed", "job_closed"] as const;
 export type JobCrewEndReason = (typeof JOB_CREW_END_REASONS)[number];
+
+/** Ended by the Job's own lifecycle (Lost / Complete / Closed), never by a person's choice. */
+export const JOB_CREW_LIFECYCLE_END_REASONS = ["job_lost", "job_completed", "job_closed"] as const satisfies readonly JobCrewEndReason[];
 
 export type JobCrewRosterEntry = {
   personId: string;
@@ -35,6 +38,8 @@ export type JobCrewAssignment = {
   crewArchived: boolean;
   assignmentLeadPersonId: string | null;
   assignmentLeadNameSnapshot: string | null;
+  /** The Lead's live Person name; null when there is no Lead. History reads the snapshot. */
+  assignmentLeadCurrentName: string | null;
   assignmentLeadArchived: boolean | null;
   roster: JobCrewRosterEntry[];
   rosterListedCount: number;
@@ -82,6 +87,7 @@ function parseAssignment(raw: unknown): JobCrewAssignment | null {
   const leadId = optionalId(row.assignment_lead_person_id);
   const leadName = row.assignment_lead_name_snapshot == null ? null : str(row.assignment_lead_name_snapshot);
   const leadArchived = row.assignment_lead_archived == null ? null : bool(row.assignment_lead_archived);
+  const leadCurrentName = leadId === null || row.assignment_lead_current_name == null ? null : str(row.assignment_lead_current_name);
   const count = row.roster_listed_count;
   if (
     !assignmentId || !crewId || isPrimary === null || !startedAt || endedAt === undefined ||
@@ -108,6 +114,7 @@ function parseAssignment(raw: unknown): JobCrewAssignment | null {
     crewArchived,
     assignmentLeadPersonId: leadId,
     assignmentLeadNameSnapshot: leadName,
+    assignmentLeadCurrentName: leadCurrentName,
     assignmentLeadArchived: leadId === null ? null : leadArchived,
     roster: roster as JobCrewRosterEntry[],
     rosterListedCount: count,
@@ -154,6 +161,10 @@ export function endReasonLabel(reason: JobCrewEndReason | null): string | null {
       return "Changed who's leading the crew";
     case "ended":
       return "Ended";
+    case "job_lost":
+      return "Job lost";
+    case "job_completed":
+      return "Work complete";
     case "job_closed":
       return "Job closed";
     default:

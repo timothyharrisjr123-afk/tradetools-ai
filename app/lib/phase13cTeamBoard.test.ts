@@ -21,7 +21,7 @@ import {
   type TeamBoardSnapshot,
 } from "./team/teamBoardModel";
 import { runTeamBoardAction, TeamBoardHttpError } from "./team/teamBoardPersistence";
-import { readTeamWeek, teamWeekRange, weekDayLabel, weekJobsFor } from "./team/teamWeek";
+import { readTeamWeek, teamWeekRange, weekDayLabel, weekJobsForCrew } from "./team/teamWeek";
 import { getNavSectionItems } from "@/app/tools/roofing/fieldDiveNavConfig";
 
 const root = process.cwd();
@@ -376,41 +376,43 @@ describe("filters and search", () => {
   });
 });
 
-describe("weekly work (Calendar truth, coordinator only)", () => {
+describe("weekly work (current Crew assignment × Calendar schedule)", () => {
+  const item = (n: number, crewId: string, customerName: string, startsOn: string, extra: Record<string, unknown> = {}) => ({
+    assignmentId: U(500 + n), crewId, crewName: "Crew", isPrimary: true, leadPersonId: null, leadName: null,
+    jobId: U(400 + n), customerName, address: "", jobStatus: "active", startsOn, endsOn: startsOn, ...extra,
+  });
   const week = {
     startsOn: "2026-09-28",
     afterEndOn: "2026-10-05",
-    jobs: [
-      { jobId: U(401), customerName: "Owen Brooks", address: "456 Pine Ave", startsOn: "2026-10-02", endsOn: "2026-10-02", coordinatorUserId: U(1) },
-      { jobId: U(402), customerName: "Mia Hartley", address: "123 Oak Ridge Dr", startsOn: "2026-09-30", endsOn: "2026-09-30", coordinatorUserId: U(1) },
-      { jobId: U(403), customerName: "Lan Nguyen", address: "19 Aspen Ct", startsOn: "2026-09-30", endsOn: "2026-09-30", coordinatorUserId: U(2) },
-      { jobId: U(404), customerName: "Unowned", address: "", startsOn: "2026-10-01", endsOn: "2026-10-01", coordinatorUserId: null },
+    items: [
+      item(1, C.tim, "Owen Brooks", "2026-10-02"),
+      item(2, C.tim, "Mia Hartley", "2026-09-30"),
+      item(3, C.mike, "Lan Nguyen", "2026-09-30", { jobStatus: "on_hold" }),
+      { ...item(2, C.tim, "Mia Hartley", "2026-10-01"), assignmentId: U(509) },
     ],
   };
   test("Monday-start week, matching the Calendar week", () => {
     assert.deepEqual(teamWeekRange("2026-09-29"), { startsOn: "2026-09-28", afterEndOn: "2026-10-05" });
     assert.deepEqual(teamWeekRange("2026-10-04"), { startsOn: "2026-09-28", afterEndOn: "2026-10-05" });
   });
-  test("a person's jobs are the ones they coordinate, soonest first; unknown is null, not zero", () => {
-    assert.deepEqual(weekJobsFor(week, U(1))!.map((j) => j.customerName), ["Mia Hartley", "Owen Brooks"]);
-    assert.deepEqual(weekJobsFor(week, U(9)), []);
-    assert.equal(weekJobsFor(null, U(1)), null, "unreadable week is not 'no jobs'");
-    assert.equal(weekJobsFor(week, null), null, "a no-login Lead coordinates nothing knowable");
+  test("a Crew's jobs are its current assignments scheduled this week, soonest first, each job once", () => {
+    assert.deepEqual(weekJobsForCrew(week, C.tim).map((j) => j.customerName), ["Mia Hartley", "Owen Brooks"]);
+    assert.deepEqual(weekJobsForCrew(week, C.mike).map((j) => j.jobStatus), ["on_hold"]);
+    assert.deepEqual(weekJobsForCrew(week, C.gutter), []);
   });
   test("labels and payload parsing", () => {
     assert.equal(weekDayLabel("2026-09-30"), "Wed, Sep 30");
     assert.equal(weekDayLabel("nope"), "");
     assert.ok(readTeamWeek(week));
-    assert.equal(readTeamWeek({ ...week, jobs: [{ jobId: 1 }] }), null);
+    assert.equal(readTeamWeek({ ...week, items: [{ jobId: 1 }] }), null);
+    assert.equal(readTeamWeek({ startsOn: "2026-09-28", afterEndOn: "2026-10-05", jobs: [] }), null, "the old coordinator payload is rejected");
   });
-  test("route reads Calendar schedules and the job coordinator; no crew-to-job relationship", () => {
+  test("route reads get_crew_week_v1 only; no coordinator, schedule table, or crew_label read", () => {
     const route = read("app/api/team/week/route.ts");
-    assert.match(route, /from\("job_schedules"\)/);
-    assert.match(route, /\.eq\("status", "scheduled"\)/);
-    assert.match(route, /assigned_to/);
-    assert.match(route, /calendarCivilRangeUtc/);
-    assert.doesNotMatch(route, /from\("(crews|crew_members|company_people)"\)|crew_label|\.insert\(|\.update\(|\.rpc\(/);
+    assert.match(route, /loadCrewWeek\(supabase, teamWeekRange\(todayCivilIso\(timezone\)\)\)/);
+    assert.doesNotMatch(route, /assigned_to|job_schedules|crew_label|\.insert\(|\.update\(/);
     assert.match(route, /company_timezone_required/);
+    assert.match(route, /: 503;/, "an unreadable week is an error, never an empty week");
   });
 });
 
@@ -575,10 +577,23 @@ describe("Team Board surface", () => {
     assert.match(week, /data-team-week-panel/);
     assert.match(week, /buildJobCardHref\(job\.jobId\)/);
     assert.match(week, /href=\{CALENDAR_HREF\}/);
-    assert.match(week, /View in calendar/);
+    assert.match(week, /CREW_WEEK_COPY\.viewInCalendar/);
     assert.doesNotMatch(week, /TeamSheet|Drawer|Dialog/);
-    assert.match(board, /Unreadable work is hidden, never shown as "no jobs"/);
-    assert.match(board, /weekJobsFor\(week, lead\.access === "active" \? lead\.userId : null\)/);
+  });
+
+  test("weekly work is per Crew, never per Lead login or Coordinator", () => {
+    assert.match(board, /weekJobsForCrew\(/);
+    assert.match(board, /data-team-crew-week=\{crew\.id\}/);
+    assert.doesNotMatch(board, /weekJobsFor\(|assigned_to|lead\.userId : null/);
+  });
+
+  test("loading and read errors are never shown as 'No jobs this week'", () => {
+    const week = board.slice(board.indexOf("function WeekWork"), board.indexOf("function ArchiveBlocked"));
+    const loading = week.indexOf('state === "loading"');
+    const error = week.indexOf('state === "error"');
+    const none = week.indexOf("CREW_WEEK_COPY.none");
+    assert.ok(loading >= 0 && error > loading && none > error);
+    assert.match(week, /data-team-week-retry/);
   });
 
   test("no invented availability: no Available / Off / On a job today claims", () => {

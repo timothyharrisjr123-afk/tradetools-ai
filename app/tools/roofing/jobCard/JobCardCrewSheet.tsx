@@ -21,6 +21,7 @@ import { primaryActiveAssignment } from "@/app/lib/jobCrewAssignmentModel";
 import {
   EARLIER_CREW_LIMIT,
   crewPeopleLabel,
+  currentLeadName,
   dispositionChangeNote,
   earlierCrewStints,
   jobCrewDisposition,
@@ -170,7 +171,7 @@ export default function JobCardCrewSheet({
     if (!key) return null;
     const entry = entryByKey.get(key);
     if (entry) return entry.name;
-    if (key === currentLeadKey) return current?.assignmentLeadNameSnapshot ?? null;
+    if (key === currentLeadKey) return currentLeadName(current);
     return null;
   };
   const effectiveLeadName = leadName(effectiveLeadKey);
@@ -412,9 +413,9 @@ export default function JobCardCrewSheet({
           <p className="text-base font-semibold text-slate-900 [overflow-wrap:anywhere]">
             {current.crewCurrentName}
           </p>
-          {ledByLine(current.assignmentLeadNameSnapshot) ? (
+          {ledByLine(currentLeadName(current)) ? (
             <p className="text-sm text-slate-600 [overflow-wrap:anywhere]">
-              {ledByLine(current.assignmentLeadNameSnapshot)}
+              {ledByLine(currentLeadName(current))}
             </p>
           ) : null}
         </div>

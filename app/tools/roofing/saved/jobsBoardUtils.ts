@@ -789,7 +789,7 @@ export const BOARD_DISPOSITION_FILTER_OPTIONS: ReadonlyArray<{
   { id: "all", label: "All dispositions" },
   { id: "active", label: "Active" },
   { id: "on_hold", label: "On hold" },
-  { id: "lost", label: "Not proceeding" },
+  { id: "lost", label: "Lost" },
   { id: "closed", label: "Closed" },
 ];
 

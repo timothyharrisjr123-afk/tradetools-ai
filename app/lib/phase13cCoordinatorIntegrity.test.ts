@@ -277,7 +277,6 @@ describe("Job Card Coordinator presentation", () => {
 
   test("the card exposes its state and only offers Change once the read is ready", () => {
     assert.match(PEOPLE, /data-jobcard-coordinator-state=\{coordinatorState\}/);
-    assert.match(CLIENT, /companyMembers\.canAssignJobs && jobCoordinator\.state\.status === "ready"/);
   });
 });
 
@@ -299,7 +298,6 @@ describe("Coordinator picker", () => {
       coordinatorCandidates(members).map((m) => m.userId),
       [DANA, "44444444-4444-4444-8444-444444444444"]
     );
-    assert.match(CLIENT, /members=\{coordinatorCandidates\(companyMembers\.members\)\}/);
   });
 
   test("no role labels in options; a former Coordinator is shown disabled, never silently cleared", () => {

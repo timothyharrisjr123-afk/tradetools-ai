@@ -676,7 +676,8 @@ describe("Team error copy", () => {
       /Choose someone else to lead it, or remove that crew from the job, first\./
     );
     assert.doesNotMatch(TEAM_BOARD_MESSAGES.person_active_assignment_lead, /Assignment Lead/);
-    assert.match(TEAM_BOARD_MESSAGES.crew_actively_assigned, /Replace or end that assignment/);
+    assert.match(TEAM_BOARD_MESSAGES.crew_actively_assigned, /Remove or replace it on that job first\./);
+    assert.doesNotMatch(TEAM_BOARD_MESSAGES.crew_actively_assigned, /assignment/i);
     for (const code of ["person_active_assignment_lead", "crew_actively_assigned"]) {
       const { client } = fakeClient({ data: { ok: false, code } });
       await assert.rejects(

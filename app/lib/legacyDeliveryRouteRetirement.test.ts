@@ -25,6 +25,7 @@ const TOMBSTONED = [
   "app/api/approve/[token]/route.ts",
   "app/api/approve/check/route.ts",
   "app/api/approval/confirm/route.ts",
+  "app/api/approval/status/route.ts",
 ] as const;
 
 describe("D2 legacy delivery route retirement", () => {

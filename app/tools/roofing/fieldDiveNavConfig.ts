@@ -34,6 +34,8 @@ export type FieldDiveNavItemConfig = {
   subItemsAriaLabel?: string;
   activeSubId?: string;
   soonTitle?: string;
+  /** Route and feature stay available; the entry is not rendered while the core flow comes first. */
+  parked?: boolean;
 };
 
 export type FieldDiveNavSectionConfig = {
@@ -94,6 +96,7 @@ export const FIELD_DIVE_NAV_SECTIONS: FieldDiveNavSectionConfig[] = [
         href: "/tools/team",
         kind: "link",
         icon: "users",
+        parked: true,
       },
     ],
   },
@@ -189,7 +192,10 @@ export const FIELD_DIVE_NAV_SECTIONS: FieldDiveNavSectionConfig[] = [
 export function getVisibleNavSections(
   sections: FieldDiveNavSectionConfig[] = FIELD_DIVE_NAV_SECTIONS
 ): FieldDiveNavSectionConfig[] {
-  return sections.filter((section) => !section.hiddenFromNavigation);
+  return sections
+    .filter((section) => !section.hiddenFromNavigation)
+    .map((section) => ({ ...section, items: section.items.filter((item) => !item.parked) }))
+    .filter((section) => section.items.length > 0);
 }
 
 export function flattenNavItems(

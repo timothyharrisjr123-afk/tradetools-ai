@@ -1,28 +1,15 @@
 /**
- * Team Board weekly work: scheduled jobs this week (Calendar truth, job_schedules)
- * joined to each job's coordinator (jobs.assigned_to). This is the Lead's own
- * coordinated work. It is not a crew-to-job assignment; none exists yet, and
- * nothing here infers one.
+ * Team "This week" per Crew: the Crew's current Jobs (durable Job → Crew assignment)
+ * that the Calendar schedules this week (job_schedules). Two truths joined read-only in
+ * the database by get_crew_week_v1. The Coordinator (jobs.assigned_to), the usual Lead,
+ * and anyone's login play no part.
  */
 
 import { addDaysIso, isCivilDate, startOfWeekMondayIso } from "@/app/lib/jobScheduleMapper";
+import { crewWeekJobs, readCrewWeek, type CrewWeek, type CrewWeekItem } from "@/app/lib/crew/currentCrew";
 
-export type TeamWeekJob = {
-  jobId: string;
-  customerName: string;
-  address: string;
-  startsOn: string;
-  endsOn: string;
-  coordinatorUserId: string | null;
-};
-
-export type TeamWeek = {
-  /** Monday of the company's current week (civil date). */
-  startsOn: string;
-  /** The Monday after (exclusive). */
-  afterEndOn: string;
-  jobs: TeamWeekJob[];
-};
+export type TeamWeek = CrewWeek;
+export type TeamWeekJob = CrewWeekItem;
 
 /** Monday-start week containing `todayIso`, matching the Calendar week view. */
 export function teamWeekRange(todayIso: string): { startsOn: string; afterEndOn: string } {
@@ -30,12 +17,9 @@ export function teamWeekRange(todayIso: string): { startsOn: string; afterEndOn:
   return { startsOn, afterEndOn: addDaysIso(startsOn, 7) };
 }
 
-/** Jobs a person coordinates this week, soonest first. Unknown coordinators match no one. */
-export function weekJobsFor(week: TeamWeek | null, userId: string | null): TeamWeekJob[] | null {
-  if (!week || !userId) return null;
-  return week.jobs
-    .filter((job) => job.coordinatorUserId === userId)
-    .sort((a, b) => a.startsOn.localeCompare(b.startsOn) || a.customerName.localeCompare(b.customerName));
+/** A Crew's Jobs this week, soonest first. */
+export function weekJobsForCrew(week: TeamWeek, crewId: string): TeamWeekJob[] {
+  return crewWeekJobs(week, crewId);
 }
 
 const DAY = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
@@ -47,23 +31,7 @@ export function weekDayLabel(civilDate: string): string {
   return DAY.format(new Date(Date.UTC(y, m - 1, d)));
 }
 
-export function weekJobsLabel(count: number): string {
-  return count === 1 ? "1 job" : `${count} jobs`;
-}
-
 /** The week API payload; rejects anything malformed rather than inventing work. */
 export function readTeamWeek(value: unknown): TeamWeek | null {
-  if (!value || typeof value !== "object") return null;
-  const raw = value as Partial<TeamWeek>;
-  if (!isCivilDate(raw.startsOn) || !isCivilDate(raw.afterEndOn) || !Array.isArray(raw.jobs)) return null;
-  const ok = raw.jobs.every(
-    (job) =>
-      typeof job?.jobId === "string" &&
-      typeof job?.customerName === "string" &&
-      typeof job?.address === "string" &&
-      isCivilDate(job?.startsOn) &&
-      isCivilDate(job?.endsOn) &&
-      (job?.coordinatorUserId === null || typeof job?.coordinatorUserId === "string")
-  );
-  return ok ? (raw as TeamWeek) : null;
+  return readCrewWeek(value);
 }

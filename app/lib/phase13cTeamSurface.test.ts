@@ -16,7 +16,7 @@ import {
 } from "./access/teamAccessPresentation";
 import { COMPANY_MEMBERSHIP_ROLE_LABELS } from "./companyMembershipRoles";
 import { readTeamSurfaceSource } from "./teamSurfaceSource.testSupport";
-import { getNavSectionItems } from "@/app/tools/roofing/fieldDiveNavConfig";
+import { getNavSectionItems, getVisibleNavSections } from "@/app/tools/roofing/fieldDiveNavConfig";
 import { navItemAllowed } from "@/app/tools/roofing/useViewerNavAccess";
 import { NO_VIEWER_ACCESS, mapViewerAccess } from "./access/viewerAccess";
 import { ACCESS_PACKAGES, getRoleProfile } from "./access/registry";
@@ -64,6 +64,16 @@ describe("operational Team workspace boundaries", () => {
     assert.match(read("app/tools/settings/team/page.tsx"), /redirect\("\/tools\/team"\)/);
     assert.match(read("app/tools/team/page.tsx"), /requireActiveCompanyPage/);
     assert.doesNotMatch(read("app/tools/settings/CompanySettingsClient.tsx"), /testId="team"/);
+  });
+
+  test("Team is parked: kept in config and routable, absent from the rendered (desktop + mobile) nav", () => {
+    assert.equal(getNavSectionItems("operations").find((item) => item.key === "team")?.parked, true);
+    const visible = getVisibleNavSections().flatMap((section) => section.items);
+    assert.ok(!visible.some((item) => item.key === "team"));
+    assert.deepEqual(
+      getVisibleNavSections().find((section) => section.id === "operations")?.items.map((item) => item.label),
+      ["Jobs", "New job", "Calendar"]
+    );
   });
 
   test("unknown and job-scoped access do not advertise a company Team destination", () => {

@@ -8,22 +8,18 @@ import {
 import {
   mapDispositionMutationError,
   normalizeDispositionReason,
+  statusForDispositionCode,
 } from "@/app/lib/jobDispositionManagement";
-import { capabilityForDispositionTransition } from "@/app/lib/jobDispositionAuthority";
+import {
+  capabilityForDispositionTransition,
+  dispositionTransitionDenial,
+} from "@/app/lib/jobDispositionAuthority";
 import { assertOperationalDispositionWrite } from "@/app/lib/jobLifecycleMapper";
 import { mapActiveMembershipGate } from "@/app/lib/requireCapabilitySession";
 import { requireAccess } from "@/app/lib/access/requireAccess";
 import { createClient } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
-
-function statusForCode(code: string): number {
-  if (code === "unauthorized") return 401;
-  if (code === "forbidden" || code === "capability_denied") return 403;
-  if (code === "not_found") return 404;
-  if (code === "illegal_disposition_target") return 409;
-  return 400;
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -70,7 +66,7 @@ export async function POST(req: NextRequest) {
 
     const { data: jobRow, error: jobError } = await supabase
       .from("jobs")
-      .select("id, status, company_id, deleted_at")
+      .select("id, status, stage, company_id, deleted_at")
       .eq("id", jobId)
       .eq("company_id", companyId)
       .maybeSingle();
@@ -106,6 +102,19 @@ export async function POST(req: NextRequest) {
       typeof body?.reason === "string" ? body.reason : null
     );
 
+    const denial = dispositionTransitionDenial({
+      fromStatus,
+      toStatus,
+      stage: (jobRow as { stage?: string | null }).stage ?? null,
+      reason,
+    });
+    if (denial) {
+      return NextResponse.json(
+        { ok: false, code: denial, message: mapDispositionMutationError(denial) },
+        { status: statusForDispositionCode(denial) }
+      );
+    }
+
     const result = await changeJobDispositionViaRpc(supabase, {
       company_id: companyId,
       job_id: jobId,
@@ -113,7 +122,7 @@ export async function POST(req: NextRequest) {
       reason,
     });
     if (!result.ok) {
-      return NextResponse.json(result, { status: statusForCode(result.code) });
+      return NextResponse.json(result, { status: statusForDispositionCode(result.code) });
     }
     return NextResponse.json(result);
   } catch (error) {

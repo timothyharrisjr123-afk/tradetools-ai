@@ -16,6 +16,7 @@ import {
   composeDispositionChangedActivity,
   dispositionBlockedWorkCopy,
   dispositionConfirmCopy,
+  dispositionReasonRequired,
   isActiveOperationalDisposition,
   mapDispositionMutationError,
   normalizeDispositionReason,
@@ -87,17 +88,14 @@ describe("paired stage + disposition presentation", () => {
     assert.equal(isActiveOperationalDisposition("active"), true);
   });
 
-  test("non-active labels and Resume/Reopen copy", () => {
+  test("non-active labels; Resume/Reopen copy only where recovery exists (Lost is terminal)", () => {
     assert.equal(visibleDispositionLabel("on_hold"), "On hold");
     assert.equal(
       dispositionBlockedWorkCopy("on_hold"),
       "Job is on hold. Resume to continue work."
     );
-    assert.equal(visibleDispositionLabel("lost"), "Not proceeding");
-    assert.equal(
-      dispositionBlockedWorkCopy("lost"),
-      "Not proceeding. Reopen to continue work."
-    );
+    assert.equal(visibleDispositionLabel("lost"), "Lost");
+    assert.equal(dispositionBlockedWorkCopy("lost"), null);
     assert.equal(visibleDispositionLabel("closed"), "Closed to active work");
     assert.equal(
       dispositionBlockedWorkCopy("closed"),
@@ -113,6 +111,39 @@ describe("paired stage + disposition presentation", () => {
     assert.equal(copy.closeDoesNotComplete, true);
     assert.match(copy.body, /not the same as Complete/i);
     assert.match(copy.body, /Scheduled/);
+  });
+
+  test("Lost dialog uses the plain consequence note at every stage", () => {
+    for (const stage of ["intake", "proposal", "approved", "scheduled", "production"]) {
+      const copy = dispositionConfirmCopy({ target: "lost", stage });
+      assert.equal(copy.body, "This job will be marked lost. Records and history will remain.", stage);
+      assert.doesNotMatch(copy.body, /lifecycle|stage|crew|schedule|reopen|not proceeding/i, stage);
+    }
+    const lost = resolveDispositionManagementActions("active").find((a) => a.kind === "lost");
+    assert.equal(lost?.menuLabel, "Mark lost");
+    assert.equal(lost?.confirmTitle, "Mark job lost");
+    assert.equal(lost?.confirmActionLabel, "Mark lost");
+  });
+
+  test("Lost requires a reason; other targets keep it optional", () => {
+    assert.equal(dispositionReasonRequired("lost"), true);
+    for (const target of ["on_hold", "closed", "active"] as const) {
+      assert.equal(dispositionReasonRequired(target), false, target);
+    }
+    assert.match(mapDispositionMutationError("lost_reason_required"), /reason/i);
+    assert.match(mapDispositionMutationError("lost_is_terminal"), /lost/i);
+    assert.match(mapDispositionMutationError("complete_cannot_be_lost"), /completed/i);
+  });
+
+  test("Job Card dialog: Lost reason is required and blocks confirm until entered", () => {
+    const control = read("app/tools/roofing/jobCard/JobCardDispositionControl.tsx");
+    assert.match(control, /dispositionReasonRequired\(pendingAction\.target\)/);
+    assert.match(control, /reasonRequired \? "Reason" : "Reason \(optional\)"/);
+    assert.match(control, /required=\{reasonRequired\}/);
+    assert.match(control, /pendingAction\.kind === "lost" \? null : \(/);
+    assert.match(control, /disabled=\{busy \|\| reasonMissing\}/);
+    assert.match(control, /if \(!pendingAction \|\| busy \|\| disabled \|\| reasonMissing\) return;/);
+    assert.match(control, /omitPrimaryRecoveryFromMenu: true,\s+stage,\s+\}\),/);
   });
 });
 

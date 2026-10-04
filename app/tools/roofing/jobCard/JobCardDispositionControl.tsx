@@ -8,6 +8,7 @@ import {
   DISPOSITION_REASON_MAX_LENGTH,
   buildCloseCommitmentWarningFacts,
   dispositionConfirmCopy,
+  dispositionReasonRequired,
   filterDispositionActionsByCapability,
   mapDispositionMutationError,
   normalizeDispositionReason,
@@ -58,6 +59,7 @@ export default function JobCardDispositionControl({
   const actions = filterDispositionActionsByCapability(
     resolveDispositionManagementActions(disposition, {
       omitPrimaryRecoveryFromMenu: true,
+      stage,
     }),
     capabilities
   );
@@ -80,6 +82,9 @@ export default function JobCardDispositionControl({
         kind: pendingAction.kind,
       })
     : null;
+  const reasonRequired = pendingAction ? dispositionReasonRequired(pendingAction.target) : false;
+  const reasonMissing = reasonRequired && normalizeDispositionReason(reason) === null;
+  const reasonLabel = reasonRequired ? "Reason" : "Reason (optional)";
   const closeFacts: CloseCommitmentWarningFact[] =
     pendingAction?.kind === "close" && closeCommitment
       ? buildCloseCommitmentWarningFacts(closeCommitment)
@@ -182,7 +187,7 @@ export default function JobCardDispositionControl({
   };
 
   const submit = async () => {
-    if (!pendingAction || busy || disabled) return;
+    if (!pendingAction || busy || disabled || reasonMissing) return;
     setBusy(true);
     setError(null);
     const targetJobId = jobId;
@@ -297,9 +302,11 @@ export default function JobCardDispositionControl({
             >
               {pendingAction.confirmTitle}
             </h2>
-            <p className="mt-1 text-xs font-medium uppercase tracking-wide text-slate-500">
-              Current stage: {stageLabel}
-            </p>
+            {pendingAction.kind === "lost" ? null : (
+              <p className="mt-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+                Current stage: {stageLabel}
+              </p>
+            )}
             <p className="mt-3 text-sm leading-relaxed text-slate-600">
               {confirmCopy.body}
             </p>
@@ -327,12 +334,15 @@ export default function JobCardDispositionControl({
               </div>
             ) : null}
             <label className="mt-4 block text-xs font-medium text-slate-600">
-              Reason (optional)
+              {reasonLabel}
               <textarea
                 value={reason}
                 maxLength={DISPOSITION_REASON_MAX_LENGTH}
                 disabled={busy}
-                aria-label="Reason (optional)"
+                required={reasonRequired}
+                aria-required={reasonRequired}
+                aria-label={reasonLabel}
+                data-jobcard-disposition-reason-required={reasonRequired ? "true" : undefined}
                 onChange={(event) => setReason(event.target.value)}
                 rows={2}
                 className="mt-1 w-full rounded-md border border-slate-200 px-2.5 py-1.5 text-sm text-slate-800 outline-none focus:border-slate-300 focus:ring-2 focus:ring-slate-100"
@@ -359,7 +369,7 @@ export default function JobCardDispositionControl({
               <button
                 type="button"
                 onClick={() => void submit()}
-                disabled={busy}
+                disabled={busy || reasonMissing}
                 aria-busy={busy}
                 data-jobcard-disposition-confirm
                 className="inline-flex h-9 items-center rounded-md bg-slate-900 px-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"

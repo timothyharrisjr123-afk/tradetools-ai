@@ -64,6 +64,7 @@ function assignment(overrides: Partial<JobCrewAssignment> = {}): JobCrewAssignme
     crewArchived: false,
     assignmentLeadPersonId: PERSON,
     assignmentLeadNameSnapshot: "Tim Harris",
+    assignmentLeadCurrentName: "Tim Harris",
     assignmentLeadArchived: false,
     roster: [],
     rosterListedCount: 0,
@@ -133,7 +134,7 @@ describe("current crew", () => {
   });
 
   test("the person line is omitted when no one is leading the crew on the job", () => {
-    const view = ready(model([assignment({ assignmentLeadPersonId: null, assignmentLeadNameSnapshot: null })]));
+    const view = ready(model([assignment({ assignmentLeadPersonId: null, assignmentLeadNameSnapshot: null, assignmentLeadCurrentName: null })]));
     assert.equal(view.leadName, null);
   });
 
@@ -167,10 +168,44 @@ describe("disposition", () => {
     assert.equal(view.actionLabel, "Remove crew");
   });
 
-  test("lost explains Reopen and keeps Remove available", () => {
+  test("lost shows the Last crew read-only; nobody is still responsible", () => {
+    const ended = assignment({ active: false, endedAt: "2026-10-02T15:00:00Z", endReason: "job_lost" });
+    const view = ready(model([ended]), { jobStatus: "lost" });
+    assert.equal(view.label, "Last crew");
+    assert.equal(view.text, "Harris Crew");
+    assert.equal(view.action, null);
+    assert.equal(view.current, null);
+  });
+
+  test("a stale active row on a lost job is never presented as the current crew", () => {
     const view = ready(model([assignment()]), { jobStatus: "lost" });
-    assert.equal(view.dispositionNote, "Reopen this job to change its crew.");
-    assert.equal(view.action, "remove");
+    assert.equal(view.label, "Last crew");
+    assert.equal(view.action, null);
+    assert.equal(view.current, null);
+  });
+
+  test("complete work shows the Last crew with no assign action, even when the job is active", () => {
+    const ended = assignment({ active: false, endedAt: "2026-10-02T15:00:00Z", endReason: "job_completed" });
+    const view = ready(model([ended]), { jobStatus: "active", jobStage: "complete" });
+    assert.equal(view.label, "Last crew");
+    assert.equal(view.action, null);
+    const none = ready(model([]), { jobStatus: "active", jobStage: "complete" });
+    assert.equal(none.text, "No crew assigned");
+    assert.equal(none.action, null);
+    assert.equal(none.dispositionNote, null);
+  });
+
+  test("history keeps the Lead snapshot; the current crew shows the live Lead name", () => {
+    const ended = assignment({ active: false, endedAt: "2026-10-02T15:00:00Z", endReason: "job_closed", assignmentLeadCurrentName: "Timothy Harris" });
+    assert.equal(ready(model([ended]), { jobStatus: "closed" }).leadName, "Tim Harris");
+    assert.equal(ready(model([assignment({ assignmentLeadCurrentName: "Timothy Harris" })])).leadName, "Timothy Harris");
+  });
+
+  test("a job with durable history never falls back to the earlier crew note", () => {
+    const ended = assignment({ active: false, endedAt: "2026-10-02T15:00:00Z", endReason: "ended" });
+    const view = ready(model([ended]), { legacyCrewLabel: "Mike's guys" });
+    assert.equal(view.text, "No crew assigned");
+    assert.equal(view.legacyNote, null);
   });
 
   test("a held job without a crew offers no dead chooser", () => {
@@ -196,7 +231,7 @@ describe("disposition", () => {
   });
 
   test("the read refreshes when the job's disposition changes", () => {
-    assert.match(HOOK, /\}, \[jobId, jobStatus\]\);/);
+    assert.match(HOOK, /\}, \[jobId, jobStatus, jobStage\]\);/);
   });
 });
 
@@ -215,6 +250,7 @@ describe("history", () => {
       endReason: end ? "ended" : null,
       assignmentLeadPersonId: null,
       assignmentLeadNameSnapshot: null,
+      assignmentLeadCurrentName: null,
     });
 
   test("a Lead change continues the same stint; newest first; current excluded", () => {
@@ -402,7 +438,7 @@ describe("errors", () => {
   const cases: Array<[string, string | null, string]> = [
     ["stale_assignment", "active", "The crew on this job just changed. Here's the latest."],
     ["disposition_blocks_assignment", "on_hold", "This job is on hold. Resume it to change its crew."],
-    ["disposition_blocks_assignment", "lost", "This job is marked lost. Reopen it to change its crew."],
+    ["disposition_blocks_assignment", "lost", "This job is marked lost. Its crew can't be changed."],
     ["disposition_blocks_assignment", "closed", "This job is closed."],
     ["crew_not_eligible", "active", "That crew is no longer available. Pick another."],
     ["lead_not_eligible", "active", "That person can't lead this crew right now. Pick someone else."],
@@ -478,11 +514,11 @@ describe("coordinator separation", () => {
     assert.doesNotMatch(CLIENT, /productionLeadCrewLabel|crewLabel=|crew_label: crewLabel/);
   });
 
-  test("Coordinator and Crew are separate cards in one paired row on the Overview", () => {
-    assert.match(CLIENT, /<JobCardOverviewPeople\s+coordinator=\{/);
-    assert.match(CLIENT, /<JobCardOverviewCoordinatorCard\s+name=\{productionLeadLabel\}/);
-    assert.match(CLIENT, /<JobCardOverviewCrewCard\s+view=\{crewView\}/);
-    assert.match(CLIENT, /<JobCardCrewActionButton\s+view=\{crewView\}\s+appearance="card"/);
+  test("Coordinator and Crew stay separate cards; the Overview row is parked (not rendered)", () => {
+    assert.doesNotMatch(CLIENT, /<JobCardOverviewPeople|<JobCardOverviewCoordinatorCard|<JobCardOverviewCrewCard/);
+    assert.doesNotMatch(CLIENT, /<JobCardCrewActionButton|<JobCardProductionLeadControl/);
+    assert.match(CLIENT, /useJobCoordinator\(currentJobId\)/);
+    assert.match(CLIENT, /useJobCrewAssignment\(/);
     assert.match(PEOPLE, /kind="coordinator"/);
     assert.match(PEOPLE, /kind="crew"/);
     assert.match(PEOPLE, /data-jobcard-overview-person=\{kind\}/);

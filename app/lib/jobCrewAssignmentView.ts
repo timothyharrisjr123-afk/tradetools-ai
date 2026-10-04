@@ -24,7 +24,7 @@ function readAssignment(raw: unknown): JobCrewAssignment | null {
     typeof row.active !== "boolean" || !isStr(row.startedAt) || !isStrOrNull(row.endedAt) ||
     !isStrOrNull(row.endReason) || !isStr(row.crewNameSnapshot) || !isStr(row.crewCurrentName) ||
     typeof row.crewArchived !== "boolean" || !isStrOrNull(row.assignmentLeadPersonId) ||
-    !isStrOrNull(row.assignmentLeadNameSnapshot) || !Array.isArray(row.roster) ||
+    !isStrOrNull(row.assignmentLeadNameSnapshot) || !isStrOrNull(row.assignmentLeadCurrentName) || !Array.isArray(row.roster) ||
     typeof row.rosterListedCount !== "number" || row.active !== (row.endedAt === null)
   ) {
     return null;
@@ -55,7 +55,7 @@ export type JobCrewFactView = {
   quiet: boolean;
   /** The person leading the Crew on this job, as a plain name; never a title like "· Lead". */
   leadName: string | null;
-  /** `Earlier crew note: "…"` — only while no durable Crew is on the job. */
+  /** `Earlier crew note: "…"` — only when the job has no durable Crew history at all. */
   legacyNote: string | null;
   /** Why the crew can't change right now (on hold / lost). */
   dispositionNote: string | null;
@@ -69,6 +69,8 @@ export type JobCrewFactInput = {
   model: JobCrewAssignments | null;
   /** jobs.status: active | on_hold | lost | closed. */
   jobStatus: string | null | undefined;
+  /** jobs.stage; Complete work takes no new Crew. */
+  jobStage?: string | null | undefined;
   legacyCrewLabel: string | null | undefined;
   canAssign: boolean;
 };
@@ -82,6 +84,14 @@ export function jobCrewDisposition(jobStatus: string | null | undefined): JobCre
 function personName(name: string | null | undefined): string | null {
   const trimmed = name?.trim();
   return trimmed ? trimmed : null;
+}
+
+/** Current responsibility reads the live Person name; the snapshot is only a fallback. */
+export function currentLeadName(
+  assignment: Pick<JobCrewAssignment, "assignmentLeadCurrentName" | "assignmentLeadNameSnapshot"> | null | undefined
+): string | null {
+  if (!assignment) return null;
+  return personName(assignment.assignmentLeadCurrentName) ?? personName(assignment.assignmentLeadNameSnapshot);
 }
 
 /** Relationship wording for the Crew sheet: "Led by Tim Harris". */
@@ -112,7 +122,7 @@ export function dispositionChangeNote(disposition: JobCrewDisposition, hasCrew: 
     return hasCrew ? "Resume this job to change its crew." : "Resume this job to assign a crew.";
   }
   if (disposition === "lost") {
-    return hasCrew ? "Reopen this job to change its crew." : "Reopen this job to assign a crew.";
+    return "This job is marked lost. Its crew can't be changed.";
   }
   return null;
 }
@@ -220,15 +230,17 @@ export function buildJobCrewFactView(input: JobCrewFactInput): JobCrewFactView {
     };
   }
 
+  const workComplete = input.jobStage === "complete";
+  const terminal = disposition === "lost" || disposition === "closed" || workComplete;
   const current = primaryActiveAssignment(input.model);
-  if (current && disposition !== "closed") {
-    const blocked = disposition === "on_hold" || disposition === "lost";
+  if (current && !terminal) {
+    const blocked = disposition === "on_hold";
     return {
       ...base,
       label: "Crew",
       text: current.crewCurrentName,
       quiet: false,
-      leadName: personName(current.assignmentLeadNameSnapshot),
+      leadName: currentLeadName(current),
       current,
       dispositionNote: input.canAssign ? dispositionChangeNote(disposition, true) : null,
       action: input.canAssign ? (blocked ? "remove" : "change") : null,
@@ -236,7 +248,13 @@ export function buildJobCrewFactView(input: JobCrewFactInput): JobCrewFactView {
     };
   }
 
-  if (disposition === "closed") {
+  // Precedence: current durable Crew, then durable history, then the legacy note only
+  // when the job never had a durable Crew.
+  const hasHistory = input.model.assignments.length > 0;
+  const legacyNote = hasHistory ? null : legacyCrewNote(input.legacyCrewLabel);
+  const noteWhenEmpty = input.canAssign && !workComplete ? dispositionChangeNote(disposition, false) : null;
+
+  if (terminal) {
     const last = jobCrewStints(input.model).reverse()[0] ?? null;
     if (last) {
       return {
@@ -245,9 +263,10 @@ export function buildJobCrewFactView(input: JobCrewFactInput): JobCrewFactView {
         text: last.crewName,
         quiet: false,
         leadName: personName(last.leadName),
+        dispositionNote: noteWhenEmpty,
       };
     }
-    return { ...base, label: "Crew", text: "No crew assigned", quiet: true };
+    return { ...base, label: "Crew", text: "No crew assigned", quiet: true, legacyNote, dispositionNote: noteWhenEmpty };
   }
 
   const canAssignNow = input.canAssign && disposition === "active";
@@ -256,8 +275,8 @@ export function buildJobCrewFactView(input: JobCrewFactInput): JobCrewFactView {
     label: "Crew",
     text: "No crew assigned",
     quiet: true,
-    legacyNote: legacyCrewNote(input.legacyCrewLabel),
-    dispositionNote: input.canAssign ? dispositionChangeNote(disposition, false) : null,
+    legacyNote,
+    dispositionNote: noteWhenEmpty,
     action: canAssignNow ? "assign" : null,
     actionLabel: canAssignNow ? "Assign crew" : null,
   };
@@ -270,10 +289,12 @@ export function jobCrewErrorMessage(code: string | null | undefined, jobStatus: 
       return "The crew on this job just changed. Here's the latest.";
     case "disposition_blocks_assignment": {
       const disposition = jobCrewDisposition(jobStatus);
-      if (disposition === "lost") return "This job is marked lost. Reopen it to change its crew.";
+      if (disposition === "lost") return "This job is marked lost. Its crew can't be changed.";
       if (disposition === "closed") return "This job is closed.";
       return "This job is on hold. Resume it to change its crew.";
     }
+    case "work_complete_blocks_assignment":
+      return "Work on this job is complete. It doesn't take a new crew.";
     case "crew_not_eligible":
       return "That crew is no longer available. Pick another.";
     case "lead_not_eligible":

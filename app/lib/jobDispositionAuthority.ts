@@ -25,9 +25,10 @@ export function dispositionForCapabilityGate(
 export type DispositionCapability = Extract<ActiveCapabilityKey, "jobs.hold" | "jobs.finalize">;
 
 /**
- * Capability required for a disposition mutation.
+ * Capability required for a disposition mutation. Mirrors the database gate in
+ * change_job_disposition_v1, which re-checks it under the Job row lock.
  * - jobs.hold: active ↔ on_hold (including same-target idempotent)
- * - jobs.finalize: lost/closed targets and reopen from lost/closed
+ * - jobs.finalize: any transition into or out of lost/closed
  */
 export function capabilityForDispositionTransition(
   fromStatus: string | null | undefined,
@@ -36,17 +37,37 @@ export function capabilityForDispositionTransition(
   const from = dispositionForCapabilityGate(fromStatus);
   const to = toStatus;
 
-  if (to === "on_hold") {
-    return "jobs.hold";
-  }
-  if (to === "active") {
-    if (from === "on_hold" || from === "active") {
-      return "jobs.hold";
-    }
+  if (to === "lost" || to === "closed" || from === "lost" || from === "closed") {
     return "jobs.finalize";
   }
-  // lost | closed
-  return "jobs.finalize";
+  return "jobs.hold";
+}
+
+export type DispositionTransitionDenial =
+  | "lost_is_terminal"
+  | "complete_cannot_be_lost"
+  | "lost_reason_required";
+
+/**
+ * Transition rules enforced by change_job_disposition_v1 (same order; same-target
+ * replays are idempotent and never denied here).
+ */
+export function dispositionTransitionDenial(input: {
+  fromStatus: string | null | undefined;
+  toStatus: DispositionManagementTarget | OperationalJobDisposition;
+  stage: string | null | undefined;
+  reason: string | null | undefined;
+}): DispositionTransitionDenial | null {
+  const from = dispositionForCapabilityGate(input.fromStatus);
+  if (from === input.toStatus) return null;
+  if (from === "lost") return "lost_is_terminal";
+  if (input.toStatus === "lost") {
+    if (String(input.stage ?? "").trim().toLowerCase() === "complete") {
+      return "complete_cannot_be_lost";
+    }
+    if (!String(input.reason ?? "").trim()) return "lost_reason_required";
+  }
+  return null;
 }
 
 export function dispositionActionNeedsCapability(

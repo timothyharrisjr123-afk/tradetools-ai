@@ -5,16 +5,17 @@
  *
  * SCREEN JOB — Your people and crews.
  * FIRST SCAN — crews and their people. A crew with a usual Lead is shown with that
- * person, and with the jobs that person coordinates this week; a crew without one
- * is a complete crew card of its own. SECOND — people not on a crew.
+ * person; a crew without one is a complete crew card of its own. Each crew carries a
+ * quiet "This week" line: its current jobs that the Calendar schedules this week.
+ * SECOND — people not on a crew.
  * THIRD — FieldDive invitations.
  * Access is deep administration: reached from a person, never the board's subject.
  * Access never titles, places, or orders a person on the board.
  *
  * A person is not a login. A crew is not access. Crew membership never grants
  * FieldDive access; FieldDive access never implies crew membership. Nothing is
- * inferred from names. Weekly work is Calendar truth (scheduled jobs) joined to the
- * job's coordinator; there is no crew-to-job assignment yet and none is implied.
+ * inferred from names. Weekly work is the crew's current Job → Crew assignments joined
+ * to Calendar schedules; the Coordinator, the usual Lead, and logins play no part.
  * There is no availability truth, so no availability is shown.
  *
  * Structure is ready for drag and drop without redesign: every crew roster and
@@ -56,7 +57,9 @@ import {
   type TeamBoardModel,
   type TeamBoardSnapshot,
 } from "@/app/lib/team/teamBoardModel";
-import { readTeamWeek, weekDayLabel, weekJobsFor, type TeamWeek, type TeamWeekJob } from "@/app/lib/team/teamWeek";
+import { readTeamWeek, weekDayLabel, weekJobsForCrew, type TeamWeek, type TeamWeekJob } from "@/app/lib/team/teamWeek";
+import { readCrewArchiveBlock, type CrewArchiveBlock } from "@/app/lib/team/teamBoardPersistence";
+import { CREW_ARCHIVE_BLOCK_COPY, CREW_WEEK_COPY } from "@/app/lib/crew/crewCopy";
 import { useCompanyMembers } from "@/app/tools/roofing/jobCard/useCompanyMembers";
 import CompanyTeamClient, { type TeamAccessRequest } from "@/app/tools/settings/team/CompanyTeamClient";
 import TeamSheet, { TEAM_SHEET_PRIMARY, TEAM_SHEET_SECONDARY } from "@/app/tools/settings/team/TeamSheet";
@@ -72,6 +75,9 @@ type Notice = { text: string; tone?: "error"; undo?: () => Promise<void> };
 type Dialog = { type: "add_person" } | { type: "create_crew"; leadKey?: string } | { type: "person"; key: string } | null;
 
 type CrewEdit = { crewId: string; mode: "add" | "lead" | "rename" | "archive" } | null;
+
+/** A failed read is never "no jobs": only a successful read can be empty. */
+type WeekState = { status: "loading" } | { status: "ready"; week: TeamWeek } | { status: "error" };
 
 const CALENDAR_HREF = "/tools/roofing/calendar";
 
@@ -284,81 +290,141 @@ function SidePanel({
   );
 }
 
+/** A crew's "This week": secondary context under its roster. Crew truth + Calendar truth only. */
 function WeekWork({
-  leadName,
+  crewName,
+  state,
   jobs,
   expanded,
   onToggle,
+  onRetry,
 }: {
-  leadName: string;
-  jobs: TeamWeekJob[] | null;
+  crewName: string;
+  state: WeekState["status"];
+  jobs: TeamWeekJob[];
   expanded: boolean;
   onToggle: () => void;
+  onRetry: () => void;
 }) {
-  if (!jobs) return null;
-  if (jobs.length === 0) {
+  const line = "mt-1.5 flex min-h-[36px] items-center gap-2 text-[13px]";
+  const icon = <CalendarDays className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />;
+  if (state === "loading") {
     return (
-      <p className="mt-3 flex min-h-[40px] items-center gap-2 rounded-lg bg-slate-50 px-3 text-[13px] text-slate-500" data-team-week="none">
-        <Users className="h-4 w-4 text-slate-400" aria-hidden />
-        No jobs this week
+      <p className={`${line} text-slate-400`} data-team-week="loading" aria-live="polite">
+        {icon}
+        {CREW_WEEK_COPY.checking}
       </p>
     );
   }
-  const count = (
-    <>
-      Coordinates <strong className="font-semibold">{jobs.length}</strong> {jobs.length === 1 ? "job" : "jobs"} this week
-    </>
-  );
+  if (state === "error") {
+    return (
+      <p className={`${line} flex-wrap text-slate-500`} data-team-week="error">
+        {icon}
+        <span>{CREW_WEEK_COPY.unavailable}</span>
+        <button
+          type="button"
+          className="rounded font-medium text-blue-700 hover:text-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          onClick={onRetry}
+          data-team-week-retry
+        >
+          {CREW_WEEK_COPY.retry}
+        </button>
+      </p>
+    );
+  }
+  if (jobs.length === 0) {
+    return (
+      <p className={`${line} text-slate-400`} data-team-week="none">
+        {icon}
+        {CREW_WEEK_COPY.none}
+      </p>
+    );
+  }
   return (
-    <div className={`mt-3 overflow-hidden rounded-lg ${expanded ? "ring-1 ring-blue-100" : ""}`} data-team-week={expanded ? "open" : "closed"}>
+    <div className="mt-1.5" data-team-week={expanded ? "open" : "closed"}>
       <button
         type="button"
-        className="flex min-h-[40px] w-full items-center gap-2 bg-blue-50/80 px-3 text-left text-[13px] text-blue-700 transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
+        className="flex min-h-[36px] w-full min-w-0 items-center gap-2 rounded-md text-left text-[13px] font-medium text-slate-700 transition hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         aria-expanded={expanded}
-        aria-label={`${leadName}: ${jobs.length} ${jobs.length === 1 ? "job" : "jobs"} this week`}
+        aria-label={CREW_WEEK_COPY.toggleLabel(crewName, jobs.length)}
         onClick={onToggle}
         data-team-week-toggle
       >
-        <Users className="h-4 w-4 shrink-0" aria-hidden />
-        <span className="min-w-0 flex-1">{count}</span>
-        {expanded ? <ChevronDown className="h-4 w-4 shrink-0" aria-hidden /> : <ChevronRight className="h-4 w-4 shrink-0" aria-hidden />}
+        {icon}
+        <span className="min-w-0 flex-1">{CREW_WEEK_COPY.count(jobs.length)}</span>
+        {expanded ? <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" aria-hidden /> : <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />}
       </button>
       {expanded ? (
-        <div className="bg-white" data-team-week-panel>
+        <div className="mt-1 rounded-lg ring-1 ring-slate-200/80" data-team-week-panel>
           <ul className="divide-y divide-slate-100 px-3">
             {jobs.map((job) => (
               <li key={job.jobId}>
                 <Link
                   href={buildJobCardHref(job.jobId)}
-                  className="flex min-h-[56px] min-w-0 items-center gap-3 py-2 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  className="flex min-h-[52px] min-w-0 items-center gap-3 py-2 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   data-team-week-job
                 >
-                  <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500" aria-hidden>
-                    <CalendarDays className="h-4 w-4" />
-                  </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[13px] font-semibold text-slate-900">{job.customerName}</span>
                     {job.address ? <span className="block truncate text-xs text-slate-500">{job.address}</span> : null}
                   </span>
-                  <span className="shrink-0 rounded-md bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 ring-1 ring-slate-200">
-                    {weekDayLabel(job.startsOn)}
+                  <span className="shrink-0 text-right text-xs text-slate-600">
+                    <span className="block font-medium">{weekDayLabel(job.startsOn)}</span>
+                    {job.jobStatus === "on_hold" ? (
+                      <span className="block text-amber-700" data-team-week-on-hold>
+                        {CREW_WEEK_COPY.onHold}
+                      </span>
+                    ) : null}
                   </span>
                 </Link>
               </li>
             ))}
           </ul>
-          <div className="px-3 pb-3 pt-1">
+          <div className="px-3 pb-2">
             <Link
               href={CALENDAR_HREF}
-              className="flex min-h-[36px] items-center justify-center gap-1.5 rounded-md bg-slate-50 text-xs font-medium text-blue-700 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="inline-flex min-h-[36px] items-center gap-1.5 text-xs font-medium text-blue-700 hover:text-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               data-team-week-calendar
             >
-              View in calendar
+              {CREW_WEEK_COPY.viewInCalendar}
               <ArrowRight className="h-3.5 w-3.5" aria-hidden />
             </Link>
           </div>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+/** Answers "which job is keeping this crew active?" with links to those jobs. */
+function ArchiveBlocked({ crewName, block, onClose }: { crewName: string; block: CrewArchiveBlock; onClose: () => void }) {
+  const hidden = block.blockingJobCount - block.blockingJobs.length;
+  return (
+    <div className="mt-3 rounded-lg bg-slate-50 p-3" data-team-archive-blocked-crew role="status">
+      <p className="text-sm font-medium text-slate-900">{CREW_ARCHIVE_BLOCK_COPY.heading(crewName)}</p>
+      {block.blockingJobs.length > 0 ? (
+        <ul className="mt-1">
+          {block.blockingJobs.map((job) => (
+            <li key={job.jobId}>
+              <Link
+                href={buildJobCardHref(job.jobId)}
+                className="inline-flex min-h-[36px] items-center gap-1.5 text-sm font-medium text-blue-700 hover:text-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                data-team-archive-blocking-job
+              >
+                {job.label}
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {hidden > 0 ? <p className="text-sm text-slate-600">{CREW_ARCHIVE_BLOCK_COPY.hiddenJobs(hidden)}</p> : null}
+      <p className="mt-1 text-[13px] text-slate-600">{CREW_ARCHIVE_BLOCK_COPY.help}</p>
+      <div className="mt-2">
+        <button type="button" className={TEAM_SHEET_SECONDARY} onClick={onClose}>
+          {CREW_ARCHIVE_BLOCK_COPY.close}
+        </button>
+      </div>
     </div>
   );
 }
@@ -369,7 +435,8 @@ export default function TeamBoardClient({ companyId }: { companyId: string }) {
   const [board, setBoard] = useState<BoardState>({ status: "loading" });
   const [invitations, setInvitations] = useState<TeamBoardInviteInput[]>([]);
   const [invitationsRead, setInvitationsRead] = useState<"loading" | "ready" | "failed">("loading");
-  const [week, setWeek] = useState<TeamWeek | null>(null);
+  const [week, setWeek] = useState<WeekState>({ status: "loading" });
+  const [archiveBlock, setArchiveBlock] = useState<{ crewId: string; block: CrewArchiveBlock } | null>(null);
   const [dialog, setDialog] = useState<Dialog>(null);
   const [edit, setEdit] = useState<CrewEdit>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -416,13 +483,15 @@ export default function TeamBoardClient({ companyId }: { companyId: string }) {
   }, [canAdminMembers]);
 
   const loadWeek = useCallback(async () => {
+    setWeek({ status: "loading" });
     try {
       const res = await fetch("/api/team/week", { cache: "no-store" });
       const body = (await res.json().catch(() => ({}))) as { ok?: boolean; week?: unknown };
-      // Unreadable work is hidden, never shown as "no jobs".
-      setWeek(res.ok && body.ok === true ? readTeamWeek(body.week) : null);
+      const parsed = res.ok && body.ok === true ? readTeamWeek(body.week) : null;
+      // An unreadable week is an error, never "No jobs this week".
+      setWeek(parsed ? { status: "ready", week: parsed } : { status: "error" });
     } catch {
-      setWeek(null);
+      setWeek({ status: "error" });
     }
   }, []);
 
@@ -451,7 +520,12 @@ export default function TeamBoardClient({ companyId }: { companyId: string }) {
   );
 
   const act = useCallback(
-    async (payload: Record<string, unknown>, success?: string | ((result: Record<string, unknown>) => Notice | null)) => {
+    async (
+      payload: Record<string, unknown>,
+      success?: string | ((result: Record<string, unknown>) => Notice | null),
+      /** Returns true when it showed the failure itself. */
+      onFailure?: (body: Record<string, unknown>) => boolean
+    ) => {
       setBusy(true);
       try {
         const res = await fetch("/api/team/actions", {
@@ -461,7 +535,7 @@ export default function TeamBoardClient({ companyId }: { companyId: string }) {
         });
         const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
         if (!res.ok || body.ok !== true) {
-          setNotice({ text: String(body.message ?? "That didn't save. Try again."), tone: "error" });
+          if (!onFailure?.(body)) setNotice({ text: String(body.message ?? "That didn't save. Try again."), tone: "error" });
           await loadBoard();
           return null;
         }
@@ -541,7 +615,14 @@ export default function TeamBoardClient({ companyId }: { companyId: string }) {
             items={[
               { label: full.lead ? "Change Crew Lead" : "Choose Crew Lead", onSelect: () => setEdit({ crewId: crew.id, mode: "lead" }) },
               { label: "Rename crew", onSelect: () => setEdit({ crewId: crew.id, mode: "rename" }) },
-              { label: "Archive crew", danger: true, onSelect: () => setEdit({ crewId: crew.id, mode: "archive" }) },
+              {
+                label: "Archive crew",
+                danger: true,
+                onSelect: () => {
+                  setArchiveBlock(null);
+                  setEdit({ crewId: crew.id, mode: "archive" });
+                },
+              },
             ]}
           />
         </div>
@@ -572,7 +653,16 @@ export default function TeamBoardClient({ companyId }: { companyId: string }) {
             }}
           />
         ) : null}
-        {editing === "archive" ? (
+        {editing === "archive" && archiveBlock?.crewId === crew.id ? (
+          <ArchiveBlocked
+            crewName={crew.name}
+            block={archiveBlock.block}
+            onClose={() => {
+              setArchiveBlock(null);
+              setEdit(null);
+            }}
+          />
+        ) : editing === "archive" ? (
           <div className="mt-3 rounded-lg bg-slate-50 p-3" data-team-archive-confirm>
             <p className="text-sm text-slate-800">
               Archive {crew.name}? People stay on your team
@@ -584,7 +674,16 @@ export default function TeamBoardClient({ companyId }: { companyId: string }) {
                 className="inline-flex min-h-[40px] items-center rounded-lg bg-rose-600 px-3 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
                 disabled={busy}
                 onClick={async () => {
-                  const saved = await act({ action: "archive_crew", crewId: crew.id, expectedRowVersion: full.rowVersion }, `${crew.name} archived.`);
+                  const saved = await act(
+                    { action: "archive_crew", crewId: crew.id, expectedRowVersion: full.rowVersion },
+                    `${crew.name} archived.`,
+                    (body) => {
+                      const block = readCrewArchiveBlock(body);
+                      if (!block) return false;
+                      setArchiveBlock({ crewId: crew.id, block });
+                      return true;
+                    }
+                  );
                   if (saved) setEdit(null);
                 }}
               >
@@ -631,6 +730,17 @@ export default function TeamBoardClient({ companyId }: { companyId: string }) {
           </ul>
         ) : null}
 
+        <div className="ml-4 pl-3.5" data-team-crew-week={crew.id}>
+          <WeekWork
+            crewName={crew.name}
+            state={week.status}
+            jobs={week.status === "ready" ? weekJobsForCrew(week.week, crew.id) : []}
+            expanded={openWeeks.has(crew.id)}
+            onToggle={() => toggleWeek(crew.id)}
+            onRetry={() => void loadWeek()}
+          />
+        </div>
+
         {editing === "add" ? (
           <AddToCrew
             crew={full}
@@ -669,14 +779,6 @@ export default function TeamBoardClient({ companyId }: { companyId: string }) {
           </header>
         ) : null}
         {group.crews.map((crew, i) => renderCrew(crew, !lead && i === 0))}
-        {lead ? (
-          <WeekWork
-            leadName={lead.name}
-            jobs={weekJobsFor(week, lead.access === "active" ? lead.userId : null)}
-            expanded={openWeeks.has(group.key)}
-            onToggle={() => toggleWeek(group.key)}
-          />
-        ) : null}
       </article>
     );
   };

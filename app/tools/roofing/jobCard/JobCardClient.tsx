@@ -132,21 +132,10 @@ import {
 } from "@/app/tools/roofing/jobCard/jobCardTypes";
 import JobCardSectionPanel from "@/app/tools/roofing/jobCard/JobCardSectionPanel";
 import JobCardOverviewSummary from "@/app/tools/roofing/jobCard/JobCardOverviewSummary";
-import {
-  OVERVIEW_LINK,
-  OVERVIEW_SOFT_ACTION,
-} from "@/app/tools/roofing/jobCard/jobCardOverviewStyles";
-import JobCardProductionLeadControl from "@/app/tools/roofing/jobCard/JobCardProductionLeadControl";
+import { OVERVIEW_LINK } from "@/app/tools/roofing/jobCard/jobCardOverviewStyles";
 import { useJobCoordinator } from "@/app/tools/roofing/jobCard/useJobCoordinator";
-import { coordinatorCandidates, coordinatorDisplay } from "@/app/lib/jobCoordinatorView";
-import {
-  JobCardCrewActionButton,
-  JobCardCrewLayer,
-} from "@/app/tools/roofing/jobCard/JobCardCrewFact";
-import JobCardOverviewPeople, {
-  JobCardOverviewCoordinatorCard,
-  JobCardOverviewCrewCard,
-} from "@/app/tools/roofing/jobCard/JobCardOverviewPeople";
+import { coordinatorDisplay } from "@/app/lib/jobCoordinatorView";
+import { JobCardCrewLayer } from "@/app/tools/roofing/jobCard/JobCardCrewFact";
 import { useJobCrewAssignment } from "@/app/tools/roofing/jobCard/useJobCrewAssignment";
 import { buildJobCrewFactView } from "@/app/lib/jobCrewAssignmentView";
 import {
@@ -902,13 +891,13 @@ export default function JobCardClient({
     buildPendingProposedSummariesFromScopeChanges(scopeSummaryRows);
 
   const coordinatorView = coordinatorDisplay(jobCoordinator.state);
-  const productionLeadAssignedTo = coordinatorView.assignedTo;
   const productionLeadLabel = coordinatorView.label;
-  const jobCrew = useJobCrewAssignment(currentJobId, hydratedJobRecord?.status ?? null);
+  const jobCrew = useJobCrewAssignment(currentJobId, hydratedJobRecord?.status ?? null, hydratedJobRecord?.stage ?? null);
   const crewView = buildJobCrewFactView({
     status: jobCrew.status,
     model: jobCrew.model,
     jobStatus: hydratedJobRecord?.status ?? null,
+    jobStage: hydratedJobRecord?.stage ?? null,
     legacyCrewLabel: hydratedJobRecord?.crew_label ?? null,
     canAssign: companyMembers.canAssignJobs,
   });
@@ -1115,60 +1104,6 @@ export default function JobCardClient({
   });
   const sheetJobName =
     [identity.displayName, identity.addressLine].filter(Boolean).join(" · ") || "This job";
-  const overviewPeople = currentJobId ? (
-    <JobCardOverviewPeople
-      coordinator={
-        <JobCardProductionLeadControl
-          jobId={currentJobId}
-          assignedTo={productionLeadAssignedTo}
-          label={productionLeadLabel}
-          canAssign={
-            companyMembers.canAssignJobs && jobCoordinator.state.status === "ready"
-          }
-          members={coordinatorCandidates(companyMembers.members)}
-          jobName={sheetJobName}
-          membersStatus={
-            companyMembers.loading ? "loading" : companyMembers.error ? "error" : "ready"
-          }
-          onRefreshMembers={() => void companyMembers.refresh()}
-          cardTriggerClassName={OVERVIEW_SOFT_ACTION}
-          renderCard={({ trigger }) => (
-            <JobCardOverviewCoordinatorCard
-              name={productionLeadLabel}
-              state={coordinatorView.state}
-              trigger={trigger}
-            />
-          )}
-          onStale={() => void jobCoordinator.reload()}
-          onUpdated={({ assignedTo, displayName }) => {
-            jobCoordinator.applyWrite({ assignedTo, displayName, email: null });
-            setHydratedJobRecord((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    assigned_to: assignedTo,
-                  }
-                : prev
-            );
-            setScheduleActivityTick((n) => n + 1);
-          }}
-        />
-      }
-      crew={
-        <JobCardOverviewCrewCard
-          view={crewView}
-          action={
-            <JobCardCrewActionButton
-              view={crewView}
-              appearance="card"
-              onOpen={() => setCrewSheetOpen(true)}
-              onRetry={() => void jobCrew.reload()}
-            />
-          }
-        />
-      }
-    />
-  ) : null;
   const overviewTimeline = buildJobCardOverviewTimeline({
     kind: overviewSituation.kind,
     startsOn: jobCardSchedule.active?.starts_on ?? null,
@@ -1663,7 +1598,6 @@ export default function JobCardClient({
                       planned: overviewChangePlan,
                     }}
                     timeline={overviewTimeline}
-                    people={overviewPeople}
                     leadingSection={
                       overviewSituation.closeoutLeads &&
                       jobCardCloseout &&

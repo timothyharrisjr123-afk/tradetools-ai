@@ -56,8 +56,8 @@ describe("hierarchy", () => {
     assert.doesNotMatch(CLIENT, /View activity →/);
   });
 
-  test("the Overview passes the people row, timeline, and recent activity into the summary", () => {
-    assert.match(CLIENT, /people=\{overviewPeople\}/);
+  test("the Overview passes the timeline and recent activity; the Coordinator/Crew row is parked", () => {
+    assert.doesNotMatch(CLIENT, /people=\{|<JobCardOverviewPeople/);
     assert.match(CLIENT, /timeline=\{overviewTimeline\}/);
     assert.match(CLIENT, /presentation="recent"/);
   });
@@ -146,7 +146,6 @@ describe("Coordinator + Crew", () => {
     assert.match(PEOPLE, /label="Coordinator"/);
     assert.match(PEOPLE, /label=\{view\.label\}/);
     assert.match(PEOPLE, /grid gap-3 md:grid-cols-2/);
-    assert.match(CLIENT, /cardTriggerClassName=\{OVERVIEW_SOFT_ACTION\}/);
     assert.doesNotMatch(PEOPLE, /Assigned to|roster|access profile|members?Count/i);
   });
 

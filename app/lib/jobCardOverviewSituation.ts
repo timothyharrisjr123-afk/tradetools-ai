@@ -102,8 +102,8 @@ export function resolveJobCardOverviewSituation(
   if (disposition === "lost") {
     return {
       kind: "lost",
-      headline: "Marked lost",
-      details: ["Records are kept. Reopen the job if the customer comes back."],
+      headline: "Lost",
+      details: ["Records and history remain."],
       closeoutLeads: false,
     };
   }
