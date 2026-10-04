@@ -10,6 +10,7 @@ All future FieldDive work must follow:
 - `docs/fielddive-ui-product-cohesion-standard.md` — mandatory whenever any visible UI is touched: screen job, scan order, information ownership, hierarchy, color, banners, real viewport proof, independent visual review, and the screenshot ZIP gate.
 - `docs/fielddive-audit-playbook.md` — the required audit map, cross-surface coherence gate and evidence rule for any meaningful audit; the real-world contractor scenario audit; how whole-product audits (13E-A) and competitive audits (13E-B) are run, and how findings close.
 - Plain-language product copy (2026-10-04) is part of these standards: execution standards → "Plain-language product copy"; audit playbook → "Plain-language copy audit".
+- Product advancement and discovery reconciliation (2026-10-04) is part of these standards: execution standards → "Product advancement and discovery reconciliation"; active locks §1, §3A, D10.
 - `docs/fielddive-active-product-locks.md` — **read first.** Index of active cross-cutting product locks, the precedence rule, and settled product decisions. Future prompts must load it. Agents do not independently re-decide a settled decision recorded there.
 
 These are canonical standing instructions. Do not improvise replacements, silently weaken them, or omit applicable standards from future implementation or audit work.
@@ -17,6 +18,52 @@ These are canonical standing instructions. Do not improvise replacements, silent
 Domain blueprints remain the product authority for their program. Repo truth remains the authority for what the code actually does. If a governance standard and a locked blueprint appear to conflict, stop and report it. Do not pick a weaker reading.
 
 Sections below this checkpoint are historical. Older **NEXT** lines are not the current step.
+
+### Governance update (2026-10-04, later) — discovery supersession + product advancement locks; measurement not universal; Slice 1 direction accepted for continuation, implementation pending review, UI not final (docs only)
+
+- **New permanent locks.** Index: `docs/fielddive-active-product-locks.md` §1, §3A and D10. Full procedures: `docs/fielddive-product-execution-standards.md` → "Product advancement and discovery reconciliation".
+  - **NEW DISCOVERY SUPERSEDES STALE ASSUMPTIONS**, with the five-step reconciliation. **DO NOT BUILD SOMETHING WE ALREADY KNOW WE ARE LIKELY TO REMOVE.** Temporary compatibility must be labelled temporary.
+  - **NEW PRODUCT DISCOVERY IS CROSS-CUTTING UNTIL PROVEN OTHERWISE.**
+  - **FIELDIVE PRODUCT ADVANCEMENT LOOP**; **PROACTIVE PRODUCT ADVANCEMENT IS REQUIRED**; **DO NOT CONFUSE AGREEMENT WITH HELPFULNESS.**
+  - **ROOFR PARITY IS A FLOOR, NOT A CEILING**, classified as ADOPT / ADAPT / KEEP FIELDIVE / IMPROVE / DO NOT COPY. This refines the 2026-07-23 "Copy Roofr's proven foundation" principle; it does not replace it.
+  - **Challenge threshold:** IMPROVE AGGRESSIVELY, BUT INTERRUPT ACTIVE WORK ONLY WHEN CONTINUING WOULD BUILD AGAINST A NOW-INVALID ASSUMPTION.
+  - **Major UI Product Advancement Gate** (seven items + "what would a strong competitor still make feel obviously easier?") for major surfaces only.
+- **Current discovery: measurement application (D10).**
+  - The detailed roof measurement is **not a universal Job prerequisite**. Full reroof / quantity-driven work may need it. Small repairs, fixed-price work, known scope/price and direct-quote paths may not.
+  - The current full-roof readiness, and its Slice 1 form presentation, stay as **temporary compatibility** for the reroof flow only. They must not be presented visually or architecturally as universal.
+  - **MEASURE WHAT IS TRUE. QUOTE WHAT WORK WILL BE PERFORMED.**
+  - **No longer a product lock:** the Core Flow 1 Decision 5 lean "keep the measurement required" (superseded). The Decision 1 lean is now "truthful per Job".
+- **Core Flow 1 Slice 1 status:**
+  - The Slice 1 truth/reliability **direction** is accepted for continuation.
+  - The current implementation remains **pending independent code/scope review**.
+  - Its visible error/validation presentation is **not** accepted as final FieldDive UI.
+  - It is distinct from the historical "Slice 1 core contractor workspace" (§6CU, 2026-08) and the Phase 13C "Slice 1". Historical "measurement required" wording there is evidence only and is superseded by D10.
+  - Code: uncommitted working-tree changes, built on `3cf4d49` (code checkpoint `d9baa59`), including the correction pass. Focused tests pass. The full suite is at the known 25 pre-existing failures.
+  - The truth/reliability direction it implements:
+    - error ≠ empty loads;
+    - intake retry idempotency;
+    - attachment failure classification, including `bucket_not_found`;
+    - truthful caption/remove/upload outcomes.
+  - **Known visual debt:**
+    - too much amber/yellow emphasis;
+    - measurement capture reflects the full-roof readiness model, which must not become universal;
+    - the measurement-requirement presentation is temporary compatibility UI;
+    - the photo upload failure is truthful but visually over-emphasized;
+    - the caption/remove failure presentation is truthful but unfinished;
+    - app-wide failure/validation presentation needs one coherent visual system, not one-off banners;
+    - "Find or add customer" is pre-existing at HEAD. Its final place in New Job intake is a future product/UI evaluation.
+  - **DO NOT treat the current Slice 1 screenshots as visual baselines.** The truth states are the durable part.
+  - The staging attachments bucket is still missing, so real uploads return 503. Provisioning needs separate authorization.
+- **Roadmap impact: order unchanged** (Core Flow 1 Slices 1 → 2 → 3 → 4A → 4B → 5–8; 4B may still be sequenced after 5–7, per the contract). Scope constraints are added:
+  - Slice 2's next-action resolver must be able to return an action other than "Add measurement".
+  - Slice 3 must not entrench measurement as universal or extend the full-roof readiness gate.
+  - The **Decision 5 measurement reconciliation is a blocking prerequisite of Slice 4A** and of any missing-path proposal work.
+  - Visible error/validation styling should converge on one app-wide system.
+  - Detail: `docs/fielddive-core-flow-1-target-contract.md` revision 2.
+- **What implementation agents must no longer treat as locks:**
+  - "every Job / every proposal needs a measurement";
+  - "Add measurement" as the fixed first action;
+  - the Slice 1 amber validation/failure styling as the pattern to copy.
 
 ### Current checkpoint (2026-10-04) — core safety / authority reconciliation committed; Team/Crew visually parked
 
@@ -42,7 +89,7 @@ Sections below this checkpoint are historical. Older **NEXT** lines are not the 
 - **Audit artifacts remain uncommitted working documents** (the three audit docs listed in the 2026-10-02 checkpoint).
 - The active roadmap and correction ledger in the 2026-10-02 checkpoint below still apply; its **NEXT** is superseded by this one.
 
-**NEXT: CORE FLOW 1** — New customer / property / Job → photos → measurement → proposal preparation.
+**NEXT: CORE FLOW 1** — New customer / property / Job → photos → measurement (when the work is quantity-driven; D10) → proposal preparation.
 
 Primary question: **Can a contractor take a real lead, visit the property, capture what they need, and naturally arrive at a professional proposal without understanding how FieldDive is organized?**
 
@@ -2993,6 +3040,8 @@ FieldDive is based on **Roofr’s proven contractor foundation**.
 The product rule is:
 
 **Copy Roofr’s proven foundation → preserve the contractor mental model → remove friction and duplication → simplify the workflow → improve it deliberately.**
+
+*Refined 2026-10-04:* **ROOFR PARITY IS A FLOOR, NOT A CEILING** (execution standards → "Product advancement and discovery reconciliation"). Roofr stays the primary reference. A stronger proven pattern wins. A weaker FieldDive pattern is not kept merely because it exists.
 
 Do **not**:
 

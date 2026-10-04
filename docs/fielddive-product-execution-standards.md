@@ -219,7 +219,122 @@ An implementation, audit or research prompt is not a standalone product specific
 3. the latest controlling domain decision;
 4. task-specific instructions.
 
-**LATEST EXPLICIT CONTROLLING PRODUCT DECISION WINS.** Historical docs, migrations, tests and screenshots are evidence, not authority over a newer explicit decision. A test that encodes a superseded assumption is updated when that behavior is implemented; it is not product authority merely because it passes. Do not ask an agent to independently re-decide a settled decision.
+**LATEST EXPLICIT CONTROLLING PRODUCT DECISION WINS.** Historical docs, migrations, tests and screenshots are evidence, not authority over a newer explicit decision. A test that encodes a superseded assumption is updated when that behavior is implemented; it is not product authority merely because it passes. Do not ask an agent to independently re-decide a settled decision. New product discovery can itself supersede an older assumption. See "Product advancement and discovery reconciliation" below.
+
+---
+
+## Product advancement and discovery reconciliation
+
+Locked 2026-10-04. The concise controlling versions are indexed in `docs/fielddive-active-product-locks.md` §1 and §3A. This section holds the full procedures.
+
+### New discovery supersedes stale assumptions
+
+**NEW DISCOVERY SUPERSEDES STALE ASSUMPTIONS.** When new evidence narrows, supersedes or invalidates a prior product assumption, reconcile it immediately:
+
+1. Identify the prior assumption that is narrowed, superseded or invalidated.
+2. Identify every active and upcoming slice that depends on it.
+3. Decide whether in-flight work must stop, narrow or change.
+4. Update the controlling repo documentation immediately: the active locks, the relevant contract, and the handoff.
+5. Tell implementation agents explicitly what changed, and what must no longer be treated as a product lock.
+
+**DO NOT continue implementing an older assumption merely because it was previously approved.**
+
+**DO NOT BUILD SOMETHING WE ALREADY KNOW WE ARE LIKELY TO REMOVE.**
+
+Temporary compatibility behavior may remain where current truth or safety depends on it. It must be:
+- explicitly identified as temporary in the controlling docs;
+- never presented visually or architecturally as the future model.
+
+**NEW PRODUCT DISCOVERY IS CROSS-CUTTING UNTIL PROVEN OTHERWISE.**
+- Check any discovery that affects these areas against the whole relevant contractor journey, not only the slice where it was made:
+  - workflow;
+  - required inputs;
+  - availability;
+  - lifecycle;
+  - pricing;
+  - navigation;
+  - terminology;
+  - next-action logic;
+  - user-facing presentation.
+- Record which surfaces were checked.
+
+### Product advancement loop
+
+**FIELDIVE PRODUCT ADVANCEMENT LOOP:**
+
+Contractor reality → repo truth → competitive benchmark → identify the stronger opportunity → impact-check the current roadmap → challenge if materially better → update controlling locks → implement → visually verify → reassess.
+
+**PROACTIVE PRODUCT ADVANCEMENT IS REQUIRED.** Before major workflow or UI decisions, evaluate:
+- the contractor's goal;
+- what FieldDive currently does;
+- repo truth;
+- how Roofr and other leaders solve it;
+- what competitors do poorly or unnecessarily;
+- what FieldDive can do more clearly, simply or intelligently.
+
+If the current direction is materially weaker than a proven pattern, challenge it explicitly before implementation.
+
+**DO NOT CONFUSE AGREEMENT WITH HELPFULNESS.** Agents are expected to disagree when evidence supports a materially better experience, workflow, architecture or presentation. Silent compliance with a weaker plan is a failure, not a courtesy.
+
+### Roofr parity is a floor, not a ceiling
+
+**ROOFR PARITY IS A FLOOR, NOT A CEILING.** Roofr is the primary structural and flow reference unless evidence supports a stronger pattern. This refines the 2026-07-23 principle "Copy Roofr's proven foundation → … → improve it deliberately" (handoff). It does not replace it.
+
+Process:
+1. Determine how Roofr solves it.
+2. Check JobNimbus, AccuLynx and other relevant leaders.
+3. Classify the approach: **ADOPT** / **ADAPT** / **KEEP FIELDIVE** / **IMPROVE** / **DO NOT COPY**.
+4. Recommend the strongest coherent path.
+
+Never copy only for parity. Never preserve a weaker FieldDive pattern merely because it exists.
+
+### Challenge threshold: preserve momentum
+
+Advancement must not create churn. Challenge or interrupt active work only when:
+- the contractor flow is materially worse;
+- the UI is materially less clear than a proven pattern;
+- new evidence invalidates an active assumption;
+- a launch-critical capability is missing; or
+- the current implementation would likely be removed or substantially reworked soon.
+
+Otherwise, record the improvement and park it for the correct slice.
+
+**IMPROVE AGGRESSIVELY, BUT INTERRUPT ACTIVE WORK ONLY WHEN CONTINUING WOULD BUILD AGAINST A NOW-INVALID ASSUMPTION.**
+
+### Major UI Product Advancement Gate
+
+This gate applies to major surfaces and workflows only, not trivial copy or local fixes. Before planning or implementing one, record:
+
+1. Contractor goal
+2. Current FieldDive truth
+3. Current presentation
+4. Roofr / proven pattern
+5. Strongest FieldDive opportunity
+6. Recommendation: **keep** / **refine** / **change presentation** / **change flow** / **product-domain change**
+7. Impact on active and upcoming work
+
+Then ask: **"IF WE SHIPPED THE CURRENT PLAN UNCHANGED, WHAT WOULD A STRONG COMPETITOR STILL MAKE FEEL OBVIOUSLY EASIER?"** A real answer is either addressed or explicitly parked with its target slice.
+
+### Worked example (2026-10-04): measurement application
+
+1. **Prior assumption:** Core Flow 1 treated the detailed roof measurement as a prerequisite for every proposal (target contract Decision 5 lean "keep the measurement required").
+2. **Discovery:** that holds for full reroof / quantity-driven work. Small repairs, fixed-price, known scope/price and direct-quote paths may not need it.
+3. **Dependent slices:**
+   - Slice 1 (measurement-capture presentation);
+   - Slice 2 (Job next-action resolver);
+   - Slice 3 (measurement readiness);
+   - Slice 4A (Prepare's known context).
+4. **Decision:** no in-flight work stops.
+   - The current readiness stays as **temporary compatibility**.
+   - Slice 2 must allow non-measurement next actions.
+   - Slice 3 must not entrench the universal requirement.
+   - The reconciliation is a blocking prerequisite of 4A.
+5. **Docs updated:**
+   - active locks (D10);
+   - target contract (§9 "Measurement application"; §18 Decisions 1 and 5; §20);
+   - handoff.
+
+Lock: **MEASURE WHAT IS TRUE. QUOTE WHAT WORK WILL BE PERFORMED.**
 
 ---
 
@@ -632,6 +747,8 @@ This does not mean "remove all explanation". COPY IS CONTEXTUAL, NOT MINIMAL BY 
 
 Visual reviews inspect copy as well as layout: wording, implementation narration, jargon, duplicated explanations and stage-inappropriate statements are review findings, the same as spacing or hierarchy.
 
+Prompts for a major surface or workflow must include, or point to, the Major UI Product Advancement Gate ("Product advancement and discovery reconciliation"). They must say which current behavior is temporary compatibility, so the agent does not polish it into a baseline.
+
 Avoid vague prompts such as "polish this", "make it premium", or "clean this up" when the real information architecture can be specified.
 
 ---
@@ -658,6 +775,8 @@ Known failure classes to test for explicitly:
 - terminal or ended states that leave live operational commitments behind
 - re-deciding a settled product decision instead of reading the active locks
 - user-facing copy that narrates implementation, leaks internal terms, over-explains, or assumes the wrong Job stage
+- continuing to build an assumption that newer discovery has narrowed or invalidated, or presenting temporary compatibility behavior as the future model
+- agreeing with a materially weaker plan instead of challenging it with evidence
 
 Known examples:
 

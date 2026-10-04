@@ -6,7 +6,7 @@
 
 **Answers one question:** what must every future FieldDive implementation or audit know before reasoning about behavior?
 
-Last updated: 2026-10-04 (plain-language product copy lock added).
+Last updated: 2026-10-04 (later): discovery-supersession, product advancement and Roofr-floor locks added (§1, §3A); measurement application locked (D10); Slice 1 status recorded (§6). Earlier the same day: plain-language product copy lock.
 
 ---
 
@@ -26,6 +26,29 @@ Every task applies, in this order:
 4. task-specific instructions.
 
 **A task prompt is not a standalone product specification.** Agents must not independently re-decide a settled decision recorded here. If a task appears to require changing one, stop and raise it as a product decision.
+
+**NEW DISCOVERY SUPERSEDES STALE ASSUMPTIONS.** When new evidence narrows or invalidates a prior assumption:
+1. name the assumption;
+2. find every active and upcoming slice that depends on it;
+3. decide whether in-flight work stops, narrows or changes;
+4. update the controlling docs immediately;
+5. tell implementation agents what is no longer a lock.
+
+- **DO NOT continue implementing an older assumption merely because it was previously approved.**
+- **DO NOT BUILD SOMETHING WE ALREADY KNOW WE ARE LIKELY TO REMOVE.**
+- Temporary compatibility behavior may stay for current truth or safety, but it must be labelled temporary and never presented visually or architecturally as the future model.
+- **NEW PRODUCT DISCOVERY IS CROSS-CUTTING UNTIL PROVEN OTHERWISE.** Check it against the whole contractor journey when it touches any of these, not only the slice where it was found:
+  - workflow;
+  - required inputs;
+  - availability;
+  - lifecycle;
+  - pricing;
+  - navigation;
+  - terminology;
+  - next-action logic;
+  - presentation.
+
+Full procedure: execution standards → "Product advancement and discovery reconciliation".
 
 ---
 
@@ -59,6 +82,43 @@ Standing phrases (canonical in `docs/fielddive-product-execution-standards.md`):
 
 - Full method (design and implementation): `docs/fielddive-product-execution-standards.md` → "Real-world workflow reasoning method".
 - Audit application (end-to-end contractor scenarios, domain correctness **and** real-world flow): `docs/fielddive-audit-playbook.md` → "Real-world contractor scenario audit".
+
+## 3A. Mandatory method — PRODUCT ADVANCEMENT (locked 2026-10-04)
+
+**FIELDIVE PRODUCT ADVANCEMENT LOOP:** contractor reality → repo truth → competitive benchmark → identify the stronger opportunity → impact-check the current roadmap → challenge if materially better → update controlling locks → implement → visually verify → reassess.
+
+- **PROACTIVE PRODUCT ADVANCEMENT IS REQUIRED.** Before major workflow or UI decisions, evaluate:
+  - the contractor's goal;
+  - what FieldDive does now;
+  - repo truth;
+  - how Roofr and other leaders solve it;
+  - what competitors do poorly;
+  - what FieldDive can do more clearly, simply or intelligently.
+- **DO NOT CONFUSE AGREEMENT WITH HELPFULNESS.** Agents must challenge a materially weaker direction with evidence, before implementation.
+- **ROOFR PARITY IS A FLOOR, NOT A CEILING.**
+  - Roofr is the primary structural and flow reference unless evidence supports a stronger pattern.
+  - Then check JobNimbus, AccuLynx and others.
+  - Classify as ADOPT / ADAPT / KEEP FIELDIVE / IMPROVE / DO NOT COPY.
+  - Never copy only for parity. Never keep a weaker FieldDive pattern just because it exists.
+- **Challenge threshold.** Interrupt only when one of these holds; otherwise park the improvement for the correct slice:
+  - the flow is materially worse;
+  - the UI is materially less clear than a proven pattern;
+  - new evidence invalidates an active assumption;
+  - a launch-critical capability is missing;
+  - the work would likely be removed or reworked soon.
+- **IMPROVE AGGRESSIVELY, BUT INTERRUPT ACTIVE WORK ONLY WHEN CONTINUING WOULD BUILD AGAINST A NOW-INVALID ASSUMPTION.**
+- **Major UI Product Advancement Gate** (major surfaces only):
+  - Record seven items:
+    1. contractor goal;
+    2. current truth;
+    3. current presentation;
+    4. Roofr / proven pattern;
+    5. strongest FieldDive opportunity;
+    6. recommendation (keep / refine / change presentation / change flow / product-domain change);
+    7. impact on active work.
+  - Then ask: **"IF WE SHIPPED THE CURRENT PLAN UNCHANGED, WHAT WOULD A STRONG COMPETITOR STILL MAKE FEEL OBVIOUSLY EASIER?"**
+
+Full procedures: execution standards → "Product advancement and discovery reconciliation".
 
 ---
 
@@ -227,6 +287,19 @@ Future prompts must not resume Team/Crew implementation unless the roadmap is de
 
 **DO NOT DELETE TEAM/CREW RESEARCH OR ARCHITECTURE. DO NOT USE TEAM/CREW AS THE ACTIVE PRODUCT CENTER UNTIL CORE APP READINESS IS REASSESSED.**
 
+### D10. Measurement application (2026-10-04)
+
+**MEASURE WHAT IS TRUE. QUOTE WHAT WORK WILL BE PERFORMED.**
+
+- The detailed roofing measurement workflow is **not a universal prerequisite for every Job**.
+  - Full reroof / quantity-driven work may require measurement-driven quantities.
+  - Small repairs, fixed-price work, known scope/price and direct-quote paths may not.
+- Today's detailed measurement readiness may remain as **temporary compatibility** with the reroof proposal flow. It must not be presented visually or architecturally as a universal Job requirement.
+- Before Proposal Slice 4A or any missing-path work, reconcile the measurement model with direct/small-job proposal paths.
+- Job next-action architecture must stay able to select a truthful action other than "Add measurement".
+- This supersedes the earlier Core Flow 1 lean "keep the measurement required".
+- Detail: `docs/fielddive-core-flow-1-target-contract.md` §9 "Measurement application" and §18 Decisions 1 and 5.
+
 ---
 
 ## 5. Other active architecture locks (pointers)
@@ -246,7 +319,9 @@ Future prompts must not resume Team/Crew implementation unless the roadmap is de
 | Tenancy: no cross-tenant association, read, write, reassignment or inference | execution standards → "Tenancy" |
 | Derived access ends when its reason ends; independent reasons survive | execution standards → "Derived access lifecycle" |
 | Proposal acceptance is not operational approval; permission never bypasses domain eligibility | execution standards → "Domain ownership" |
-| Latest explicit controlling decision supersedes older assumptions | this index §1 |
+| Latest explicit controlling decision supersedes older assumptions; NEW DISCOVERY SUPERSEDES STALE ASSUMPTIONS; NEW PRODUCT DISCOVERY IS CROSS-CUTTING UNTIL PROVEN OTHERWISE | this index §1; execution standards → "Product advancement and discovery reconciliation" |
+| PRODUCT ADVANCEMENT LOOP; ROOFR PARITY IS A FLOOR, NOT A CEILING; challenge threshold; Major UI Product Advancement Gate | this index §3A; execution standards → "Product advancement and discovery reconciliation" |
+| Measurement is not a universal Job prerequisite; current readiness is temporary compatibility | this index D10; Core Flow 1 target contract §9 |
 | **PLAIN-LANGUAGE PRODUCT COPY** — THE CONTRACTOR SHOULD SEE WHAT SOMETHING MEANS, NOT HOW FIELDIVE IMPLEMENTS IT. No FieldDive/system/lifecycle narration. COPY IS CONTEXTUAL, NOT MINIMAL BY DEFAULT: keep a short plain consequence note when removing it could leave a contractor unsure about an important consequence; otherwise don't add one | execution standards → "Plain-language product copy"; audit playbook → "Plain-language copy audit" |
 
 ---
@@ -256,6 +331,15 @@ Future prompts must not resume Team/Crew implementation unless the roadmap is de
 Recording D1–D8 changes no code. Current code still differs from them in several places (for example permanent Reopen for Lost, an optional Lost reason, and schedules and Coordinator state that survive terminal transitions). Those differences are tracked in the global handoff's correction program, not here. Do not cite current behavior as evidence against a settled decision.
 
 D9 sets the order of work. The active roadmap is core-app-first and lives in the global handoff's current checkpoint, along with the active correction ledger of non-Team audit findings.
+
+D10 changes no code. The current measurement readiness and its Slice 1 presentation are temporary compatibility.
+
+**Core Flow 1 Slice 1 (2026-10-04):**
+- The truth/reliability **direction** is accepted for continuation.
+- The current implementation remains **pending independent code/scope review** (uncommitted).
+- Its visible error/validation presentation is **not** accepted as final FieldDive UI.
+- **DO NOT treat the current Slice 1 screenshots as visual baselines.**
+- Visual debt list: target contract §20 Slice 1 "Status"; handoff 2026-10-04 governance update.
 
 ## 7. Canonical governance documents
 
