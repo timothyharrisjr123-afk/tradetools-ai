@@ -18,6 +18,34 @@ Domain blueprints remain the product authority for their program. Repo truth rem
 
 Sections below this checkpoint are historical. Older **NEXT** lines are not the current step.
 
+### Current checkpoint (2026-10-04) — core safety / authority reconciliation committed; Team/Crew visually parked
+
+- **Code checkpoint:** `d9baa59` — `fix: harden job authority and park team UI`. Not pushed, not deployed.
+- **What this checkpoint is:** core safety / authority reconciliation, plus the preserved Crew foundation that was already applied to staging, plus Team/Crew visually parked. It is **not** a claim that Team/Crew is launch-ready, that the whole Job lifecycle is solved, that invite/access UI is solved, or that Complete/Crew semantics are permanently decided.
+- **Staging (`tjtrhdckinjtorgbkirm`):** migrations applied through `20261002120000`. The local repo and the staging migration ledger match exactly (includes `20261001160000_phase13c_crew_lifecycle_projection` and `20261002120000_core_disposition_authority_and_job_write_boundary`).
+- **Fixed on staging (roadmap step 1):**
+  - Disposition P0: `change_job_disposition_v1` enforces the exact capability under the Job row lock (`jobs.finalize` for any move into or out of lost/closed, otherwise `jobs.hold`). Lost requires a reason, Lost is terminal, Complete can never become Lost.
+  - Broad direct Job-write P0: direct authenticated UPDATE on `jobs` is limited to three columns; direct DELETE is refused.
+  - `/api/approval/status` PII route tombstoned (410).
+  - Live staging authority matrix after the migration: 16/16 pass.
+- **Accepted UI (independent visual review complete):**
+  - Lost uses plain-language copy: "Mark job lost" / "This job will be marked lost. Records and history will remain." / required Reason / "Mark lost"; one "Lost" message on the Job Overview.
+  - Team is hidden from the active navigation (desktop and mobile). The route, components, models, tests and data are preserved.
+  - Coordinator and Crew cards are no longer shown on the Job Overview. Coordinator state, Crew assignment architecture, APIs and Activity history are unchanged.
+- **Team/Crew:** architecture and research preserved and parked (D9). No Team/Crew development resumes without explicit authorization.
+- **Invite/access-management UI is deliberately deferred**, reachable only by direct URL (`/tools/team`) while the core flow is dialed in. It is not deleted. Do not restore Team to the nav merely to expose invitations/access.
+- **Remaining known security / writer debt:**
+  - Job column grant debt: direct authenticated UPDATE still allowed on `active_proposal_id`, `selected_measurement_id`, `updated_at`.
+  - Still open from roadmap step 1: direct task writes, the invitation/account oracle, and the task-derived access lifecycle.
+- **Tests at this checkpoint:** focused UI/safety tests pass; full suite 4,953 tests, 4,928 pass, 25 known pre-existing failures; lint clean; TypeScript reports only stale generated `.next/types` errors.
+- **Production (`rhquhnujjnzjhweypavd`): untouched.** Neither migration is applied to production, and no deploy was made.
+- **Audit artifacts remain uncommitted working documents** (the three audit docs listed in the 2026-10-02 checkpoint).
+- The active roadmap and correction ledger in the 2026-10-02 checkpoint below still apply; its **NEXT** is superseded by this one.
+
+**NEXT: CORE FLOW 1** — New customer / property / Job → photos → measurement → proposal preparation.
+
+Primary question: **Can a contractor take a real lead, visit the property, capture what they need, and naturally arrive at a professional proposal without understanding how FieldDive is organized?**
+
 ### Governance update (2026-10-04) — plain-language product copy standard locked (docs only)
 
 - **Active governance:** **THE CONTRACTOR SHOULD SEE WHAT SOMETHING MEANS, NOT HOW FIELDIVE IMPLEMENTS IT.** UI COPY SHOULD DESCRIBE THE BUSINESS MEANING OR NEXT ACTION, NOT NARRATE WHAT FIELDIVE/THE SYSTEM IS DOING. **COPY IS CONTEXTUAL, NOT MINIMAL BY DEFAULT:** obvious actions need no prose; consequential, irreversible, ambiguous or risky actions get a short plain-language consequence note when removing it could leave a contractor unsure.
@@ -28,9 +56,9 @@ Sections below this checkpoint are historical. Older **NEXT** lines are not the 
   - Visual review: copy is inspected, not only layout (`docs/fielddive-ui-product-cohesion-standard.md` → "Independent visual review").
 - **Prompt requirement:** every future implementation prompt touching visible UI carries the copy-quality requirement in execution standards → "Cursor prompt lessons".
 - **Roadmap unchanged** except that core-flow remediation now includes a user-facing copy/jargon audit (roadmap steps 2 and 7 below).
-- **Code state:** HEAD `49fc56b`. The core safety/authority slice remains **uncommitted** and is awaiting independent visual review. It includes migration `20261002120000`, which is applied to staging only. Its Lost confirmation copy is a known instance of the copy problem this standard addresses (execution standards → "Plain-language product copy", known example).
+- **Code state (superseded by the 2026-10-04 checkpoint above; now committed as `d9baa59`):** HEAD `49fc56b`. The core safety/authority slice remains **uncommitted** and is awaiting independent visual review. It includes migration `20261002120000`, which is applied to staging only. Its Lost confirmation copy is a known instance of the copy problem this standard addresses (execution standards → "Plain-language product copy", known example).
 
-### Current checkpoint (2026-10-02, later) — Team/Crew parked; roadmap refocused on the core contractor flow (docs only)
+### Checkpoint (2026-10-02, later; NEXT superseded by 2026-10-04) — Team/Crew parked; roadmap refocused on the core contractor flow (docs only)
 
 - **Governance checkpoint:** builds on `7d54135` (contractor operating model and D1–D8). **Code checkpoint:** unchanged at `52dfb10`. This pass changes no product behavior and authorizes **no implementation**.
 - **New sequencing lock (D9 in `docs/fielddive-active-product-locks.md`):** **FIELDIVE CORE OPERATING FLOW FIRST. TEAM/CREW LATER AS AN ADDITION TO A STABLE PRODUCT.** THE CORE CONTRACTOR WORKFLOW MUST FEEL COMPLETE BEFORE OPTIONAL OPERATING COMPLEXITY IS ADDED. DO NOT ADD AN OPERATING LAYER ON TOP OF A CORE PRODUCT THAT IS NOT YET DIALED IN.
