@@ -502,6 +502,7 @@ export function buildDraftInstantiateInputWithScopeDecisions(
             engineStatus: priced.status,
             customerVisibility: line.customerVisibility,
             catalogItemMissing: isMissingCatalogLine(line),
+            catalogItem: catalog ?? null,
             quantity: line.quantity,
             quantityDisplayLabel: qtyPreview.quantityDisplayLabel,
             quantitySourceLabel: qtyPreview.sourceLabel ?? null,
@@ -637,6 +638,7 @@ export function buildDraftInstantiateInputWithScopeDecisions(
           engineStatus: priced.status,
           customerVisibility: line.customerVisibility,
           catalogItemMissing: isMissingCatalogLine(line),
+          catalogItem: catalog ?? null,
           quantity: line.quantity,
           quantityDisplayLabel:
             manualPayload?.quantity_display_label ?? qtyPreview.quantityDisplayLabel,

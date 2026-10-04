@@ -5,10 +5,13 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { parseInternalReturnTo } from "@/app/lib/proposalBuilderReadiness";
 import {
-  getResolvedCompanyPricingPolicy,
+  loadResolvedCompanyPricingPolicy,
   upsertCompanyPricingPolicy,
 } from "@/app/lib/companyPricingPolicyStore";
-import { resolveStarterPricingPolicySeed } from "@/app/lib/companyPricingPolicy";
+import {
+  resolveCompanyPricingPolicy,
+  resolveStarterPricingPolicySeed,
+} from "@/app/lib/companyPricingPolicy";
 import type { ProfitabilityType } from "@/app/lib/proposalPricingTypes";
 import {
   LOCKED_QUANTITY_ROUNDING,
@@ -76,6 +79,7 @@ export default function CompanyPricingPolicySettingsClient({
   const [savedForm, setSavedForm] = useState<PricingPolicyFormState | null>(null);
   const [configured, setConfigured] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>({ kind: "idle" });
   const [validationError, setValidationError] = useState<string | null>(null);
   const [backToJobCardHref, setBackToJobCardHref] = useState<string | null>(null);
@@ -88,7 +92,16 @@ export default function CompanyPricingPolicySettingsClient({
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const resolution = await getResolvedCompanyPricingPolicy(companyId);
+      const result = await loadResolvedCompanyPricingPolicy(companyId);
+      if (!result.ok) {
+        // Unknown is not "not set up": no starter seed, no save that could overwrite real rules.
+        setForm(null);
+        setSavedForm(null);
+        setLoadFailed(true);
+        return;
+      }
+      setLoadFailed(false);
+      const resolution = result.resolution;
       if (resolution.configured && resolution.policy) {
         const next = policyToPricingPolicyFormState(resolution.policy);
         setForm(next);
@@ -124,7 +137,7 @@ export default function CompanyPricingPolicySettingsClient({
   );
 
   const handleSave = useCallback(async () => {
-    if (!form) return;
+    if (!form || loadFailed) return;
     const validation = validatePricingPolicyFormState(form);
     if (!validation.valid) {
       setValidationError(validation.reason);
@@ -144,7 +157,7 @@ export default function CompanyPricingPolicySettingsClient({
       return;
     }
 
-    const resolution = await getResolvedCompanyPricingPolicy(companyId);
+    const resolution = resolveCompanyPricingPolicy({ storedPolicy: written });
     if (resolution.configured && resolution.policy) {
       const next = policyToPricingPolicyFormState(resolution.policy);
       setForm(next);
@@ -152,10 +165,11 @@ export default function CompanyPricingPolicySettingsClient({
       setConfigured(true);
     }
     setSaveStatus({ kind: "saved" });
-  }, [companyId, form]);
+  }, [companyId, form, loadFailed]);
 
   const saveDisabled = saveStatus.kind === "saving" || !isDirty;
-  const showStickyFooter = isDirty || saveStatus.kind === "error" || !configured;
+  const showStickyFooter =
+    !loadFailed && (isDirty || saveStatus.kind === "error" || !configured);
   const methodNoun = form?.profitabilityType === "markup" ? "markup" : "margin";
 
   return (
@@ -178,13 +192,30 @@ export default function CompanyPricingPolicySettingsClient({
         <p className="mt-1 text-sm text-slate-600">
           {loading
             ? "Loading your pricing rules."
-            : configured
+            : loadFailed || configured
               ? "Defaults for new proposals: how cost-based items are priced, the profit floor, and tax."
               : "Start from these suggested rates, then save to make them yours."}
         </p>
       </header>
 
-      {loading || !form ? (
+      {!loading && loadFailed ? (
+        <div
+          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3"
+          data-pricing-load-failed
+        >
+          <p className="text-sm text-amber-900" role="alert">
+            Your pricing rules couldn&apos;t be loaded. Nothing has been changed.
+          </p>
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="inline-flex min-h-[44px] items-center rounded-lg px-3 text-sm font-semibold text-amber-900 hover:bg-amber-100"
+            data-pricing-load-retry
+          >
+            Try again
+          </button>
+        </div>
+      ) : loading || !form ? (
         <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
           {[0, 1, 2].map((row) => (
             <div key={row} className="border-t border-slate-100 px-4 py-4 first:border-t-0 sm:px-5">

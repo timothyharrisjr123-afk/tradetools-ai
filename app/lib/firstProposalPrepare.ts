@@ -8,6 +8,8 @@
 
 import type { CatalogItem } from "@/app/lib/catalogTypes";
 import { catalogUnitLabel } from "@/app/lib/catalogTypes";
+import { catalogUnitQuantityMismatchNote } from "@/app/lib/catalogCoverageCompatibility";
+import { parseDollarsToCentsOrNull } from "@/app/admin/catalog/catalogAdminUtils";
 import {
   validateCompanyPricingPolicy,
   type CompanyPricingPolicyResolution,
@@ -44,6 +46,8 @@ export const FIRST_PROPOSAL_RULES_SAVE_FAILED =
   "Could not save pricing. Check the values and try again." as const;
 export const FIRST_PROPOSAL_RULES_REQUIRED =
   "Save your pricing before creating this proposal." as const;
+export const FIRST_PROPOSAL_RULES_LOAD_FAILED =
+  "Your pricing rules couldn't be loaded." as const;
 
 /** Direct path: catalog unit prices are the selling prices; policy holds tax only. */
 export const FIRST_PROPOSAL_DIRECT_PRICE_HINT =
@@ -58,6 +62,8 @@ export type FirstProposalPricingLine = {
   unitLabel: string;
   unitPriceCents: number | null;
   needsPrice: boolean;
+  /** Sell unit does not match what the measured quantity counts (e.g. tons priced "each"). */
+  unitMismatchNote: string | null;
 };
 
 export type FirstProposalStructureNeed = {
@@ -157,12 +163,18 @@ export function collectLinkedCatalogPricingLines(
     const item = byId.get(catalogId);
     if (!item) continue;
     const priced = isCatalogItemPriced(item);
+    const unitLabel = catalogUnitLabel(item.unit);
     lines.push({
       catalogItemId: item.id,
       name: (item.name ?? "").trim() || "Catalog item",
-      unitLabel: catalogUnitLabel(item.unit),
+      unitLabel,
       unitPriceCents: priced ? (item.unit_price_cents as number) : null,
       needsPrice: !priced,
+      unitMismatchNote: catalogUnitQuantityMismatchNote({
+        quantity_source: item.quantity_source,
+        unit: item.unit,
+        unitLabel,
+      }),
     });
   }
 
@@ -184,6 +196,27 @@ export function resolveShowFirstProposalPricing(input: {
   if (preferred && preferred !== starter) return false;
 
   return input.pricingLines.some((line) => line.needsPrice);
+}
+
+/**
+ * Items still without a usable price, counting what the contractor has typed but not
+ * saved yet. A cleared box on an already-priced item keeps its saved price on save.
+ */
+export function countFirstProposalPricesStillNeeded(
+  lines: readonly FirstProposalPricingLine[],
+  draftPrices: Readonly<Record<string, string>>
+): number {
+  let count = 0;
+  for (const line of lines) {
+    const draft = draftPrices[line.catalogItemId];
+    if (draft === undefined || (draft.trim() === "" && !line.needsPrice)) {
+      if (line.needsPrice) count += 1;
+      continue;
+    }
+    const parsed = parseDollarsToCentsOrNull(draft, "Price");
+    if (parsed.error != null || parsed.cents == null) count += 1;
+  }
+  return count;
 }
 
 export function firstProposalPricingComplete(

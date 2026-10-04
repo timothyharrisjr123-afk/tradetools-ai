@@ -308,11 +308,11 @@ describe("Group 2 wiring contracts", () => {
 
   test("Prepare keeps pricing policy in context via canonical upsert", () => {
     const hook = read("app/tools/roofing/jobCard/useJobCardPrepareProposal.ts");
-    assert.match(hook, /getResolvedCompanyPricingPolicy/);
+    assert.match(hook, /loadResolvedCompanyPricingPolicy/);
     assert.match(hook, /upsertCompanyPricingPolicy/);
     assert.match(hook, /buildFirstProposalPricingPolicyFromDraft/);
     assert.match(hook, /saveFirstProposalPricingRules/);
-    assert.match(hook, /pricingPolicyConfigured === true/);
+    assert.match(hook, /pricingPolicyStatus !== "not_configured"/);
     assert.doesNotMatch(hook, /\/tools\/settings\/pricing/);
     assert.doesNotMatch(hook, /DEFAULT_STARTER_PRICING_POLICY/);
   });

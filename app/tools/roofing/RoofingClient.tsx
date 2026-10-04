@@ -87,7 +87,7 @@ import {
   visibleDispositionLabel,
 } from "@/app/lib/jobDispositionManagement";
 import { createCustomer } from "@/app/lib/customerStore";
-import { buildPacketCreateFingerprint, buildPacketEntryHref, ensurePacketCreateOperation, markPacketCreateOperationComplete, parsePacketIdentitySearchParams, resolvePacketIntakeTitle, withJobCreateIdempotencyMetadata } from "@/app/lib/packetIdentityEntry";
+import { buildPacketCustomerFingerprint, buildPacketEntryHref, buildPacketIntakeFingerprint, ensurePacketCreateOperation, markPacketCreateOperationComplete, parsePacketIdentitySearchParams, resolvePacketIntakeTitle, withJobCreateIdempotencyMetadata } from "@/app/lib/packetIdentityEntry";
 import { ensureJobCustomerPersisted } from "@/app/lib/jobCardCustomerPersist";
 import type { CustomerSearchCandidate } from "@/app/lib/customerMatch";
 import { JobPacketCustomerCandidates } from "@/app/tools/roofing/JobPacketCustomerCandidates";
@@ -5396,7 +5396,11 @@ Thanks,`;
 
   const packetCustomerSearchEnabled =
     (entryMode === "packet" || entryMode === "instant") && !selectedCustomerId;
-  const { results: customerCandidates } = useCompanyCustomerSearch(
+  const {
+    results: customerCandidates,
+    status: customerSearchStatus,
+    retry: retryCustomerSearch,
+  } = useCompanyCustomerSearch(
     {
       name: customerName,
       email: customerEmail,
@@ -5438,7 +5442,11 @@ Thanks,`;
     !forceNewProperty &&
     !selectedPropertyId &&
     (addressEntryMode === "manual" || Boolean(selectedPlacesAddress));
-  const { results: propertyCandidates } = useCompanyPropertySearch(
+  const {
+    results: propertyCandidates,
+    status: propertySearchStatus,
+    retry: retryPropertySearch,
+  } = useCompanyPropertySearch(
     {
       line1: jobAddress1,
       line2: jobAddress2,
@@ -5639,10 +5647,42 @@ Thanks,`;
         .filter(Boolean)
         .join(", ");
 
+      const selectedExistingCustomerId =
+        selectedCustomerId && isUuidLike(selectedCustomerId) ? selectedCustomerId : null;
+      const customerFingerprint = buildPacketCustomerFingerprint({
+        companyId: cid,
+        selectedCustomerId: selectedExistingCustomerId,
+        name: customerName,
+        email: customerEmail,
+        phone: customerPhone,
+      });
+      // Fingerprint is computed before any write, so a retry after a customer /
+      // property / job failure resumes the same operation and customer id.
+      const fingerprint = buildPacketIntakeFingerprint({
+        customerFingerprint,
+        selectedPropertyId:
+          selectedPropertyId && isUuidLike(selectedPropertyId) ? selectedPropertyId : null,
+        addressLine,
+      });
+      const { operationKey, existingJobId, customerId: plannedCustomerId } =
+        ensurePacketCreateOperation(
+          fingerprint,
+          typeof sessionStorage !== "undefined" ? sessionStorage : null,
+          undefined,
+          undefined,
+          { newCustomerFingerprint: selectedExistingCustomerId ? null : customerFingerprint }
+        );
+      if (existingJobId) {
+        setCurrentLoadedSavedId(null);
+        router.replace(
+          `/tools/roofing?entry=job-card&job=${encodeURIComponent(existingJobId)}`
+        );
+        return;
+      }
+
       // Wave B: selected existing → reuse id. Otherwise always createCustomer
       // so exact-email findOrCreate cannot silently merge wrong humans.
-      let linkedCustomerId =
-        selectedCustomerId && isUuidLike(selectedCustomerId) ? selectedCustomerId : null;
+      let linkedCustomerId = selectedExistingCustomerId;
       if (!linkedCustomerId) {
         linkedCustomerId = await createCustomer({
           supabase,
@@ -5651,6 +5691,7 @@ Thanks,`;
           email: (customerEmail || "").trim() || null,
           phone: (customerPhone || "").trim() || null,
           address: null,
+          id: plannedCustomerId,
         });
         if (!linkedCustomerId) {
           setJobCreationError("Could not save customer. Check your connection and try again.");
@@ -5682,24 +5723,6 @@ Thanks,`;
             return;
           }
         }
-      }
-
-      const fingerprint = buildPacketCreateFingerprint({
-        companyId: cid,
-        customerId: linkedCustomerId,
-        propertyId: linkedPropertyId,
-        addressLine,
-      });
-      const { operationKey, existingJobId } = ensurePacketCreateOperation(
-        fingerprint,
-        typeof sessionStorage !== "undefined" ? sessionStorage : null
-      );
-      if (existingJobId) {
-        setCurrentLoadedSavedId(null);
-        router.replace(
-          `/tools/roofing?entry=job-card&job=${encodeURIComponent(existingJobId)}`
-        );
-        return;
       }
 
       const draft = buildJobDraftFromPacketState(linkedCustomerId, linkedPropertyId);
@@ -5930,6 +5953,8 @@ Thanks,`;
                                 showContinueAsNew={
                                   !forceNewCustomer && visibleCustomerCandidates.length > 0
                                 }
+                                searchStatus={customerSearchStatus}
+                                onRetrySearch={retryCustomerSearch}
                               />
                             )}
                             {forceNewCustomer ? (
@@ -6146,6 +6171,8 @@ Thanks,`;
                                 showContinueAsNew={
                                   !forceNewProperty && propertyCandidates.length > 0
                                 }
+                                searchStatus={propertySearchStatus}
+                                onRetrySearch={retryPropertySearch}
                               />
                             )}
                             ﻿                            <div className="min-h-[1rem]">

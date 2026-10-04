@@ -20,6 +20,7 @@ import {
   PREPARE_PROPOSAL_PACKAGE_LABEL,
   PREPARE_PROPOSAL_SETUP_LABEL,
   PREPARE_PROPOSAL_TITLE,
+  PREPARE_PROPOSAL_TRY_AGAIN_LABEL,
   buildCreateProposalMeasurementChoice,
   canCreatePrepareProposal,
   formatCreateProposalTemplateSecondaryDetail,
@@ -32,7 +33,10 @@ import {
   type CreateProposalMeasurementChoice,
   type PrepareProposalFieldId,
   type PrepareProposalFieldView,
+  type PrepareProposalLoadState,
+  type PrepareProposalSetupLoadState,
 } from "@/app/tools/roofing/jobCard/jobCardCreateProposalModalModel";
+import { FIRST_PROPOSAL_RULES_LOAD_FAILED } from "@/app/lib/firstProposalPrepare";
 import type { JobCardPackageChoice } from "@/app/tools/roofing/jobCard/jobCardProposalSetup";
 import JobCardFirstProposalPricing from "@/app/tools/roofing/jobCard/JobCardFirstProposalPricing";
 import JobCardFirstProposalPricingRules from "@/app/tools/roofing/jobCard/JobCardFirstProposalPricingRules";
@@ -93,6 +97,15 @@ export type JobCardCreateProposalModalProps = {
   preparingStructure?: boolean;
   preparingStructureLabel?: string | null;
   structureError?: string | null;
+  /** Template read/install truth. When set, the Template row owns progress and failure copy. */
+  setupLoadState?: PrepareProposalSetupLoadState;
+  onRetrySetup?: () => void;
+  /** Measurement read truth — a failed read is never "no measurement". */
+  measurementLoadState?: PrepareProposalLoadState;
+  onRetryMeasurements?: () => void;
+  /** Company pricing rules could not be read — never offer first-time setup over them. */
+  pricingRulesLoadFailed?: boolean;
+  onRetryPricingRules?: () => void;
 
   showFirstProposalPricingRules?: boolean;
   firstProposalPricingRulesDraft?: FirstProposalPricingRulesDraft | null;
@@ -173,6 +186,12 @@ export function JobCardCreateProposalModal({
   preparingStructure = false,
   preparingStructureLabel = null,
   structureError = null,
+  setupLoadState,
+  onRetrySetup,
+  measurementLoadState,
+  onRetryMeasurements,
+  pricingRulesLoadFailed = false,
+  onRetryPricingRules,
   showFirstProposalPricingRules = false,
   firstProposalPricingRulesDraft = null,
   onFirstProposalPricingRulesChange,
@@ -221,6 +240,7 @@ export function JobCardCreateProposalModal({
   const measurementField = resolvePrepareProposalMeasurement({
     eligible: measurementEligible,
     selectedId: selectedMeasurementId,
+    loadState: measurementLoadState,
   });
   const setupField = resolvePrepareProposalSetup({
     setups: templates,
@@ -232,6 +252,7 @@ export function JobCardCreateProposalModal({
       templateReady || !selectedTemplateUnusableReason
         ? null
         : selectedTemplateUnusableReason,
+    loadState: setupLoadState,
   });
   const packageField = resolvePrepareProposalPackage({
     setupState: setupField.state,
@@ -240,7 +261,14 @@ export function JobCardCreateProposalModal({
     explicitId: contractorChosePackage ? selectedPackageOptionId : null,
     packagePresentationMode,
     graphReady: packageGraphReady,
+    setupLoadState,
   });
+  const measurementLoadFailed =
+    measurementLoadState === "failed" && measurementField.state === "blocked";
+  const setupLoadFailed =
+    setupField.state === "blocked" &&
+    (setupLoadState === "load_failed" || setupLoadState === "install_failed");
+  const setupOwnsStructureState = setupLoadState !== undefined;
   const expandedField = resolvePrepareProposalExpandedField({
     measurement: measurementField,
     setup: setupField,
@@ -349,7 +377,19 @@ export function JobCardCreateProposalModal({
               )
             }
             extraAction={
-              measurementField.state === "blocked" && onAddMeasurement ? (
+              measurementLoadFailed ? (
+                onRetryMeasurements ? (
+                  <button
+                    type="button"
+                    className={CHANGE_BUTTON_CLASS}
+                    onClick={onRetryMeasurements}
+                    disabled={creating}
+                    data-jobcard-prepare-retry="measurement"
+                  >
+                    {PREPARE_PROPOSAL_TRY_AGAIN_LABEL}
+                  </button>
+                ) : null
+              ) : measurementField.state === "blocked" && onAddMeasurement ? (
                 <button
                   type="button"
                   className={CHANGE_BUTTON_CLASS}
@@ -454,6 +494,19 @@ export function JobCardCreateProposalModal({
                   setContractorExpanded((current) =>
                     current === "setup" ? null : "setup"
                   )
+                }
+                extraAction={
+                  setupLoadFailed && onRetrySetup ? (
+                    <button
+                      type="button"
+                      className={CHANGE_BUTTON_CLASS}
+                      onClick={onRetrySetup}
+                      disabled={creating}
+                      data-jobcard-prepare-retry="setup"
+                    >
+                      {PREPARE_PROPOSAL_TRY_AGAIN_LABEL}
+                    </button>
+                  ) : null
                 }
               >
                 {expandedField === "setup" ? (
@@ -561,7 +614,7 @@ export function JobCardCreateProposalModal({
             </>
           )}
 
-          {preparingStructure ? (
+          {preparingStructure && !setupOwnsStructureState ? (
             <p
               className="py-3 text-sm text-slate-600"
               data-first-proposal-preparing="true"
@@ -570,7 +623,7 @@ export function JobCardCreateProposalModal({
             </p>
           ) : null}
 
-          {structureError ? (
+          {structureError && !setupOwnsStructureState ? (
             <p
               className="py-2 text-sm text-rose-600"
               role="alert"
@@ -600,6 +653,28 @@ export function JobCardCreateProposalModal({
                   />
                 );
               })()}
+            </div>
+          ) : null}
+
+          {pricingRulesLoadFailed ? (
+            <div
+              className="flex items-center justify-between gap-3 py-3"
+              data-first-proposal-rules-load-failed="true"
+            >
+              <p className="text-sm text-amber-800" role="alert">
+                {FIRST_PROPOSAL_RULES_LOAD_FAILED}
+              </p>
+              {onRetryPricingRules ? (
+                <button
+                  type="button"
+                  className={CHANGE_BUTTON_CLASS}
+                  onClick={onRetryPricingRules}
+                  disabled={creating}
+                  data-jobcard-prepare-retry="pricing-rules"
+                >
+                  {PREPARE_PROPOSAL_TRY_AGAIN_LABEL}
+                </button>
+              ) : null}
             </div>
           ) : null}
 

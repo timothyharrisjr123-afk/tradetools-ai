@@ -10,6 +10,11 @@
  * returns the same job on retry (lost HTTP response / double-submit).
  */
 
+import {
+  normalizeCustomerEmail,
+  normalizePersonName,
+  normalizePhoneDigits,
+} from "@/app/lib/customerIdentityNormalize";
 import { isUuidLike } from "@/app/lib/uuid";
 
 export type PacketIdentityEntryParams = {
@@ -50,6 +55,14 @@ export type PacketCreateOpState = {
   operationKey: string;
   jobId: string | null;
   at: number;
+  /** Intake identity of the new customer this op's pre-generated id belongs to. */
+  customerFingerprint?: string | null;
+  /**
+   * Pre-generated customers.id for a new customer. Inserted explicitly, so a retry
+   * after a partial failure hits the primary key and reuses the row instead of
+   * creating a second customer.
+   */
+  customerId?: string | null;
 };
 
 /**
@@ -125,6 +138,45 @@ export function buildPacketCreateFingerprint(parts: {
   ].join("|");
 }
 
+/**
+ * Customer identity the intake is about to link, computed *before* any write.
+ * Existing selection → its id. New customer → the normalized form fields.
+ */
+export function buildPacketCustomerFingerprint(parts: {
+  companyId: string;
+  selectedCustomerId?: string | null;
+  name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+}): string {
+  const company = String(parts.companyId || "").trim();
+  const selected = normalizeUuid(parts.selectedCustomerId);
+  if (selected) return [company, "existing", selected].join("|");
+  return [
+    company,
+    "new",
+    normalizePersonName(parts.name).toLowerCase(),
+    normalizeCustomerEmail(parts.email) ?? "",
+    normalizePhoneDigits(parts.phone),
+  ].join("|");
+}
+
+/**
+ * Whole-intake fingerprint computed before any write, so a retry after a
+ * customer/property/job partial failure maps to the same operation.
+ */
+export function buildPacketIntakeFingerprint(parts: {
+  customerFingerprint: string;
+  selectedPropertyId?: string | null;
+  addressLine?: string | null;
+}): string {
+  return [
+    String(parts.customerFingerprint || "").trim(),
+    normalizeUuid(parts.selectedPropertyId) ?? "",
+    String(parts.addressLine || "").trim(),
+  ].join("#");
+}
+
 export function readCreateIdempotencyKeyFromMetadata(
   meta: Record<string, unknown> | null | undefined
 ): string | null {
@@ -148,45 +200,59 @@ export function withJobCreateIdempotencyMetadata(
  * Reuses the same UUID across lost-response retries for the same fingerprint.
  * If a prior attempt already recorded jobId, returns that completion.
  */
+function readStoredPacketCreateOp(
+  storage: Pick<Storage, "getItem" | "setItem"> | null | undefined
+): Partial<PacketCreateOpState> | null {
+  try {
+    const raw = storage?.getItem(PACKET_CREATE_OP_STORAGE_KEY) ?? null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as unknown;
+    return parsed && typeof parsed === "object" ? (parsed as Partial<PacketCreateOpState>) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function ensurePacketCreateOperation(
   fingerprint: string,
   storage: Pick<Storage, "getItem" | "setItem"> | null | undefined,
   nowMs: number = Date.now(),
-  newKey: () => string = () => crypto.randomUUID()
-): { operationKey: string; existingJobId: string | null } {
+  newKey: () => string = () => crypto.randomUUID(),
+  options?: {
+    /**
+     * Set when the intake will create a new customer. The same customer identity
+     * gets the same pre-generated customer id across retries, even if the
+     * property part of the intake changed in between.
+     */
+    newCustomerFingerprint?: string | null;
+  }
+): { operationKey: string; existingJobId: string | null; customerId: string | null } {
   const fp = String(fingerprint || "").trim();
+  const customerFp = String(options?.newCustomerFingerprint ?? "").trim();
   if (!fp) {
     const operationKey = newKey();
-    return { operationKey, existingJobId: null };
+    return { operationKey, existingJobId: null, customerId: customerFp ? newKey() : null };
   }
 
-  let prior: PacketCreateOpState | null = null;
-  try {
-    const raw = storage?.getItem(PACKET_CREATE_OP_STORAGE_KEY) ?? null;
-    if (raw) {
-      const parsed = JSON.parse(raw) as Partial<PacketCreateOpState>;
-      if (
-        parsed.fingerprint === fp &&
-        typeof parsed.operationKey === "string" &&
-        isUuidLike(parsed.operationKey)
-      ) {
-        prior = {
+  const stored = readStoredPacketCreateOp(storage);
+  const prior: PacketCreateOpState | null =
+    stored &&
+    stored.fingerprint === fp &&
+    typeof stored.operationKey === "string" &&
+    isUuidLike(stored.operationKey)
+      ? {
           fingerprint: fp,
-          operationKey: parsed.operationKey,
+          operationKey: stored.operationKey,
           jobId:
-            typeof parsed.jobId === "string" && isUuidLike(parsed.jobId)
-              ? parsed.jobId
+            typeof stored.jobId === "string" && isUuidLike(stored.jobId)
+              ? stored.jobId
               : null,
-          at: typeof parsed.at === "number" ? parsed.at : nowMs,
-        };
-      }
-    }
-  } catch {
-    prior = null;
-  }
+          at: typeof stored.at === "number" ? stored.at : nowMs,
+        }
+      : null;
 
   if (prior?.jobId) {
-    return { operationKey: prior.operationKey, existingJobId: prior.jobId };
+    return { operationKey: prior.operationKey, existingJobId: prior.jobId, customerId: null };
   }
 
   const operationKey =
@@ -194,18 +260,29 @@ export function ensurePacketCreateOperation(
       ? prior.operationKey
       : newKey();
 
+  const priorCustomerId =
+    customerFp &&
+    stored?.customerFingerprint === customerFp &&
+    typeof stored.customerId === "string" &&
+    isUuidLike(stored.customerId)
+      ? stored.customerId
+      : null;
+  const customerId = customerFp ? priorCustomerId ?? newKey() : null;
+
   const next: PacketCreateOpState = {
     fingerprint: fp,
     operationKey,
     jobId: null,
     at: nowMs,
+    customerFingerprint: customerFp || null,
+    customerId,
   };
   try {
     storage?.setItem(PACKET_CREATE_OP_STORAGE_KEY, JSON.stringify(next));
   } catch {
     /* ignore */
   }
-  return { operationKey, existingJobId: null };
+  return { operationKey, existingJobId: null, customerId };
 }
 
 export function markPacketCreateOperationComplete(
@@ -219,6 +296,8 @@ export function markPacketCreateOperationComplete(
   const key = normalizeUuid(operationKey);
   const id = normalizeUuid(jobId);
   if (!fp || !key || !id) return;
+  const stored = readStoredPacketCreateOp(storage);
+  const sameOp = stored?.fingerprint === fp && stored?.operationKey === key;
   try {
     storage?.setItem(
       PACKET_CREATE_OP_STORAGE_KEY,
@@ -227,6 +306,8 @@ export function markPacketCreateOperationComplete(
         operationKey: key,
         jobId: id,
         at: nowMs,
+        customerFingerprint: sameOp ? stored?.customerFingerprint ?? null : null,
+        customerId: sameOp ? stored?.customerId ?? null : null,
       } satisfies PacketCreateOpState)
     );
   } catch {

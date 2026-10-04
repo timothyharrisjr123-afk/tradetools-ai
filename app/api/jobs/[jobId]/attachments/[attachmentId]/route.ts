@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireJobAttachmentSession } from "@/app/lib/jobAttachmentRouteAuth";
 import {
-  JobAttachmentHttpError,
+  jobAttachmentErrorBody,
   patchJobAttachmentCaption,
   signJobAttachmentReadUrl,
   softDeleteJobAttachment,
@@ -11,14 +11,9 @@ import { createClient } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
 
-function jsonError(error: unknown) {
-  if (error instanceof JobAttachmentHttpError) {
-    return NextResponse.json(
-      { ok: false, code: error.code, message: error.message },
-      { status: error.status }
-    );
-  }
-  return NextResponse.json({ ok: false, code: "internal_error" }, { status: 500 });
+function jsonError(error: unknown, operation: string) {
+  const { status, body } = jobAttachmentErrorBody(error, operation);
+  return NextResponse.json(body, { status });
 }
 
 async function requireAuth(access: "read" | "mutate", jobId: string) {
@@ -43,7 +38,7 @@ export async function GET(
     });
     return NextResponse.json({ ok: true, ...signed });
   } catch (error) {
-    return jsonError(error);
+    return jsonError(error, "sign_read");
   }
 }
 
@@ -65,7 +60,7 @@ export async function PATCH(
     });
     return NextResponse.json({ ok: true, attachment });
   } catch (error) {
-    return jsonError(error);
+    return jsonError(error, "caption");
   }
 }
 
@@ -84,6 +79,6 @@ export async function DELETE(
     });
     return NextResponse.json({ ok: true });
   } catch (error) {
-    return jsonError(error);
+    return jsonError(error, "remove");
   }
 }

@@ -10,6 +10,7 @@ import type {
   JobAttachmentPendingItem,
 } from "@/app/lib/jobAttachmentTypes";
 import { validateJobAttachmentUpload } from "@/app/lib/jobAttachmentValidation";
+import { JobAttachmentClientError } from "@/app/lib/jobAttachmentErrors";
 
 export type PreparedUpload = {
   attachmentId: string;
@@ -197,9 +198,9 @@ export async function putFileToSignedUrl(input: {
     };
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) resolve();
-      else reject(new Error("upload_failed"));
+      else reject(new JobAttachmentClientError({ stage: "transfer", status: xhr.status }));
     };
-    xhr.onerror = () => reject(new Error("upload_failed"));
+    xhr.onerror = () => reject(new JobAttachmentClientError({ stage: "transfer", status: null }));
     xhr.onabort = () => reject(new DOMException("Aborted", "AbortError"));
     input.signal?.addEventListener("abort", () => xhr.abort());
     xhr.send(input.file);

@@ -47,6 +47,22 @@ export function formatCustomerFacingUnit(unit: string | null | undefined): strin
   return UNIT_LABELS[trimmed.toUpperCase()] ?? trimmed;
 }
 
+/**
+ * Customer-facing name for a template line: template override, then the
+ * company's configured Catalog names. Internal seed keys are never a name.
+ */
+export function resolveTemplateLineCustomerName(
+  item: { customer_name_override?: string | null },
+  catalogItem?: { name?: string | null; customer_name?: string | null } | null
+): string {
+  return (
+    item.customer_name_override?.trim() ||
+    catalogItem?.customer_name?.trim() ||
+    catalogItem?.name?.trim() ||
+    "Line item"
+  );
+}
+
 export function looksLikeInternalCatalogKey(value: string): boolean {
   const trimmed = value.trim();
   return /^[a-z0-9_]+\.[a-z0-9_]+$/i.test(trimmed) || (trimmed.includes("_") && !trimmed.includes(" "));

@@ -20,6 +20,12 @@ export const JOB_CARD_DETAILS_LABEL = "Details" as const;
 export const JOB_CARD_EARLIER_MEASUREMENTS_LABEL = "Earlier measurements" as const;
 export const JOB_CARD_MAKE_CURRENT_LABEL = "Make current" as const;
 export const JOB_CARD_MEASUREMENTS_EMPTY = "No measurement yet" as const;
+export const JOB_CARD_MEASUREMENTS_LOADING = "Loading measurements…" as const;
+export const JOB_CARD_MEASUREMENTS_LOAD_FAILED =
+  "Your measurements couldn't be loaded." as const;
+export const JOB_CARD_MEASUREMENTS_REFRESH_FAILED =
+  "Measurements couldn't be refreshed. What's shown may be out of date." as const;
+export const JOB_CARD_MEASUREMENTS_RETRY_LABEL = "Try again" as const;
 export const JOB_CARD_MAKE_CURRENT_CONFIRM_TITLE = "Set as current measurement?" as const;
 export const JOB_CARD_MAKE_CURRENT_CONFIRM_BODY =
   "The draft proposal will need a pricing refresh." as const;

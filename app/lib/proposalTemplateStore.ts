@@ -738,22 +738,30 @@ export async function getProposalTemplateById(
   }
 }
 
-export async function getProposalTemplatesByCompany(
+export type ProposalTemplatesLoadResult =
+  | { ok: true; templates: ProposalTemplate[] }
+  | { ok: false; error: string };
+
+/**
+ * Discriminated template list load — preserves success-empty vs failed-read.
+ * Starter install and "no template" messaging must only act on a successful read.
+ */
+export async function loadProposalTemplatesByCompany(
   companyId: string,
   options?: { activeOnly?: boolean; status?: ProposalTemplateStatus | null }
-): Promise<ProposalTemplate[]> {
+): Promise<ProposalTemplatesLoadResult> {
   const supabase = getSupabaseClient();
   if (!supabase) {
     console.error(
-      "[proposalTemplateStore] getProposalTemplatesByCompany: Supabase client unavailable"
+      "[proposalTemplateStore] loadProposalTemplatesByCompany: Supabase client unavailable"
     );
-    return [];
+    return { ok: false, error: "Template service is unavailable." };
   }
 
   const scopedCompanyId = normalizeCompanyId(companyId);
   if (!scopedCompanyId) {
-    console.error("[proposalTemplateStore] getProposalTemplatesByCompany: invalid company id");
-    return [];
+    console.error("[proposalTemplateStore] loadProposalTemplatesByCompany: invalid company id");
+    return { ok: false, error: "Invalid company for template load." };
   }
 
   try {
@@ -775,19 +783,27 @@ export async function getProposalTemplatesByCompany(
 
     if (error) {
       console.error(
-        "[proposalTemplateStore] getProposalTemplatesByCompany failed:",
+        "[proposalTemplateStore] loadProposalTemplatesByCompany failed:",
         error.message,
         { companyId: scopedCompanyId }
       );
-      return [];
+      return { ok: false, error: error.message || "Template read failed." };
     }
 
     const rows = (data ?? []) as ProposalTemplateRow[];
-    return rows.map(rowToProposalTemplate);
+    return { ok: true, templates: rows.map(rowToProposalTemplate) };
   } catch (err) {
-    console.error("[proposalTemplateStore] getProposalTemplatesByCompany error:", err);
-    return [];
+    console.error("[proposalTemplateStore] loadProposalTemplatesByCompany error:", err);
+    return { ok: false, error: "Template read failed." };
   }
+}
+
+export async function getProposalTemplatesByCompany(
+  companyId: string,
+  options?: { activeOnly?: boolean; status?: ProposalTemplateStatus | null }
+): Promise<ProposalTemplate[]> {
+  const result = await loadProposalTemplatesByCompany(companyId, options);
+  return result.ok ? result.templates : [];
 }
 
 export async function getActiveProposalTemplatesByCompany(

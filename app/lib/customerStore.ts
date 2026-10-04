@@ -20,6 +20,7 @@ import {
   normalizeCustomerEmail,
   normalizePersonName,
 } from "@/app/lib/customerIdentityNormalize";
+import { isUuidLike } from "@/app/lib/uuid";
 
 export type CustomerWriteParams = {
   supabase: SupabaseClient;
@@ -57,15 +58,25 @@ export async function createCustomer({
   email,
   phone,
   address,
-}: CustomerWriteParams): Promise<string | null> {
+  id,
+}: CustomerWriteParams & {
+  /**
+   * Client-generated customers.id for retry-safe intake. A retry that hits the
+   * primary key reuses the row only when it belongs to the same company.
+   */
+  id?: string | null;
+}): Promise<string | null> {
   try {
     const company = String(companyId ?? "").trim();
     if (!company) return null;
+    const explicitId = String(id ?? "").trim();
+    if (explicitId && !isUuidLike(explicitId)) return null;
 
     const emailNorm = normalizeCustomerEmail(email);
     const { data: inserted, error: insertError } = await supabase
       .from("customers")
       .insert({
+        ...(explicitId ? { id: explicitId } : {}),
         company_id: company,
         name: normalizePersonName(name) || "Customer",
         email: emailNorm,
@@ -74,6 +85,17 @@ export async function createCustomer({
       })
       .select("id")
       .single();
+
+    if (insertError && explicitId && insertError.code === "23505") {
+      const { data: existing, error: readError } = await supabase
+        .from("customers")
+        .select("id")
+        .eq("id", explicitId)
+        .eq("company_id", company)
+        .maybeSingle();
+      if (readError || !existing?.id) return null;
+      return existing.id as string;
+    }
 
     if (insertError || !inserted?.id) return null;
     return inserted.id as string;

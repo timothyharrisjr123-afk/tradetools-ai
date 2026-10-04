@@ -128,24 +128,32 @@ export function isTemplateEligibleForPreferredSetup(template: {
 // Reads
 // ---------------------------------------------------------------------------
 
-export async function getPreferredSetupPreference(
+export type PreferredSetupLoadResult =
+  | { ok: true; preference: CompanyTemplatePreference | null }
+  | { ok: false; error: string };
+
+/**
+ * Discriminated preferred-setup load — "no preference" vs failed read.
+ * Starter bootstrap must not treat a failed read as "no custom preference".
+ */
+export async function loadPreferredSetupPreference(
   companyId: string,
   scope?: CompanyTemplatePreferenceScope
-): Promise<CompanyTemplatePreference | null> {
+): Promise<PreferredSetupLoadResult> {
   const supabase = getSupabaseClient();
   if (!supabase) {
     console.error(
-      "[companyTemplatePreferenceStore] getPreferredSetupPreference: Supabase client unavailable"
+      "[companyTemplatePreferenceStore] loadPreferredSetupPreference: Supabase client unavailable"
     );
-    return null;
+    return { ok: false, error: "Template preference service is unavailable." };
   }
 
   const scopedCompanyId = normalizeCompanyId(companyId);
   if (!scopedCompanyId) {
     console.error(
-      "[companyTemplatePreferenceStore] getPreferredSetupPreference: invalid company id"
+      "[companyTemplatePreferenceStore] loadPreferredSetupPreference: invalid company id"
     );
-    return null;
+    return { ok: false, error: "Invalid company for template preference load." };
   }
 
   const { moduleKey, workflowKey, preferenceKind } = resolveScope(scope);
@@ -162,18 +170,28 @@ export async function getPreferredSetupPreference(
 
     if (error) {
       console.error(
-        "[companyTemplatePreferenceStore] getPreferredSetupPreference failed:",
+        "[companyTemplatePreferenceStore] loadPreferredSetupPreference failed:",
         error.message,
         { companyId: scopedCompanyId, moduleKey, workflowKey, preferenceKind }
       );
-      return null;
+      return { ok: false, error: error.message || "Template preference read failed." };
     }
-    if (!data) return null;
-    return rowToPreference(data as CompanyTemplatePreferenceRow);
+    return {
+      ok: true,
+      preference: data ? rowToPreference(data as CompanyTemplatePreferenceRow) : null,
+    };
   } catch (err) {
-    console.error("[companyTemplatePreferenceStore] getPreferredSetupPreference error:", err);
-    return null;
+    console.error("[companyTemplatePreferenceStore] loadPreferredSetupPreference error:", err);
+    return { ok: false, error: "Template preference read failed." };
   }
+}
+
+export async function getPreferredSetupPreference(
+  companyId: string,
+  scope?: CompanyTemplatePreferenceScope
+): Promise<CompanyTemplatePreference | null> {
+  const result = await loadPreferredSetupPreference(companyId, scope);
+  return result.ok ? result.preference : null;
 }
 
 export async function getPreferredSetupTemplateId(

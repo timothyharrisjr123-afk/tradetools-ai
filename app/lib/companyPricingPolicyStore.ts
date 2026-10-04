@@ -204,12 +204,61 @@ export async function getCompanyPricingPolicy(
  * Fetch the stored policy and run it through the resolver so callers receive the
  * same contract shape the Builder/settings will consume in 3I-3B3.
  * Missing row → { configured:false, source:"missing", policy:null }.
+ * A failed read also resolves as not configured — use
+ * loadResolvedCompanyPricingPolicy where that difference drives UI or writes.
  */
 export async function getResolvedCompanyPricingPolicy(
   companyId: string
 ): Promise<CompanyPricingPolicyResolution> {
   const storedPolicy = await getCompanyPricingPolicy(companyId);
   return resolveCompanyPricingPolicy({ storedPolicy });
+}
+
+export type CompanyPricingPolicyLoadResult =
+  | { ok: true; resolution: CompanyPricingPolicyResolution }
+  | { ok: false; error: string };
+
+/**
+ * Discriminated policy load — a missing row resolves as not configured, while a
+ * failed read is reported as a failure and never as "not configured".
+ */
+export async function loadResolvedCompanyPricingPolicy(
+  companyId: string
+): Promise<CompanyPricingPolicyLoadResult> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    console.error(
+      "[companyPricingPolicyStore] loadResolvedCompanyPricingPolicy: Supabase client unavailable"
+    );
+    return { ok: false, error: "Pricing service is unavailable." };
+  }
+  const scopedCompanyId = normalizeCompanyId(companyId);
+  if (!scopedCompanyId) {
+    console.error("[companyPricingPolicyStore] loadResolvedCompanyPricingPolicy: invalid company id");
+    return { ok: false, error: "Invalid company for pricing load." };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select(COMPANY_PRICING_POLICY_SELECT_COLUMNS)
+      .eq("company_id", scopedCompanyId)
+      .maybeSingle();
+
+    if (error) {
+      console.error(
+        "[companyPricingPolicyStore] loadResolvedCompanyPricingPolicy failed:",
+        error.message,
+        { companyId: scopedCompanyId }
+      );
+      return { ok: false, error: error.message || "Pricing read failed." };
+    }
+    const storedPolicy = data ? rowToPricingPolicy(data as CompanyPricingPolicyRow) : null;
+    return { ok: true, resolution: resolveCompanyPricingPolicy({ storedPolicy }) };
+  } catch (err) {
+    console.error("[companyPricingPolicyStore] loadResolvedCompanyPricingPolicy error:", err);
+    return { ok: false, error: "Pricing read failed." };
+  }
 }
 
 // ---------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { propertyAddressIsMatchable } from "@/app/lib/propertyAddressNormalize";
 import type { PropertySearchCandidate } from "@/app/tools/roofing/JobPacketPropertyCandidates";
 
@@ -19,6 +19,8 @@ export function useCompanyPropertySearch(
   const [debounced, setDebounced] = useState(address);
   const [results, setResults] = useState<PropertySearchCandidate[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [attempt, setAttempt] = useState(0);
+  const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
   useEffect(() => {
     const handle = window.setTimeout(() => setDebounced(address), DEBOUNCE_MS);
@@ -79,7 +81,15 @@ export function useCompanyPropertySearch(
       });
 
     return () => controller.abort();
-  }, [active, debounced.line1, debounced.line2, debounced.city, debounced.state, debounced.zip]);
+  }, [
+    active,
+    debounced.line1,
+    debounced.line2,
+    debounced.city,
+    debounced.state,
+    debounced.zip,
+    attempt,
+  ]);
 
-  return { results, status, active };
+  return { results, status, active, retry };
 }

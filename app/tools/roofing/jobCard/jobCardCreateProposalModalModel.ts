@@ -18,7 +18,20 @@ export type PrepareProposalFieldState =
   | "prepared"
   | "alternative_available"
   | "choice_required"
+  /** Still loading / installing — not a blocker and not a choice yet. */
+  | "pending"
   | "blocked";
+
+/** Read/install truth behind a field — never collapse a failed read into "none". */
+export type PrepareProposalLoadState = "loading" | "ready" | "failed";
+
+/** Template setup truth: loading, installing the starter, failed read, failed install, ready. */
+export type PrepareProposalSetupLoadState =
+  | "loading"
+  | "installing"
+  | "load_failed"
+  | "install_failed"
+  | "ready";
 
 export type CreateProposalMeasurementChoice = {
   id: string;
@@ -83,6 +96,17 @@ export const PREPARE_PROPOSAL_PACKAGE_NONE =
   "This setup has no valid package. Add a package under Templates." as const;
 export const PREPARE_PROPOSAL_SETUP_NONE =
   "Create or finish a template before creating a proposal." as const;
+export const PREPARE_PROPOSAL_SETUP_LOADING = "Loading templates…" as const;
+export const PREPARE_PROPOSAL_SETUP_INSTALLING =
+  "Setting up your starter template…" as const;
+export const PREPARE_PROPOSAL_SETUP_LOAD_FAILED =
+  "Your templates couldn't be loaded." as const;
+export const PREPARE_PROPOSAL_SETUP_INSTALL_FAILED =
+  "Your starter template couldn't be set up." as const;
+export const PREPARE_PROPOSAL_MEASUREMENT_LOADING = "Loading measurements…" as const;
+export const PREPARE_PROPOSAL_MEASUREMENT_LOAD_FAILED =
+  "Your measurements couldn't be loaded." as const;
+export const PREPARE_PROPOSAL_TRY_AGAIN_LABEL = "Try again" as const;
 export const PREPARE_PROPOSAL_CREATING_LABEL = "Creating…" as const;
 
 /** @deprecated V2A uses PREPARE_PROPOSAL_TITLE. Kept for residual copy checks. */
@@ -346,8 +370,28 @@ function fieldView(input: {
 export function resolvePrepareProposalMeasurement(input: {
   eligible: readonly CreateProposalMeasurementChoice[];
   selectedId: string | null | undefined;
+  /** Omitted = ready (legacy callers). A failed read is never "no measurement". */
+  loadState?: PrepareProposalLoadState;
 }): PrepareProposalFieldView {
   const eligible = input.eligible.filter((row) => row.ready !== false);
+  if (eligible.length === 0 && input.loadState === "loading") {
+    return fieldView({
+      field: "measurement",
+      state: "pending",
+      valueLabel: PREPARE_PROPOSAL_MEASUREMENT_LOADING,
+      showChange: false,
+      showSelector: false,
+    });
+  }
+  if (eligible.length === 0 && input.loadState === "failed") {
+    return fieldView({
+      field: "measurement",
+      state: "blocked",
+      fixPath: PREPARE_PROPOSAL_MEASUREMENT_LOAD_FAILED,
+      showChange: false,
+      showSelector: false,
+    });
+  }
   if (eligible.length === 0) {
     return fieldView({
       field: "measurement",
@@ -413,8 +457,41 @@ export function resolvePrepareProposalSetup(input: {
   explicitId: string | null | undefined;
   selectedId?: string | null;
   selectedUnusableReason?: string | null;
+  /** Omitted = ready (legacy callers). Loading/installing never shows "no template". */
+  loadState?: PrepareProposalSetupLoadState;
 }): PrepareProposalFieldView {
   const eligible = listEligibleSetups(input.setups);
+  const loadState = input.loadState ?? "ready";
+  if (loadState === "installing" || (loadState === "loading" && eligible.length === 0)) {
+    return fieldView({
+      field: "setup",
+      state: "pending",
+      valueLabel:
+        loadState === "installing"
+          ? PREPARE_PROPOSAL_SETUP_INSTALLING
+          : PREPARE_PROPOSAL_SETUP_LOADING,
+      showChange: false,
+      showSelector: false,
+    });
+  }
+  if (loadState === "install_failed") {
+    return fieldView({
+      field: "setup",
+      state: "blocked",
+      fixPath: PREPARE_PROPOSAL_SETUP_INSTALL_FAILED,
+      showChange: false,
+      showSelector: false,
+    });
+  }
+  if (loadState === "load_failed" && eligible.length === 0) {
+    return fieldView({
+      field: "setup",
+      state: "blocked",
+      fixPath: PREPARE_PROPOSAL_SETUP_LOAD_FAILED,
+      showChange: false,
+      showSelector: false,
+    });
+  }
   if (eligible.length === 0) {
     return fieldView({
       field: "setup",
@@ -504,7 +581,19 @@ export function resolvePrepareProposalPackage(input: {
   explicitId: string | null | undefined;
   packagePresentationMode: PackagePresentationMode;
   graphReady?: boolean;
+  setupLoadState?: PrepareProposalSetupLoadState;
 }): PrepareProposalFieldView {
+  const setupLoadFailed =
+    input.setupLoadState === "load_failed" || input.setupLoadState === "install_failed";
+  if (input.setupState === "pending" || (input.setupState === "blocked" && setupLoadFailed)) {
+    // The Template row explains the wait or the failure; no second message here.
+    return fieldView({
+      field: "package",
+      state: "pending",
+      showChange: false,
+      showSelector: false,
+    });
+  }
   if (input.setupState === "choice_required") {
     return fieldView({
       field: "package",

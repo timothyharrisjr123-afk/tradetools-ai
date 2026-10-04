@@ -12,6 +12,7 @@ import {
   deriveMeasurementStatusForPersistence,
   deriveProductionReadiness,
   hasRoofSize,
+  MEASUREMENT_MISSING_LABEL,
 } from "@/app/lib/measurementReadiness";
 
 /** Optional report provenance labels — existing `report_source` column; not required. */
@@ -128,6 +129,59 @@ export function deriveManualAdjustedSquares(
   return squares * (1 + wastePercent / 100);
 }
 
+/** Required capture inputs, in form order. */
+export const MANUAL_MEASUREMENT_REQUIRED_FIELDS = [
+  "roof_area_sqft",
+  "waste_percent",
+  "pitch_label",
+  "stories",
+  "eaves_lf",
+  "rakes_lf",
+  "ridges_lf",
+  "valleys_lf",
+  "step_flashing_lf",
+  "pipe_boots_count",
+  "vents_count",
+  "tear_off_required",
+  "debris_tons_estimate",
+] as const;
+
+export type ManualMeasurementRequiredField = (typeof MANUAL_MEASUREMENT_REQUIRED_FIELDS)[number];
+
+const ESTIMATE_BLOCKER_FIELD: Record<string, ManualMeasurementRequiredField> = {
+  [MEASUREMENT_MISSING_LABEL.roofSize]: "roof_area_sqft",
+  [MEASUREMENT_MISSING_LABEL.wasteFactor]: "waste_percent",
+  [MEASUREMENT_MISSING_LABEL.pitch]: "pitch_label",
+  [MEASUREMENT_MISSING_LABEL.stories]: "stories",
+};
+
+/**
+ * Required inputs still missing, in form order. Empty stays missing — an
+ * unanswered field is never treated as zero. Hips and report source are optional.
+ */
+export function listManualMeasurementMissingInputs(
+  fields: JobCardManualMeasurementFields
+): ManualMeasurementRequiredField[] {
+  const missing = new Set<ManualMeasurementRequiredField>();
+  const shape = buildManualMeasurementRecordShape(fields);
+  for (const blocker of deriveEstimateReadiness(shape as MeasurementRecord).blockers) {
+    const field = ESTIMATE_BLOCKER_FIELD[blocker];
+    if (field) missing.add(field);
+  }
+  if (!isEnteredNumber(fields.eaves_lf)) missing.add("eaves_lf");
+  if (!isEnteredNumber(fields.rakes_lf)) missing.add("rakes_lf");
+  if (!isEnteredNumber(fields.ridges_lf)) missing.add("ridges_lf");
+  if (!isEnteredNumber(fields.valleys_lf)) missing.add("valleys_lf");
+  if (!isEnteredNumber(fields.step_flashing_lf)) missing.add("step_flashing_lf");
+  if (!isEnteredNumber(fields.pipe_boots_count)) missing.add("pipe_boots_count");
+  if (!isEnteredNumber(fields.vents_count)) missing.add("vents_count");
+  if (fields.tear_off_required !== true && fields.tear_off_required !== false) {
+    missing.add("tear_off_required");
+  }
+  if (!isEnteredNumber(fields.debris_tons_estimate)) missing.add("debris_tons_estimate");
+  return MANUAL_MEASUREMENT_REQUIRED_FIELDS.filter((field) => missing.has(field));
+}
+
 /**
  * Report + job-scope inputs the starter resolver needs.
  * Does not invent zeros. Empty remains missing.
@@ -136,18 +190,7 @@ export function isManualMeasurementStarterQuantityInputComplete(
   fields: JobCardManualMeasurementFields
 ): boolean {
   if (!isManualMeasurementEstimateReady(fields)) return false;
-  if (!isEnteredNumber(fields.eaves_lf)) return false;
-  if (!isEnteredNumber(fields.rakes_lf)) return false;
-  if (!isEnteredNumber(fields.ridges_lf)) return false;
-  if (!isEnteredNumber(fields.valleys_lf)) return false;
-  if (!isEnteredNumber(fields.step_flashing_lf)) return false;
-  if (!isEnteredNumber(fields.pipe_boots_count)) return false;
-  if (!isEnteredNumber(fields.vents_count)) return false;
-  if (fields.tear_off_required !== true && fields.tear_off_required !== false) {
-    return false;
-  }
-  if (!isEnteredNumber(fields.debris_tons_estimate)) return false;
-  return true;
+  return listManualMeasurementMissingInputs(fields).length === 0;
 }
 
 export function buildManualMeasurementRecordShape(

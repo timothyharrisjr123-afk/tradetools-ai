@@ -14,6 +14,10 @@ import {
   JOB_CARD_MAKE_CURRENT_CONFIRM_TITLE,
   JOB_CARD_MAKE_CURRENT_LABEL,
   JOB_CARD_MEASUREMENTS_EMPTY,
+  JOB_CARD_MEASUREMENTS_LOAD_FAILED,
+  JOB_CARD_MEASUREMENTS_LOADING,
+  JOB_CARD_MEASUREMENTS_REFRESH_FAILED,
+  JOB_CARD_MEASUREMENTS_RETRY_LABEL,
   JOB_CARD_REVIEW_PROPOSAL_LABEL,
   buildMeasurementHistoryRows,
   buildMeasurementReportSummary,
@@ -30,6 +34,9 @@ type JobCardMeasurementsWorkspaceProps = {
   records: readonly MeasurementRecord[];
   selectedId: string | null;
   loading?: boolean;
+  /** Last read failed. Known records stay visible; zero records is not "none yet". */
+  loadFailed?: boolean;
+  onRetryLoad?: () => void;
   capturing?: boolean;
   captureInitial?: Partial<JobCardManualMeasurementFields> | null;
   captureTitle?: string;
@@ -90,6 +97,8 @@ export default function JobCardMeasurementsWorkspace({
   records,
   selectedId,
   loading = false,
+  loadFailed = false,
+  onRetryLoad,
   capturing = false,
   captureInitial = null,
   captureTitle,
@@ -147,9 +156,49 @@ export default function JobCardMeasurementsWorkspace({
     ? [summary.storiesLabel, summary.sourceLabel, summary.dateLabel].filter(Boolean)
     : [];
 
+  const retryButton = onRetryLoad ? (
+    <button
+      type="button"
+      className="inline-flex min-h-[44px] shrink-0 items-center rounded-md px-3 text-sm font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-50"
+      onClick={onRetryLoad}
+      disabled={loading}
+      data-jobcard-measurements-retry="true"
+    >
+      {JOB_CARD_MEASUREMENTS_RETRY_LABEL}
+    </button>
+  ) : null;
+  const unknownWithoutRecords = !summary && records.length === 0 && (loading || loadFailed);
+
   return (
     <div className="space-y-5" data-jobcard-measurements-workspace="true">
-      {summary ? (
+      {loadFailed && records.length > 0 ? (
+        <div
+          className="flex items-center justify-between gap-3"
+          data-jobcard-measurements-refresh-failed="true"
+        >
+          <p className="text-sm text-amber-800" role="alert">
+            {JOB_CARD_MEASUREMENTS_REFRESH_FAILED}
+          </p>
+          {retryButton}
+        </div>
+      ) : null}
+      {unknownWithoutRecords && !capturing ? (
+        loadFailed && !loading ? (
+          <div
+            className="flex items-start justify-between gap-3"
+            data-jobcard-measurements-load-failed="true"
+          >
+            <p className="text-sm text-amber-800" role="alert">
+              {JOB_CARD_MEASUREMENTS_LOAD_FAILED}
+            </p>
+            {retryButton}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500" data-jobcard-measurements-loading="true">
+            {JOB_CARD_MEASUREMENTS_LOADING}
+          </p>
+        )
+      ) : summary ? (
         <div className="flex items-start justify-between gap-3">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             {JOB_CARD_CURRENT_MEASUREMENT_LABEL}
@@ -278,8 +327,8 @@ export default function JobCardMeasurementsWorkspace({
         </div>
       ) : null}
 
-      {loading ? (
-        <p className="text-sm text-slate-500">Loading measurements</p>
+      {loading && !unknownWithoutRecords ? (
+        <p className="text-sm text-slate-500">{JOB_CARD_MEASUREMENTS_LOADING}</p>
       ) : earlier.length > 0 ? (
         <div data-jobcard-measurement-history="true">
           <h3 className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">

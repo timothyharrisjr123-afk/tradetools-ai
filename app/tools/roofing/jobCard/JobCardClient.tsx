@@ -987,7 +987,11 @@ export default function JobCardClient({
     timeInStageTone: "neutral",
     reportLabel: prepare.selected
       ? formatMeasurementQuantityLine(prepare.selected)
-      : "No measurement",
+      : prepare.measurementsLoadFailed
+        ? "Unavailable"
+        : prepare.loadingMeasurements
+          ? "Loading"
+          : "No measurement",
     proposalLabel: formatJobCardContractorProposalStatusLabel({
       visibleSummaries: listedJobDraftSummaries,
       packageLabelsByProposalId: listedJobDraftPackageLabels,
@@ -1896,6 +1900,8 @@ export default function JobCardClient({
                     records={prepare.records}
                     selectedId={prepare.selectedId}
                     loading={prepare.loadingMeasurements}
+                    loadFailed={prepare.measurementsLoadFailed}
+                    onRetryLoad={() => void prepare.reloadMeasurements()}
                     capturing={
                       prepare.captureOpen && prepare.captureOrigin === "tab"
                     }
@@ -2046,6 +2052,12 @@ export default function JobCardClient({
           preparingStructure={prepare.preparingStructure}
           preparingStructureLabel={prepare.preparingStructureLabel}
           structureError={prepare.structureError}
+          setupLoadState={prepare.setupLoadState}
+          onRetrySetup={() => void prepare.retrySetup()}
+          measurementLoadState={prepare.measurementLoadState}
+          onRetryMeasurements={() => void prepare.reloadMeasurements()}
+          pricingRulesLoadFailed={prepare.pricingRulesLoadFailed}
+          onRetryPricingRules={() => void prepare.retryPricingRules()}
           showFirstProposalPricingRules={prepare.showFirstProposalPricingRules}
           firstProposalPricingRulesDraft={prepare.firstProposalPricingRulesDraft}
           onFirstProposalPricingRulesChange={prepare.patchFirstProposalPricingRulesDraft}

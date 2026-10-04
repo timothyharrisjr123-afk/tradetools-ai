@@ -3,16 +3,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parseDollarsToCentsOrNull } from "@/app/admin/catalog/catalogAdminUtils";
 import {
-  getActiveCatalogItemsByCompany,
+  loadActiveCatalogItemsByCompany,
   updateCatalogItem,
 } from "@/app/lib/catalogStore";
 import type { CatalogItem } from "@/app/lib/catalogTypes";
-import { getPreferredSetupTemplateId } from "@/app/lib/companyTemplatePreferenceStore";
+import { loadPreferredSetupPreference } from "@/app/lib/companyTemplatePreferenceStore";
 import { filterContractorVisibleTemplates } from "@/app/lib/contractorFixtureIsolation";
 import { installDefaultRoofingCatalog } from "@/app/lib/defaultRoofingCatalogInstall";
 import { installDefaultRoofingProposalTemplates } from "@/app/lib/defaultRoofingProposalTemplateInstall";
+import { resolveCompanyPricingPolicy } from "@/app/lib/companyPricingPolicy";
 import {
-  getResolvedCompanyPricingPolicy,
+  loadResolvedCompanyPricingPolicy,
   upsertCompanyPricingPolicy,
 } from "@/app/lib/companyPricingPolicyStore";
 import {
@@ -53,7 +54,7 @@ import {
 } from "@/app/lib/measurementProposalHandoff";
 import {
   createMeasurementRecord,
-  getMeasurementsForJob,
+  loadMeasurementsForJob,
   selectMeasurementRecord,
   updateMeasurementRecord,
 } from "@/app/lib/measurementStore";
@@ -66,7 +67,7 @@ import { createDraftProposal } from "@/app/lib/proposalRecordStore";
 import type { ProductSpineRouteHints } from "@/app/lib/productSpine";
 import {
   getProposalTemplateGraph,
-  getProposalTemplatesByCompany,
+  loadProposalTemplatesByCompany,
   type ProposalTemplateGraph,
 } from "@/app/lib/proposalTemplateStore";
 import type { ProposalTemplate } from "@/app/lib/proposalTemplateTypes";
@@ -75,6 +76,8 @@ import {
   buildCreateProposalMeasurementChoice,
   resolvePrepareProposalMeasurement,
   type CreateProposalMeasurementChoice,
+  type PrepareProposalLoadState,
+  type PrepareProposalSetupLoadState,
 } from "@/app/tools/roofing/jobCard/jobCardCreateProposalModalModel";
 import type { JobCardCreateProposalModalTemplateChoice } from "@/app/tools/roofing/jobCard/JobCardCreateProposalModal";
 import {
@@ -88,6 +91,7 @@ import { findStarterProposalTemplate } from "@/app/tools/roofing/templates/templ
 
 type CaptureOrigin = "tab" | "prepare" | null;
 type CaptureKind = "add" | "edit" | null;
+type PricingPolicyStatus = "loading" | "configured" | "not_configured" | "failed";
 
 type UseJobCardPrepareProposalInput = {
   companyId?: string | null;
@@ -115,6 +119,7 @@ export function useJobCardPrepareProposal({
   const [records, setRecords] = useState<MeasurementRecord[]>([]);
   const [selected, setSelected] = useState<MeasurementRecord | null>(null);
   const [loadingMeasurements, setLoadingMeasurements] = useState(false);
+  const [measurementsLoadFailed, setMeasurementsLoadFailed] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [templates, setTemplates] = useState<ProposalTemplate[]>([]);
   const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
@@ -139,14 +144,13 @@ export function useJobCardPrepareProposal({
   const [selectBusy, setSelectBusy] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  const [preparingStructure, setPreparingStructure] = useState(false);
-  const [structureError, setStructureError] = useState<string | null>(null);
+  const [setupLoadState, setSetupLoadState] =
+    useState<PrepareProposalSetupLoadState>("loading");
   const [pricingDrafts, setPricingDrafts] = useState<Record<string, string>>({});
   const [pricingSaving, setPricingSaving] = useState(false);
   const [pricingSaveError, setPricingSaveError] = useState<string | null>(null);
-  const [pricingPolicyConfigured, setPricingPolicyConfigured] = useState<
-    boolean | null
-  >(null);
+  const [pricingPolicyStatus, setPricingPolicyStatus] =
+    useState<PricingPolicyStatus>("loading");
   const [pricingRulesDraft, setPricingRulesDraft] =
     useState<FirstProposalPricingRulesDraft>(() => emptyFirstProposalPricingRulesDraft());
   const [pricingRulesSaving, setPricingRulesSaving] = useState(false);
@@ -159,6 +163,7 @@ export function useJobCardPrepareProposal({
   const priceSaveInFlightRef = useRef(false);
   const pricingRulesSaveInFlightRef = useRef(false);
   const pricingPolicyLoadInFlightRef = useRef(false);
+  const measurementsJobRef = useRef<string | null>(null);
 
   const cid = (companyId ?? "").trim();
   const jid = (jobId ?? "").trim();
@@ -167,21 +172,36 @@ export function useJobCardPrepareProposal({
     if (!jid || !isUuidLike(jid)) {
       setRecords([]);
       setSelected(null);
+      setMeasurementsLoadFailed(false);
       return;
     }
     setLoadingMeasurements(true);
     try {
-      const rows = await getMeasurementsForJob(jid);
-      setRecords(rows);
+      const result = await loadMeasurementsForJob(jid);
+      if (!result.ok) {
+        // Keep this job's last known records; a failed read is not "no measurements".
+        if (measurementsJobRef.current !== jid) {
+          setRecords([]);
+          setSelected(null);
+        }
+        setMeasurementsLoadFailed(true);
+        return;
+      }
+      measurementsJobRef.current = jid;
+      setMeasurementsLoadFailed(false);
+      setRecords(result.records);
       setSelected(
         resolveCanonicalJobMeasurement({
-          records: rows,
+          records: result.records,
           selectedMeasurementId,
         })
       );
     } catch {
-      setRecords([]);
-      setSelected(null);
+      if (measurementsJobRef.current !== jid) {
+        setRecords([]);
+        setSelected(null);
+      }
+      setMeasurementsLoadFailed(true);
     } finally {
       setLoadingMeasurements(false);
     }
@@ -222,14 +242,22 @@ export function useJobCardPrepareProposal({
   const ensureFirstProposalStructure = useCallback(async () => {
     if (!cid || !isUuidLike(cid) || bootstrapInFlightRef.current) return;
     bootstrapInFlightRef.current = true;
-    setStructureError(null);
-    setPreparingStructure(true);
+    let phase: "loading" | "installing" = "loading";
+    setSetupLoadState("loading");
     try {
-      const [templateRows, items, preferred] = await Promise.all([
-        getProposalTemplatesByCompany(cid),
-        getActiveCatalogItemsByCompany(cid),
-        getPreferredSetupTemplateId(cid),
+      const [templatesResult, itemsResult, preferenceResult] = await Promise.all([
+        loadProposalTemplatesByCompany(cid),
+        loadActiveCatalogItemsByCompany(cid),
+        loadPreferredSetupPreference(cid),
       ]);
+      // Never install the starter or claim "no template" from a failed read.
+      if (!templatesResult.ok || !itemsResult.ok || !preferenceResult.ok) {
+        setSetupLoadState("load_failed");
+        return;
+      }
+      const templateRows = templatesResult.templates;
+      const items = itemsResult.items;
+      const preferred = preferenceResult.preference?.template_id ?? null;
       const starter = findStarterProposalTemplate(templateRows);
       const need = resolveFirstProposalStructureNeed({
         activeCatalogItems: items,
@@ -240,21 +268,21 @@ export function useJobCardPrepareProposal({
 
       if (!need.mayBootstrapStarterStructure) {
         applyCreateDependencies(templateRows, items, preferred);
+        setSetupLoadState("ready");
         return;
       }
+
+      phase = "installing";
+      setSetupLoadState("installing");
 
       if (need.needsCatalogStructure) {
         const catalogResult = await installDefaultRoofingCatalog(cid);
         if (!catalogResult || (catalogResult.failedCount > 0 && catalogResult.createdCount === 0)) {
-          setStructureError(FIRST_PROPOSAL_STRUCTURE_FAILED);
           applyCreateDependencies(templateRows, items, preferred);
+          setSetupLoadState("install_failed");
           return;
         }
       }
-
-      const catalogAfter = need.needsCatalogStructure
-        ? await getActiveCatalogItemsByCompany(cid)
-        : items;
 
       if (need.needsTemplateStructure || need.needsCatalogStructure) {
         const templateResult = await installDefaultRoofingProposalTemplates(cid);
@@ -265,26 +293,26 @@ export function useJobCardPrepareProposal({
             templateResult.createdTemplateCount === 0 &&
             templateResult.skippedTemplateCount === 0)
         ) {
-          setStructureError(FIRST_PROPOSAL_STRUCTURE_FAILED);
-          applyCreateDependencies(
-            await getProposalTemplatesByCompany(cid),
-            catalogAfter,
-            preferred
-          );
+          setSetupLoadState("install_failed");
           return;
         }
       }
 
+      phase = "loading";
       const [nextTemplates, nextItems] = await Promise.all([
-        getProposalTemplatesByCompany(cid),
-        getActiveCatalogItemsByCompany(cid),
+        loadProposalTemplatesByCompany(cid),
+        loadActiveCatalogItemsByCompany(cid),
       ]);
-      applyCreateDependencies(nextTemplates, nextItems, preferred);
+      if (!nextTemplates.ok || !nextItems.ok) {
+        setSetupLoadState("load_failed");
+        return;
+      }
+      applyCreateDependencies(nextTemplates.templates, nextItems.items, preferred);
+      setSetupLoadState("ready");
     } catch {
-      setStructureError(FIRST_PROPOSAL_STRUCTURE_FAILED);
+      setSetupLoadState(phase === "installing" ? "install_failed" : "load_failed");
     } finally {
       bootstrapInFlightRef.current = false;
-      setPreparingStructure(false);
     }
   }, [cid, applyCreateDependencies]);
 
@@ -292,16 +320,21 @@ export function useJobCardPrepareProposal({
     if (!cid || !isUuidLike(cid) || pricingPolicyLoadInFlightRef.current) return;
     pricingPolicyLoadInFlightRef.current = true;
     setPricingRulesSaveError(null);
+    setPricingPolicyStatus("loading");
     try {
-      const resolution = await getResolvedCompanyPricingPolicy(cid);
-      const configured = resolution.configured === true;
-      setPricingPolicyConfigured(configured);
+      const result = await loadResolvedCompanyPricingPolicy(cid);
+      if (!result.ok) {
+        // Unknown is not "not configured" — never offer first-time setup over a policy we couldn't read.
+        setPricingPolicyStatus("failed");
+        return;
+      }
+      const configured = result.resolution.configured === true;
+      setPricingPolicyStatus(configured ? "configured" : "not_configured");
       if (!configured) {
         setPricingRulesDraft(emptyFirstProposalPricingRulesDraft());
       }
     } catch {
-      setPricingPolicyConfigured(false);
-      setPricingRulesDraft(emptyFirstProposalPricingRulesDraft());
+      setPricingPolicyStatus("failed");
     } finally {
       pricingPolicyLoadInFlightRef.current = false;
     }
@@ -335,10 +368,8 @@ export function useJobCardPrepareProposal({
 
   const openModal = useCallback(() => {
     setCreateError(null);
-    setStructureError(null);
     setPricingSaveError(null);
     setPricingRulesSaveError(null);
-    setPricingPolicyConfigured(null);
     setModalOpen(true);
     void ensureFirstProposalStructure();
     void loadCompanyPricingPolicy();
@@ -598,9 +629,22 @@ export function useJobCardPrepareProposal({
     [preferredTemplateId, starterTemplateId, selectedTemplateId, pricingLines]
   );
 
-  const showFirstProposalPricingRules = pricingPolicyConfigured === false;
+  const showFirstProposalPricingRules = pricingPolicyStatus === "not_configured";
 
-  const pricingRulesComplete = pricingPolicyConfigured === true;
+  const pricingRulesComplete = pricingPolicyStatus === "configured";
+
+  const preparingStructure =
+    setupLoadState === "loading" || setupLoadState === "installing";
+  const structureError =
+    setupLoadState === "load_failed" || setupLoadState === "install_failed"
+      ? FIRST_PROPOSAL_STRUCTURE_FAILED
+      : null;
+
+  const measurementLoadState: PrepareProposalLoadState = measurementsLoadFailed
+    ? "failed"
+    : loadingMeasurements
+      ? "loading"
+      : "ready";
 
   const pricingComplete = useMemo(
     () =>
@@ -626,7 +670,7 @@ export function useJobCardPrepareProposal({
       !cid ||
       !isUuidLike(cid) ||
       pricingRulesSaveInFlightRef.current ||
-      pricingPolicyConfigured === true
+      pricingPolicyStatus !== "not_configured"
     ) {
       return;
     }
@@ -644,20 +688,18 @@ export function useJobCardPrepareProposal({
         setPricingRulesSaveError(FIRST_PROPOSAL_RULES_SAVE_FAILED);
         return;
       }
-      const resolution = await getResolvedCompanyPricingPolicy(cid);
-      if (resolution.configured !== true) {
+      if (resolveCompanyPricingPolicy({ storedPolicy: saved }).configured !== true) {
         setPricingRulesSaveError(FIRST_PROPOSAL_RULES_SAVE_FAILED);
-        setPricingPolicyConfigured(false);
         return;
       }
-      setPricingPolicyConfigured(true);
+      setPricingPolicyStatus("configured");
     } catch {
       setPricingRulesSaveError(FIRST_PROPOSAL_RULES_SAVE_FAILED);
     } finally {
       pricingRulesSaveInFlightRef.current = false;
       setPricingRulesSaving(false);
     }
-  }, [cid, pricingRulesDraft, pricingPolicyConfigured]);
+  }, [cid, pricingRulesDraft, pricingPolicyStatus]);
 
   const saveFirstProposalPrices = useCallback(async () => {
     if (!cid || !isUuidLike(cid) || priceSaveInFlightRef.current) return;
@@ -666,6 +708,7 @@ export function useJobCardPrepareProposal({
     setPricingSaveError(null);
     try {
       const lines = collectLinkedCatalogPricingLines(templateGraph, catalogItems);
+      const savedItems = new Map<string, CatalogItem>();
       for (const line of lines) {
         const raw =
           pricingDrafts[line.catalogItemId] !== undefined
@@ -697,9 +740,13 @@ export function useJobCardPrepareProposal({
           setPricingSaveError(FIRST_PROPOSAL_PRICE_SAVE_FAILED);
           return;
         }
+        savedItems.set(updated.id, updated);
       }
-      const nextItems = await getActiveCatalogItemsByCompany(cid);
-      setCatalogItems(nextItems);
+      // A failed refresh must not empty the list; fall back to the rows the writes returned.
+      const nextItems = await loadActiveCatalogItemsByCompany(cid);
+      setCatalogItems((prev) =>
+        nextItems.ok ? nextItems.items : prev.map((item) => savedItems.get(item.id) ?? item)
+      );
       setPricingDrafts({});
     } catch {
       setPricingSaveError(FIRST_PROPOSAL_PRICE_SAVE_FAILED);
@@ -816,6 +863,8 @@ export function useJobCardPrepareProposal({
     selected,
     selectedId: selected?.id ?? null,
     loadingMeasurements,
+    measurementsLoadFailed,
+    measurementLoadState,
     reloadMeasurements,
     modalOpen,
     openModal,
@@ -842,6 +891,10 @@ export function useJobCardPrepareProposal({
     preparingStructure,
     structureError,
     preparingStructureLabel: FIRST_PROPOSAL_PREPARING,
+    setupLoadState,
+    retrySetup: ensureFirstProposalStructure,
+    pricingRulesLoadFailed: pricingPolicyStatus === "failed",
+    retryPricingRules: loadCompanyPricingPolicy,
     showFirstProposalPricingRules,
     firstProposalPricingRulesDraft: pricingRulesDraft,
     patchFirstProposalPricingRulesDraft: patchPricingRulesDraft,

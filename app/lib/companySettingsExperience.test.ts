@@ -341,7 +341,7 @@ describe("Pricing visual normalization", () => {
   });
 
   test("pricing truth and validation are unchanged", () => {
-    assert.match(PRICING_CLIENT, /getResolvedCompanyPricingPolicy/);
+    assert.match(PRICING_CLIENT, /loadResolvedCompanyPricingPolicy/);
     assert.match(PRICING_CLIENT, /upsertCompanyPricingPolicy/);
     assert.match(PRICING_CLIENT, /validatePricingPolicyFormState/);
     assert.match(PRICING_CLIENT, /pricingPolicyFormStateToPolicy/);

@@ -1,22 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireJobAttachmentSession } from "@/app/lib/jobAttachmentRouteAuth";
 import {
-  JobAttachmentHttpError,
   finalizeJobAttachmentUpload,
+  jobAttachmentErrorBody,
 } from "@/app/lib/jobAttachmentPersistence";
 import { createAdminClient } from "@/app/lib/supabase/admin";
 import { createClient } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
 
-function jsonError(error: unknown) {
-  if (error instanceof JobAttachmentHttpError) {
-    return NextResponse.json(
-      { ok: false, code: error.code, message: error.message },
-      { status: error.status }
-    );
-  }
-  return NextResponse.json({ ok: false, code: "internal_error" }, { status: 500 });
+function jsonError(error: unknown, operation: string) {
+  const { status, body } = jobAttachmentErrorBody(error, operation);
+  return NextResponse.json(body, { status });
 }
 
 export async function POST(
@@ -42,6 +37,6 @@ export async function POST(
     });
     return NextResponse.json({ ok: true, attachment });
   } catch (error) {
-    return jsonError(error);
+    return jsonError(error, "finalize");
   }
 }

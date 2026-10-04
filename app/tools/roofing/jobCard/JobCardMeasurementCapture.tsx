@@ -4,12 +4,16 @@ import { useEffect, useState } from "react";
 import {
   emptyJobCardManualMeasurementFields,
   isManualMeasurementStarterQuantityInputComplete,
+  listManualMeasurementMissingInputs,
   TRUSTED_MEASUREMENT_REPORT_SOURCES,
   type JobCardManualMeasurementFields,
+  type ManualMeasurementRequiredField,
 } from "@/app/lib/jobCardManualMeasurementDraft";
 
 export const JOB_CARD_ADD_MEASUREMENT_LABEL = "Add measurement" as const;
 export const JOB_CARD_SAVE_MEASUREMENT_LABEL = "Save measurement" as const;
+export const JOB_CARD_MEASUREMENT_INCOMPLETE_HINT =
+  "Complete the required roof measurements to save." as const;
 
 export const JOB_CARD_MEASUREMENT_REPORT_GROUP_TITLE = "From the report" as const;
 export const JOB_CARD_MEASUREMENT_REPORT_GROUP_HINT =
@@ -20,6 +24,8 @@ export const JOB_CARD_MEASUREMENT_SCOPE_GROUP_HINT =
 
 const FIELD_CLASS =
   "mt-1 min-h-[44px] w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30";
+const FIELD_ATTENTION_CLASS =
+  "mt-1 min-h-[44px] w-full rounded-md border border-amber-400 bg-amber-50/40 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30";
 
 type JobCardMeasurementCaptureProps = {
   initial?: Partial<JobCardManualMeasurementFields> | null;
@@ -78,6 +84,9 @@ export default function JobCardMeasurementCapture({
   const [fields, setFields] = useState<JobCardManualMeasurementFields>(() =>
     mergeFields(initial)
   );
+  const [touched, setTouched] = useState<ReadonlySet<ManualMeasurementRequiredField>>(
+    () => new Set()
+  );
 
   useEffect(() => {
     setFields(mergeFields(initial));
@@ -99,8 +108,24 @@ export default function JobCardMeasurementCapture({
     initial?.debris_tons_estimate,
   ]);
 
-  const canSave = isManualMeasurementStarterQuantityInputComplete(fields) && !saving;
+  const missing = listManualMeasurementMissingInputs(fields);
+  const complete = isManualMeasurementStarterQuantityInputComplete(fields);
+  const canSave = complete && !saving;
   const reportHint = hint ?? JOB_CARD_MEASUREMENT_REPORT_GROUP_HINT;
+
+  const touch = (field: ManualMeasurementRequiredField) =>
+    setTouched((prev) => (prev.has(field) ? prev : new Set(prev).add(field)));
+
+  /** Highlight only fields the contractor has left behind — never the whole form up front. */
+  const requiredFieldProps = (field: ManualMeasurementRequiredField) => {
+    const needsAttention = touched.has(field) && missing.includes(field);
+    return {
+      className: needsAttention ? FIELD_ATTENTION_CLASS : FIELD_CLASS,
+      onBlur: () => touch(field),
+      "aria-invalid": needsAttention || undefined,
+      "data-jobcard-measurement-needs-attention": needsAttention ? "true" : undefined,
+    };
+  };
 
   return (
     <form
@@ -108,7 +133,11 @@ export default function JobCardMeasurementCapture({
       data-jobcard-measurement-capture="true"
       onSubmit={(event) => {
         event.preventDefault();
-        if (!canSave) return;
+        if (saving) return;
+        if (!complete) {
+          setTouched(new Set(missing));
+          return;
+        }
         onSave(fields);
       }}
     >
@@ -128,7 +157,7 @@ export default function JobCardMeasurementCapture({
           <label className="block text-sm text-slate-600">
             Roof area (sq ft)
             <input
-              className={FIELD_CLASS}
+              {...requiredFieldProps("roof_area_sqft")}
               inputMode="decimal"
               value={fields.roof_area_sqft ? String(fields.roof_area_sqft) : ""}
               onChange={(event) =>
@@ -144,7 +173,7 @@ export default function JobCardMeasurementCapture({
           <label className="block text-sm text-slate-600">
             Waste (%)
             <input
-              className={FIELD_CLASS}
+              {...requiredFieldProps("waste_percent")}
               inputMode="decimal"
               value={numberInputValue(fields.waste_percent)}
               placeholder="—"
@@ -161,7 +190,7 @@ export default function JobCardMeasurementCapture({
           <label className="block text-sm text-slate-600">
             Pitch
             <input
-              className={FIELD_CLASS}
+              {...requiredFieldProps("pitch_label")}
               placeholder="6/12"
               value={fields.pitch_label}
               onChange={(event) =>
@@ -174,7 +203,7 @@ export default function JobCardMeasurementCapture({
           <label className="block text-sm text-slate-600">
             Stories
             <input
-              className={FIELD_CLASS}
+              {...requiredFieldProps("stories")}
               placeholder="1"
               value={fields.stories}
               onChange={(event) =>
@@ -187,7 +216,7 @@ export default function JobCardMeasurementCapture({
           <label className="block text-sm text-slate-600">
             Eaves (lf)
             <input
-              className={FIELD_CLASS}
+              {...requiredFieldProps("eaves_lf")}
               inputMode="decimal"
               value={numberInputValue(fields.eaves_lf)}
               placeholder="—"
@@ -204,7 +233,7 @@ export default function JobCardMeasurementCapture({
           <label className="block text-sm text-slate-600">
             Rakes (lf)
             <input
-              className={FIELD_CLASS}
+              {...requiredFieldProps("rakes_lf")}
               inputMode="decimal"
               value={numberInputValue(fields.rakes_lf)}
               placeholder="—"
@@ -221,7 +250,7 @@ export default function JobCardMeasurementCapture({
           <label className="block text-sm text-slate-600">
             Ridges (lf)
             <input
-              className={FIELD_CLASS}
+              {...requiredFieldProps("ridges_lf")}
               inputMode="decimal"
               value={numberInputValue(fields.ridges_lf)}
               placeholder="—"
@@ -256,7 +285,7 @@ export default function JobCardMeasurementCapture({
           <label className="block text-sm text-slate-600">
             Valleys (lf)
             <input
-              className={FIELD_CLASS}
+              {...requiredFieldProps("valleys_lf")}
               inputMode="decimal"
               value={numberInputValue(fields.valleys_lf)}
               placeholder="—"
@@ -273,7 +302,7 @@ export default function JobCardMeasurementCapture({
           <label className="block text-sm text-slate-600">
             Step flashing (lf)
             <input
-              className={FIELD_CLASS}
+              {...requiredFieldProps("step_flashing_lf")}
               inputMode="decimal"
               value={numberInputValue(fields.step_flashing_lf)}
               placeholder="—"
@@ -324,7 +353,7 @@ export default function JobCardMeasurementCapture({
           <label className="block text-sm text-slate-600">
             Pipe boots
             <input
-              className={FIELD_CLASS}
+              {...requiredFieldProps("pipe_boots_count")}
               inputMode="numeric"
               value={numberInputValue(fields.pipe_boots_count)}
               placeholder="—"
@@ -341,7 +370,7 @@ export default function JobCardMeasurementCapture({
           <label className="block text-sm text-slate-600">
             Roof vents
             <input
-              className={FIELD_CLASS}
+              {...requiredFieldProps("vents_count")}
               inputMode="numeric"
               value={numberInputValue(fields.vents_count)}
               placeholder="—"
@@ -358,7 +387,7 @@ export default function JobCardMeasurementCapture({
           <label className="block text-sm text-slate-600">
             Tear-off
             <select
-              className={FIELD_CLASS}
+              {...requiredFieldProps("tear_off_required")}
               value={
                 fields.tear_off_required === true
                   ? "yes"
@@ -385,7 +414,7 @@ export default function JobCardMeasurementCapture({
           <label className="block text-sm text-slate-600">
             Disposal (tons)
             <input
-              className={FIELD_CLASS}
+              {...requiredFieldProps("debris_tons_estimate")}
               inputMode="decimal"
               value={numberInputValue(fields.debris_tons_estimate)}
               placeholder="—"
@@ -407,26 +436,39 @@ export default function JobCardMeasurementCapture({
           {error}
         </p>
       ) : null}
-      <div className="flex items-center justify-end gap-2 pt-1">
-        {onCancel ? (
-          <button
-            type="button"
-            className="inline-flex min-h-[44px] items-center rounded-md px-3 text-sm font-semibold text-slate-600 hover:bg-slate-50"
-            onClick={onCancel}
-            disabled={saving}
-            data-jobcard-measurement-capture-cancel
+      <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 pt-1">
+        {!complete && !saving ? (
+          <p
+            id="jobcard-measurement-save-hint"
+            className="mr-auto text-xs text-slate-500"
+            data-jobcard-measurement-save-hint
           >
-            Cancel
-          </button>
+            {JOB_CARD_MEASUREMENT_INCOMPLETE_HINT}
+          </p>
         ) : null}
-        <button
-          type="submit"
-          disabled={!canSave}
-          className="inline-flex min-h-[44px] items-center rounded-md bg-blue-600 px-3.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-          data-jobcard-measurement-save
-        >
-          {saving ? "Saving…" : JOB_CARD_SAVE_MEASUREMENT_LABEL}
-        </button>
+        <div className="flex items-center gap-2">
+          {onCancel ? (
+            <button
+              type="button"
+              className="inline-flex min-h-[44px] items-center rounded-md px-3 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              onClick={onCancel}
+              disabled={saving}
+              data-jobcard-measurement-capture-cancel
+            >
+              Cancel
+            </button>
+          ) : null}
+          <button
+            type="submit"
+            disabled={saving}
+            aria-disabled={!canSave}
+            aria-describedby={!complete && !saving ? "jobcard-measurement-save-hint" : undefined}
+            className="inline-flex min-h-[44px] items-center rounded-md bg-blue-600 px-3.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:bg-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            data-jobcard-measurement-save
+          >
+            {saving ? "Saving…" : JOB_CARD_SAVE_MEASUREMENT_LABEL}
+          </button>
+        </div>
       </div>
     </form>
   );

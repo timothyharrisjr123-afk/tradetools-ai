@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CUSTOMER_SEARCH_DEBOUNCE_MS,
   customerSearchQueryIsActive,
@@ -15,6 +15,8 @@ export function useCompanyCustomerSearch(input: CustomerSearchQuery, enabled: bo
   const [debounced, setDebounced] = useState(input);
   const [results, setResults] = useState<CustomerSearchCandidate[]>([]);
   const [status, setStatus] = useState<CompanyCustomerSearchStatus>("idle");
+  const [attempt, setAttempt] = useState(0);
+  const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
   useEffect(() => {
     const handle = window.setTimeout(() => setDebounced(input), CUSTOMER_SEARCH_DEBOUNCE_MS);
@@ -65,7 +67,7 @@ export function useCompanyCustomerSearch(input: CustomerSearchQuery, enabled: bo
       });
 
     return () => controller.abort();
-  }, [active, queryString]);
+  }, [active, queryString, attempt]);
 
-  return { active, results, status };
+  return { active, results, status, retry };
 }

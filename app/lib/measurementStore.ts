@@ -702,16 +702,26 @@ export async function getSelectedMeasurementForJob(
   }
 }
 
-export async function getMeasurementsForJob(jobId: string): Promise<MeasurementRecord[]> {
+export type MeasurementRecordsLoadResult =
+  | { ok: true; records: MeasurementRecord[] }
+  | { ok: false; error: string };
+
+/**
+ * Discriminated job measurement list load — preserves success-empty vs failed-read.
+ * Prefer this over the array getter when an empty state depends on truth.
+ */
+export async function loadMeasurementsForJob(
+  jobId: string
+): Promise<MeasurementRecordsLoadResult> {
   const supabase = getSupabaseClient();
   if (!supabase) {
-    console.error("[measurementStore] getMeasurementsForJob: Supabase client unavailable");
-    return [];
+    console.error("[measurementStore] loadMeasurementsForJob: Supabase client unavailable");
+    return { ok: false, error: "Measurement service is unavailable." };
   }
   const id = String(jobId || "").trim();
   if (!isUuidLike(id)) {
-    console.error("[measurementStore] getMeasurementsForJob: invalid job id");
-    return [];
+    console.error("[measurementStore] loadMeasurementsForJob: invalid job id");
+    return { ok: false, error: "Invalid job for measurement load." };
   }
 
   try {
@@ -722,17 +732,23 @@ export async function getMeasurementsForJob(jobId: string): Promise<MeasurementR
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("[measurementStore] getMeasurementsForJob failed:", error.message, {
+      console.error("[measurementStore] loadMeasurementsForJob failed:", error.message, {
         jobId: id,
       });
-      return [];
+      return { ok: false, error: error.message || "Measurement read failed." };
     }
     const rows = (data ?? []) as MeasurementRecordRow[];
-    return rows.map(rowToMeasurementRecord);
+    return { ok: true, records: rows.map(rowToMeasurementRecord) };
   } catch (err) {
-    console.error("[measurementStore] getMeasurementsForJob error:", err);
-    return [];
+    console.error("[measurementStore] loadMeasurementsForJob error:", err);
+    return { ok: false, error: "Measurement read failed." };
   }
+}
+
+/** Array getter — a failed read collapses to []. Use loadMeasurementsForJob when that matters. */
+export async function getMeasurementsForJob(jobId: string): Promise<MeasurementRecord[]> {
+  const result = await loadMeasurementsForJob(jobId);
+  return result.ok ? result.records : [];
 }
 
 export async function getMeasurementsForEstimate(

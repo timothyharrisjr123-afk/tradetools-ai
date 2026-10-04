@@ -8,7 +8,7 @@
 
 import type { CompanyPaymentDepositMode } from "@/app/lib/jobPaymentTypes";
 import { parseCompanyTimezoneGetResult } from "@/app/lib/jobScheduleMapper";
-import { getResolvedCompanyPricingPolicy } from "@/app/lib/companyPricingPolicyStore";
+import { loadResolvedCompanyPricingPolicy } from "@/app/lib/companyPricingPolicyStore";
 import type { CompanyPricingSummaryInput } from "@/app/lib/companySettingsSummary";
 
 export type CompanyPaymentsStatus = {
@@ -130,11 +130,18 @@ export async function startCompanyStripeOnboarding(): Promise<{
   }
 }
 
-/** Read-only pricing summary. All pricing math stays on the Pricing page. */
+/**
+ * Read-only pricing summary. All pricing math stays on the Pricing page.
+ * Throws on a failed read so callers show their error state, never "not set up".
+ */
 export async function loadCompanyPricingSummary(
   companyId: string
 ): Promise<CompanyPricingSummaryInput | null> {
-  const resolution = await getResolvedCompanyPricingPolicy(companyId);
+  const result = await loadResolvedCompanyPricingPolicy(companyId);
+  if (!result.ok) {
+    throw new Error("Pricing rules could not be loaded.");
+  }
+  const resolution = result.resolution;
   const policy = resolution.policy;
   if (!resolution.configured || !policy) {
     return {

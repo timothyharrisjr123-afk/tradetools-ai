@@ -8,6 +8,7 @@
  */
 
 import type { CustomerVisibility } from "@/app/lib/catalogTypes";
+import { resolveTemplateLineCustomerName } from "@/app/lib/proposalCustomerFacingLabel";
 import {
   normalizeCompositionRole,
   normalizeCompositionSlotKey,
@@ -882,6 +883,8 @@ export function templateItemToLineInput(
     customerVisibility: CustomerVisibility;
     catalogItemMissing?: boolean;
     customerName?: string;
+    /** Linked Catalog item; supplies the configured name when there is no override. */
+    catalogItem?: { name?: string | null; customer_name?: string | null } | null;
     quantity?: number | null;
     quantityDisplayLabel?: string;
     quantitySourceLabel?: string | null;
@@ -905,8 +908,7 @@ export function templateItemToLineInput(
     section_id: item.section_id,
     sort_order: item.sort_order ?? 0,
     customer_name:
-      pricing.customerName ??
-      (item.customer_name_override?.trim() || item.catalog_seed_key || "Line item"),
+      pricing.customerName ?? resolveTemplateLineCustomerName(item, pricing.catalogItem),
     description: item.description_override ?? null,
     role: item.item_role,
     quantity: pricing.quantity ?? null,

@@ -18,7 +18,13 @@ type Props = {
   onSelect: (candidate: PropertySearchCandidate) => void;
   onContinueAsNew: () => void;
   showContinueAsNew: boolean;
+  /** Search truth: a failed check is never shown as "no match". */
+  searchStatus?: "idle" | "loading" | "ready" | "error";
+  onRetrySearch?: () => void;
 };
+
+export const PROPERTY_SEARCH_UNAVAILABLE =
+  "Couldn't check for existing properties." as const;
 
 function secondaryLine(c: PropertySearchCandidate): string {
   const loc = [c.city, c.state, c.zip].filter(Boolean).join(", ");
@@ -69,6 +75,8 @@ export function JobPacketPropertyCandidates({
   onSelect,
   onContinueAsNew,
   showContinueAsNew,
+  searchStatus = "ready",
+  onRetrySearch,
 }: Props) {
   if (selectedPropertyId) {
     return (
@@ -84,6 +92,26 @@ export function JobPacketPropertyCandidates({
         >
           Create new instead
         </button>
+      </div>
+    );
+  }
+
+  if (searchStatus === "error") {
+    return (
+      <div
+        className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-[11px] text-amber-800"
+        data-testid="property-search-unavailable"
+      >
+        <span>{PROPERTY_SEARCH_UNAVAILABLE}</span>
+        {onRetrySearch ? (
+          <button
+            type="button"
+            onClick={onRetrySearch}
+            className="shrink-0 py-0.5 text-[11px] font-medium text-sky-700 underline-offset-2 hover:underline"
+          >
+            Try again
+          </button>
+        ) : null}
       </div>
     );
   }

@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { JobAttachmentListItem } from "@/app/lib/jobAttachmentTypes";
 import {
-  JOB_ATTACHMENTS_UNSUPPORTED_FORMAT,
-} from "@/app/lib/jobAttachmentTypes";
+  JobAttachmentClientError,
+  resolveJobAttachmentFailureMessage,
+} from "@/app/lib/jobAttachmentErrors";
 import {
   appendReadyAttachment,
   createPendingFromFile,
@@ -111,11 +112,12 @@ export function useJobCardAttachments({
         );
         const prepareBody = await readJson(prepareRes);
         if (!prepareRes.ok || prepareBody.ok !== true) {
-          throw new Error(
-            typeof prepareBody.message === "string"
-              ? prepareBody.message
-              : JOB_ATTACHMENTS_UNSUPPORTED_FORMAT
-          );
+          throw new JobAttachmentClientError({
+            stage: "prepare",
+            status: prepareRes.status,
+            code: typeof prepareBody.code === "string" ? prepareBody.code : null,
+            message: typeof prepareBody.message === "string" ? prepareBody.message : null,
+          });
         }
         const prepared = prepareBody as unknown as PreparedUpload;
 
@@ -151,11 +153,12 @@ export function useJobCardAttachments({
         );
         const finalizeBody = await readJson(finalizeRes);
         if (!finalizeRes.ok || finalizeBody.ok !== true) {
-          throw new Error(
-            typeof finalizeBody.message === "string"
-              ? finalizeBody.message
-              : "Upload could not be completed."
-          );
+          throw new JobAttachmentClientError({
+            stage: "finalize",
+            status: finalizeRes.status,
+            code: typeof finalizeBody.code === "string" ? finalizeBody.code : null,
+            message: typeof finalizeBody.message === "string" ? finalizeBody.message : null,
+          });
         }
         const attachment = finalizeBody.attachment as JobAttachmentListItem;
         setAttachments((prev) => appendReadyAttachment(prev, attachment));
@@ -178,9 +181,9 @@ export function useJobCardAttachments({
           mergePendingUpdate(prev, localId, {
             status: "failed",
             error:
-              err instanceof Error && err.message
+              err instanceof JobAttachmentClientError
                 ? err.message
-                : "Upload failed.",
+                : resolveJobAttachmentFailureMessage({ stage: "transfer", status: null }),
           })
         );
       } finally {
@@ -234,36 +237,49 @@ export function useJobCardAttachments({
     sourceByLocalId.current.delete(localId);
   }, []);
 
+  /** Resolves false when the caption was not saved; the caller keeps the draft for retry. */
   const patchCaption = useCallback(
-    async (attachmentId: string, caption: string) => {
-      if (!jobId) return;
-      const res = await fetch(
-        `/api/jobs/${encodeURIComponent(jobId)}/attachments/${encodeURIComponent(attachmentId)}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ caption }),
-        }
-      );
-      const body = await readJson(res);
-      if (!res.ok || body.ok !== true) return;
-      const attachment = body.attachment as JobAttachmentListItem;
-      setAttachments((prev) =>
-        prev.map((row) => (row.id === attachment.id ? attachment : row))
-      );
+    async (attachmentId: string, caption: string): Promise<boolean> => {
+      if (!jobId) return false;
+      try {
+        const res = await fetch(
+          `/api/jobs/${encodeURIComponent(jobId)}/attachments/${encodeURIComponent(attachmentId)}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ caption }),
+          }
+        );
+        const body = await readJson(res);
+        if (!res.ok || body.ok !== true) return false;
+        const attachment = body.attachment as JobAttachmentListItem;
+        setAttachments((prev) =>
+          prev.map((row) => (row.id === attachment.id ? attachment : row))
+        );
+        return true;
+      } catch {
+        return false;
+      }
     },
     [jobId]
   );
 
+  /** Resolves false when the item was not removed; it stays listed. */
   const remove = useCallback(
-    async (attachmentId: string) => {
-      if (!jobId) return;
-      const res = await fetch(
-        `/api/jobs/${encodeURIComponent(jobId)}/attachments/${encodeURIComponent(attachmentId)}`,
-        { method: "DELETE" }
-      );
-      if (!res.ok) return;
-      setAttachments((prev) => prev.filter((row) => row.id !== attachmentId));
+    async (attachmentId: string): Promise<boolean> => {
+      if (!jobId) return false;
+      try {
+        const res = await fetch(
+          `/api/jobs/${encodeURIComponent(jobId)}/attachments/${encodeURIComponent(attachmentId)}`,
+          { method: "DELETE" }
+        );
+        const body = await readJson(res);
+        if (!res.ok || body.ok !== true) return false;
+        setAttachments((prev) => prev.filter((row) => row.id !== attachmentId));
+        return true;
+      } catch {
+        return false;
+      }
     },
     [jobId]
   );

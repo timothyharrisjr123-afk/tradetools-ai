@@ -26,6 +26,12 @@ import {
   validateJobAttachmentUpload,
 } from "@/app/lib/jobAttachmentValidation";
 import { isUuidLike } from "@/app/lib/uuid";
+import {
+  JOB_ATTACHMENTS_STORAGE_UNAVAILABLE,
+  JOB_ATTACHMENTS_UPLOAD_NOT_SAVED,
+  jobAttachmentResponseMessage,
+  summarizeJobAttachmentBackendError,
+} from "@/app/lib/jobAttachmentErrors";
 
 const LIST_COLUMNS =
   "id,company_id,job_id,created_by,created_at,updated_at,deleted_at,kind,mime_type,byte_size,original_filename,storage_bucket,storage_path,width_px,height_px,capture_source,job_stage_at_upload,caption,visibility,listed_in_job_gallery";
@@ -46,6 +52,10 @@ export class JobAttachmentHttpError extends Error {
 }
 
 type JobRow = { id: string; company_id: string; stage: string | null };
+
+function logJobAttachmentBackendFailure(operation: string, error: unknown) {
+  console.error("[job-attachments]", { operation, ...summarizeJobAttachmentBackendError(error) });
+}
 
 export async function loadOwnedJob(
   supabase: SupabaseClient,
@@ -152,7 +162,11 @@ export async function prepareJobAttachmentUpload(input: {
     .from(JOB_ATTACHMENTS_BUCKET)
     .createSignedUploadUrl(storagePath);
   if (error || !data?.signedUrl || !data.token) {
-    throw new JobAttachmentHttpError(500, "internal_error");
+    logJobAttachmentBackendFailure(
+      "create_signed_upload_url",
+      error ?? { message: "signed upload url missing from storage response" }
+    );
+    throw new JobAttachmentHttpError(503, "storage_unavailable", JOB_ATTACHMENTS_STORAGE_UNAVAILABLE);
   }
 
   return {
@@ -280,7 +294,8 @@ export async function finalizeJobAttachmentUpload(input: {
     .select(LIST_COLUMNS)
     .single();
   if (error || !data) {
-    throw new JobAttachmentHttpError(500, "internal_error");
+    logJobAttachmentBackendFailure("finalize_insert", error ?? { message: "insert returned no row" });
+    throw new JobAttachmentHttpError(500, "internal_error", JOB_ATTACHMENTS_UPLOAD_NOT_SAVED);
   }
 
   const row = asRecord(data as Record<string, unknown>);
@@ -403,6 +418,39 @@ export async function softDeleteJobAttachment(input: {
     .maybeSingle();
   if (error) throw new JobAttachmentHttpError(500, "internal_error");
   if (!data) throw new JobAttachmentHttpError(404, "not_found");
+}
+
+/**
+ * Route error body: stable code + contractor-safe message. Unexpected errors are
+ * logged server-side (summarized) and never echoed to the client.
+ */
+export function jobAttachmentErrorBody(
+  error: unknown,
+  operation: string
+): { status: number; body: { ok: false; code: string; message: string } } {
+  if (error instanceof JobAttachmentHttpError) {
+    return {
+      status: error.status,
+      body: {
+        ok: false,
+        code: error.code,
+        message: jobAttachmentResponseMessage({
+          status: error.status,
+          code: error.code,
+          message: error.message,
+        }),
+      },
+    };
+  }
+  logJobAttachmentBackendFailure(operation, error);
+  return {
+    status: 500,
+    body: {
+      ok: false,
+      code: "internal_error",
+      message: jobAttachmentResponseMessage({ status: 500, code: "internal_error" }),
+    },
+  };
 }
 
 export { JOB_ATTACHMENT_SIGNED_UPLOAD_SECONDS };

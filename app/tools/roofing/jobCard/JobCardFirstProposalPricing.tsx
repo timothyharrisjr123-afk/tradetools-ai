@@ -6,6 +6,7 @@ import {
   FIRST_PROPOSAL_PRICING_TITLE,
   FIRST_PROPOSAL_PRICES_REQUIRED,
   type FirstProposalPricingLine,
+  countFirstProposalPricesStillNeeded,
   formatCentsAsDollarInput,
 } from "@/app/lib/firstProposalPrepare";
 
@@ -33,7 +34,7 @@ export default function JobCardFirstProposalPricing({
 }: JobCardFirstProposalPricingProps) {
   if (lines.length === 0) return null;
 
-  const missingCount = lines.filter((line) => line.needsPrice).length;
+  const missingCount = countFirstProposalPricesStillNeeded(lines, draftPrices);
 
   return (
     <section
@@ -70,6 +71,14 @@ export default function JobCardFirstProposalPricing({
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-medium text-slate-900">{line.name}</div>
                 <div className="text-xs text-slate-500">per {line.unitLabel}</div>
+                {line.unitMismatchNote ? (
+                  <div
+                    className="mt-0.5 text-xs leading-snug text-amber-800"
+                    data-first-proposal-unit-mismatch={line.catalogItemId}
+                  >
+                    {line.unitMismatchNote}
+                  </div>
+                ) : null}
                 {showMissing ? (
                   <div className="mt-0.5 text-xs text-slate-500">
                     {FIRST_PROPOSAL_PRICE_THIS_ITEM}

@@ -11,6 +11,7 @@ import {
   type CatalogItem,
 } from "@/app/lib/catalogTypes";
 import type { ProposalTemplateGraph } from "@/app/lib/proposalTemplateStore";
+import { resolveTemplateLineCustomerName } from "@/app/lib/proposalCustomerFacingLabel";
 import type {
   ProposalTemplateItem,
   ProposalTemplateSection,
@@ -110,15 +111,7 @@ function resolveLineDisplayName(
   templateItem: ProposalTemplateItem,
   catalog: CatalogItem | null | undefined
 ): string {
-  const override = (templateItem.customer_name_override ?? "").trim();
-  if (override) return override;
-  const customer = (catalog?.customer_name ?? "").trim();
-  if (customer) return customer;
-  const name = (catalog?.name ?? "").trim();
-  if (name) return name;
-  const seed = (templateItem.catalog_seed_key ?? "").trim();
-  if (seed) return seed;
-  return "Line item";
+  return resolveTemplateLineCustomerName(templateItem, catalog);
 }
 
 export function buildLinePreviewRow(

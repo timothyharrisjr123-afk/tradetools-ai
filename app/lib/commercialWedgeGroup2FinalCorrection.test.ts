@@ -35,10 +35,11 @@ describe("blank company — no Pricing Settings detour", () => {
 
   test("missing policy is handled in Prepare via canonical resolve + upsert", () => {
     const hook = read("app/tools/roofing/jobCard/useJobCardPrepareProposal.ts");
-    assert.match(hook, /getResolvedCompanyPricingPolicy/);
+    // Core Flow 1 / Slice 1: the read is a discriminated result so a failed read is never "not configured".
+    assert.match(hook, /loadResolvedCompanyPricingPolicy/);
     assert.match(hook, /upsertCompanyPricingPolicy/);
     assert.match(hook, /showFirstProposalPricingRules/);
-    assert.match(hook, /pricingPolicyConfigured === true/);
+    assert.match(hook, /pricingPolicyStatus !== "not_configured"/);
     assert.equal(
       resolveShowFirstProposalPricingRules(
         resolveCompanyPricingPolicy({ storedPolicy: null })
@@ -127,7 +128,7 @@ describe("policy state matrix at Prepare", () => {
 describe("canonical write + overwrite guards", () => {
   test("contextual build uses upsert path only when not already configured", () => {
     const hook = read("app/tools/roofing/jobCard/useJobCardPrepareProposal.ts");
-    assert.match(hook, /pricingPolicyConfigured === true/);
+    assert.match(hook, /pricingPolicyStatus !== "not_configured"/);
     assert.match(hook, /upsertCompanyPricingPolicy\(cid, built\.policy\)/);
     assert.match(hook, /onConflict:\s*"company_id"|upsertCompanyPricingPolicy/);
   });
@@ -137,11 +138,12 @@ describe("canonical write + overwrite guards", () => {
     assert.match(store, /upsert\(row,\s*\{\s*onConflict:\s*"company_id"\s*\}\)/);
   });
 
-  test("save path refuses upsert when policy already configured", () => {
+  test("save path refuses upsert unless the policy read succeeded as not configured", () => {
     const hook = read("app/tools/roofing/jobCard/useJobCardPrepareProposal.ts");
+    // Configured, loading, and failed reads all return before any write.
     assert.match(
       hook,
-      /pricingPolicyConfigured === true[\s\S]*?return;[\s\S]*?upsertCompanyPricingPolicy/
+      /pricingPolicyStatus !== "not_configured"[\s\S]*?return;[\s\S]*?upsertCompanyPricingPolicy/
     );
   });
 });

@@ -827,6 +827,7 @@ export function buildDraftInstantiateInputFromPreview(params: {
           engineStatus: priced.status,
           customerVisibility: line.customerVisibility,
           catalogItemMissing: isMissingCatalogLine(line.itemType),
+          catalogItem: catalog ?? null,
           quantity: line.quantity,
           quantityDisplayLabel: qtyPreview.quantityDisplayLabel,
           quantitySourceLabel: qtyPreview.sourceLabel ?? null,

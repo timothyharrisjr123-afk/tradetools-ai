@@ -13,7 +13,13 @@ type Props = {
   onSelect: (candidate: CustomerSearchCandidate) => void;
   onContinueAsNew: () => void;
   showContinueAsNew: boolean;
+  /** Search truth: a failed check is never shown as "no match". */
+  searchStatus?: "idle" | "loading" | "ready" | "error";
+  onRetrySearch?: () => void;
 };
+
+export const CUSTOMER_SEARCH_UNAVAILABLE =
+  "Couldn't check for existing customers." as const;
 
 function secondaryLine(c: CustomerSearchCandidate): string {
   return [c.email, c.phone].filter(Boolean).join(" · ");
@@ -29,6 +35,8 @@ export function JobPacketCustomerCandidates({
   onSelect,
   onContinueAsNew,
   showContinueAsNew,
+  searchStatus = "ready",
+  onRetrySearch,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
   const { visible, hiddenCount } = partitionCustomerCandidates(candidates, expanded);
@@ -47,6 +55,26 @@ export function JobPacketCustomerCandidates({
         >
           Continue as new instead
         </button>
+      </div>
+    );
+  }
+
+  if (searchStatus === "error") {
+    return (
+      <div
+        className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-[11px] text-amber-800"
+        data-testid="customer-search-unavailable"
+      >
+        <span>{CUSTOMER_SEARCH_UNAVAILABLE}</span>
+        {onRetrySearch ? (
+          <button
+            type="button"
+            onClick={onRetrySearch}
+            className="shrink-0 py-0.5 text-[11px] font-medium text-sky-700 underline-offset-2 hover:underline"
+          >
+            Try again
+          </button>
+        ) : null}
       </div>
     );
   }
