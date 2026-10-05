@@ -18,7 +18,16 @@ import {
   mapDispositionMutationError,
   visibleDispositionLabel,
 } from "@/app/lib/jobDispositionManagement";
-import { formatMeasurementQuantityLine } from "@/app/lib/jobCardMeasurementPresentation";
+import {
+  formatMeasurementCapturedOn,
+  formatMeasurementQuantityLine,
+} from "@/app/lib/jobCardMeasurementPresentation";
+import {
+  CURRENT_JOB_PROPOSAL_PATH,
+  resolveJobCardNextStep,
+  type JobCardNextStepCommand,
+} from "@/app/lib/jobCardNextStep";
+import { buildJobCardStageProgress } from "@/app/lib/jobCardStageProgress";
 import {
   pickMeasurementProposalRefs,
   resolveMeasurementProposalBinding,
@@ -144,6 +153,7 @@ import {
 } from "@/app/lib/jobCardOverviewPresentation";
 import JobCardFieldBrief from "@/app/tools/roofing/jobCard/JobCardFieldBrief";
 import JobCardForwardLifecycleAction from "@/app/tools/roofing/jobCard/JobCardForwardLifecycleAction";
+import JobCardNextStepActions from "@/app/tools/roofing/jobCard/JobCardNextStepActions";
 import JobCardScheduleSection from "@/app/tools/roofing/jobCard/JobCardScheduleSection";
 import JobCardCloseoutSummary from "@/app/tools/roofing/jobCard/JobCardCloseoutSummary";
 import { buildJobCardCloseoutViewModel } from "@/app/lib/jobCardCloseoutViewModel";
@@ -316,6 +326,7 @@ export default function JobCardClient({
     createInitialProposalAcceptanceReadState
   );
   const [acceptanceReadAttempt, setAcceptanceReadAttempt] = useState(0);
+  const [proposalListReadAttempt, setProposalListReadAttempt] = useState(0);
   const [jobSignedProposalIds, setJobSignedProposalIds] = useState<
     Record<string, boolean>
   >({});
@@ -583,6 +594,7 @@ export default function JobCardClient({
     companyId,
     currentJobId,
     hydratedJobRecord?.active_proposal_id,
+    proposalListReadAttempt,
   ]);
 
   useEffect(() => {
@@ -972,6 +984,89 @@ export default function JobCardClient({
     suppressCommercial,
   });
 
+  const overviewNextStep = resolveJobCardNextStep({
+    situationKind: overviewSituation.kind,
+    jobRead: hydratedJobRecord
+      ? "ready"
+      : jobHydrateStatus === "unavailable"
+        ? "error"
+        : "loading",
+    lifecyclePrimary: overviewPrimary,
+    proposalPath: CURRENT_JOB_PROPOSAL_PATH,
+    measurement: !prepare.measurementsReadSettled ||
+      (prepare.measurementsLoadFailed && prepare.loadingMeasurements && !prepare.selected)
+      ? { status: "loading" }
+      : prepare.selected
+        ? prepare.proposalHandoff?.proposalReady
+          ? {
+              status: "ready",
+              quantityLine: formatMeasurementQuantityLine(prepare.selected),
+              savedOn: formatMeasurementCapturedOn(
+                prepare.selected.updated_at ?? prepare.selected.created_at
+              ),
+            }
+          : {
+              status: "incomplete",
+              quantityLine: formatMeasurementQuantityLine(prepare.selected),
+              editable: prepare.selected.source_type === "manual",
+            }
+        : prepare.measurementsLoadFailed
+          ? { status: "error" }
+          : prepare.records.length > 0
+            ? { status: "not_current" }
+            : { status: "none" },
+    proposalsRead:
+      listedJobDraftStatus === "error" && listedJobDraftSummaries.length === 0
+        ? "error"
+        : proposalListSettled
+          ? "ready"
+          : "loading",
+    draft:
+      currentJobId && listedJobDraftProposalId
+        ? {
+            previewHref: buildProposalPreviewHref(currentJobId, listedJobDraftProposalId),
+            builderHref: buildProposalBuilderHref(currentJobId, listedJobDraftProposalId),
+          }
+        : null,
+    canAuthorProposals: allowAddProposal,
+    suppressCommercial,
+  });
+  const runNextStepCommand = (command: JobCardNextStepCommand) => {
+    switch (command.type) {
+      case "open_measurement_capture":
+        setJobCardTab(command.workspace);
+        prepare.openCapture("tab", command.mode);
+        return;
+      case "open_prepare_proposal":
+        prepare.openModal();
+        return;
+      case "open_workspace":
+        setJobCardTab(command.tab);
+        return;
+      case "navigate":
+        router.push(command.href);
+        return;
+      case "retry":
+        if (command.read === "job") setRestoreTick((n) => n + 1);
+        if (command.read === "measurements") void prepare.reloadMeasurements();
+        if (command.read === "proposals") {
+          setListedJobDraftStatus("loading");
+          setProposalListReadAttempt((n) => n + 1);
+        }
+        if (command.read === "proposal_facts") {
+          setAcceptanceReadAttempt((n) => n + 1);
+          void reloadAttention();
+        }
+        return;
+    }
+  };
+  const headerStageProgress = hydratedJobRecord
+    ? buildJobCardStageProgress({
+        stage: canonicalJobStage,
+        disposition: hydratedJobRecord.status ?? null,
+      })
+    : null;
+
   const display: JobCardDisplayModel = {
     customerName: identity.displayName,
     address: identity.addressLine,
@@ -1046,9 +1141,10 @@ export default function JobCardClient({
     accessNotes: jobCardSchedule.active?.notes ?? null,
     authorizedChangeSummaries,
     pendingProposedSummaries,
-    measurementSummary: prepare.selected
-      ? formatMeasurementQuantityLine(prepare.selected)
-      : null,
+    measurementSummary:
+      prepare.selected && !overviewNextStep.contextShowsMeasurement
+        ? formatMeasurementQuantityLine(prepare.selected)
+        : null,
     tasks: jobTasks.tasks.map((task) => ({
       id: task.id,
       title: task.title,
@@ -1367,6 +1463,7 @@ export default function JobCardClient({
           <div className="min-w-0 overflow-x-hidden border-y border-slate-200/80 bg-white sm:rounded-lg sm:border sm:shadow-[0_1px_3px_rgba(15,23,42,0.06)]">
             <JobCardHeader
               display={display}
+              progress={headerStageProgress}
               isBoardOrigin={jobCardBoardOrigin}
               phone={identity.phone}
               email={identity.email}
@@ -1645,6 +1742,7 @@ export default function JobCardClient({
                       </div>
                     ) : null}
                     suppressCommercial={suppressCommercial}
+                    nextStep={overviewNextStep}
                     primaryAction={
                       overviewPrimary ? (
                         <div className="hidden min-[1200px]:block">
@@ -1660,7 +1758,12 @@ export default function JobCardClient({
                             {...primaryActionHandlers}
                           />
                         </div>
-                      ) : null
+                      ) : (
+                        <JobCardNextStepActions
+                          step={overviewNextStep}
+                          onCommand={runNextStepCommand}
+                        />
+                      )
                     }
                     fieldBrief={
                       <JobCardFieldBrief

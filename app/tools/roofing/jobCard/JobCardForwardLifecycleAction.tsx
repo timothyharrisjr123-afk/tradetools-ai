@@ -13,9 +13,7 @@ import type {
   JobCardOverviewPrimaryKind,
 } from "@/app/lib/jobCardForwardLifecycleAction";
 import { useStickyActionYield } from "@/app/lib/stickyActionYield";
-
-const PRIMARY_BUTTON =
-  "inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 sm:w-auto";
+import { OVERVIEW_PRIMARY_ACTION as PRIMARY_BUTTON } from "./jobCardOverviewStyles";
 
 const ACTION_ICONS: Partial<Record<JobCardOverviewPrimaryKind, LucideIcon>> = {
   approve_job: Check,

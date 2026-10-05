@@ -2,23 +2,15 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { CalendarDays, Hammer, Mail, MapPin, Phone, type LucideIcon } from "lucide-react";
+import { Mail, MapPin, Phone } from "lucide-react";
+import type { JobCardStageProgress as JobCardStageProgressModel } from "@/app/lib/jobCardStageProgress";
 import type { JobCardDisplayModel } from "./jobCardDisplayTypes";
-
-/** Stage color is contextual: only the active work stages are tinted. */
-function stageChipLook(label: string): { className: string; Icon: LucideIcon | null } {
-  const value = label.trim().toLowerCase();
-  if (value.includes("scheduled")) {
-    return { className: "bg-blue-50 text-blue-700 ring-1 ring-blue-100", Icon: CalendarDays };
-  }
-  if (value.includes("production")) {
-    return { className: "bg-blue-50 text-blue-700 ring-1 ring-blue-100", Icon: Hammer };
-  }
-  return { className: "bg-slate-100 text-slate-800", Icon: null };
-}
+import JobCardStageProgress from "./JobCardStageProgress";
 
 type JobCardHeaderProps = {
   display: JobCardDisplayModel;
+  /** Informational stage strip; null while the stage is unknown. */
+  progress?: JobCardStageProgressModel | null;
   isBoardOrigin: boolean;
   phone?: string;
   email?: string;
@@ -31,6 +23,7 @@ type JobCardHeaderProps = {
 
 export default function JobCardHeader({
   display,
+  progress = null,
   isBoardOrigin,
   phone = "",
   email = "",
@@ -45,7 +38,6 @@ export default function JobCardHeader({
   const backLabel = "Back to Jobs";
   const phoneValue = phone.trim();
   const emailValue = email.trim();
-  const stageChip = stageChipLook(display.stageLabel);
 
   return (
     <header className="border-b border-slate-200/80 bg-white px-4 pb-4 pt-3 sm:px-6">
@@ -113,13 +105,6 @@ export default function JobCardHeader({
 
         <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
           <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-            <span
-              className={`inline-flex min-h-[36px] items-center gap-2 rounded-lg px-3.5 text-sm font-semibold ${stageChip.className}`}
-              data-jobcard-stage={display.stageLabel}
-            >
-              {stageChip.Icon ? <stageChip.Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden /> : null}
-              {display.stageLabel}
-            </span>
             {display.dispositionLabel ? (
               <span
                 className="inline-flex min-h-[36px] items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600"
@@ -146,6 +131,20 @@ export default function JobCardHeader({
             </p>
           ) : null}
         </div>
+      </div>
+
+      <div className="mt-4 max-w-2xl">
+        {progress ? (
+          <JobCardStageProgress progress={progress} />
+        ) : (
+          <p className="text-[13px] text-slate-500" data-jobcard-stage={display.stageLabel}>
+            {display.stageLabel === "Loading"
+              ? "Checking stage…"
+              : display.stageLabel === "Unavailable"
+                ? "Stage unavailable"
+                : display.stageLabel}
+          </p>
+        )}
       </div>
     </header>
   );

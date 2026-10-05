@@ -120,6 +120,7 @@ export function useJobCardPrepareProposal({
   const [selected, setSelected] = useState<MeasurementRecord | null>(null);
   const [loadingMeasurements, setLoadingMeasurements] = useState(false);
   const [measurementsLoadFailed, setMeasurementsLoadFailed] = useState(false);
+  const [measurementsSettledJobId, setMeasurementsSettledJobId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [templates, setTemplates] = useState<ProposalTemplate[]>([]);
   const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
@@ -204,6 +205,7 @@ export function useJobCardPrepareProposal({
       setMeasurementsLoadFailed(true);
     } finally {
       setLoadingMeasurements(false);
+      setMeasurementsSettledJobId(jid);
     }
   }, [jid, selectedMeasurementId]);
 
@@ -864,6 +866,8 @@ export function useJobCardPrepareProposal({
     selectedId: selected?.id ?? null,
     loadingMeasurements,
     measurementsLoadFailed,
+    /** A read for the current job has finished at least once (success or failure). */
+    measurementsReadSettled: Boolean(jid) && measurementsSettledJobId === jid,
     measurementLoadState,
     reloadMeasurements,
     modalOpen,

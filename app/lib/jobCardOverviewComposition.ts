@@ -142,7 +142,8 @@ export function buildJobCardOverviewComposition(
     briefShowsScheduleLead:
       !NO_SCOPE_KINDS.has(kind) || input.productionLeadLabel !== "Unassigned" || Boolean(input.crew?.present),
     briefShowsPlanned: !COMPLETE_KINDS.has(kind),
-    showAuthorizedWork: !NO_SCOPE_KINDS.has(kind),
+    /** An unresolved stage has proven nothing about authorized work. */
+    showAuthorizedWork: !NO_SCOPE_KINDS.has(kind) && kind !== "loading",
     authorizedWorkHeading:
       kind === "accepted_awaiting_approval"
         ? JOB_CARD_OVERVIEW_ACCEPTED_WORK_HEADING

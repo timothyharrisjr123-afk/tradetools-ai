@@ -267,17 +267,17 @@ export default function JobCardFieldBrief({
           </span>
           <OverviewGroup enabled>
             <h3 className={OVERVIEW_CARD_HEADING}>Site</h3>
+            <p className="text-sm text-slate-600 [overflow-wrap:anywhere]" data-field-brief-site-address>
+              {contact.addressLine || "No service address on file"}
+            </p>
             {authorizedWork.measurementSummary ? (
-              <p className="text-sm text-slate-600">Measurement · {authorizedWork.measurementSummary}</p>
+              <p className="text-sm text-slate-600" data-field-brief-site-measurement>
+                Measurement · {authorizedWork.measurementSummary}
+              </p>
             ) : null}
             {authorizedWork.accessNotes ? (
               <p className="text-sm text-slate-600 [overflow-wrap:anywhere]" data-field-brief-access-notes>
                 {authorizedWork.accessNotes}
-              </p>
-            ) : null}
-            {!authorizedWork.measurementSummary && !authorizedWork.accessNotes ? (
-              <p className="text-sm text-slate-500 [overflow-wrap:anywhere]">
-                {contact.addressLine || "No service address on file"}
               </p>
             ) : null}
           </OverviewGroup>

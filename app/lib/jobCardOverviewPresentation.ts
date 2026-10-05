@@ -16,6 +16,7 @@ export type JobCardOverviewHeroIcon =
   | "accepted"
   | "proposal"
   | "intake"
+  | "measurement"
   | "hold"
   | "closed"
   | "complete"

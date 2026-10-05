@@ -34,6 +34,9 @@ export const OVERVIEW_SOFT_ACTION =
   "inline-flex min-h-[40px] shrink-0 items-center justify-center gap-1.5 rounded-lg bg-blue-50 px-3.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50";
 export const OVERVIEW_NEUTRAL_ACTION =
   "inline-flex min-h-[40px] shrink-0 items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/50";
+/** The Overview's one primary action (lifecycle or next step): one style for both. */
+export const OVERVIEW_PRIMARY_ACTION =
+  "inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 sm:w-auto";
 /** Quiet text action on a card (Show, See all activity). */
 export const OVERVIEW_TEXT_ACTION =
   "inline-flex min-h-[40px] shrink-0 items-center gap-1 rounded-lg px-2.5 text-sm font-medium text-blue-600 transition hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40";

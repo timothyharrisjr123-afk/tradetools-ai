@@ -12,6 +12,7 @@ import {
   FileCheck,
   FileText,
   Hammer,
+  Ruler,
   type LucideIcon,
 } from "lucide-react";
 import { SURFACE_TONED } from "@/app/components/ui/surfaceStyles";
@@ -19,6 +20,7 @@ import type {
   JobCardOverviewFactKey,
   JobCardOverviewStateView,
 } from "@/app/lib/jobCardOverviewComposition";
+import { jobCardNextStepHeroCopy, type JobCardNextStep } from "@/app/lib/jobCardNextStep";
 import {
   jobCardOverviewHeroLook,
   type JobCardOverviewHeroIcon,
@@ -41,6 +43,7 @@ const HERO_ICONS: Record<JobCardOverviewHeroIcon, LucideIcon> = {
   accepted: FileCheck,
   proposal: FileText,
   intake: ClipboardList,
+  measurement: Ruler,
   hold: CirclePause,
   closed: Archive,
   complete: CircleCheckBig,
@@ -101,28 +104,57 @@ function HeroTimeline({ entries }: { entries: readonly JobCardOverviewTimelineEn
   );
 }
 
+/** Loading never shows business copy: a quiet shape until the next step is known. */
+function HeroSkeleton() {
+  return (
+    <section
+      data-jobcard-overview-situation
+      data-jobcard-overview-kind="loading"
+      data-jobcard-next-step="loading"
+      aria-busy="true"
+      className={`rounded-2xl border px-5 py-5 sm:px-6 ${HERO_SURFACE.quiet}`}
+    >
+      <span className="sr-only">Loading this job…</span>
+      <div className="flex items-start gap-4 motion-safe:animate-pulse" aria-hidden>
+        <span className="h-12 w-12 shrink-0 rounded-full bg-slate-200/80" />
+        <div className="min-w-0 flex-1 space-y-2.5 pt-1">
+          <span className="block h-5 w-56 max-w-full rounded bg-slate-200/80" />
+          <span className="block h-4 w-72 max-w-full rounded bg-slate-200/60" />
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function StateHero({
   state,
+  nextStep,
   stateFactActions,
   timeline,
   primaryAction,
 }: {
-  state: JobCardOverviewStateView;
+  state: JobCardOverviewStateView | null;
+  nextStep: JobCardNextStep | null;
   stateFactActions: Partial<Record<JobCardOverviewFactKey, ReactNode>>;
   timeline: readonly JobCardOverviewTimelineEntry[];
   primaryAction: ReactNode;
 }) {
-  const look = jobCardOverviewHeroLook(state.kind);
+  const copy = jobCardNextStepHeroCopy(state, nextStep);
+  if (!copy) return null;
+  const look = nextStep?.look ?? jobCardOverviewHeroLook(state?.kind ?? "loading");
   const Icon = HERO_ICONS[look.icon];
-  const facts = state.facts.filter((fact) => !PEOPLE_FACTS.has(fact.key));
+  const facts = (state?.facts ?? []).filter((fact) => !PEOPLE_FACTS.has(fact.key));
   const planned = facts.find((fact) => fact.key === "planned") ?? null;
   const others = facts.filter((fact) => fact.key !== "planned");
 
   return (
     <section
       data-jobcard-overview-situation
-      data-jobcard-overview-kind={state.kind}
+      data-jobcard-overview-kind={state?.kind ?? "loading"}
       data-jobcard-overview-hero={look.tone}
+      data-jobcard-next-step={nextStep?.kind}
+      data-jobcard-next-step-reason={nextStep?.reason}
+      aria-live={nextStep?.status === "error" ? "polite" : undefined}
       className={`rounded-2xl border px-5 py-5 sm:px-6 ${HERO_SURFACE[look.tone]}`}
     >
       <div className="flex flex-col gap-5 md:flex-row md:items-center md:gap-8">
@@ -138,7 +170,7 @@ function StateHero({
               className="text-xl font-bold leading-tight tracking-tight text-slate-950 [overflow-wrap:anywhere]"
               data-jobcard-overview-state-title
             >
-              {state.title}
+              {copy.title}
             </h3>
             {planned ? (
               <div data-jobcard-overview-fact="planned">
@@ -162,8 +194,8 @@ function StateHero({
                 {stateFactActions[fact.key] ?? null}
               </div>
             ))}
-            {state.notes.map((note) => (
-              <p key={note} className="text-sm leading-snug text-slate-600">
+            {copy.notes.map((note) => (
+              <p key={note} className="text-sm leading-snug text-slate-600" data-jobcard-overview-state-note>
                 {note}
               </p>
             ))}
@@ -212,6 +244,8 @@ type JobCardOverviewSummaryProps = {
   timeline?: readonly JobCardOverviewTimelineEntry[];
   /** Operational layout: the paired Coordinator + Crew row under the hero. */
   people?: ReactNode;
+  /** Operational layout: derived next step (copy, look, loading/error) for the hero. */
+  nextStep?: JobCardNextStep | null;
 };
 
 function DetailRow({ label, text }: { label: string; text: ReactNode }) {
@@ -238,6 +272,7 @@ export default function JobCardOverviewSummary({
   operationalLayout = false,
   timeline = [],
   people = null,
+  nextStep = null,
 }: JobCardOverviewSummaryProps) {
   const showMoney = !suppressCommercial && Boolean(financialSummary || paymentStatusLabel);
   const detailRows = fieldBrief
@@ -256,10 +291,13 @@ export default function JobCardOverviewSummary({
       <div className="space-y-3" data-jobcard-overview-truth data-jobcard-overview-layout="operational">
         {leadingSection}
 
-        {/* 1. Current situation hero: state, timing, dated timeline, next lifecycle action */}
-        {state ? (
+        {/* 1. Current situation hero: state, next step or lifecycle action, dated timeline */}
+        {nextStep?.status === "loading" ? (
+          <HeroSkeleton />
+        ) : state || nextStep?.title ? (
           <StateHero
             state={state}
+            nextStep={nextStep}
             stateFactActions={stateFactActions}
             timeline={timeline}
             primaryAction={primaryAction}
@@ -270,29 +308,41 @@ export default function JobCardOverviewSummary({
           </section>
         ) : null}
 
-        {/* 2. Coordinator + Crew: related, separate */}
-        {people}
+        {/* Wide screens: the work leads, recent activity supports it alongside */}
+        <div
+          className={
+            recentActivitySummary
+              ? "space-y-3 min-[1200px]:grid min-[1200px]:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)] min-[1200px]:items-start min-[1200px]:gap-3 min-[1200px]:space-y-0"
+              : "space-y-3"
+          }
+          data-jobcard-overview-body
+        >
+          <div className="min-w-0 space-y-3">
+            {/* 2. Coordinator + Crew: related, separate */}
+            {people}
 
-        {/* 3. Authorized work and the Field Brief */}
-        {fieldBrief ? (
-          <section data-jobcard-overview-brief className="min-w-0">
-            {fieldBrief}
-          </section>
-        ) : null}
+            {/* 3. Authorized work and the Field Brief */}
+            {fieldBrief ? (
+              <section data-jobcard-overview-brief className="min-w-0">
+                {fieldBrief}
+              </section>
+            ) : null}
 
-        {showMoney ? (
-          <section data-jobcard-overview-financial className="px-1">
-            <h3 className="sr-only">Payments</h3>
-            {financialSummary ?? (
-              <p className="text-sm text-slate-700" data-jobcard-overview-payment>
-                {paymentStatusLabel}
-              </p>
-            )}
-          </section>
-        ) : null}
+            {showMoney ? (
+              <section data-jobcard-overview-financial className="px-1">
+                <h3 className="sr-only">Payments</h3>
+                {financialSummary ?? (
+                  <p className="text-sm text-slate-700" data-jobcard-overview-payment>
+                    {paymentStatusLabel}
+                  </p>
+                )}
+              </section>
+            ) : null}
+          </div>
 
-        {/* 4. Recent activity, collapsed; Activity stays the full history */}
-        {recentActivitySummary}
+          {/* 4. Recent activity, collapsed; Activity stays the full history */}
+          {recentActivitySummary ? <div className="min-w-0">{recentActivitySummary}</div> : null}
+        </div>
       </div>
     );
   }
